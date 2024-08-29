@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+{% load static %}
+{% load django_vite %}
+
+<html>
+    <head>
+        <title>Title</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        {% vite_hmr_client %}
+        {% vite_asset './src/main.js' %}
+        {% block head %}
+        {% endblock %}
+    </head>
+    <body>
+        <div>
+        <div class="mx-auto px-8 py-8">
+            {% block content %}
+            {% endblock %}
+        </div>
+        {% block scripts%}
+        {% endblock %}
+        </div>
+    </body>
+</html>

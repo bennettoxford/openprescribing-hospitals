@@ -1,0 +1,13 @@
+asgiref==3.8.1
+dj-database-url==2.2.0
+Django==5.1
+django-appconf==1.0.6
+django-browser-reload==1.15.0
+django-vite==3.0.4
+environs==11.0.0
+marshmallow==3.22.0
+packaging==24.1
+python-dotenv==1.0.1
+sqlparse==0.5.1
+typing_extensions==4.12.2
+tzdata==2024.1
