@@ -16,9 +16,10 @@ export default defineConfig({
     outDir: "assets/assets",
     rollupOptions: {
       input: {
-        'my-component': "./src/Component.svelte",
+        'search-box': "./src/Search.svelte",
       }
     }
+  },
   },
  
 })
