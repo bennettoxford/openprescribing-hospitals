@@ -4,12 +4,16 @@
 
 {% block head %}
     {% vite_asset './src/Search.svelte' %}
+    {% vite_asset './src/TimeSeriesChart.svelte' %}
 {% endblock %}
 
 {% block content %}
 <div class="bg-gray-100 min-h-screen">
     <div class="max-w-4xl mx-auto px-4 py-12">
         <search-box></search-box>
+        <div class="mt-8">
+            <time-series-chart></time-series-chart>
+        </div>
     </div>
 </div>
 {% endblock %}
