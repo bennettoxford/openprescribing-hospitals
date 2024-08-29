@@ -17,9 +17,10 @@ export default defineConfig({
     rollupOptions: {
       input: {
         'search-box': "./src/Search.svelte",
+        'time-series-chart': "./src/TimeSeriesChart.svelte",
+        'searchable-dropdown': "./src/SearchableDropdown.svelte",
+        'data-table': "./src/DataTable.svelte", // Add this line
       }
     }
   },
-  },
- 
 })
