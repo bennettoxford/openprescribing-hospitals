@@ -5,6 +5,7 @@
 {% block head %}
     {% vite_asset './src/Search.svelte' %}
     {% vite_asset './src/TimeSeriesChart.svelte' %}
+    {% vite_asset './src/SearchableDropdown.svelte' %}
 {% endblock %}
 
 {% block content %}
@@ -13,6 +14,9 @@
         <search-box></search-box>
         <div class="mt-8">
             <time-series-chart></time-series-chart>
+        </div>
+        <div class="mt-8">
+            <searchable-dropdown></searchable-dropdown>
         </div>
     </div>
 </div>
