@@ -3,7 +3,7 @@ from django.views.generic import TemplateView
 from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Dose, Organisation, VMP, SCMD, IngredientQuantity
+from .models import Dose, Organisation, VMP, SCMD, IngredientQuantity, Ingredient, VTM
 from .serializers import DoseSerializer, OrganisationSerializer, VMPSerializer, SCMDSerializer, IngredientQuantitySerializer
 import json
 
@@ -39,6 +39,16 @@ def unique_vmp_names(request):
 def unique_ods_names(request):
     ods_names = Organisation.objects.values_list('ods_name', flat=True).distinct().order_by('ods_name')
     return Response(list(ods_names))
+
+@api_view(['GET'])
+def unique_ingredient_names(request):
+    ingredient_names = Ingredient.objects.values_list('name', flat=True).distinct().order_by('name')
+    return Response(list(ingredient_names))
+
+@api_view(['GET'])
+def unique_vtm_names(request):
+    vtm_names = VTM.objects.values_list('name', flat=True).distinct().order_by('name')
+    return Response(list(vtm_names))
 
 @api_view(['POST'])
 def filtered_doses(request):
