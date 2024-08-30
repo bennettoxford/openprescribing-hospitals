@@ -23,31 +23,47 @@
         vmpNames = await response.json();
     }
 
-    function runAnalysis() {
+    async function fetchODSNames() {
+        const response = await fetch('/api/unique-ods-names/');
+        odsNames = await response.json();
+    }
+
+    async function runAnalysis() {
         console.log("Run Analysis button clicked");
         isAnalysisRunning = true;
-        // Filter the data based on selected VMPs and ODS
-        fetch('/api/doses/')
-            .then(response => response.json())
-            .then(data => {
-                filteredData = data.filter(item => 
-                    (selectedVMPs.length === 0 || selectedVMPs.includes(item.vmp_name)) &&
-                    (selectedODS.length === 0 || selectedODS.includes(item.ods_name))
-                );
-                
-                console.log("Filtered data:", filteredData);
-                
-                // Update the results box with the filtered data
-                if (resultsBox) {
-                    console.log("Updating ResultsBox with filtered data");
-                    resultsBox.dispatchEvent(new CustomEvent('updateData', { detail: filteredData }));
-                } else {
-                    console.error("ResultsBox not found");
-                }
-                
-                isAnalysisRunning = false;
-                console.log("Analysis completed");
+        
+        try {
+            const response = await fetch('/api/filtered-doses/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    vmp_names: selectedVMPs,
+                    ods_names: selectedODS
+                })
             });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            filteredData = await response.json();
+            console.log("Filtered data:", filteredData);
+            
+            // Update the results box with the filtered data
+            if (resultsBox) {
+                console.log("Updating ResultsBox with filtered data");
+                resultsBox.dispatchEvent(new CustomEvent('updateData', { detail: filteredData }));
+            } else {
+                console.error("ResultsBox not found");
+            }
+        } catch (error) {
+            console.error("Error fetching filtered data:", error);
+        } finally {
+            isAnalysisRunning = false;
+            console.log("Analysis completed");
+        }
     }
 
     function handleVMPSelection(event) {
@@ -62,11 +78,7 @@
 
     onMount(async () => {
         await fetchVMPNames();
-        
-        // Extract unique ODS names
-        const response = await fetch('/api/doses/');
-        const data = await response.json();
-        odsNames = [...new Set(data.map(item => item.ods_name))];
+        await fetchODSNames();
 
         resultsBox = document.querySelector('results-box');
         if (resultsBox) {

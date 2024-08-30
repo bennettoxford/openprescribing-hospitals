@@ -17,27 +17,36 @@
     onMount(() => {
         console.log("DataTable onMount called");
     });
+
+    // Define the order of columns
+    const columnOrder = [
+        'year_month', 'vmp_code', 'vmp_name', 'ods_code', 'ods_name', 'SCMD_quantity',
+        'SCMD_quantity_basis', 'dose_quantity', 'converted_udfs', 'udfs_basis', 'dose_unit', 'df_ind'
+    ];
+
+    // Function to format column headers
+    function formatHeader(header) {
+        return header.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    }
 </script>
 
 <div class="overflow-x-auto">
     <table class="min-w-full bg-white">
         <thead>
             <tr>
-                {#if tableData.length > 0}
-                    {#each Object.keys(tableData[0]) as header}
-                        <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
-                            {header}
-                        </th>
-                    {/each}
-                {/if}
+                {#each columnOrder as header}
+                    <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                        {formatHeader(header)}
+                    </th>
+                {/each}
             </tr>
         </thead>
         <tbody>
             {#each tableData as row}
                 <tr>
-                    {#each Object.values(row) as cell}
+                    {#each columnOrder as key}
                         <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">
-                            {cell}
+                            {row[key]}
                         </td>
                     {/each}
                 </tr>

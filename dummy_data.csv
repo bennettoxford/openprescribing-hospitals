@@ -1,37 +1,37 @@
-year_month,vmp_code,vmp_name,ods_code,ods_name,SCMD_quantity,SCMD_quantity_basis,dose_quantity,converted_udfs,udfs_basis,dose_unit,df_ind
-2020-11-01,42206511000001102,Apixaban 5mg tablets,RK9,University Hospitals Plymouth NHS Trust,1050,tablet,1050,1.0,tablet,tablet,Discrete
-2020-11-01,14254711000001104,Rivaroxaban 10mg tablets,RK9,University Hospitals Plymouth NHS Trust,88,tablet,88,1.0,tablet,tablet,Discrete
-2020-11-01,42206511000001102,Apixaban 5mg tablets,RT2,Pennine Care NHS Foundation Trust,1000,tablet,1000,1.0,tablet,tablet,Discrete
-2020-11-01,14254711000001104,Rivaroxaban 10mg tablets,RT2,Pennine Care NHS Foundation Trust,38,tablet,38,1.0,tablet,tablet,Discrete
-2020-11-01,42206511000001102,Apixaban 5mg tablets,RXY,Kent And Medway NHS And Social Care Partnership Trust,1000,tablet,1000,1.0,tablet,tablet,Discrete
-2020-11-01,14254711000001104,Rivaroxaban 10mg tablets,RXY,Kent And Medway NHS And Social Care Partnership Trust,38,tablet,38,1.0,tablet,tablet,Discrete
-2020-12-01,42206511000001102,Apixaban 5mg tablets,RK9,University Hospitals Plymouth NHS Trust,1060,tablet,1060,1.0,tablet,tablet,Discrete
-2020-12-01,14254711000001104,Rivaroxaban 10mg tablets,RK9,University Hospitals Plymouth NHS Trust,98,tablet,98,1.0,tablet,tablet,Discrete
-2020-12-01,42206511000001102,Apixaban 5mg tablets,RT2,Pennine Care NHS Foundation Trust,1010,tablet,1010,1.0,tablet,tablet,Discrete
-2020-12-01,14254711000001104,Rivaroxaban 10mg tablets,RT2,Pennine Care NHS Foundation Trust,48,tablet,48,1.0,tablet,tablet,Discrete
-2020-12-01,42206511000001102,Apixaban 5mg tablets,RXY,Kent And Medway NHS And Social Care Partnership Trust,1010,tablet,1010,1.0,tablet,tablet,Discrete
-2020-12-01,14254711000001104,Rivaroxaban 10mg tablets,RXY,Kent And Medway NHS And Social Care Partnership Trust,48,tablet,48,1.0,tablet,tablet,Discrete
-2020-12-31,42206511000001102,Apixaban 5mg tablets,RK9,University Hospitals Plymouth NHS Trust,1070,tablet,1070,1.0,tablet,tablet,Discrete
-2020-12-31,14254711000001104,Rivaroxaban 10mg tablets,RK9,University Hospitals Plymouth NHS Trust,108,tablet,108,1.0,tablet,tablet,Discrete
-2020-12-31,42206511000001102,Apixaban 5mg tablets,RT2,Pennine Care NHS Foundation Trust,1020,tablet,1020,1.0,tablet,tablet,Discrete
-2020-12-31,14254711000001104,Rivaroxaban 10mg tablets,RT2,Pennine Care NHS Foundation Trust,58,tablet,58,1.0,tablet,tablet,Discrete
-2020-12-31,42206511000001102,Apixaban 5mg tablets,RXY,Kent And Medway NHS And Social Care Partnership Trust,1020,tablet,1020,1.0,tablet,tablet,Discrete
-2020-12-31,14254711000001104,Rivaroxaban 10mg tablets,RXY,Kent And Medway NHS And Social Care Partnership Trust,58,tablet,58,1.0,tablet,tablet,Discrete
-2021-01-30,42206511000001102,Apixaban 5mg tablets,RK9,University Hospitals Plymouth NHS Trust,1080,tablet,1080,1.0,tablet,tablet,Discrete
-2021-01-30,14254711000001104,Rivaroxaban 10mg tablets,RK9,University Hospitals Plymouth NHS Trust,118,tablet,118,1.0,tablet,tablet,Discrete
-2021-01-30,42206511000001102,Apixaban 5mg tablets,RT2,Pennine Care NHS Foundation Trust,1030,tablet,1030,1.0,tablet,tablet,Discrete
-2021-01-30,14254711000001104,Rivaroxaban 10mg tablets,RT2,Pennine Care NHS Foundation Trust,68,tablet,68,1.0,tablet,tablet,Discrete
-2021-01-30,42206511000001102,Apixaban 5mg tablets,RXY,Kent And Medway NHS And Social Care Partnership Trust,1030,tablet,1030,1.0,tablet,tablet,Discrete
-2021-01-30,14254711000001104,Rivaroxaban 10mg tablets,RXY,Kent And Medway NHS And Social Care Partnership Trust,68,tablet,68,1.0,tablet,tablet,Discrete
-2021-03-01,42206511000001102,Apixaban 5mg tablets,RK9,University Hospitals Plymouth NHS Trust,1090,tablet,1090,1.0,tablet,tablet,Discrete
-2021-03-01,14254711000001104,Rivaroxaban 10mg tablets,RK9,University Hospitals Plymouth NHS Trust,128,tablet,128,1.0,tablet,tablet,Discrete
-2021-03-01,42206511000001102,Apixaban 5mg tablets,RT2,Pennine Care NHS Foundation Trust,1040,tablet,1040,1.0,tablet,tablet,Discrete
-2021-03-01,14254711000001104,Rivaroxaban 10mg tablets,RT2,Pennine Care NHS Foundation Trust,78,tablet,78,1.0,tablet,tablet,Discrete
-2021-03-01,42206511000001102,Apixaban 5mg tablets,RXY,Kent And Medway NHS And Social Care Partnership Trust,1040,tablet,1040,1.0,tablet,tablet,Discrete
-2021-03-01,14254711000001104,Rivaroxaban 10mg tablets,RXY,Kent And Medway NHS And Social Care Partnership Trust,78,tablet,78,1.0,tablet,tablet,Discrete
-2021-03-31,42206511000001102,Apixaban 5mg tablets,RK9,University Hospitals Plymouth NHS Trust,1100,tablet,1100,1.0,tablet,tablet,Discrete
-2021-03-31,14254711000001104,Rivaroxaban 10mg tablets,RK9,University Hospitals Plymouth NHS Trust,138,tablet,138,1.0,tablet,tablet,Discrete
-2021-03-31,42206511000001102,Apixaban 5mg tablets,RT2,Pennine Care NHS Foundation Trust,1050,tablet,1050,1.0,tablet,tablet,Discrete
-2021-03-31,14254711000001104,Rivaroxaban 10mg tablets,RT2,Pennine Care NHS Foundation Trust,88,tablet,88,1.0,tablet,tablet,Discrete
-2021-03-31,42206511000001102,Apixaban 5mg tablets,RXY,Kent And Medway NHS And Social Care Partnership Trust,1050,tablet,1050,1.0,tablet,tablet,Discrete
-2021-03-31,14254711000001104,Rivaroxaban 10mg tablets,RXY,Kent And Medway NHS And Social Care Partnership Trust,88,tablet,88,1.0,tablet,tablet,Discrete
+year_month,vmp_code,vmp_name,ods_code,SCMD_quantity,SCMD_quantity_basis,dose_quantity,converted_udfs,udfs_basis,dose_unit,df_ind
+2020-11-01,42206511000001102,Apixaban 5mg tablets,RK9,1050,tablet,1050,1.0,tablet,tablet,Discrete
+2020-11-01,14254711000001104,Rivaroxaban 10mg tablets,RK9,88,tablet,88,1.0,tablet,tablet,Discrete
+2020-11-01,42206511000001102,Apixaban 5mg tablets,RT2,1000,tablet,1000,1.0,tablet,tablet,Discrete
+2020-11-01,14254711000001104,Rivaroxaban 10mg tablets,RT2,38,tablet,38,1.0,tablet,tablet,Discrete
+2020-11-01,42206511000001102,Apixaban 5mg tablets,RXY,1000,tablet,1000,1.0,tablet,tablet,Discrete
+2020-11-01,14254711000001104,Rivaroxaban 10mg tablets,RXY,38,tablet,38,1.0,tablet,tablet,Discrete
+2020-12-01,42206511000001102,Apixaban 5mg tablets,RK9,1060,tablet,1060,1.0,tablet,tablet,Discrete
+2020-12-01,14254711000001104,Rivaroxaban 10mg tablets,RK9,98,tablet,98,1.0,tablet,tablet,Discrete
+2020-12-01,42206511000001102,Apixaban 5mg tablets,RT2,1010,tablet,1010,1.0,tablet,tablet,Discrete
+2020-12-01,14254711000001104,Rivaroxaban 10mg tablets,RT2,48,tablet,48,1.0,tablet,tablet,Discrete
+2020-12-01,42206511000001102,Apixaban 5mg tablets,RXY,1010,tablet,1010,1.0,tablet,tablet,Discrete
+2020-12-01,14254711000001104,Rivaroxaban 10mg tablets,RXY,48,tablet,48,1.0,tablet,tablet,Discrete
+2020-12-31,42206511000001102,Apixaban 5mg tablets,RK9,1070,tablet,1070,1.0,tablet,tablet,Discrete
+2020-12-31,14254711000001104,Rivaroxaban 10mg tablets,RK9,108,tablet,108,1.0,tablet,tablet,Discrete
+2020-12-31,42206511000001102,Apixaban 5mg tablets,RT2,1020,tablet,1020,1.0,tablet,tablet,Discrete
+2020-12-31,14254711000001104,Rivaroxaban 10mg tablets,RT2,58,tablet,58,1.0,tablet,tablet,Discrete
+2020-12-31,42206511000001102,Apixaban 5mg tablets,RXY,1020,tablet,1020,1.0,tablet,tablet,Discrete
+2020-12-31,14254711000001104,Rivaroxaban 10mg tablets,RXY,58,tablet,58,1.0,tablet,tablet,Discrete
+2021-01-30,42206511000001102,Apixaban 5mg tablets,RK9,1080,tablet,1080,1.0,tablet,tablet,Discrete
+2021-01-30,14254711000001104,Rivaroxaban 10mg tablets,RK9,118,tablet,118,1.0,tablet,tablet,Discrete
+2021-01-30,42206511000001102,Apixaban 5mg tablets,RT2,1030,tablet,1030,1.0,tablet,tablet,Discrete
+2021-01-30,14254711000001104,Rivaroxaban 10mg tablets,RT2,68,tablet,68,1.0,tablet,tablet,Discrete
+2021-01-30,42206511000001102,Apixaban 5mg tablets,RXY,1030,tablet,1030,1.0,tablet,tablet,Discrete
+2021-01-30,14254711000001104,Rivaroxaban 10mg tablets,RXY,68,tablet,68,1.0,tablet,tablet,Discrete
+2021-03-01,42206511000001102,Apixaban 5mg tablets,RK9,1090,tablet,1090,1.0,tablet,tablet,Discrete
+2021-03-01,14254711000001104,Rivaroxaban 10mg tablets,RK9,128,tablet,128,1.0,tablet,tablet,Discrete
+2021-03-01,42206511000001102,Apixaban 5mg tablets,RT2,1040,tablet,1040,1.0,tablet,tablet,Discrete
+2021-03-01,14254711000001104,Rivaroxaban 10mg tablets,RT2,78,tablet,78,1.0,tablet,tablet,Discrete
+2021-03-01,42206511000001102,Apixaban 5mg tablets,RXY,1040,tablet,1040,1.0,tablet,tablet,Discrete
+2021-03-01,14254711000001104,Rivaroxaban 10mg tablets,RXY,78,tablet,78,1.0,tablet,tablet,Discrete
+2021-03-31,42206511000001102,Apixaban 5mg tablets,RK9,1100,tablet,1100,1.0,tablet,tablet,Discrete
+2021-03-31,14254711000001104,Rivaroxaban 10mg tablets,RK9,138,tablet,138,1.0,tablet,tablet,Discrete
+2021-03-31,42206511000001102,Apixaban 5mg tablets,RT2,1050,tablet,1050,1.0,tablet,tablet,Discrete
+2021-03-31,14254711000001104,Rivaroxaban 10mg tablets,RT2,88,tablet,88,1.0,tablet,tablet,Discrete
+2021-03-31,42206511000001102,Apixaban 5mg tablets,RXY,1050,tablet,1050,1.0,tablet,tablet,Discrete
+2021-03-31,14254711000001104,Rivaroxaban 10mg tablets,RXY,88,tablet,88,1.0,tablet,tablet,Discrete

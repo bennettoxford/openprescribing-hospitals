@@ -3,7 +3,7 @@ from django.views.generic import TemplateView
 from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Dose
+from .models import Dose, Organisation
 from .serializers import DoseSerializer
 import json
 
@@ -27,3 +27,24 @@ class DoseViewSet(viewsets.ModelViewSet):
 def unique_vmp_names(request):
     vmp_names = Dose.objects.values_list('vmp_name', flat=True).distinct().order_by('vmp_name')
     return Response(list(vmp_names))
+
+@api_view(['GET'])
+def unique_ods_names(request):
+    ods_names = Organisation.objects.values_list('ods_name', flat=True).distinct().order_by('ods_name')
+    return Response(list(ods_names))
+
+@api_view(['POST'])
+def filtered_doses(request):
+    vmp_names = request.data.get('vmp_names', [])
+    ods_names = request.data.get('ods_names', [])
+    
+    queryset = Dose.objects.all()
+    
+    if vmp_names:
+        queryset = queryset.filter(vmp_name__in=vmp_names)
+    
+    if ods_names:
+        queryset = queryset.filter(organisation__ods_name__in=ods_names)
+    
+    serializer = DoseSerializer(queryset, many=True)
+    return Response(serializer.data)
