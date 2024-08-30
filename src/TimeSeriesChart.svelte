@@ -6,95 +6,130 @@
 <script>
     import { onMount } from 'svelte';
     import Chart from 'chart.js/auto';
+    import { TimeScale } from 'chart.js';
+    import 'chartjs-adapter-date-fns';
+    import { enGB } from 'date-fns/locale';
     import './styles/styles.css';
+
+    Chart.register(TimeScale);
 
     let chartCanvas;
     let chart;
-    let selectedDataset = 'total';
-
-    const data = {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
-        datasets: [
-            {
-                label: 'Sales',
-                data: [65, 59, 80, 81, 56, 55, 40],
-                backgroundColor: 'rgba(75, 192, 192, 0.6)',
-            },
-            {
-                label: 'Revenue',
-                data: [28, 48, 40, 19, 86, 27, 90],
-                backgroundColor: 'rgba(153, 102, 255, 0.6)',
-            }
-        ]
-    };
-
-    $: chartData = getChartData(selectedDataset);
-
-    function getChartData(selected) {
-        if (selected === 'total') {
-            return {
-                labels: data.labels,
-                datasets: [{
-                    label: 'Total',
-                    data: data.labels.map((_, i) => 
-                        data.datasets.reduce((sum, dataset) => sum + dataset.data[i], 0)
-                    ),
-                    backgroundColor: 'rgba(255, 159, 64, 0.6)',
-                }]
-            };
-        } else {
-            return {
-                labels: data.labels,
-                datasets: [data.datasets.find(d => d.label === selected)]
-            };
-        }
-    }
 
     const options = {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
+            x: {
+                type: 'time',
+                time: {
+                    unit: 'month',
+                    displayFormats: {
+                        month: 'MMM yyyy'
+                    }
+                },
+                adapters: {
+                    date: {
+                        locale: enGB
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Date'
+                }
+            },
             y: {
-                beginAtZero: true
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'SCMD Quantity'
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                text: 'SCMD Quantity Over Time'
             }
         }
     };
 
-    function updateChart() {
-        if (chart) {
-            chart.data = chartData;
-            chart.update();
+    export function updateData(newData) {
+        console.log("TimeSeriesChart updateData called with:", newData);
+        
+        if (!chart) {
+            console.error("Chart not initialized");
+            return;
         }
+
+        // Group data by vmp_name and year_month, summing SCMD_quantity
+        const groupedData = newData.reduce((acc, item) => {
+            const key = `${item.vmp_name}_${item.year_month}`;
+            if (!acc[key]) {
+                acc[key] = {
+                    vmp_name: item.vmp_name,
+                    year_month: item.year_month,
+                    SCMD_quantity: 0
+                };
+            }
+            acc[key].SCMD_quantity += parseFloat(item.SCMD_quantity);
+            return acc;
+        }, {});
+
+        // Convert grouped data to array and sort by vmp_name and year_month
+        const sortedData = Object.values(groupedData).sort((a, b) => 
+            a.vmp_name.localeCompare(b.vmp_name) || a.year_month.localeCompare(b.year_month)
+        );
+
+        // Prepare datasets
+        const datasets = Object.values(sortedData.reduce((acc, item) => {
+            if (!acc[item.vmp_name]) {
+                acc[item.vmp_name] = {
+                    label: item.vmp_name,
+                    data: [],
+                    backgroundColor: getRandomColor(),
+                    borderColor: getRandomColor(),
+                    fill: false
+                };
+            }
+            acc[item.vmp_name].data.push({
+                x: new Date(item.year_month),
+                y: item.SCMD_quantity
+            });
+            return acc;
+        }, {}));
+
+        // Update chart data
+        chart.data.datasets = datasets;
+        chart.update();
     }
 
-    $: if (chart && selectedDataset) {
-        updateChart();
+    function getRandomColor() {
+        return `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.6)`;
     }
 
     onMount(() => {
+        console.log("TimeSeriesChart onMount called");
+        
         chart = new Chart(chartCanvas, {
-            type: 'bar',
-            data: chartData,
+            type: 'line',
+            data: { datasets: [] },
             options: options
         });
 
         return () => {
-            chart.destroy();
+            if (chart) {
+                chart.destroy();
+            }
         };
     });
 </script>
 
 <div class="p-4 border border-gray-300 rounded-md">
     <h2 class="text-xl font-bold mb-4">Time Series Chart</h2>
-    <div class="mb-4">
-        <label for="dataset-select" class="mr-2">Select Dataset:</label>
-        <select id="dataset-select" bind:value={selectedDataset} class="p-1 border border-gray-300 rounded">
-            <option value="total">Total</option>
-            {#each data.datasets as dataset}
-                <option value={dataset.label}>{dataset.label}</option>
-            {/each}
-        </select>
-    </div>
     <div class="h-64">
         <canvas bind:this={chartCanvas}></canvas>
     </div>

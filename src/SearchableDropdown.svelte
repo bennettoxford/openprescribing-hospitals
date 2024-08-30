@@ -4,22 +4,18 @@
   }} />
 
 <script>
-    import { onMount } from 'svelte';
+    import { onMount, createEventDispatcher } from 'svelte';
     import './styles/styles.css';
 
+    const dispatch = createEventDispatcher();
+
+    export let items = [];
     let isOpen = false;
     let searchTerm = '';
-    let items = [
-        { id: 1, name: 'Apple' },
-        { id: 2, name: 'Banana' },
-        { id: 3, name: 'Cherry' },
-        { id: 4, name: 'Date' },
-        { id: 5, name: 'Elderberry' },
-    ];
     let selectedItems = [];
 
     $: filteredItems = items.filter(item => 
-        item.name.toLowerCase().includes(searchTerm.toLowerCase())
+        item.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     $: allSelected = selectedItems.length === items.length;
@@ -29,20 +25,27 @@
     }
 
     function toggleItem(item) {
-        const index = selectedItems.findIndex(i => i.id === item.id);
+        const index = selectedItems.findIndex(i => i === item);
         if (index === -1) {
             selectedItems = [...selectedItems, item];
         } else {
-            selectedItems = selectedItems.filter(i => i.id !== item.id);
+            selectedItems = selectedItems.filter(i => i !== item);
         }
+        dispatchSelectionChange();
     }
 
     function selectAll() {
         selectedItems = [...items];
+        dispatchSelectionChange();
     }
 
     function deselectAll() {
         selectedItems = [];
+        dispatchSelectionChange();
+    }
+
+    function dispatchSelectionChange() {
+        dispatch('selectionChange', selectedItems);
     }
 
     onMount(() => {
@@ -65,7 +68,7 @@
         on:click={toggleDropdown}
         class="w-full p-2 border border-gray-300 rounded-md bg-white flex justify-between items-center"
     >
-        <span>{selectedItems.length} item(s) selected</span>
+        <span>{selectedItems.length} ODS name(s) selected</span>
         <span class="ml-2">▼</span>
     </button>
 
@@ -75,7 +78,7 @@
                 <input
                     type="text"
                     bind:value={searchTerm}
-                    placeholder="Search..."
+                    placeholder="Search ODS names..."
                     class="w-full p-2 border border-gray-300 rounded-md mb-2"
                 />
                 <div class="flex justify-between mb-2">
@@ -99,10 +102,10 @@
                         <label class="flex items-center space-x-2">
                             <input
                                 type="checkbox"
-                                checked={selectedItems.some(i => i.id === item.id)}
+                                checked={selectedItems.includes(item)}
                                 on:change={() => toggleItem(item)}
                             />
-                            <span>{item.name}</span>
+                            <span>{item}</span>
                         </label>
                     </li>
                 {/each}

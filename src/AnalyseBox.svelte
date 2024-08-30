@@ -9,47 +9,79 @@
     import Search from './Search.svelte';
     import SearchableDropdown from './SearchableDropdown.svelte';
 
-    let analysisType = 'default';
     let isAnalysisRunning = false;
+    let vmpNames = [];
+    let odsNames = [];
+    let selectedVMPs = [];
+    let selectedODS = [];
+    let filteredData = [];
+
+    let resultsBox;
 
     function runAnalysis() {
+        console.log("Run Analysis button clicked");
         isAnalysisRunning = true;
-        // Simulating an analysis process
+        // Filter the data based on selected VMPs and ODS
+        filteredData = window.dummyData.filter(item => 
+            (selectedVMPs.length === 0 || selectedVMPs.includes(item.vmp_name)) &&
+            (selectedODS.length === 0 || selectedODS.includes(item.ods_name))
+        );
+        
+        console.log("Filtered data:", filteredData);
+        
+        // Update the results box with the filtered data
+        if (resultsBox) {
+            console.log("Updating ResultsBox with filtered data");
+            resultsBox.dispatchEvent(new CustomEvent('updateData', { detail: filteredData }));
+        } else {
+            console.error("ResultsBox not found");
+        }
+        
+        // Set isAnalysisRunning to false after a short delay to show the button change
         setTimeout(() => {
             isAnalysisRunning = false;
-            alert(`Analysis of type "${analysisType}" completed!`);
-        }, 2000);
+            console.log("Analysis completed");
+        }, 500);
+    }
+
+    function handleVMPSelection(event) {
+        selectedVMPs = event.detail;
+        console.log("Selected VMPs:", selectedVMPs);
+    }
+
+    function handleODSSelection(event) {
+        selectedODS = event.detail;
+        console.log("Selected ODS:", selectedODS);
     }
 
     onMount(() => {
-        // Any initialization code if needed
+        // Fetch the dummy data from the global scope
+        const dummyData = window.dummyData;
+        
+        // Extract unique VMP names and ODS names
+        vmpNames = [...new Set(dummyData.map(item => item.vmp_name))];
+        odsNames = [...new Set(dummyData.map(item => item.ods_name))];
+
+        resultsBox = document.querySelector('results-box');
+        if (resultsBox) {
+            console.log("ResultsBox found");
+        } else {
+            console.error("ResultsBox not found in onMount");
+        }
     });
 </script>
 
 <div class="analyse-box p-4 bg-white rounded-lg shadow-md">
     <h2 class="text-xl font-bold mb-4">Analysis Tools</h2>
     <div class="mb-4">
-        <h3 class="text-lg font-semibold mb-2">Search</h3>
-        <Search />
+        <h3 class="text-lg font-semibold mb-2">Search VMP Names</h3>
+        <Search items={vmpNames} on:selectionChange={handleVMPSelection} />
     </div>
     <div class="mb-4">
-        <h3 class="text-lg font-semibold mb-2">Filter</h3>
-        <SearchableDropdown />
+        <h3 class="text-lg font-semibold mb-2">Filter ODS Names</h3>
+        <SearchableDropdown items={odsNames} on:selectionChange={handleODSSelection} />
     </div>
     <div class="mt-6">
-        <h3 class="text-lg font-semibold mb-2">Run Analysis</h3>
-        <div class="mb-2">
-            <label for="analysis-type" class="block text-sm font-medium text-gray-700">Analysis Type</label>
-            <select
-                id="analysis-type"
-                bind:value={analysisType}
-                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-            >
-                <option value="default">Default Analysis</option>
-                <option value="advanced">Advanced Analysis</option>
-                <option value="custom">Custom Analysis</option>
-            </select>
-        </div>
         <button
             on:click={runAnalysis}
             disabled={isAnalysisRunning}

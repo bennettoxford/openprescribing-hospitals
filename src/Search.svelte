@@ -3,23 +3,26 @@
     shadow: 'none'
   }} />
 <script>
-    import { onMount } from 'svelte';
+    import { onMount, createEventDispatcher } from 'svelte';
     import './styles/styles.css';
 
+    const dispatch = createEventDispatcher();
+
+    export let items = [];
     let searchTerm = '';
     let searchResults = [];
     let selectedItems = [];
 
     function search() {
-        // Simulated search results - replace with actual API call
-        searchResults = ['Result 1', 'Result 2', 'Result 3'].filter(result =>
-            result.toLowerCase().includes(searchTerm.toLowerCase())
+        searchResults = items.filter(item =>
+            item.toLowerCase().includes(searchTerm.toLowerCase())
         );
     }
 
     function addItem(item) {
         if (!selectedItems.includes(item)) {
             selectedItems = [...selectedItems, item];
+            dispatchSelectionChange();
         }
         searchTerm = '';
         searchResults = [];
@@ -27,6 +30,11 @@
 
     function removeItem(item) {
         selectedItems = selectedItems.filter(i => i !== item);
+        dispatchSelectionChange();
+    }
+
+    function dispatchSelectionChange() {
+        dispatch('selectionChange', selectedItems);
     }
 
     $: {
@@ -46,7 +54,7 @@
     <input
         type="text"
         bind:value={searchTerm}
-        placeholder="Search..."
+        placeholder="Search VMP names..."
         class="w-full p-2 border border-gray-300 rounded-md"
     />
     
@@ -65,7 +73,7 @@
 
     {#if selectedItems.length > 0}
         <div class="mt-4">
-            <h3 class="font-bold">Selected Items:</h3>
+            <h3 class="font-bold">Selected VMP Names:</h3>
             <ul class="mt-2">
                 {#each selectedItems as item}
                     <li class="flex items-center justify-between p-2 bg-gray-100 rounded-md mb-2">

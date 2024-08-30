@@ -4,8 +4,7 @@
 
 {% block head %}
     {% vite_asset './src/AnalyseBox.svelte' %}
-    {% vite_asset './src/TimeSeriesChart.svelte' %}
-    {% vite_asset './src/DataTable.svelte' %}
+    {% vite_asset './src/ResultsBox.svelte' %}
 {% endblock %}
 
 {% block content %}
@@ -15,25 +14,12 @@
             <analyse-box></analyse-box>
         </div>
         <div class="w-3/4">
-            <div class="mb-8">
-                <time-series-chart></time-series-chart>
-            </div>
-            <div>
-                <data-table id="myDataTable"></data-table>
-            </div>
+            <results-box></results-box>
         </div>
     </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const dataTable = document.getElementById('myDataTable');
-        const dummyData = {{ dummy_data|safe }};
-        
-        // Wait for the custom element to be defined
-        customElements.whenDefined('data-table').then(() => {
-            dataTable.updateData(dummyData);
-        });
-    });
+    window.dummyData = {{ dummy_data|safe }};
 </script>
 {% endblock %}
