@@ -24,8 +24,19 @@
         quantityType = newQuantityType;
         console.log('Updated data in ResultsBox:', selectedData);
         
-        // Update vmps based on the selectedData
-        vmps = [...new Set(selectedData.map(item => item.vmp_name))];
+
+        // update the vmps based on the selcted data. 
+        // want to populate with the unique vmp,unit,ingredient combinations
+        vmps = Array.from(new Set(selectedData.map(item => {
+            const vmpObject = {
+                vmp: item.vmp_name,
+                unit: item.unit
+            };
+            if (item.ingredient_name) {
+                vmpObject.ingredient = item.ingredient_name;
+            }
+            return JSON.stringify(vmpObject);
+        }))).map(JSON.parse);
     }
 
     onMount(() => {
