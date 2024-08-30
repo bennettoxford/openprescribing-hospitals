@@ -41,7 +41,7 @@
     });
 </script>
 
-<div class="results-box p-4 bg-white rounded-lg shadow-md">
+<div class="results-box p-4 bg-white rounded-lg shadow-md h-full flex flex-col">
     <h2 class="text-xl font-bold mb-4">Results</h2>
     <div class="mb-8">
         <TimeSeriesChart bind:this={timeSeriesChart} />
@@ -50,9 +50,3 @@
         <DataTable bind:this={dataTable} />
     </div>
 </div>
-
-<style>
-    .results-box {
-        width: 100%;
-    }
-</style>

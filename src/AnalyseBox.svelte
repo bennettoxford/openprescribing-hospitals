@@ -51,12 +51,10 @@
             filteredData = await response.json();
             console.log("Filtered data:", filteredData);
             
-            // Update the results box with the filtered data
-            if (resultsBox) {
-                console.log("Updating ResultsBox with filtered data");
-                resultsBox.dispatchEvent(new CustomEvent('updateData', { detail: filteredData }));
-            } else {
-                console.error("ResultsBox not found");
+            // Dispatch a custom event with the filtered data
+            const analyseBox = document.querySelector('analyse-box');
+            if (analyseBox) {
+                analyseBox.dispatchEvent(new CustomEvent('runAnalysis', { detail: filteredData }));
             }
         } catch (error) {
             console.error("Error fetching filtered data:", error);
@@ -89,14 +87,14 @@
     });
 </script>
 
-<div class="analyse-box p-4 bg-white rounded-lg shadow-md">
-    <h2 class="text-xl font-bold mb-4">Analysis Tools</h2>
+<div class="p-4 bg-white rounded-lg shadow-md w-full h-full flex flex-col">
+    <h2 class="text-3xl font-bold mb-4">Analysis Builder</h2>
     <div class="mb-4">
-        <h3 class="text-lg font-semibold mb-2">Search VMP Names</h3>
+        <h3 class="text-xl font-semibold mb-2">Search VMP Names</h3>
         <Search items={vmpNames} on:selectionChange={handleVMPSelection} />
     </div>
     <div class="mb-4">
-        <h3 class="text-lg font-semibold mb-2">Filter ODS Names</h3>
+        <h3 class="text-xl font-semibold mb-2">Filter ODS Names</h3>
         <SearchableDropdown items={odsNames} on:selectionChange={handleODSSelection} />
     </div>
     <div class="mt-6">
@@ -110,9 +108,3 @@
     </div>
 </div>
 
-<style>
-    .analyse-box {
-        width: 100%;
-        max-width: 300px;
-    }
-</style>

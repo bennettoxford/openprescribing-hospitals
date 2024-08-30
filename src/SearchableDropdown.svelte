@@ -18,21 +18,21 @@
         item.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    $: allSelected = selectedItems.length === items.length;
-
     function toggleDropdown() {
         isOpen = !isOpen;
     }
 
     function toggleItem(item) {
-        const index = selectedItems.findIndex(i => i === item);
-        if (index === -1) {
-            selectedItems = [...selectedItems, item];
-        } else {
+        if (selectedItems.includes(item)) {
             selectedItems = selectedItems.filter(i => i !== item);
+        } else {
+            selectedItems = [...selectedItems, item];
         }
+        selectedItems = [...selectedItems]; // Force reactivity
         dispatchSelectionChange();
     }
+
+    $: isItemSelected = (item) => selectedItems.includes(item);
 
     function selectAll() {
         selectedItems = [...items];
@@ -63,7 +63,7 @@
     });
 </script>
 
-<div class="dropdown relative w-64">
+<div class="dropdown relative w-full">
     <button
         on:click={toggleDropdown}
         class="w-full p-2 border border-gray-300 rounded-md bg-white flex justify-between items-center"
@@ -84,29 +84,33 @@
                 <div class="flex justify-between mb-2">
                     <button
                         on:click={selectAll}
-                        class="text-sm text-blue-500 hover:text-blue-700"
+                        class="btn-green-sm"
                     >
                         Select All
                     </button>
                     <button
                         on:click={deselectAll}
-                        class="text-sm text-blue-500 hover:text-blue-700"
+                        class="btn-red-sm"
                     >
                         Deselect All
                     </button>
                 </div>
             </div>
-            <ul class="max-h-60 overflow-y-auto">
-                {#each filteredItems as item}
-                    <li class="p-2 hover:bg-gray-100">
-                        <label class="flex items-center space-x-2">
-                            <input
-                                type="checkbox"
-                                checked={selectedItems.includes(item)}
-                                on:change={() => toggleItem(item)}
-                            />
+            <ul class="max-h-60 overflow-y-auto divide-y divide-gray-200">
+                {#each filteredItems as item (item)}
+                    <li 
+                        class="p-2 cursor-pointer transition duration-150 ease-in-out"
+                        class:bg-blue-100={isItemSelected(item)}
+                        class:text-blue-700={isItemSelected(item)}
+                        class:hover:bg-gray-100={!isItemSelected(item)}
+                        on:click={() => toggleItem(item)}
+                    >
+                        <div class="flex items-center">
                             <span>{item}</span>
-                        </label>
+                            {#if isItemSelected(item)}
+                                <span class="ml-auto text-sm font-medium">Selected</span>
+                            {/if}
+                        </div>
                     </li>
                 {/each}
             </ul>

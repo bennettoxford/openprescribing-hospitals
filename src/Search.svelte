@@ -65,6 +65,10 @@
         dispatch('selectionChange', { type: searchType, items: selectedItems });
     }
 
+    function isItemSelected(item) {
+        return selectedItems.includes(item);
+    }
+
     $: {
         if (searchTerm.length > 0) {
             search();
@@ -84,11 +88,11 @@
     });
 </script>
 
-<div class="p-4 border border-gray-300 rounded-md">
-    <div class="flex mb-2">
+<div class="flex flex-col gap-2">
+    <div class="flex">
         <select
             bind:value={searchType}
-            class="p-2 border border-gray-300 rounded-l-md"
+            class="p-2 border border-gray-300 rounded-l-md min-w-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
             {#each searchTypes as type}
                 <option value={type.value}>{type.label}</option>
@@ -98,33 +102,40 @@
             type="text"
             bind:value={searchTerm}
             placeholder={`Search ${searchType.toUpperCase()} names...`}
-            class="w-full p-2 border border-gray-300 rounded-r-md"
+            class="w-full p-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
     </div>
     
     {#if searchResults.length > 0}
-        <ul class="mt-2 border border-gray-300 rounded-md max-h-60 overflow-y-auto">
+        <ul class="mb-4 border border-gray-300 rounded-b-md rounded-l-md rounded-r-md max-h-60 overflow-y-auto divide-y divide-gray-200">
             {#each searchResults as result}
-                <li 
-                    class="p-2 hover:bg-gray-100 cursor-pointer"
-                    on:click={() => addItem(result)}
-                >
-                    {result}
-                </li>
+                {#if isItemSelected(result)}
+                    <li class="p-2 bg-blue-100 text-blue-700 flex items-center">
+                        <span>{result}</span>
+                        <span class="ml-auto text-sm font-medium">Selected</span>
+                    </li>
+                {:else}
+                    <li 
+                        class="p-2 hover:bg-gray-100 cursor-pointer transition duration-150 ease-in-out"
+                        on:click={() => addItem(result)}
+                    >
+                        {result}
+                    </li>
+                {/if}
             {/each}
         </ul>
     {/if}
 
     {#if selectedItems.length > 0}
-        <div class="mt-4">
-            <h3 class="font-bold">Selected {searchType.toUpperCase()} Names:</h3>
-            <ul class="mt-2">
+        <div>
+            <h3 class="font-semibold mb-2 text-md text-gray-700">Selected {searchType.toUpperCase()} Names:</h3>
+            <ul class="border border-gray-200 rounded-md">
                 {#each selectedItems as item}
-                    <li class="flex items-center justify-between p-2 bg-gray-100 rounded-md mb-2">
-                        {item}
+                    <li class="flex items-center justify-between px-2 py-1">
+                        <span class="text-gray-800">{item}</span>
                         <button 
                             on:click={() => removeItem(item)}
-                            class="text-red-500 hover:text-red-700"
+                            class="btn-red-sm"
                         >
                             Remove
                         </button>

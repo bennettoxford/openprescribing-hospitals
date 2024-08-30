@@ -3,21 +3,11 @@
 {% load django_vite %}
 
 {% block head %}
-    {% vite_asset './src/AnalyseBox.svelte' %}
-    {% vite_asset './src/ResultsBox.svelte' %}
+    {% vite_asset './src/Layout.svelte' %}
 {% endblock %}
 
 {% block content %}
-<div class="bg-gray-100 min-h-screen">
-    <div class="max-w-7xl mx-auto px-4 py-12 flex">
-        <div class="w-1/4 mr-8">
-            <analyse-box></analyse-box>
-        </div>
-        <div class="w-3/4">
-            <results-box></results-box>
-        </div>
-    </div>
-</div>
+<layout-component></layout-component>
 
 <script>
     window.dummyData = JSON.parse('{{ dummy_data|escapejs }}');
