@@ -56,7 +56,7 @@
 
     onMount(() => {
         // Fetch the dummy data from the global scope
-        const dummyData = window.dummyData;
+        const dummyData = window.dummyData || [];
         
         // Extract unique VMP names and ODS names
         vmpNames = [...new Set(dummyData.map(item => item.vmp_name))];

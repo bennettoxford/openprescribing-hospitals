@@ -20,6 +20,6 @@
 </div>
 
 <script>
-    window.dummyData = {{ dummy_data|safe }};
+    window.dummyData = JSON.parse('{{ dummy_data|escapejs }}');
 </script>
 {% endblock %}

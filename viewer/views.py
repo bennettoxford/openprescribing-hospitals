@@ -1,6 +1,8 @@
 from django.shortcuts import render
 from django.views.generic import TemplateView
 from datetime import datetime, timedelta
+from .models import Dose
+import json
 
 # Create your views here.
 class IndexView(TemplateView):
@@ -35,7 +37,7 @@ class IndexView(TemplateView):
             for ods in ods_codes:
                 for med in medications:
                     quantity = med['base_quantity'] + (i * 10) + (50 if ods['code'] == 'RK9' else 0)
-                    dummy_data.append({
+                    dose = {
                         'year_month': current_date.strftime('%Y-%m-%d'),
                         'vmp_code': med['vmp_code'],
                         'vmp_name': med['vmp_name'],
@@ -48,8 +50,10 @@ class IndexView(TemplateView):
                         'udfs_basis': 'tablet',
                         'dose_unit': 'tablet',
                         'df_ind': 'Discrete'
-                    })
+                    }
+                    dummy_data.append(dose)
         
-        context['dummy_data'] = dummy_data
+        # Convert data to JSON for safe passing to template
+        context['dummy_data'] = json.dumps(dummy_data)
     
         return context
