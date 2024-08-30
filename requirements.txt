@@ -4,6 +4,7 @@ Django==5.1
 django-appconf==1.0.6
 django-browser-reload==1.15.0
 django-vite==3.0.4
+djangorestframework==3.15.2
 environs==11.0.0
 marshmallow==3.22.0
 packaging==24.1

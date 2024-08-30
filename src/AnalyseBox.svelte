@@ -18,30 +18,36 @@
 
     let resultsBox;
 
+    async function fetchVMPNames() {
+        const response = await fetch('/api/unique-vmp-names/');
+        vmpNames = await response.json();
+    }
+
     function runAnalysis() {
         console.log("Run Analysis button clicked");
         isAnalysisRunning = true;
         // Filter the data based on selected VMPs and ODS
-        filteredData = window.dummyData.filter(item => 
-            (selectedVMPs.length === 0 || selectedVMPs.includes(item.vmp_name)) &&
-            (selectedODS.length === 0 || selectedODS.includes(item.ods_name))
-        );
-        
-        console.log("Filtered data:", filteredData);
-        
-        // Update the results box with the filtered data
-        if (resultsBox) {
-            console.log("Updating ResultsBox with filtered data");
-            resultsBox.dispatchEvent(new CustomEvent('updateData', { detail: filteredData }));
-        } else {
-            console.error("ResultsBox not found");
-        }
-        
-        // Set isAnalysisRunning to false after a short delay to show the button change
-        setTimeout(() => {
-            isAnalysisRunning = false;
-            console.log("Analysis completed");
-        }, 500);
+        fetch('/api/doses/')
+            .then(response => response.json())
+            .then(data => {
+                filteredData = data.filter(item => 
+                    (selectedVMPs.length === 0 || selectedVMPs.includes(item.vmp_name)) &&
+                    (selectedODS.length === 0 || selectedODS.includes(item.ods_name))
+                );
+                
+                console.log("Filtered data:", filteredData);
+                
+                // Update the results box with the filtered data
+                if (resultsBox) {
+                    console.log("Updating ResultsBox with filtered data");
+                    resultsBox.dispatchEvent(new CustomEvent('updateData', { detail: filteredData }));
+                } else {
+                    console.error("ResultsBox not found");
+                }
+                
+                isAnalysisRunning = false;
+                console.log("Analysis completed");
+            });
     }
 
     function handleVMPSelection(event) {
@@ -54,13 +60,13 @@
         console.log("Selected ODS:", selectedODS);
     }
 
-    onMount(() => {
-        // Fetch the dummy data from the global scope
-        const dummyData = window.dummyData || [];
+    onMount(async () => {
+        await fetchVMPNames();
         
-        // Extract unique VMP names and ODS names
-        vmpNames = [...new Set(dummyData.map(item => item.vmp_name))];
-        odsNames = [...new Set(dummyData.map(item => item.ods_name))];
+        // Extract unique ODS names
+        const response = await fetch('/api/doses/');
+        const data = await response.json();
+        odsNames = [...new Set(data.map(item => item.ods_name))];
 
         resultsBox = document.querySelector('results-box');
         if (resultsBox) {
