@@ -44,7 +44,12 @@
                 beginAtZero: true,
                 title: {
                     display: true,
-                    text: 'SCMD Quantity'
+                    text: 'Quantity'
+                },
+                ticks: {
+                    callback: function(value, index, values) {
+                        return value.toLocaleString(); // Format large numbers
+                    }
                 }
             }
         },
@@ -54,7 +59,21 @@
             },
             title: {
                 display: true,
-                text: 'SCMD Quantity Over Time'
+                text: 'Quantity Over Time'
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        if (context.parsed.y !== null) {
+                            label += context.parsed.y.toLocaleString();
+                        }
+                        return label;
+                    }
+                }
             }
         }
     };
@@ -74,6 +93,7 @@
         }
 
         chart.data.datasets = datasets;
+        chart.options.scales.y.title.text = chartType === 'total' ? 'Total Quantity' : 'Quantity';
         chart.update();
     }
 
@@ -84,10 +104,10 @@
                 acc[key] = {
                     vmp_name: item.vmp_name,
                     year_month: item.year_month,
-                    SCMD_quantity: 0
+                    quantity: 0
                 };
             }
-            acc[key].SCMD_quantity += parseFloat(item.SCMD_quantity);
+            acc[key].quantity += parseFloat(item.quantity);
             return acc;
         }, {});
 
@@ -107,7 +127,7 @@
             }
             acc[item.vmp_name].data.push({
                 x: new Date(item.year_month),
-                y: item.SCMD_quantity
+                y: item.quantity
             });
             return acc;
         }, {}));
@@ -121,7 +141,7 @@
             if (!acc[item.ods_name][item.year_month]) {
                 acc[item.ods_name][item.year_month] = 0;
             }
-            acc[item.ods_name][item.year_month] += parseFloat(item.SCMD_quantity);
+            acc[item.ods_name][item.year_month] += parseFloat(item.quantity);
             return acc;
         }, {});
 

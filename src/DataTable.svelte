@@ -20,8 +20,7 @@
 
     // Define the order of columns
     const columnOrder = [
-        'year_month', 'vmp_code', 'vmp_name', 'ods_code', 'ods_name', 'SCMD_quantity',
-        'SCMD_quantity_basis', 'dose_quantity', 'converted_udfs', 'udfs_basis', 'dose_unit', 'df_ind'
+        'year_month', 'vmp_code', 'vmp_name', 'ods_code', 'ods_name', 'quantity', 'unit'
     ];
 
     // Function to format column headers
