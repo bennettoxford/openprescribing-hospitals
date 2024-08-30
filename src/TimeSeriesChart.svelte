@@ -15,6 +15,8 @@
 
     let chartCanvas;
     let chart;
+    let chartType = 'total';
+    let currentData = [];
 
     const options = {
         responsive: true,
@@ -57,16 +59,26 @@
         }
     };
 
-    export function updateData(newData) {
-        console.log("TimeSeriesChart updateData called with:", newData);
-        
+    function updateChart(newData) {
         if (!chart) {
             console.error("Chart not initialized");
             return;
         }
 
-        // Group data by vmp_name and year_month, summing SCMD_quantity
-        const groupedData = newData.reduce((acc, item) => {
+        currentData = newData;
+        let datasets;
+        if (chartType === 'total') {
+            datasets = prepareTotalLineChartData(newData);
+        } else {
+            datasets = prepareOrgLineChartData(newData);
+        }
+
+        chart.data.datasets = datasets;
+        chart.update();
+    }
+
+    function prepareTotalLineChartData(data) {
+        const groupedData = data.reduce((acc, item) => {
             const key = `${item.vmp_name}_${item.year_month}`;
             if (!acc[key]) {
                 acc[key] = {
@@ -79,13 +91,11 @@
             return acc;
         }, {});
 
-        // Convert grouped data to array and sort by vmp_name and year_month
         const sortedData = Object.values(groupedData).sort((a, b) => 
             a.vmp_name.localeCompare(b.vmp_name) || a.year_month.localeCompare(b.year_month)
         );
 
-        // Prepare datasets
-        const datasets = Object.values(sortedData.reduce((acc, item) => {
+        return Object.values(sortedData.reduce((acc, item) => {
             if (!acc[item.vmp_name]) {
                 acc[item.vmp_name] = {
                     label: item.vmp_name,
@@ -101,14 +111,44 @@
             });
             return acc;
         }, {}));
+    }
 
-        // Update chart data
-        chart.data.datasets = datasets;
-        chart.update();
+    function prepareOrgLineChartData(data) {
+        const groupedData = data.reduce((acc, item) => {
+            if (!acc[item.ods_name]) {
+                acc[item.ods_name] = {};
+            }
+            if (!acc[item.ods_name][item.year_month]) {
+                acc[item.ods_name][item.year_month] = 0;
+            }
+            acc[item.ods_name][item.year_month] += parseFloat(item.SCMD_quantity);
+            return acc;
+        }, {});
+
+        return Object.entries(groupedData).map(([odsName, values]) => ({
+            label: odsName,
+            data: Object.entries(values).map(([date, quantity]) => ({
+                x: new Date(date),
+                y: quantity
+            })),
+            backgroundColor: getRandomColor(),
+            borderColor: getRandomColor(),
+            fill: false
+        }));
+    }
+
+    export function updateData(newData) {
+        console.log("TimeSeriesChart updateData called with:", newData);
+        updateChart(newData);
     }
 
     function getRandomColor() {
         return `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.6)`;
+    }
+
+    function handleChartTypeChange(event) {
+        chartType = event.target.value;
+        updateChart(currentData);
     }
 
     onMount(() => {
@@ -130,6 +170,13 @@
 
 <div class="p-4 border border-gray-300 rounded-md">
     <h2 class="text-xl font-bold mb-4">Time Series Chart</h2>
+    <div class="mb-4">
+        <label for="chart-type" class="mr-2">Chart Type:</label>
+        <select id="chart-type" on:change={handleChartTypeChange} class="p-1 border border-gray-300 rounded">
+            <option value="total">Total by VMP</option>
+            <option value="org">By Organization</option>
+        </select>
+    </div>
     <div class="h-64">
         <canvas bind:this={chartCanvas}></canvas>
     </div>
