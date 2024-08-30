@@ -21,6 +21,8 @@
 
     const quantityOptions = ['--', 'Dose', 'Ingredient Quantity'];
 
+    let errorMessage = '';
+
     async function fetchVMPNames() {
         const response = await fetch('/api/unique-vmp-names/');
         vmpNames = await response.json();
@@ -33,10 +35,18 @@
 
     async function runAnalysis() {
         console.log("Run Analysis button clicked");
-        if (quantityType === '--') {
-            alert("Please select a quantity type before running the analysis.");
+        errorMessage = '';
+
+        if (!selectedVMPs || selectedVMPs.length === 0 || !selectedVMPs.items || selectedVMPs.items.length === 0) {
+            errorMessage = "Please select at least one product (VMP, Ingredient, or VTM).";
             return;
         }
+
+        if (quantityType === '--') {
+            errorMessage = "Please select a quantity type before running the analysis.";
+            return;
+        }
+
         isAnalysisRunning = true;
         
         let endpoint = quantityType === 'Dose' ? '/api/filtered-doses/' : '/api/filtered-ingredient-quantities/';
@@ -76,6 +86,7 @@
         } catch (error) {
             console.error("Error fetching filtered data:", error);
             filteredData = []; // Set to empty array in case of error
+            errorMessage = "An error occurred while fetching data. Please try again.";
         } finally {
             isAnalysisRunning = false;
             console.log("Analysis completed");
@@ -136,11 +147,17 @@
         <SearchableDropdown items={odsNames} on:selectionChange={handleODSSelection} />
     </div>
     
+    {#if errorMessage}
+        <div class="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded">
+            {errorMessage}
+        </div>
+    {/if}
+    
     <div class="mt-6">
         <button
             on:click={runAnalysis}
-            disabled={isAnalysisRunning || quantityType === '--'}
-            class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline {(isAnalysisRunning || quantityType === '--') ? 'opacity-50 cursor-not-allowed' : ''}"
+            disabled={isAnalysisRunning}
+            class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline {isAnalysisRunning ? 'opacity-50 cursor-not-allowed' : ''}"
         >
             {isAnalysisRunning ? 'Running Analysis...' : 'Run Analysis'}
         </button>
