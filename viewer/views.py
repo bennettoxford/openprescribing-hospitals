@@ -5,10 +5,19 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Dose
 from .serializers import DoseSerializer
+import json
 
 # Create your views here.
 class IndexView(TemplateView):
     template_name = "index.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        doses = Dose.objects.all()
+        dummy_data = DoseSerializer(doses, many=True).data
+        context['dummy_data'] = json.dumps(dummy_data)
+        print("Dummy data:", context['dummy_data'])  # Add this line
+        return context
 
 class DoseViewSet(viewsets.ModelViewSet):
     queryset = Dose.objects.all()
