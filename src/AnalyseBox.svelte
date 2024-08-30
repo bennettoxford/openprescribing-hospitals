@@ -37,13 +37,19 @@
         console.log("Run Analysis button clicked");
         errorMessage = '';
 
-        if (!selectedVMPs || selectedVMPs.length === 0 || !selectedVMPs.items || selectedVMPs.items.length === 0) {
+        if (!selectedVMPs || selectedVMPs.length === 0) {
             errorMessage = "Please select at least one product (VMP, Ingredient, or VTM).";
             return;
         }
 
         if (quantityType === '--') {
             errorMessage = "Please select a quantity type before running the analysis.";
+            return;
+        }
+
+        // Updated check for ODS selection
+        if (selectedODS && selectedODS.length === 0) {
+            errorMessage = "You've selected to filter by organizations, but haven't chosen any. Please select at least one organization or clear the organization filter.";
             return;
         }
 
