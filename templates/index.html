@@ -28,27 +28,11 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const dataTable = document.getElementById('myDataTable');
-        const sampleData = [
-            { id: 1, name: 'John Doe', age: 30, city: 'New York' },
-            { id: 2, name: 'Jane Smith', age: 25, city: 'Los Angeles' },
-            { id: 3, name: 'Bob Johnson', age: 35, city: 'Chicago' },
-            { id: 4, name: 'Alice Brown', age: 28, city: 'Houston' },
-            { id: 5, name: 'Charlie Davis', age: 42, city: 'Phoenix' },
-            { id: 6, name: 'Eva White', age: 31, city: 'Miami' },
-            { id: 7, name: 'Frank Miller', age: 39, city: 'Seattle' },
-            { id: 8, name: 'Grace Lee', age: 27, city: 'Boston' },
-            { id: 9, name: 'Henry Taylor', age: 45, city: 'Denver' },
-            { id: 10, name: 'Ivy Chen', age: 33, city: 'San Francisco' },
-            { id: 11, name: 'Jack Wilson', age: 29, city: 'Dallas' },
-            { id: 12, name: 'Karen Lopez', age: 36, city: 'Atlanta' },
-            { id: 13, name: 'Leo Martin', age: 41, city: 'Portland' },
-            { id: 14, name: 'Mia Thompson', age: 32, city: 'Austin' },
-            { id: 15, name: 'Nathan Baker', age: 38, city: 'Washington D.C.' }
-        ];
+        const dummyData = {{ dummy_data|safe }};
         
         // Wait for the custom element to be defined
         customElements.whenDefined('data-table').then(() => {
-            dataTable.updateData(sampleData);
+            dataTable.updateData(dummyData);
         });
     });
 </script>
