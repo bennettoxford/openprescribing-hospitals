@@ -5,34 +5,27 @@
 
 <script>
     import { onMount } from 'svelte';
-    import './styles/styles.css';
     import TimeSeriesChart from './TimeSeriesChart.svelte';
     import DataTable from './DataTable.svelte';
     import VMPList from './VMPList.svelte';
 
     let selectedData = [];
+    let quantityType = 'Dose';
+
     let timeSeriesChart;
     let dataTable;
     let vmps = [];
 
+    $: console.log('ResultsBox received data:', selectedData);
+
     function handleUpdateData(event) {
-        console.log("ResultsBox updateData called with:", event.detail);
-        selectedData = event.detail;
-        // Extract unique VMP names from the selectedData
-        vmps = [...new Set(selectedData.map(item => item.vmp_name))];
+        const { data, quantityType: newQuantityType } = event.detail;
+        selectedData = Array.isArray(data) ? data : [data];
+        quantityType = newQuantityType;
+        console.log('Updated data in ResultsBox:', selectedData);
         
-        if (timeSeriesChart) {
-            console.log("Updating TimeSeriesChart");
-            timeSeriesChart.updateData(selectedData);
-        } else {
-            console.error("TimeSeriesChart not found");
-        }
-        if (dataTable) {
-            console.log("Updating DataTable");
-            dataTable.updateData(selectedData);
-        } else {
-            console.error("DataTable not found");
-        }
+        // Update vmps based on the selectedData
+        vmps = [...new Set(selectedData.map(item => item.vmp_name))];
     }
 
     onMount(() => {
@@ -48,11 +41,15 @@
 
 <div class="results-box p-4 bg-white rounded-lg shadow-md h-full flex flex-col">
     <h2 class="text-xl font-bold mb-4">Results</h2>
-    <VMPList {vmps} />
-    <div class="mb-8">
-        <TimeSeriesChart bind:this={timeSeriesChart} />
-    </div>
-    <div>
-        <DataTable bind:this={dataTable} />
-    </div>
+    {#if selectedData.length > 0}
+        <VMPList {vmps} />
+        <div class="mb-8">
+            <TimeSeriesChart data={selectedData} {quantityType} />
+        </div>
+        <div>
+            <DataTable data={selectedData} {quantityType} />
+        </div>
+    {:else}
+        <p>No data available. Please run an analysis.</p>
+    {/if}
 </div>

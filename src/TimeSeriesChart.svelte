@@ -6,178 +6,90 @@
 <script>
     import { onMount } from 'svelte';
     import Chart from 'chart.js/auto';
-    import { TimeScale } from 'chart.js';
-    import 'chartjs-adapter-date-fns';
-    import { enGB } from 'date-fns/locale';
-    import './styles/styles.css';
 
-    Chart.register(TimeScale);
+    export let data = [];
+    export let quantityType = 'Dose';
 
-    let chartCanvas;
+    let canvas;
     let chart;
-    let chartType = 'total';
-    let currentData = [];
+    let viewMode = 'Total';
+    let organizations = [];
 
-    const options = {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            x: {
-                type: 'time',
-                time: {
-                    unit: 'month',
-                    displayFormats: {
-                        month: 'MMM yyyy'
-                    }
-                },
-                adapters: {
-                    date: {
-                        locale: enGB
-                    }
-                },
-                title: {
-                    display: true,
-                    text: 'Date'
-                }
-            },
-            y: {
-                beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'Quantity'
-                },
-                ticks: {
-                    callback: function(value, index, values) {
-                        return value.toLocaleString(); // Format large numbers
-                    }
-                }
-            }
-        },
-        plugins: {
-            legend: {
-                position: 'top',
-            },
-            title: {
-                display: true,
-                text: 'Quantity Over Time'
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        let label = context.dataset.label || '';
-                        if (label) {
-                            label += ': ';
-                        }
-                        if (context.parsed.y !== null) {
-                            label += context.parsed.y.toLocaleString();
-                        }
-                        return label;
-                    }
-                }
-            }
+    $: {
+        if (data.length > 0) {
+            organizations = [...new Set(data.map(item => item.ods_name))];
+            updateChart();
         }
-    };
-
-    function updateChart(newData) {
-        if (!chart) {
-            console.error("Chart not initialized");
-            return;
-        }
-
-        currentData = newData;
-        let datasets;
-        if (chartType === 'total') {
-            datasets = prepareTotalLineChartData(newData);
-        } else {
-            datasets = prepareOrgLineChartData(newData);
-        }
-
-        chart.data.datasets = datasets;
-        chart.options.scales.y.title.text = chartType === 'total' ? 'Total Quantity' : 'Quantity';
-        chart.update();
     }
 
-    function prepareTotalLineChartData(data) {
+    function prepareChartData(data, viewMode) {
         const groupedData = data.reduce((acc, item) => {
-            const key = `${item.vmp_name}_${item.year_month}`;
+            const key = item.year_month;
             if (!acc[key]) {
-                acc[key] = {
-                    vmp_name: item.vmp_name,
-                    year_month: item.year_month,
-                    quantity: 0
-                };
+                acc[key] = viewMode === 'Total' ? 0 : {};
             }
-            acc[key].quantity += parseFloat(item.quantity);
+            if (viewMode === 'Total') {
+                acc[key] += parseFloat(item.quantity);
+            } else {
+                acc[key][item.ods_name] = (acc[key][item.ods_name] || 0) + parseFloat(item.quantity);
+            }
             return acc;
         }, {});
 
-        const sortedData = Object.values(groupedData).sort((a, b) => 
-            a.vmp_name.localeCompare(b.vmp_name) || a.year_month.localeCompare(b.year_month)
-        );
-
-        return Object.values(sortedData.reduce((acc, item) => {
-            if (!acc[item.vmp_name]) {
-                acc[item.vmp_name] = {
-                    label: item.vmp_name,
-                    data: [],
-                    backgroundColor: getRandomColor(),
-                    borderColor: getRandomColor(),
-                    fill: false
-                };
-            }
-            acc[item.vmp_name].data.push({
-                x: new Date(item.year_month),
-                y: item.quantity
-            });
-            return acc;
-        }, {}));
+        const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
+        
+        if (viewMode === 'Total') {
+            return {
+                labels: sortedDates,
+                datasets: [{
+                    label: `Total ${quantityType} over time`,
+                    data: sortedDates.map(date => groupedData[date]),
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            };
+        } else {
+            return {
+                labels: sortedDates,
+                datasets: organizations.map((org, index) => ({
+                    label: org,
+                    data: sortedDates.map(date => groupedData[date][org] || 0),
+                    borderColor: `hsl(${index * 360 / organizations.length}, 70%, 50%)`,
+                    tension: 0.1
+                }))
+            };
+        }
     }
 
-    function prepareOrgLineChartData(data) {
-        const groupedData = data.reduce((acc, item) => {
-            if (!acc[item.ods_name]) {
-                acc[item.ods_name] = {};
-            }
-            if (!acc[item.ods_name][item.year_month]) {
-                acc[item.ods_name][item.year_month] = 0;
-            }
-            acc[item.ods_name][item.year_month] += parseFloat(item.quantity);
-            return acc;
-        }, {});
-
-        return Object.entries(groupedData).map(([odsName, values]) => ({
-            label: odsName,
-            data: Object.entries(values).map(([date, quantity]) => ({
-                x: new Date(date),
-                y: quantity
-            })),
-            backgroundColor: getRandomColor(),
-            borderColor: getRandomColor(),
-            fill: false
-        }));
-    }
-
-    export function updateData(newData) {
-        console.log("TimeSeriesChart updateData called with:", newData);
-        updateChart(newData);
-    }
-
-    function getRandomColor() {
-        return `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.6)`;
-    }
-
-    function handleChartTypeChange(event) {
-        chartType = event.target.value;
-        updateChart(currentData);
+    function updateChart() {
+        if (chart) {
+            chart.data = prepareChartData(data, viewMode);
+            chart.update();
+        }
     }
 
     onMount(() => {
-        console.log("TimeSeriesChart onMount called");
-        
-        chart = new Chart(chartCanvas, {
+        chart = new Chart(canvas, {
             type: 'line',
-            data: { datasets: [] },
-            options: options
+            data: prepareChartData(data, viewMode),
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: quantityType
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    }
+                }
+            }
         });
 
         return () => {
@@ -188,16 +100,16 @@
     });
 </script>
 
-<div class="p-4 border border-gray-300 rounded-md">
-    <h2 class="text-xl font-bold mb-4">Time Series Chart</h2>
+<div>
+    <h3 class="text-lg font-semibold mb-2">Time Series Chart for {quantityType}</h3>
     <div class="mb-4">
-        <label for="chart-type" class="mr-2">Chart Type:</label>
-        <select id="chart-type" on:change={handleChartTypeChange} class="p-1 border border-gray-300 rounded">
-            <option value="total">Total by VMP</option>
-            <option value="org">By Organization</option>
+        <label for="view-mode-select" class="mr-2">View Mode:</label>
+        <select id="view-mode-select" bind:value={viewMode} on:change={updateChart} class="p-2 border rounded">
+            <option value="Total">Total</option>
+            <option value="Organization Breakdown">Organization Breakdown</option>
         </select>
     </div>
-    <div class="h-64">
-        <canvas bind:this={chartCanvas}></canvas>
+    <div class="chart-container" style="height: 400px;">
+        <canvas bind:this={canvas}></canvas>
     </div>
 </div>
