@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import DoseViewSet, unique_vmp_names, unique_ods_names, IndexView, filtered_doses, unique_ingredient_names, unique_vtm_names
+from .views import DoseViewSet, unique_vmp_names, unique_ods_names, IndexView, filtered_doses, filtered_ingredient_quantities, unique_ingredient_names, unique_vtm_names
 
 router = DefaultRouter()
 router.register(r'doses', DoseViewSet)
@@ -15,4 +15,5 @@ urlpatterns = [
     path('api/unique-ingredient-names/', unique_ingredient_names, name='unique_ingredient_names'),
     path('api/unique-vtm-names/', unique_vtm_names, name='unique_vtm_names'),
     path('api/filtered-doses/', filtered_doses, name='filtered-doses'),
+    path('api/filtered-ingredient-quantities/', filtered_ingredient_quantities, name='filtered-ingredient-quantities'),
 ]
