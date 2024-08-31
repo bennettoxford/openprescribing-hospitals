@@ -7,9 +7,28 @@
 {% endblock %}
 
 {% block content %}
-<layout-component></layout-component>
-
-<script>
-    window.dummyData = JSON.parse('{{ dummy_data|escapejs }}');
-</script>
+<div class="bg-gray-100 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <h1 class="text-4xl font-bold mb-8 text-gray-900">Welcome to OpenPrescribing Hospitals</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-white rounded-lg shadow-md p-6 transition duration-300 ease-in-out hover:shadow-lg">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-800">Analyse Prescribing Data</h2>
+                <p class="mb-6 text-gray-600">Explore and analyze hospital prescribing patterns across the UK using our advanced tools.</p>
+                <a href="{% url 'viewer:analyse' %}" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300 ease-in-out">Start Analyzing</a>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6 transition duration-300 ease-in-out hover:shadow-lg">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-800">View Measures</h2>
+                <p class="mb-6 text-gray-600">Check key performance indicators and quality measures for hospitals to gain valuable insights.</p>
+                <a href="{% url 'viewer:measures' %}" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300 ease-in-out">View Measures</a>
+            </div>
+        </div>
+        
+        <div class="mt-12 bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-800">About OpenPrescribing Hospitals</h2>
+            <p class="text-gray-600">OpenPrescribing Hospitals provides a comprehensive platform for analyzing and understanding prescribing patterns in UK hospitals. Our tools help healthcare professionals, researchers, and policymakers make data-driven decisions to improve patient care and optimize resource allocation.</p>
+        </div>
+    </div>
+</div>
 {% endblock %}

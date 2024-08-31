@@ -15,6 +15,16 @@ class IndexView(TemplateView):
         context = super().get_context_data(**kwargs)
         return context
 
+class AnalyseView(TemplateView):
+    template_name = "analyse.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
+
+class MeasuresView(TemplateView):
+    template_name = "measures.html"
+
 class DoseViewSet(viewsets.ModelViewSet):
     queryset = Dose.objects.all()
     serializer_class = DoseSerializer

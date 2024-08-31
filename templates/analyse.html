@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load static %}
+{% load django_vite %}
+
+{% block head %}
+    {% vite_asset './src/Layout.svelte' %}
+{% endblock %}
+
+{% block content %}
+<layout-component></layout-component>
+
+<script>
+    window.dummyData = JSON.parse('{{ dummy_data|escapejs }}');
+</script>
+{% endblock %}
