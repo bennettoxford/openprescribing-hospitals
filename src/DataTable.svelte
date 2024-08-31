@@ -28,6 +28,11 @@
 
         return sortedGroups;
     }
+
+    function formatNumber(number) {
+        // Round to the nearest integer and format with commas
+        return Math.round(number).toLocaleString('en-US');
+    }
 </script>
 
 <div class="overflow-x-auto">
@@ -45,7 +50,7 @@
                         {group.key}
                     </td>
                     <td class="py-3 px-6 text-right font-bold">
-                        {group.value.toFixed(2)}
+                        {formatNumber(group.value)}
                     </td>
                 </tr>
             {/each}
