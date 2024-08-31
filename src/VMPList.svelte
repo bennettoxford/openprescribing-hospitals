@@ -1,5 +1,10 @@
 <script>
+    import { createEventDispatcher } from 'svelte';
+
     export let vmps = [];
+
+    const dispatch = createEventDispatcher();
+
     $: hasIngredients = vmps.some(vmp => vmp.ingredient);
     
     let checkedVMPs = vmps.map(() => true);
@@ -39,29 +44,17 @@
         return sortDirection * aValue.localeCompare(bValue, undefined, {numeric: true, sensitivity: 'base'});
     });
 
-    function rerunAnalysis() {
-        // TODO: Implement rerun analysis logic
-        console.log("Rerunning analysis with selected VMPs");
+    $: {
+        const selectedVMPs = vmps.filter((_, index) => checkedVMPs[index]);
+        dispatch('dataFiltered', selectedVMPs);
     }
-
 </script>
 
 <div class="p-4">
     <h3 class="text-xl font-semibold mb-4">Products included</h3>
-    
-    {#if showUnitWarning}
-        <div class="m-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700">
-            <p class="font-bold">Warning</p>
-            <p>This list contains multiple units. Please review carefully.</p>
-        </div>
-    {/if}
-
-    {#if showUnitIngredientWarning}
-        <div class="mt-4 p-4 bg-orange-100 border-l-4 border-orange-500 text-orange-700">
-            <p class="font-bold">Warning</p>
-            <p>This list contains multiple unit-ingredient combinations. Please review carefully.</p>
-        </div>
-    {/if}
+    <p class="mb-2 text-sm text-gray-600">
+        Selected: <span class="font-semibold">{selectedCount}</span> out of <span class="font-semibold">{vmps.length}</span>
+    </p>
     <div class="overflow-x-auto">
         <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
             <thead class="bg-gray-100">
@@ -102,15 +95,18 @@
             </tbody>
         </table>
     </div>
-    <p class="mb-2 text-sm text-gray-600">
-        Selected: <span class="font-semibold">{selectedCount}</span> out of <span class="font-semibold">{vmps.length}</span>
-    </p>
 
-    
-    <button 
-        on:click={rerunAnalysis}
-        class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-    >
-        Rerun Analysis
-    </button>
+    {#if showUnitWarning}
+        <div class="mt-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700">
+            <p class="font-bold">Warning</p>
+            <p>This list contains multiple units. Please review carefully.</p>
+        </div>
+    {/if}
+
+    {#if showUnitIngredientWarning}
+        <div class="mt-4 p-4 bg-orange-100 border-l-4 border-orange-500 text-orange-700">
+            <p class="font-bold">Warning</p>
+            <p>This list contains multiple unit-ingredient combinations. Please review carefully.</p>
+        </div>
+    {/if}
 </div>

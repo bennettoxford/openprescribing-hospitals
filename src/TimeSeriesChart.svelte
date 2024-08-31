@@ -4,7 +4,7 @@
   }} />
 
 <script>
-    import { onMount } from 'svelte';
+    import { onMount, afterUpdate } from 'svelte';
     import Chart from 'chart.js/auto';
 
     export let data = [];
@@ -16,13 +16,31 @@
     let organizations = [];
 
     $: {
+        console.log('Data received in TimeSeriesChart:', data);
         if (data.length > 0) {
             organizations = [...new Set(data.map(item => item.ods_name))];
-            updateChart();
+            if (chart) {
+                updateChart();
+            }
+        } else {
+            console.log('No data available for chart');
+            if (chart) {
+                chart.data.datasets = [];
+                chart.data.labels = [];
+                chart.update();
+            }
         }
     }
 
     function prepareChartData(data, viewMode) {
+        console.log('Preparing chart data:', data, viewMode);
+        if (data.length === 0) {
+            return {
+                labels: [],
+                datasets: []
+            };
+        }
+
         const groupedData = data.reduce((acc, item) => {
             const key = item.year_month;
             if (!acc[key]) {
@@ -62,13 +80,16 @@
     }
 
     function updateChart() {
+        console.log('Updating chart');
         if (chart) {
-            chart.data = prepareChartData(data, viewMode);
+            const chartData = prepareChartData(data, viewMode);
+            chart.data = chartData;
             chart.update();
         }
     }
 
     onMount(() => {
+        console.log('Mounting TimeSeriesChart');
         chart = new Chart(canvas, {
             type: 'line',
             data: prepareChartData(data, viewMode),
@@ -98,6 +119,13 @@
             }
         };
     });
+
+    afterUpdate(() => {
+        console.log('After update in TimeSeriesChart');
+        if (chart) {
+            updateChart();
+        }
+    });
 </script>
 
 <div>
@@ -110,6 +138,10 @@
         </select>
     </div>
     <div class="chart-container" style="height: 400px;">
-        <canvas bind:this={canvas}></canvas>
+        {#if data.length === 0}
+            <p class="text-center text-gray-500 pt-8">No data available. Please select at least one VMP.</p>
+        {:else}
+            <canvas bind:this={canvas}></canvas>
+        {/if}
     </div>
 </div>

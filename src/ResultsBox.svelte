@@ -11,12 +11,8 @@
 
     let selectedData = [];
     let quantityType = 'Dose';
-
-    let timeSeriesChart;
-    let dataTable;
     let vmps = [];
-
-    $: console.log('ResultsBox received data:', selectedData);
+    let filteredData = [];
 
     function handleUpdateData(event) {
         const { data, quantityType: newQuantityType } = event.detail;
@@ -24,19 +20,23 @@
         quantityType = newQuantityType;
         console.log('Updated data in ResultsBox:', selectedData);
         
-
-        // update the vmps based on the selcted data. 
-        // want to populate with the unique vmp,unit,ingredient combinations
         vmps = Array.from(new Set(selectedData.map(item => {
-            const vmpObject = {
+            return JSON.stringify({
                 vmp: item.vmp_name,
-                unit: item.unit
-            };
-            if (item.ingredient_name) {
-                vmpObject.ingredient = item.ingredient_name;
-            }
-            return JSON.stringify(vmpObject);
+                unit: item.unit,
+                ingredient: item.ingredient_name || null
+            });
         }))).map(JSON.parse);
+
+        filteredData = selectedData;
+    }
+
+    function handleFilteredData(event) {
+        const selectedVMPs = event.detail;
+        filteredData = selectedData.filter(item => 
+            selectedVMPs.some(vmp => vmp.vmp === item.vmp_name)
+        );
+        console.log('Filtered data in ResultsBox:', filteredData);
     }
 
     onMount(() => {
@@ -53,12 +53,12 @@
 <div class="results-box p-4 bg-white rounded-lg shadow-md h-full flex flex-col">
     <h2 class="text-xl font-bold mb-4">Results</h2>
     {#if selectedData.length > 0}
-        <VMPList {vmps} />
+        <VMPList {vmps} on:dataFiltered={handleFilteredData} />
         <div class="mb-8">
-            <TimeSeriesChart data={selectedData} {quantityType} />
+            <TimeSeriesChart data={filteredData} {quantityType} />
         </div>
         <div>
-            <DataTable data={selectedData} {quantityType} />
+            <DataTable data={filteredData} {quantityType} />
         </div>
     {:else}
         <p>No data available. Please run an analysis.</p>
