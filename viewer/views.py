@@ -13,9 +13,6 @@ class IndexView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        doses = Dose.objects.all()
-        dummy_data = DoseSerializer(doses, many=True).data
-        context['dummy_data'] = json.dumps(dummy_data)
         return context
 
 class DoseViewSet(viewsets.ModelViewSet):
