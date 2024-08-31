@@ -14,11 +14,15 @@
     let chart;
     let viewMode = 'Total';
     let organizations = [];
+    let units = [];
+    let ingredientUnitPairs = [];
 
     $: {
         console.log('Data received in TimeSeriesChart:', data);
         if (data.length > 0) {
             organizations = [...new Set(data.map(item => item.ods_name))];
+            units = [...new Set(data.map(item => item.unit))];
+            ingredientUnitPairs = [...new Set(data.map(item => `${item.ingredient_name || 'Unknown'}-${item.unit}`))];
             if (chart) {
                 updateChart();
             }
@@ -35,33 +39,33 @@
     function prepareChartData(data, viewMode) {
         console.log('Preparing chart data:', data, viewMode);
         if (data.length === 0) {
-            return {
-                labels: [],
-                datasets: []
-            };
+            return { labels: [], datasets: [] };
         }
 
         const groupedData = data.reduce((acc, item) => {
             const key = item.year_month;
             if (!acc[key]) {
-                acc[key] = viewMode === 'Total' ? 0 : {};
+                acc[key] = {};
             }
-            if (viewMode === 'Total') {
-                acc[key] += parseFloat(item.quantity);
-            } else {
-                acc[key][item.ods_name] = (acc[key][item.ods_name] || 0) + parseFloat(item.quantity);
+            const breakdownKey = getBreakdownKey(item, viewMode);
+            if (!acc[key][breakdownKey]) {
+                acc[key][breakdownKey] = 0;
             }
+            acc[key][breakdownKey] += parseFloat(item.quantity);
             return acc;
         }, {});
 
         const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
-        
+        const breakdownKeys = getBreakdownKeys(viewMode);
+
         if (viewMode === 'Total') {
             return {
                 labels: sortedDates,
                 datasets: [{
                     label: `Total ${quantityType} over time`,
-                    data: sortedDates.map(date => groupedData[date]),
+                    data: sortedDates.map(date => 
+                        Object.values(groupedData[date]).reduce((sum, val) => sum + val, 0)
+                    ),
                     borderColor: 'rgb(75, 192, 192)',
                     tension: 0.1
                 }]
@@ -69,13 +73,39 @@
         } else {
             return {
                 labels: sortedDates,
-                datasets: organizations.map((org, index) => ({
-                    label: org,
-                    data: sortedDates.map(date => groupedData[date][org] || 0),
-                    borderColor: `hsl(${index * 360 / organizations.length}, 70%, 50%)`,
+                datasets: breakdownKeys.map((key, index) => ({
+                    label: key,
+                    data: sortedDates.map(date => groupedData[date][key] || 0),
+                    borderColor: `hsl(${index * 360 / breakdownKeys.length}, 70%, 50%)`,
                     tension: 0.1
                 }))
             };
+        }
+    }
+
+    function getBreakdownKey(item, viewMode) {
+        switch (viewMode) {
+            case 'Organization':
+                return item.ods_name;
+            case 'Unit':
+                return item.unit;
+            case 'Ingredient-Unit':
+                return `${item.ingredient_name || 'Unknown'}-${item.unit}`;
+            default:
+                return 'Total';
+        }
+    }
+
+    function getBreakdownKeys(viewMode) {
+        switch (viewMode) {
+            case 'Organization':
+                return organizations;
+            case 'Unit':
+                return units;
+            case 'Ingredient-Unit':
+                return ingredientUnitPairs;
+            default:
+                return ['Total'];
         }
     }
 
@@ -84,7 +114,7 @@
         if (chart) {
             const chartData = prepareChartData(data, viewMode);
             chart.data = chartData;
-            chart.update();
+            chart.update('none');
         }
     }
 
@@ -95,11 +125,11 @@
             data: prepareChartData(data, viewMode),
             options: {
                 responsive: true,
-                animation: false, // Disable all animations
+                animation: false,
                 transitions: {
                     active: {
                         animation: {
-                            duration: 0 // Disable transitions when hovering
+                            duration: 0
                         }
                     }
                 },
@@ -134,15 +164,22 @@
             updateChart();
         }
     });
+
+    function handleViewModeChange() {
+        updateChart();
+    }
 </script>
 
 <div>
     <h3 class="text-lg font-semibold mb-2">Time Series Chart for {quantityType}</h3>
-    <div class="mb-4">
+    <div class="mb-4 flex items-center">
         <label for="view-mode-select" class="mr-2">View Mode:</label>
-        <select id="view-mode-select" bind:value={viewMode} on:change={updateChart} class="p-2 border rounded">
+        <select id="view-mode-select" bind:value={viewMode} on:change={handleViewModeChange} class="p-2 border rounded mr-4">
             <option value="Total">Total</option>
-            <option value="Organization Breakdown">Organization Breakdown</option>
+            <option value="Organization">Organization Breakdown</option>
+            <option value={quantityType === 'Dose' ? 'Unit' : 'Ingredient-Unit'}>
+                {quantityType === 'Dose' ? 'Dose Unit Breakdown' : 'Ingredient-Unit Breakdown'}
+            </option>
         </select>
     </div>
     <div class="chart-container" style="height: 400px;">
