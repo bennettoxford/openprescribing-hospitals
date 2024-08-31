@@ -95,6 +95,14 @@
             data: prepareChartData(data, viewMode),
             options: {
                 responsive: true,
+                animation: false, // Disable all animations
+                transitions: {
+                    active: {
+                        animation: {
+                            duration: 0 // Disable transitions when hovering
+                        }
+                    }
+                },
                 scales: {
                     y: {
                         beginAtZero: true,
