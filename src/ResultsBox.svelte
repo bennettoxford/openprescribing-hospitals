@@ -50,17 +50,21 @@
     });
 </script>
 
-<div class="results-box p-4 bg-white rounded-lg shadow-md h-full flex flex-col">
-    <h2 class="text-xl font-bold mb-4">Results</h2>
+<div class="results-box bg-white rounded-lg shadow-md h-full flex flex-col">
+    <h2 class="text-xl font-bold p-4">Results</h2>
     {#if selectedData.length > 0}
-        <VMPList {vmps} on:dataFiltered={handleFilteredData} />
-        <div class="mb-8">
-            <TimeSeriesChart data={filteredData} {quantityType} />
-        </div>
-        <div>
-            <DataTable data={filteredData} {quantityType} />
+        <div class="flex-grow overflow-y-auto">
+            <div class="p-4">
+                <VMPList {vmps} on:dataFiltered={handleFilteredData} />
+            </div>
+            <div class="p-4">
+                <TimeSeriesChart data={filteredData} {quantityType} />
+            </div>
+            <div class="p-4 pt-0">
+                <DataTable data={filteredData} {quantityType} />
+            </div>
         </div>
     {:else}
-        <p>No data available. Please run an analysis.</p>
+        <p class="p-4">No data available. Please run an analysis.</p>
     {/if}
 </div>
