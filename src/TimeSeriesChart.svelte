@@ -16,6 +16,7 @@
     let organizations = [];
     let units = [];
     let ingredientUnitPairs = [];
+    let legendContainer;
 
     $: {
         console.log('Data received in TimeSeriesChart:', data);
@@ -109,6 +110,56 @@
         }
     }
 
+    const scrollableLegendPlugin = {
+        id: 'scrollableLegend',
+        afterRender: (chart, args, options) => {
+            if (viewMode === 'Total') {
+                if (legendContainer) legendContainer.innerHTML = '';
+                return;
+            }
+
+            const ul = document.createElement('ul');
+            ul.style.overflowY = 'auto';
+            ul.style.maxHeight = '350px';
+            ul.style.padding = '10px';
+            ul.style.margin = '0';
+            ul.style.listStyle = 'none';
+
+            chart.data.datasets.forEach((dataset, index) => {
+                const li = document.createElement('li');
+                li.style.display = 'flex';
+                li.style.alignItems = 'center';
+                li.style.marginBottom = '5px';
+                li.style.cursor = 'pointer';
+
+                const colorBox = document.createElement('span');
+                colorBox.style.width = '20px';
+                colorBox.style.height = '20px';
+                colorBox.style.backgroundColor = dataset.borderColor;
+                colorBox.style.display = 'inline-block';
+                colorBox.style.marginRight = '5px';
+
+                const text = document.createTextNode(dataset.label);
+
+                li.appendChild(colorBox);
+                li.appendChild(text);
+
+                li.onclick = () => {
+                    const meta = chart.getDatasetMeta(index);
+                    meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
+                    chart.update();
+                };
+
+                ul.appendChild(li);
+            });
+
+            if (legendContainer) {
+                legendContainer.innerHTML = '';
+                legendContainer.appendChild(ul);
+            }
+        }
+    };
+
     function updateChart() {
         console.log('Updating chart');
         if (chart) {
@@ -120,11 +171,13 @@
 
     onMount(() => {
         console.log('Mounting TimeSeriesChart');
+        Chart.register(scrollableLegendPlugin);
         chart = new Chart(canvas, {
             type: 'line',
             data: prepareChartData(data, viewMode),
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 animation: false,
                 transitions: {
                     active: {
@@ -147,8 +200,14 @@
                             text: 'Date'
                         }
                     }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
                 }
-            }
+            },
+            plugins: [scrollableLegendPlugin]
         });
 
         return () => {
@@ -170,7 +229,7 @@
     }
 </script>
 
-<div>
+<div class="flex flex-col">
     <h3 class="text-lg font-semibold mb-2">Time Series Chart for {quantityType}</h3>
     <div class="mb-4 flex items-center">
         <label for="view-mode-select" class="mr-2">View Mode:</label>
@@ -182,11 +241,24 @@
             </option>
         </select>
     </div>
-    <div class="chart-container" style="height: 400px;">
-        {#if data.length === 0}
-            <p class="text-center text-gray-500 pt-8">No data available. Please select at least one VMP.</p>
-        {:else}
-            <canvas bind:this={canvas}></canvas>
-        {/if}
+    <div class="flex">
+        <div class="chart-container flex-grow" style="height: 400px;">
+            {#if data.length === 0}
+                <p class="text-center text-gray-500 pt-8">No data available. Please select at least one VMP.</p>
+            {:else}
+                <canvas bind:this={canvas}></canvas>
+            {/if}
+        </div>
+        <div bind:this={legendContainer} class="legend-container w-48 bg-white shadow-md ml-4"></div>
     </div>
 </div>
+
+<style>
+    .chart-container {
+        position: relative;
+    }
+    .legend-container {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+</style>
