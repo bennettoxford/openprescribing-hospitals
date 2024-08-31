@@ -56,44 +56,46 @@
         Selected: <span class="font-semibold">{selectedCount}</span> out of <span class="font-semibold">{vmps.length}</span>
     </p>
     <div class="overflow-x-auto">
-        <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('vmp')}>
-                        Name <span class="text-gray-400">{getSortIndicator('vmp')}</span>
-                    </th>
-                    <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('unit')}>
-                        Unit <span class="text-gray-400">{getSortIndicator('unit')}</span>
-                    </th>
-                    {#if hasIngredients}
-                        <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('ingredient')}>
-                            Ingredient <span class="text-gray-400">{getSortIndicator('ingredient')}</span>
+        <div class="max-h-96 overflow-y-auto relative">
+            <table class="w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
+                <thead class="bg-gray-100 sticky top-0 z-10">
+                    <tr>
+                        <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('vmp')}>
+                            Name <span class="text-gray-400">{getSortIndicator('vmp')}</span>
                         </th>
-                    {/if}
-                    <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('selected')}>
-                        Select <span class="text-gray-400">{getSortIndicator('selected')}</span>
-                    </th>
-                </tr>
-            </thead>
-            <tbody>
-                {#each sortedVMPs as vmp, index}
-                    <tr class="border-t border-gray-200">
-                        <td class="px-4 py-2">{vmp.vmp}</td>
-                        <td class="px-4 py-2">{vmp.unit}</td>
+                        <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('unit')}>
+                            Unit <span class="text-gray-400">{getSortIndicator('unit')}</span>
+                        </th>
                         {#if hasIngredients}
-                            <td class="px-4 py-2">{vmp.ingredient || '-'}</td>
+                            <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('ingredient')}>
+                                Ingredient <span class="text-gray-400">{getSortIndicator('ingredient')}</span>
+                            </th>
                         {/if}
-                        <td class="px-4 py-2">
-                            <input 
-                                type="checkbox" 
-                                bind:checked={checkedVMPs[vmps.indexOf(vmp)]}
-                                class="form-checkbox h-5 w-5 text-blue-600"
-                            >
-                        </td>
+                        <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('selected')}>
+                            Select <span class="text-gray-400">{getSortIndicator('selected')}</span>
+                        </th>
                     </tr>
-                {/each}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {#each sortedVMPs as vmp, index}
+                        <tr class="border-t border-gray-200">
+                            <td class="px-4 py-2">{vmp.vmp}</td>
+                            <td class="px-4 py-2">{vmp.unit}</td>
+                            {#if hasIngredients}
+                                <td class="px-4 py-2">{vmp.ingredient || '-'}</td>
+                            {/if}
+                            <td class="px-4 py-2">
+                                <input 
+                                    type="checkbox" 
+                                    bind:checked={checkedVMPs[vmps.indexOf(vmp)]}
+                                    class="form-checkbox h-5 w-5 text-blue-600"
+                                >
+                            </td>
+                        </tr>
+                    {/each}
+                </tbody>
+            </table>
+        </div>
     </div>
 
     {#if showUnitWarning}
