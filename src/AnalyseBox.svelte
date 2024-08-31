@@ -55,6 +55,12 @@
 
         isAnalysisRunning = true;
         
+        // Dispatch event to clear results
+        const analyseBox = document.querySelector('analyse-box');
+        if (analyseBox) {
+            analyseBox.dispatchEvent(new CustomEvent('clearResults'));
+        }
+        
         let endpoint = quantityType === 'Dose' ? '/api/filtered-doses/' : '/api/filtered-ingredient-quantities/';
         
         try {

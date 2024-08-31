@@ -13,6 +13,7 @@
     let quantityType = 'Dose';
     let vmps = [];
     let filteredData = [];
+    let isLoading = false;
 
     function handleUpdateData(event) {
         const { data, quantityType: newQuantityType } = event.detail;
@@ -29,6 +30,7 @@
         }))).map(JSON.parse);
 
         filteredData = selectedData;
+        isLoading = false;
     }
 
     function handleFilteredData(event) {
@@ -39,20 +41,31 @@
         console.log('Filtered data in ResultsBox:', filteredData);
     }
 
+    function handleClearResults() {
+        selectedData = [];
+        filteredData = [];
+        vmps = [];
+        isLoading = true;
+    }
+
     onMount(() => {
         console.log("ResultsBox onMount called");
         const resultsBox = document.querySelector('results-box');
         resultsBox.addEventListener('updateData', handleUpdateData);
+        resultsBox.addEventListener('clearResults', handleClearResults);
 
         return () => {
             resultsBox.removeEventListener('updateData', handleUpdateData);
+            resultsBox.removeEventListener('clearResults', handleClearResults);
         };
     });
 </script>
 
 <div class="results-box bg-white rounded-lg shadow-md h-full flex flex-col">
     <h2 class="text-xl font-bold p-4">Results</h2>
-    {#if selectedData.length > 0}
+    {#if isLoading}
+        <p class="p-4">Loading results...</p>
+    {:else if selectedData.length > 0}
         <div class="flex-grow overflow-y-auto">
             <div class="p-4">
                 <VMPList {vmps} on:dataFiltered={handleFilteredData} />
