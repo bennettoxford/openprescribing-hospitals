@@ -12,8 +12,8 @@ class VTM(models.Model):
 class VMP(models.Model):
     code = models.CharField(max_length=20, primary_key=True)
     name = models.CharField(max_length=255)
-    vtm = models.ForeignKey(VTM, on_delete=models.CASCADE, related_name='vmps')
-    ingredients = models.ManyToManyField('Ingredient', related_name='vmps')
+    vtm = models.ForeignKey(VTM, on_delete=models.CASCADE, related_name='vmps', null=True)
+    ingredients = models.ManyToManyField('Ingredient', related_name='vmps', null=True)
 
     def __str__(self):
         return f"{self.name} ({self.code})"
@@ -39,7 +39,7 @@ class Organisation(models.Model):
 class Dose(models.Model):
     year_month = models.DateField()
     vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name='doses')
-    quantity = models.FloatField()
+    quantity = models.FloatField(null=True)
     unit = models.CharField(max_length=50)
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE,
                                      related_name='doses')
@@ -54,7 +54,7 @@ class Dose(models.Model):
 class SCMD(models.Model):
     year_month = models.DateField()
     vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name='scmds')
-    quantity = models.FloatField()
+    quantity = models.FloatField(null=True)
     unit = models.CharField(max_length=50)
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE,
                                      related_name='scmds')
@@ -72,8 +72,8 @@ class IngredientQuantity(models.Model):
                                    related_name='ingredient_quantities')
     vmp = models.ForeignKey(VMP, on_delete=models.CASCADE,
                             related_name='ingredient_quantities')
-    quantity = models.FloatField()
-    unit = models.CharField(max_length=50)
+    quantity = models.FloatField(null=True)
+    unit = models.CharField(max_length=50, null=True)
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE,
                                      related_name='ingredient_quantities')
 
