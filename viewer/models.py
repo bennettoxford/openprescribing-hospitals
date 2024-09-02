@@ -84,3 +84,12 @@ class IngredientQuantity(models.Model):
     class Meta:
         ordering = ['year_month', 'ingredient__name', 'vmp__name',
                     'organisation__ods_name']
+
+
+class Measure(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    description = models.TextField()
+    sql_file = models.CharField(max_length=255)  # This will store the filename of the SQL file
+
+    def __str__(self):
+        return self.name

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load static %}
+{% load django_vite %}
+
+{% block head %}
+    {% vite_asset './src/Measure.svelte' %}
+{% endblock %}
+
+{% block content %}
+<div class="bg-gray-100 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
+        <h1 class="text-3xl font-bold mb-4">{{ measure_name }}</h1>
+        {% if error %}
+            <p class="text-red-600">{{ error }}</p>
+        {% else %}
+            <p class="text-gray-600 mb-6">{{ description }}</p>
+            <div id="measure-chart">
+                <measure-component measureData='{{ measure_result|escapejs }}'></measure-component>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

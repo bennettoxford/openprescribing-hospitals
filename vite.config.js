@@ -19,7 +19,8 @@ export default defineConfig({
         'search-box': "./src/Search.svelte",
         'time-series-chart': "./src/TimeSeriesChart.svelte",
         'searchable-dropdown': "./src/SearchableDropdown.svelte",
-        'data-table': "./src/DataTable.svelte", // Add this line
+        'data-table': "./src/DataTable.svelte",
+        'measure': "./src/Measure.svelte",
       }
     }
   },

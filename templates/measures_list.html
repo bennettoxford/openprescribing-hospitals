@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="bg-gray-100 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <h1 class="text-4xl font-bold mb-8 text-gray-900">Hospital Measures</h1>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-800">About Measures</h2>
+            <p class="text-gray-600 mb-4">Measures are key performance indicators that help assess the quality and efficiency of prescribing practices in hospitals. They provide valuable insights into areas such as cost-effectiveness, patient safety, and adherence to best practices.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {% for measure in measures %}
+            <div class="bg-white rounded-lg shadow-md p-6 transition duration-300 ease-in-out hover:shadow-lg">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">{{ measure.name }}</h3>
+                <p class="text-gray-600 mb-4">{{ measure.description }}</p>
+                <a href="{% url 'viewer:measure_item' measure.name %}" class="text-blue-500 hover:text-blue-600 font-semibold">View Details</a>
+            </div>
+            {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -3,10 +3,10 @@ from django.views.generic import TemplateView
 from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Dose, Organisation, VMP, SCMD, IngredientQuantity, Ingredient, VTM
+from .models import Dose, Organisation, VMP, SCMD, IngredientQuantity, Ingredient, VTM, Measure
 from .serializers import DoseSerializer, OrganisationSerializer, VMPSerializer, SCMDSerializer, IngredientQuantitySerializer
 import json
-
+from .measures.measure_utils import execute_measure_sql
 # Create your views here.
 class IndexView(TemplateView):
     template_name = "index.html"
@@ -22,8 +22,41 @@ class AnalyseView(TemplateView):
         context = super().get_context_data(**kwargs)
         return context
 
-class MeasuresView(TemplateView):
-    template_name = "measures.html"
+class MeasuresListView(TemplateView):
+    template_name = "measures_list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['measures'] = Measure.objects.all()
+        return context
+
+class MeasureItemView(TemplateView):
+    template_name = "measure_item.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        measure_name = self.kwargs.get('measure_name')
+
+        measure = Measure.objects.get(name=measure_name)
+
+        context['measure_name'] = measure.name
+        context['description'] = measure.description
+
+        try:
+            result = execute_measure_sql(measure_name)
+            values = result.get('values', [])
+            print(values[0])
+            # Convert the values to a JSON string, ensuring proper escaping
+            context['measure_result'] = json.dumps(values, ensure_ascii=False)
+
+        except ValueError as e:
+            context['error'] = str(e)
+        except FileNotFoundError as e:
+            context['error'] = str(e)
+        except Exception as e:
+            context['error'] = str(e)
+        return context
+
 
 class DoseViewSet(viewsets.ModelViewSet):
     queryset = Dose.objects.all()
@@ -140,3 +173,5 @@ def filtered_ingredient_quantities(request):
 
     serializer = IngredientQuantitySerializer(queryset, many=True)
     return Response(serializer.data)
+
+
