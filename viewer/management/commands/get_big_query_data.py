@@ -92,17 +92,26 @@ class Command(BaseCommand):
     """
 
     vtm_table_sql = """
-        SELECT DISTINCT s.vtm, s.vtm_name
+        SELECT DISTINCT
+            s.vtm,
+            s.vtm_name,
+            COALESCE(d.vmp_code, s.vmp_code) AS vmp_code,
+            s.vmp_name,
+            s.ing AS ingredient
         FROM `ebmdatalab.scmd.dose` d
-        LEFT JOIN `ebmdatalab.scmd.scmd_dmd` s
-        ON COALESCE(s.vmp_code, s.vmp_code_prev) = d.vmp_code
+        LEFT JOIN `ebmdatalab.scmd.scmd_dmd` s 
+            ON d.vmp_code = COALESCE(s.vmp_code, s.vmp_code_prev)
     """
 
     vmp_table_sql = """
-        SELECT DISTINCT s.vtm, s.vmp_code, s.vmp_name, s.ing
+        SELECT DISTINCT
+            s.vtm,
+            COALESCE(d.vmp_code, s.vmp_code) AS vmp_code,
+            s.vmp_name,
+            s.ing AS ingredient
         FROM `ebmdatalab.scmd.dose` d
         LEFT JOIN `ebmdatalab.scmd.scmd_dmd` s 
-        ON d.vmp_code = COALESCE(s.vmp_code, s.vmp_code_prev)
+            ON d.vmp_code = COALESCE(s.vmp_code, s.vmp_code_prev)
     """
 
     dose_table_sql = """

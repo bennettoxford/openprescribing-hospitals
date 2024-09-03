@@ -15,11 +15,11 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         data_dir = os.path.join(settings.BASE_DIR, 'data')
 
-        # self.load_vtm(data_dir)
-        # self.load_ingredient(data_dir)
-        # self.load_vmp(data_dir)
-        # self.load_organisation(data_dir)
-        # self.load_scmd_and_dose(data_dir)
+        self.load_vtm(data_dir)
+        self.load_ingredient(data_dir)
+        self.load_vmp(data_dir)
+        self.load_organisation(data_dir)
+        self.load_scmd_and_dose(data_dir)
         self.load_ingredient_quantity(data_dir)
 
         self.stdout.write(self.style.SUCCESS('Successfully loaded all data into the database'))
@@ -33,6 +33,9 @@ class Command(BaseCommand):
         vtms = self.load_csv('vtm_table', directory)
         # drop any rows where vtm is null
         vtms = vtms[vtms['vtm'].notnull()]
+
+        # drop duplicates
+        vtms = vtms.drop_duplicates(subset=["vtm"])
         # convert vtm to int then to string
         vtms["vtm"] = vtms["vtm"].astype(int).astype(str)
         vtms.rename(columns={'vtm_name': 'name'}, inplace=True)
@@ -85,8 +88,8 @@ class Command(BaseCommand):
         vtm_updates = []
 
         for _, row in vmps.iterrows():
-            if pd.notnull(row['ing']):
-                ing = str(int(row['ing']))
+            if pd.notnull(row['ingredient']):
+                ing = str(int(row['ingredient']))
                 ingredient_relations.append(VMP.ingredients.through(
                     vmp_id=row['code'],
                     ingredient_id=ing
@@ -112,64 +115,7 @@ class Command(BaseCommand):
         VMP.objects.bulk_update(vmp_objects, ['vtm'], batch_size=1000)
 
         self.stdout.write(self.style.SUCCESS(f'Loaded {len(vmp_objects)} VMPs'))
-    # def load_vmp(self, directory):
-    #     vmps = self.load_csv('vmp_table', directory)
-
-    #      # drop any rows where vmp_code is null
-    #     vmps = vmps[vmps['vmp_code'].notnull()]
-    #     vmps.rename(columns={'vmp_code': 'code', 'vmp_name': 'name'}, inplace=True)
-    #     vmps["code"] = vmps["code"].astype(int).astype(str)
-
-
-    #     unique_vmps = vmps['code'].unique()       
-
-    #     vmps_unique = vmps.drop_duplicates(subset=["code"])
-    #     vmps_unique = vmps_unique.to_dict(orient='records')
-
-    #     VMP.objects.bulk_create([
-    #         VMP(code=vmp['code'], name=vmp['name'])
-    #         for vmp in vmps_unique
-
-    #     ])
-
-    #     # need to apply ingredients to vmps
-    #     for vmp in unique_vmps:
-    #         subset = vmps[vmps['code'] == vmp]
-    #         for index, row in subset.iterrows():
-    #             if pd.notnull(row['ing']):
-    #                 # need to convert from float to int to str
-    #                 ing = str(int(row['ing']))
-
-
-    #                 ingredient = Ingredient.objects.get(code=ing)
-
-    #                 if ingredient is not None:      
-    #                     # add it to the vmp
-    #                     vmp_obj = VMP.objects.get(code=vmp)
-    #                     vmp_obj.ingredients.add(ingredient)
-    #                     vmp_obj.save()
-    #                 else:
-    #                     self.stdout.write(self.style.WARNING(f'Could not find ingredient for {vmp["code"]}'))
-
-    #     # need to apply vtm to vmps - not all vmps have vtm
-    #     for vmp in unique_vmps:
-    #         subset = vmps[vmps['code'] == vmp]
-    #         for index, row in subset.iterrows():
-    #             if pd.notnull(row['vtm']): 
-    #                 # need to convert from float to int to str
-    #                 vtm = str(int(row['vtm']))
-    #                 vtm = VTM.objects.get(code=vtm)
-    #                 if vtm is not None:
-    #                     vmp_obj = VMP.objects.get(code=vmp)
-    #                     vmp_obj.vtm = vtm
-    #                     vmp_obj.save()
-    #                 else:
-    #                     self.stdout.write(self.style.WARNING(f'Could not find vtm for {vmp["code"]}'))
-        
-
-    #     self.stdout.write(self.style.SUCCESS(f'Loaded {len(vmps)} VMPs'))
-
-    
+ 
 
     def load_organisation(self, directory):
         organisations = self.load_csv('organisation_table', directory)
@@ -222,14 +168,15 @@ class Command(BaseCommand):
             year_month = datetime.strptime(row.year_month, '%Y-%m-%d').date()
             vmp = vmps[row.vmp_code]
             org = organizations[row.ods_code]
-            
-            dose_objects.append(Dose(
+            dose = Dose(
                 year_month=year_month,
                 vmp=vmp,
                 quantity=float(row.dose_quantity) if pd.notnull(row.dose_quantity) else None,
                 unit=row.dose_unit,
                 organisation=org
-            ))
+            )
+         
+            dose_objects.append(dose)
             
             scmd_objects.append(SCMD(
                 year_month=year_month,
@@ -240,10 +187,16 @@ class Command(BaseCommand):
             ))
         
         self.stdout.write("Bulk creating Dose objects...")
-        Dose.objects.bulk_create(dose_objects)
+        try:
+            Dose.objects.bulk_create(dose_objects)
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Error creating Dose objects: {str(e)}"))
         
         self.stdout.write("Bulk creating SCMD objects...")
-        SCMD.objects.bulk_create(scmd_objects)
+        try:
+            SCMD.objects.bulk_create(scmd_objects)
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Error creating SCMD objects: {str(e)}"))
         
         self.stdout.write(self.style.SUCCESS(f'Loaded {len(dose_objects)} Doses and {len(scmd_objects)} SCMDs'))
 

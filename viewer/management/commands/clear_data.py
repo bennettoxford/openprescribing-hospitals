@@ -1,4 +1,5 @@
 from django.core.management.base import BaseCommand
+from django.apps import apps
 
 class Command(BaseCommand):
     help = 'Clear data from the database while keeping the table structures'
