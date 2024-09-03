@@ -14,6 +14,7 @@
     let vmps = [];
     let filteredData = [];
     let isLoading = false;
+    let missingVMPs = [];
 
     function handleUpdateData(event) {
         const { data, quantityType: newQuantityType } = event.detail;
@@ -29,14 +30,15 @@
             });
         }))).map(JSON.parse);
 
-        filteredData = selectedData;
+        missingVMPs = vmps.filter(vmp => vmp.unit === 'nan').map(vmp => vmp.vmp);
+        filteredData = selectedData.filter(item => item.unit !== 'nan');
         isLoading = false;
     }
 
     function handleFilteredData(event) {
         const selectedVMPs = event.detail;
         filteredData = selectedData.filter(item => 
-            selectedVMPs.some(vmp => vmp.vmp === item.vmp_name)
+            selectedVMPs.some(vmp => vmp.vmp === item.vmp_name) && item.unit !== 'nan'
         );
         console.log('Filtered data in ResultsBox:', filteredData);
     }
@@ -45,6 +47,7 @@
         selectedData = [];
         filteredData = [];
         vmps = [];
+        missingVMPs = [];
         isLoading = true;
     }
 
@@ -70,6 +73,17 @@
             <div class="p-4">
                 <VMPList {vmps} on:dataFiltered={handleFilteredData} />
             </div>
+            {#if missingVMPs.length > 0}
+                <div class="mx-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700">
+                    <p class="font-bold">Warning: Missing Units</p>
+                    <p>The chosen quantity for the following VMPs can't be calculated and are excluded from the analysis:</p>
+                    <ul class="list-disc list-inside mt-2">
+                        {#each missingVMPs as vmp}
+                            <li>{vmp}</li>
+                        {/each}
+                    </ul>
+                </div>
+            {/if}
             <div class="p-4">
                 <TimeSeriesChart data={filteredData} {quantityType} />
             </div>

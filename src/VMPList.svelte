@@ -7,12 +7,12 @@
 
     $: hasIngredients = vmps.some(vmp => vmp.ingredient);
     
-    let checkedVMPs = vmps.map(() => true);
+    $: checkedVMPs = vmps.map(vmp => vmp.unit !== 'nan');
 
     $: selectedCount = checkedVMPs.filter(Boolean).length;
 
-    $: uniqueUnits = [...new Set(vmps.map(vmp => vmp.unit))];
-    $: uniqueUnitIngredientPairs = [...new Set(vmps.map(vmp => `${vmp.unit}-${vmp.ingredient || ''}`))]
+    $: uniqueUnits = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => vmp.unit))];
+    $: uniqueUnitIngredientPairs = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => `${vmp.unit}-${vmp.ingredient || ''}`))]
     $: showUnitWarning = uniqueUnits.length > 1;
     $: showUnitIngredientWarning = hasIngredients && uniqueUnitIngredientPairs.length > 1;
 
@@ -36,6 +36,12 @@
     }
 
     $: sortedVMPs = [...vmps].sort((a, b) => {
+        // Always keep 'nan' units at the top
+        if (a.unit === 'nan' && b.unit !== 'nan') return -1;
+        if (a.unit !== 'nan' && b.unit === 'nan') return 1;
+        if (a.unit === 'nan' && b.unit === 'nan') return 0;
+
+        // For non-'nan' units, apply the regular sorting
         if (sortColumn === 'selected') {
             return sortDirection * (checkedVMPs[vmps.indexOf(b)] - checkedVMPs[vmps.indexOf(a)]);
         }
@@ -45,7 +51,7 @@
     });
 
     $: {
-        const selectedVMPs = vmps.filter((_, index) => checkedVMPs[index]);
+        const selectedVMPs = vmps.filter((vmp, index) => checkedVMPs[index]);
         dispatch('dataFiltered', selectedVMPs);
     }
 </script>
@@ -78,9 +84,9 @@
                 </thead>
                 <tbody>
                     {#each sortedVMPs as vmp, index}
-                        <tr class="border-t border-gray-200">
+                        <tr class="border-t border-gray-200" class:bg-red-100={vmp.unit === 'nan'}>
                             <td class="px-4 py-2">{vmp.vmp}</td>
-                            <td class="px-4 py-2">{vmp.unit}</td>
+                            <td class="px-4 py-2">{vmp.unit === 'nan' ? '-' : vmp.unit}</td>
                             {#if hasIngredients}
                                 <td class="px-4 py-2">{vmp.ingredient || '-'}</td>
                             {/if}
@@ -88,7 +94,9 @@
                                 <input 
                                     type="checkbox" 
                                     bind:checked={checkedVMPs[vmps.indexOf(vmp)]}
+                                    disabled={vmp.unit === 'nan'}
                                     class="form-checkbox h-5 w-5 text-blue-600"
+                                    class:cursor-not-allowed={vmp.unit === 'nan'}
                                 >
                             </td>
                         </tr>
