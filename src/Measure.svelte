@@ -201,7 +201,7 @@
                 <canvas bind:this={canvas}></canvas>
             {/if}
         </div>
-        <div bind:this={legendContainer} class="legend-container w-48 bg-white shadow-md ml-4"></div>
+        <div bind:this={legendContainer} class="legend-container w-48 ml-4"></div>
     </div>
 </div>
 

@@ -88,7 +88,7 @@
             id="showOrganizationSelection"
             checked={showOrganizationSelection}
             on:change={() => toggleOrganizationSelection()}
-            class="mr-2"
+            class="mr-2 w-4 h-4"
         />
         <label for="showOrganizationSelection" class="text-sm font-medium text-gray-700">
             Filter by specific organizations
@@ -132,8 +132,8 @@
                     {#each filteredItems as item (item)}
                         <li 
                             class="p-2 cursor-pointer transition duration-150 ease-in-out"
-                            class:bg-blue-100={isItemSelected(item)}
-                            class:text-blue-700={isItemSelected(item)}
+                            class:bg-oxford-100={isItemSelected(item)}
+                            class:text-oxford-500={isItemSelected(item)}
                             class:hover:bg-gray-100={!isItemSelected(item)}
                             on:click={() => toggleItem(item)}
                         >

@@ -12,15 +12,17 @@
         {% block head %}
         {% endblock %}
     </head>
-    <body>
+    <body class="preload flex flex-col min-h-screen text-slate bg-white">
         {% include 'partials/nav.html' %}
-        <div>
-        <div>
-            {% block content %}
+        <div class="min-h-[66vh] flex-grow relative">
+            {% block full_width_content %}{% endblock %}
+            <div>
+                {% block content %}
+                {% endblock %}
+            </div>
+            {% block scripts%}
             {% endblock %}
         </div>
-        {% block scripts%}
-        {% endblock %}
-        </div>
+        {% include 'partials/footer.html' %}
     </body>
 </html>

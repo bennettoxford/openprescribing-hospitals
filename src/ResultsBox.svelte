@@ -75,7 +75,7 @@
             </div>
             {#if missingVMPs.length > 0}
                 <div class="mx-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700">
-                    <p class="font-bold">Warning: Missing Units</p>
+                    <p class="font-bold">Warning: Missing quantities</p>
                     <p>The chosen quantity for the following VMPs can't be calculated and are excluded from the analysis:</p>
                     <ul class="list-disc list-inside mt-2">
                         {#each missingVMPs as vmp}
@@ -92,6 +92,6 @@
             </div>
         </div>
     {:else}
-        <p class="p-4">No data available. Please run an analysis.</p>
+        <p class="p-4">Build a query to see results here.</p>
     {/if}
 </div>

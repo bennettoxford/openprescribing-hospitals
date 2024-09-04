@@ -2,13 +2,14 @@
 {% load static %}
 
 {% block content %}
-<div class="bg-gray-100 min-h-screen">
+
+<div class=" min-h-screen xl:max-w-screen-xl pt-2 md:pt-6 pb-4">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 class="text-4xl font-bold mb-8 text-gray-900">Hospital Measures</h1>
+        <h1 class="text-4xl font-bold mb-8 text-gray-900">Measures</h1>
         
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-800">About Measures</h2>
-            <p class="text-gray-600 mb-4">Measures are key performance indicators that help assess the quality and efficiency of prescribing practices in hospitals. They provide valuable insights into areas such as cost-effectiveness, patient safety, and adherence to best practices.</p>
+            <h2 class="text-2xl font-semibold mb-4 text-gray-800">About</h2>
+            <p class="text-gray-600 mb-4">Measures are pre-defined indicators of prescribing practices in hospitals. They provide valuable insights into areas such as cost-effectiveness, patient safety, and adherence to best practices.</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -16,7 +17,7 @@
             <div class="bg-white rounded-lg shadow-md p-6 transition duration-300 ease-in-out hover:shadow-lg flex flex-col h-full">
                 <h3 class="text-xl font-semibold mb-4 text-gray-800 line-clamp-2 h-14">{{ measure.name }}</h3>
                 <p class="text-gray-600 mb-4 flex-grow">{{ measure.description }}</p>
-                <a href="{% url 'viewer:measure_item' measure.id %}" class="text-blue-500 hover:text-blue-600 font-semibold mt-auto">View measure</a>
+                <a href="{% url 'viewer:measure_item' measure.id %}" class="text-oxford-500 hover:text-oxford-600 font-semibold mt-auto">View measure</a>
             </div>
             {% endfor %}
     </div>

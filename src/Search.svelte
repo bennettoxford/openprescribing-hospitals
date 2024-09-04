@@ -92,7 +92,7 @@
     <div class="flex">
         <select
             bind:value={searchType}
-            class="p-2 border border-gray-300 rounded-l-md min-w-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="p-2 border border-gray-300 rounded-l-md min-w-[100px] focus:outline-none focus:ring-2 focus:ring-oxford-500"
         >
             {#each searchTypes as type}
                 <option value={type.value}>{type.label}</option>
@@ -102,7 +102,7 @@
             type="text"
             bind:value={searchTerm}
             placeholder={`Search ${searchType.toUpperCase()} names...`}
-            class="w-full p-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full p-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-oxford-500"
         />
     </div>
     
@@ -110,7 +110,7 @@
         <ul class="mb-4 border border-gray-300 rounded-b-md rounded-l-md rounded-r-md max-h-60 overflow-y-auto divide-y divide-gray-200">
             {#each searchResults as result}
                 {#if isItemSelected(result)}
-                    <li class="p-2 bg-blue-100 text-blue-700 flex items-center">
+                    <li class="p-2 bg-oxford-200 text-oxford-700 flex items-center">
                         <span>{result}</span>
                         <span class="ml-auto text-sm font-medium">Selected</span>
                     </li>

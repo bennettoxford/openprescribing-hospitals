@@ -142,7 +142,7 @@
     </div>
     
     <div class="mb-4">
-        <h3 class="text-xl font-semibold mb-2">Select Quantity Type</h3>
+        <h3 class="text-xl font-semibold mb-2">Select quantity type</h3>
         <select 
             bind:value={quantityType}
             on:change={handleQuantityTypeChange}
@@ -155,7 +155,7 @@
     </div>
 
     <div class="mb-4">
-        <h3 class="text-xl font-semibold mb-2">Filter ODS Names</h3>
+        <h3 class="text-xl font-semibold mb-2">Select organisations</h3>
         <SearchableDropdown items={odsNames} on:selectionChange={handleODSSelection} />
     </div>
     
@@ -169,7 +169,7 @@
         <button
             on:click={runAnalysis}
             disabled={isAnalysisRunning}
-            class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline {isAnalysisRunning ? 'opacity-50 cursor-not-allowed' : ''}"
+            class="w-full bg-oxford-500 hover:bg-oxford-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline {isAnalysisRunning ? 'opacity-50 cursor-not-allowed' : ''}"
         >
             {isAnalysisRunning ? 'Running Analysis...' : 'Run Analysis'}
         </button>

@@ -34,7 +34,7 @@
       <analyse-box class="bg-white rounded-rg shadow-md h-full"></analyse-box>
       <button
         on:click={toggleLeftBox}
-        class={`absolute top-4 ${isLeftBoxCollapsed ? '-right-[72px]' : 'right-0'} bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-r-md focus:outline-none shadow-md transition-all duration-300 ease-in-out`}
+        class={`absolute top-0 ${isLeftBoxCollapsed ? '-right-[72px]' : 'right-0'} bg-oxford-500 hover:bg-oxford-600 text-white p-2 rounded-r-md focus:outline-none shadow-md transition-all duration-300 ease-in-out`}
       >
         {isLeftBoxCollapsed ? 'Analyse' : '◀'}
       </button>

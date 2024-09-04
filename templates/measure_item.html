@@ -7,9 +7,8 @@
 {% endblock %}
 
 {% block content %}
-<div class="bg-gray-100 min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
     <div class="max-w-5xl mx-auto">
-        <!-- Breadcrumb -->
         <nav class="flex mb-6" aria-label="Breadcrumb">
             <ol class="inline-flex items-center space-x-1 md:space-x-3">
                 <li class="inline-flex items-center">
@@ -27,7 +26,7 @@
             </ol>
         </nav>
 
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="overflow-hidden">
             <div class="px-6 py-8 sm:p-10">
                 <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl mb-2">{{ measure_name }}</h1>
                 {% if error %}
