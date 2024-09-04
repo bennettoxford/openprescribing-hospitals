@@ -12,10 +12,9 @@
     let parsedData = [];
     let canvas;
     let chart;
-    let viewMode = 'Total';
+    let viewMode = 'Organization';
     let organizations = [];
-    let regions = [];
-    let legendContainer;
+    let legendContainer; // Add this line to declare legendContainer
 
     $: {
         console.log('Received measureData:', measureData);
@@ -28,7 +27,7 @@
             }
             console.log('Parsed measureData:', parsedData);
             organizations = [...new Set(parsedData.map(item => item.organization))];
-            regions = [...new Set(parsedData.map(item => item.region))];
+            // Remove regions initialization
             if (chart) {
                 updateChart();
             }
@@ -59,61 +58,30 @@
         const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
         const breakdownKeys = getBreakdownKeys(viewMode);
 
-        if (viewMode === 'Total') {
-            return {
-                labels: sortedDates,
-                datasets: [{
-                    label: 'Total',
-                    data: sortedDates.map(date => 
-                        Object.values(groupedData[date]).reduce((sum, val) => sum + val, 0)
-                    ),
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            };
-        } else {
-            return {
-                labels: sortedDates,
-                datasets: breakdownKeys.map((key, index) => ({
-                    label: key,
-                    data: sortedDates.map(date => groupedData[date][key] || 0),
-                    borderColor: `hsl(${index * 360 / breakdownKeys.length}, 70%, 50%)`,
-                    tension: 0.1
-                }))
-            };
-        }
+        // Remove the 'Total' case
+        return {
+            labels: sortedDates,
+            datasets: breakdownKeys.map((key, index) => ({
+                label: key,
+                data: sortedDates.map(date => groupedData[date][key] || 0),
+                borderColor: `hsl(${index * 360 / breakdownKeys.length}, 70%, 50%)`,
+                tension: 0.1
+            }))
+        };
     }
 
     function getBreakdownKey(item, viewMode) {
-        switch (viewMode) {
-            case 'Organization':
-                return item.organization;
-            case 'Region':
-                return item.region;
-            default:
-                return 'Total';
-        }
+        return item.organization;
     }
 
     function getBreakdownKeys(viewMode) {
-        switch (viewMode) {
-            case 'Organization':
-                return organizations;
-            case 'Region':
-                return regions;
-            default:
-                return ['Total'];
-        }
+        return organizations;
     }
 
     const scrollableLegendPlugin = {
         id: 'scrollableLegend',
         afterRender: (chart, args, options) => {
-            if (viewMode === 'Total') {
-                if (legendContainer) legendContainer.innerHTML = '';
-                return;
-            }
-
+            // Remove the check for 'Total' viewMode
             const ul = document.createElement('ul');
             ul.style.overflowY = 'auto';
             ul.style.maxHeight = '350px';
@@ -224,14 +192,7 @@
 
 <div class="flex flex-col">
     <h3 class="text-lg font-semibold mb-2">Measure Chart</h3>
-    <div class="mb-4 flex items-center">
-        <label for="view-mode-select" class="mr-2">View Mode:</label>
-        <select id="view-mode-select" bind:value={viewMode} on:change={handleViewModeChange} class="p-2 border rounded">
-            <option value="Total">Total</option>
-            <option value="Organization">Organization Breakdown</option>
-            <option value="Region">Regional Breakdown</option>
-        </select>
-    </div>
+    <!-- Remove the view mode select element -->
     <div class="flex">
         <div class="chart-container flex-grow" style="height: 400px;">
             {#if parsedData.length === 0}
