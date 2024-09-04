@@ -35,17 +35,16 @@ class MeasureItemView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        measure_name = self.kwargs.get('measure_name')
+        measure_id = self.kwargs.get('pk')
 
-        measure = Measure.objects.get(name=measure_name)
+        measure = Measure.objects.get(id=measure_id)
 
         context['measure_name'] = measure.name
         context['description'] = measure.description
 
         try:
-            result = execute_measure_sql(measure_name)
+            result = execute_measure_sql(measure.name)
             values = result.get('values', [])
-            print(values[0])
             # Convert the values to a JSON string, ensuring proper escaping
             context['measure_result'] = json.dumps(values, ensure_ascii=False)
 

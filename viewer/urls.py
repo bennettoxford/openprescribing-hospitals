@@ -18,5 +18,5 @@ urlpatterns = [
     path('api/unique-vtm-names/', unique_vtm_names, name='unique_vtm_names'),
     path('api/filtered-doses/', filtered_doses, name='filtered-doses'),
     path('api/filtered-ingredient-quantities/', filtered_ingredient_quantities, name='filtered-ingredient-quantities'),
-    path('measures/<str:measure_name>/', MeasureItemView.as_view(), name='measure_item'),
+    path('measures/<int:pk>/', MeasureItemView.as_view(), name='measure_item'),
 ]
