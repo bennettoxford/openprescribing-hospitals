@@ -8,6 +8,7 @@ from django.db import transaction
 from viewer.models import VTM, VMP, Ingredient, Organisation, Dose, SCMD, IngredientQuantity
 import glob
 from tqdm import tqdm
+import itertools
 
 class Command(BaseCommand):
     help = 'Loads @data into the database'
@@ -164,45 +165,57 @@ class Command(BaseCommand):
         # Filter out rows with missing org or vmp
         valid_doses = doses[doses['ods_code'].isin(organizations) & doses['vmp_code'].isin(vmps)]
         
-        dose_objects = []
-        scmd_objects = []
-        
-        # Use tqdm to create a progress bar
-        for row in tqdm(valid_doses.itertuples(index=False), total=len(valid_doses), desc="Processing Doses and SCMDs"):
-            year_month = datetime.strptime(row.year_month, '%Y-%m-%d').date()
-            vmp = vmps[row.vmp_code]
-            org = organizations[row.ods_code]
-            dose = Dose(
-                year_month=year_month,
-                vmp=vmp,
-                quantity=float(row.dose_quantity) if pd.notnull(row.dose_quantity) else None,
-                unit=row.dose_unit,
-                organisation=org
-            )
-         
-            dose_objects.append(dose)
-            
-            scmd_objects.append(SCMD(
-                year_month=year_month,
-                vmp=vmp,
-                quantity=float(row.SCMD_quantity) if pd.notnull(row.SCMD_quantity) else None,
-                unit=row.SCMD_quantity_basis,
-                organisation=org
-            ))
-        
-        self.stdout.write("Bulk creating Dose objects...")
-        try:
-            Dose.objects.bulk_create(dose_objects)
-        except Exception as e:
-            self.stdout.write(self.style.ERROR(f"Error creating Dose objects: {str(e)}"))
-        
-        self.stdout.write("Bulk creating SCMD objects...")
-        try:
-            SCMD.objects.bulk_create(scmd_objects)
-        except Exception as e:
-            self.stdout.write(self.style.ERROR(f"Error creating SCMD objects: {str(e)}"))
-        
-        self.stdout.write(self.style.SUCCESS(f'Loaded {len(dose_objects)} Doses and {len(scmd_objects)} SCMDs'))
+        batch_size = 5000 
+        total_doses = 0
+        total_scmds = 0
+
+ 
+        with tqdm(total=len(valid_doses), desc="Processing Doses and SCMDs") as pbar:
+            for batch in self.batch_iterator(valid_doses.itertuples(index=False), batch_size):
+                dose_objects = []
+                scmd_objects = []
+                
+                for row in batch:
+                    year_month = datetime.strptime(row.year_month, '%Y-%m-%d').date()
+                    vmp = vmps[row.vmp_code]
+                    org = organizations[row.ods_code]
+                    
+                    dose_objects.append(Dose(
+                        year_month=year_month,
+                        vmp=vmp,
+                        quantity=float(row.dose_quantity) if pd.notnull(row.dose_quantity) else None,
+                        unit=row.dose_unit,
+                        organisation=org
+                    ))
+                    
+                    scmd_objects.append(SCMD(
+                        year_month=year_month,
+                        vmp=vmp,
+                        quantity=float(row.SCMD_quantity) if pd.notnull(row.SCMD_quantity) else None,
+                        unit=row.SCMD_quantity_basis,
+                        organisation=org
+                    ))
+                
+                with transaction.atomic():
+                    try:
+                        Dose.objects.bulk_create(dose_objects)
+                        SCMD.objects.bulk_create(scmd_objects)
+                        total_doses += len(dose_objects)
+                        total_scmds += len(scmd_objects)
+                    except Exception as e:
+                        self.stdout.write(self.style.ERROR(f"Error creating batch: {str(e)}"))
+                
+                pbar.update(len(batch))
+
+        self.stdout.write(self.style.SUCCESS(f'Loaded {total_doses} Doses and {total_scmds} SCMDs'))
+
+    def batch_iterator(self, iterable, batch_size):
+        iterator = iter(iterable)
+        while True:
+            batch = list(itertools.islice(iterator, batch_size))
+            if not batch:
+                break
+            yield batch
 
     def load_ingredient_quantity(self, directory):
         ingredient_quantities = self.load_monthly_csv(os.path.join(directory, 'ingredient_quantity'), '*.csv')
@@ -215,25 +228,38 @@ class Command(BaseCommand):
         vmps = {vmp.code: vmp for vmp in VMP.objects.all()}
         ingredients = {ing.code: ing for ing in Ingredient.objects.all()}
 
-        iq_objects = []
-      
         # Filter out rows with missing org, vmp, or ingredient
         valid_iq = ingredient_quantities[
             ingredient_quantities['ods_code'].isin(organizations) &
             ingredient_quantities['vmp_code'].isin(vmps) &
             ingredient_quantities['ingredient_code'].isin(ingredients)
         ]
-        # Use tqdm to create a progress bar
-        for row in tqdm(valid_iq.itertuples(index=False), total=len(valid_iq), desc="Processing IngredientQuantities"):
-            iq_objects.append(IngredientQuantity(
-                year_month=datetime.strptime(row.year_month, '%Y-%m-%d').date(),
-                ingredient=ingredients[row.ingredient_code],
-                vmp=vmps[row.vmp_code],
-                quantity=float(row.ingredient_quantity) if row.ingredient_quantity and str(row.ingredient_quantity).strip() else None,
-                unit=row.ingredient_unit,
-                organisation=organizations[row.ods_code]
-            ))
 
-        self.stdout.write("Bulk creating IngredientQuantity objects...")
-        IngredientQuantity.objects.bulk_create(iq_objects)
-        self.stdout.write(self.style.SUCCESS(f'Loaded {len(iq_objects)} IngredientQuantities'))
+        batch_size = 5000
+        total_iq = 0
+
+
+        with tqdm(total=len(valid_iq), desc="Processing IngredientQuantities") as pbar:
+            for batch in self.batch_iterator(valid_iq.itertuples(index=False), batch_size):
+                iq_objects = []
+                
+                for row in batch:
+                    iq_objects.append(IngredientQuantity(
+                        year_month=datetime.strptime(row.year_month, '%Y-%m-%d').date(),
+                        ingredient=ingredients[row.ingredient_code],
+                        vmp=vmps[row.vmp_code],
+                        quantity=float(row.ingredient_quantity) if row.ingredient_quantity and str(row.ingredient_quantity).strip() else None,
+                        unit=row.ingredient_unit,
+                        organisation=organizations[row.ods_code]
+                    ))
+                
+                with transaction.atomic():
+                    try:
+                        IngredientQuantity.objects.bulk_create(iq_objects)
+                        total_iq += len(iq_objects)
+                    except Exception as e:
+                        self.stdout.write(self.style.ERROR(f"Error creating batch: {str(e)}"))
+                
+                pbar.update(len(batch))
+
+        self.stdout.write(self.style.SUCCESS(f'Loaded {total_iq} IngredientQuantities'))
