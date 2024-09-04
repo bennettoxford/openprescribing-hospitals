@@ -120,6 +120,8 @@ class Command(BaseCommand):
 
     def load_organisation(self, directory):
         organisations = self.load_csv('organisation_table', directory)
+        
+        # First pass: Create all organisations without setting successors
         org_objects = [
             Organisation(
                 ods_code=org['ods_code'],
@@ -132,18 +134,25 @@ class Command(BaseCommand):
         with transaction.atomic():
             Organisation.objects.bulk_create(org_objects, ignore_conflicts=True)
         
+        # Second pass: Update successor relationships
         successor_updates = []
         for org in organisations.to_dict(orient='records'):
-            if org['successor_ods_code'] and org['successor_ods_code'] != 'None':
-                successor_updates.append(
-                    Organisation(
-                        ods_code=org['ods_code'],
-                        successor_id=org['successor_ods_code']
+            if org['successor_ods_code'] and not pd.isna(org['successor_ods_code']):
+                # Check if the successor exists
+                if Organisation.objects.filter(ods_code=org['successor_ods_code']).exists():
+                    successor_updates.append(
+                        Organisation(
+                            ods_code=org['ods_code'],
+                            successor_id=org['successor_ods_code']
+                        )
                     )
-                )
+                else:
+                    print(org)
+                    self.stdout.write(self.style.WARNING(f"Successor {org['successor_ods_code']} for {org['ods_code']} not found. Skipping."))
         
-        with transaction.atomic():
-            Organisation.objects.bulk_update(successor_updates, ['successor'], batch_size=100)
+        if successor_updates:
+            with transaction.atomic():
+                Organisation.objects.bulk_update(successor_updates, ['successor'], batch_size=100)
         
         self.stdout.write(self.style.SUCCESS(f'Loaded {len(org_objects)} Organisations and updated {len(successor_updates)} successor relationships'))
 
