@@ -45,9 +45,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         client = get_bigquery_client()
         # self.get_and_save_table(client, "ingredient", self.ingredient_table_sql)
-        # self.get_and_save_table(client, "organisation", self.organisation_table_sql)
-        self.get_and_save_table(client, "vtm", self.vtm_table_sql)
-        self.get_and_save_table(client, "vmp", self.vmp_table_sql)
+        self.get_and_save_table(client, "organisation", self.organisation_table_sql)
+        # self.get_and_save_table(client, "vtm", self.vtm_table_sql)
+        # self.get_and_save_table(client, "vmp", self.vmp_table_sql)
         # self.get_and_save_partitioned_table(client, "dose", self.dose_table_sql, "dose_quantity")
         # self.get_and_save_partitioned_table(client, "ingredient_quantity", self.ingredient_quantity_table_sql, "ingredient_quantity")
 
@@ -85,7 +85,7 @@ class Command(BaseCommand):
     """
 
     organisation_table_sql = """
-        SELECT DISTINCT d.ods_code, o.ods_name, o.region
+        SELECT DISTINCT d.ods_code, o.ods_name, o.region, o.successor_ods_code
         FROM `ebmdatalab.scmd.dose` d
         LEFT JOIN `ebmdatalab.scmd.ods_mapped` o
         ON d.ods_code = o.ods_code

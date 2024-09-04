@@ -119,28 +119,32 @@ class Command(BaseCommand):
 
     def load_organisation(self, directory):
         organisations = self.load_csv('organisation_table', directory)
-
-        # some organisations have been renamed
-        # where they haave they appear as "org x (Now: )"
-        # for duplicated ods codes, keep the "Now" name
-        for ods_code in organisations['ods_code'].unique():
-            subset = organisations[organisations['ods_code'] == ods_code]
-            if len(subset) > 1:
-                now_name = subset[subset['ods_name'].str.contains('Now:')]['ods_name'].values[0]
-                if now_name:
-                    organisations.loc[organisations['ods_code'] == ods_code, 'ods_name'] = now_name
-
-        organisations = organisations.drop_duplicates(subset=['ods_code'])
-
-        organisations = organisations[organisations['ods_code'].notnull()]
-
-
-        organisations = organisations.to_dict(orient='records')
-        Organisation.objects.bulk_create([
-            Organisation(ods_code=org['ods_code'], ods_name=org['ods_name'], region=org['region'])
-            for org in organisations
-        ])
-        self.stdout.write(self.style.SUCCESS(f'Loaded {len(organisations)} Organisations'))
+        org_objects = [
+            Organisation(
+                ods_code=org['ods_code'],
+                ods_name=org['ods_name'],
+                region=org['region']
+            )
+            for org in organisations.to_dict(orient='records')
+        ]
+        
+        with transaction.atomic():
+            Organisation.objects.bulk_create(org_objects, ignore_conflicts=True)
+        
+        successor_updates = []
+        for org in organisations.to_dict(orient='records'):
+            if org['successor_ods_code'] and org['successor_ods_code'] != 'None':
+                successor_updates.append(
+                    Organisation(
+                        ods_code=org['ods_code'],
+                        successor_id=org['successor_ods_code']
+                    )
+                )
+        
+        with transaction.atomic():
+            Organisation.objects.bulk_update(successor_updates, ['successor'], batch_size=100)
+        
+        self.stdout.write(self.style.SUCCESS(f'Loaded {len(org_objects)} Organisations and updated {len(successor_updates)} successor relationships'))
 
     def load_monthly_csv(self, directory, pattern):
         files = glob.glob(os.path.join(directory, pattern))

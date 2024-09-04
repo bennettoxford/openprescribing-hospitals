@@ -31,6 +31,7 @@ class Organisation(models.Model):
     ods_code = models.CharField(max_length=10, primary_key=True)
     ods_name = models.CharField(max_length=255, null=False)
     region = models.CharField(max_length=100, null=False)
+    successor = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='predecessors')
 
     def __str__(self):
         return f"{self.ods_name} ({self.ods_code})"
