@@ -1,15 +1,31 @@
 <script>
-    import { createEventDispatcher } from 'svelte';
+    import { createEventDispatcher, onMount } from 'svelte';
 
     export let vmps = [];
 
     const dispatch = createEventDispatcher();
 
+    let checkedVMPs = {};
+
+    onMount(() => {
+        console.log('VMPs received:', vmps);
+        initializeCheckedVMPs();
+    });
+
+    function initializeCheckedVMPs() {
+        checkedVMPs = Object.fromEntries(vmps.map(vmp => [vmp.vmp, vmp.unit !== 'nan']));
+        console.log('Initialized checkedVMPs:', checkedVMPs);
+    }
+
+    $: {
+        if (vmps.length > 0) {
+            initializeCheckedVMPs();
+        }
+    }
+
     $: hasIngredients = vmps.some(vmp => vmp.ingredient);
     
-    $: checkedVMPs = vmps.map(vmp => vmp.unit !== 'nan');
-
-    $: selectedCount = checkedVMPs.filter(Boolean).length;
+    $: selectedCount = Object.values(checkedVMPs).filter(Boolean).length;
 
     $: uniqueUnits = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => vmp.unit))];
     $: uniqueUnitIngredientPairs = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => `${vmp.unit}-${vmp.ingredient || ''}`))]
@@ -50,9 +66,35 @@
         return sortDirection * aValue.localeCompare(bValue, undefined, {numeric: true, sensitivity: 'base'});
     });
 
-    $: {
-        const selectedVMPs = vmps.filter((vmp, index) => checkedVMPs[index]);
+    function updateCheckedVMPs(vmp) {
+        if (vmp && vmp.vmp) {
+            checkedVMPs[vmp.vmp] = !checkedVMPs[vmp.vmp];
+            checkedVMPs = {...checkedVMPs}; // Trigger reactivity
+            console.log('Updated checkedVMPs:', checkedVMPs);
+            updateFilteredData();
+        } else {
+            console.error('Invalid VMP object:', vmp);
+        }
+    }
+
+    function updateFilteredData() {
+        const selectedVMPs = vmps.filter(vmp => {
+            if (vmp && vmp.vmp) {
+                return checkedVMPs[vmp.vmp] ?? false;
+            } else {
+                console.error('Invalid VMP object in filter:', vmp);
+                return false;
+            }
+        });
+        console.log('Filtered VMPs:', selectedVMPs);
         dispatch('dataFiltered', selectedVMPs);
+    }
+
+    // Initial dispatch
+    $: {
+        if (Object.keys(checkedVMPs).length > 0) {
+            updateFilteredData();
+        }
     }
 </script>
 
@@ -83,7 +125,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {#each sortedVMPs as vmp, index}
+                    {#each sortedVMPs as vmp}
                         <tr class="border-t border-gray-200" class:bg-red-100={vmp.unit === 'nan'}>
                             <td class="px-4 py-2">{vmp.vmp}</td>
                             <td class="px-4 py-2">{vmp.unit === 'nan' ? '-' : vmp.unit}</td>
@@ -93,7 +135,8 @@
                             <td class="px-4 py-2">
                                 <input 
                                     type="checkbox" 
-                                    bind:checked={checkedVMPs[vmps.indexOf(vmp)]}
+                                    checked={checkedVMPs[vmp.vmp] ?? false}
+                                    on:change={() => updateCheckedVMPs(vmp)}
                                     disabled={vmp.unit === 'nan'}
                                     class="form-checkbox h-5 w-5 text-blue-600"
                                     class:cursor-not-allowed={vmp.unit === 'nan'}
