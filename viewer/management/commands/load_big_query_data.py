@@ -174,7 +174,7 @@ class Command(BaseCommand):
         # Filter out rows with missing org or vmp
         valid_doses = doses[doses['ods_code'].isin(organizations) & doses['vmp_code'].isin(vmps)]
         
-        batch_size = 5000 
+        batch_size = 1000 
         total_doses = 0
         total_scmds = 0
 
@@ -244,7 +244,7 @@ class Command(BaseCommand):
             ingredient_quantities['ingredient_code'].isin(ingredients)
         ]
 
-        batch_size = 5000
+        batch_size = 1000
         total_iq = 0
 
 
