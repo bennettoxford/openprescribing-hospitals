@@ -6,15 +6,16 @@
 <script>
     import { onMount, afterUpdate } from 'svelte';
     import Chart from 'chart.js/auto';
+    import SearchableDropdown from './SearchableDropdown.svelte';
 
     export let measureData = '[]';
 
     let parsedData = [];
     let canvas;
     let chart;
-    let viewMode = 'Organization';
     let organizations = [];
-    let legendContainer; // Add this line to declare legendContainer
+    let selectedOrganizations = [];
+    let legendContainer;
 
     $: {
         console.log('Received measureData:', measureData);
@@ -27,7 +28,6 @@
             }
             console.log('Parsed measureData:', parsedData);
             organizations = [...new Set(parsedData.map(item => item.organization))];
-            // Remove regions initialization
             if (chart) {
                 updateChart();
             }
@@ -37,17 +37,21 @@
         }
     }
 
-    function prepareChartData(data, viewMode) {
+    function prepareChartData(data) {
         if (data.length === 0) {
             return { labels: [], datasets: [] };
         }
 
-        const groupedData = data.reduce((acc, item) => {
+        const filteredData = selectedOrganizations.length > 0
+            ? data.filter(item => selectedOrganizations.includes(item.organization))
+            : data;
+
+        const groupedData = filteredData.reduce((acc, item) => {
             const key = item.month;
             if (!acc[key]) {
                 acc[key] = {};
             }
-            const breakdownKey = getBreakdownKey(item, viewMode);
+            const breakdownKey = item.organization;
             if (!acc[key][breakdownKey]) {
                 acc[key][breakdownKey] = 0;
             }
@@ -56,9 +60,8 @@
         }, {});
 
         const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
-        const breakdownKeys = getBreakdownKeys(viewMode);
+        const breakdownKeys = selectedOrganizations.length > 0 ? selectedOrganizations : organizations;
 
-        // Remove the 'Total' case
         return {
             labels: sortedDates,
             datasets: breakdownKeys.map((key, index) => ({
@@ -70,18 +73,9 @@
         };
     }
 
-    function getBreakdownKey(item, viewMode) {
-        return item.organization;
-    }
-
-    function getBreakdownKeys(viewMode) {
-        return organizations;
-    }
-
     const scrollableLegendPlugin = {
         id: 'scrollableLegend',
         afterRender: (chart, args, options) => {
-            // Remove the check for 'Total' viewMode
             const ul = document.createElement('ul');
             ul.style.overflowY = 'auto';
             ul.style.maxHeight = '350px';
@@ -126,17 +120,22 @@
 
     function updateChart() {
         if (chart) {
-            const chartData = prepareChartData(parsedData, viewMode);
+            const chartData = prepareChartData(parsedData);
             chart.data = chartData;
-            chart.update('none');
+            chart.update();
         }
+    }
+
+    function handleOrganizationSelection(event) {
+        selectedOrganizations = event.detail;
+        updateChart();
     }
 
     onMount(() => {
         Chart.register(scrollableLegendPlugin);
         chart = new Chart(canvas, {
             type: 'line',
-            data: prepareChartData(parsedData, viewMode),
+            data: prepareChartData(parsedData),
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -184,15 +183,16 @@
             updateChart();
         }
     });
-
-    function handleViewModeChange() {
-        updateChart();
-    }
 </script>
 
 <div class="flex flex-col">
-    <h3 class="text-lg font-semibold mb-2">Measure Chart</h3>
-    <!-- Remove the view mode select element -->
+
+    
+    <div class="mb-4">
+        <h4 class="text-md font-semibold mb-2">Filter Organizations</h4>
+        <SearchableDropdown items={organizations} on:selectionChange={handleOrganizationSelection} />
+    </div>
+    
     <div class="flex">
         <div class="chart-container flex-grow" style="height: 400px;">
             {#if parsedData.length === 0}
