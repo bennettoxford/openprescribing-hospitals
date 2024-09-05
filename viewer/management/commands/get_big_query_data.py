@@ -60,15 +60,11 @@ class Command(BaseCommand):
         print(f"Getting {table_name} table")
         partitions = self.get_partitions(client, table_name)
         
-        all_data = []
         for partition in tqdm(partitions):
             query = sql_query.format(partition=partition)
             df = execute_query(client, query)
             df.to_csv(DATA_DIR / folder / f"{table_name}_table_{partition}.csv", index=False)
-            all_data.append(df)
         
-        combined_df = pd.concat(all_data, ignore_index=True)
-        combined_df.to_csv(DATA_DIR / f"{table_name}_table.csv", index=False)
 
     def get_partitions(self, client, table_name):
         query = f"""
