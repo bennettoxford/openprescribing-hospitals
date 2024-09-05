@@ -15,18 +15,21 @@
     let filteredData = [];
     let isLoading = false;
     let missingVMPs = [];
+    let currentSearchType = 'vmp';
 
     function handleUpdateData(event) {
-        const { data, quantityType: newQuantityType } = event.detail;
+        const { data, quantityType: newQuantityType, searchType } = event.detail;
         selectedData = Array.isArray(data) ? data : [data];
         quantityType = newQuantityType;
-        console.log('Updated data in ResultsBox:', selectedData);
+        currentSearchType = searchType;
         
         vmps = Array.from(new Set(selectedData.map(item => {
             return JSON.stringify({
                 vmp: item.vmp_name,
                 unit: item.unit,
-                ingredient: item.ingredient_name || null
+                ingredient: item.ingredient_names ? item.ingredient_names[0] : null,
+                vtm: item.vtm_name || null,
+                searchType: currentSearchType
             });
         }))).map(JSON.parse);
 
@@ -71,7 +74,7 @@
     {:else if selectedData.length > 0}
         <div class="flex-grow overflow-y-auto">
             <div class="p-4">
-                <VMPList {vmps} on:dataFiltered={handleFilteredData} />
+                <VMPList {vmps} {currentSearchType} on:dataFiltered={handleFilteredData} />
             </div>
             {#if missingVMPs.length > 0}
                 <div class="mx-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700">
@@ -85,10 +88,10 @@
                 </div>
             {/if}
             <div class="p-4">
-                <TimeSeriesChart data={filteredData} {quantityType} />
+                <TimeSeriesChart data={filteredData} {quantityType} searchType={currentSearchType} />
             </div>
             <div class="p-4 pt-0">
-                <DataTable data={filteredData} {quantityType} />
+                <DataTable data={filteredData} {quantityType} searchType={currentSearchType} />
             </div>
         </div>
     {:else}

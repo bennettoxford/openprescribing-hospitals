@@ -16,10 +16,12 @@ class DoseSerializer(serializers.ModelSerializer):
     vmp_name = serializers.CharField(source='vmp.name', read_only=True)
     ods_code = serializers.CharField(source='organisation.ods_code', read_only=True)
     ods_name = serializers.CharField(source='organisation.ods_name', read_only=True)
+    vtm_name = serializers.CharField(read_only=True)
+    ingredient_names = serializers.ListField(child=serializers.CharField(), read_only=True)
 
     class Meta:
         model = Dose
-        fields = ['id', 'year_month', 'vmp_code', 'vmp_name', 'ods_code', 'ods_name', 'quantity', 'unit']
+        fields = ['id', 'year_month', 'vmp_code', 'vmp_name', 'ods_code', 'ods_name', 'quantity', 'unit', 'vtm_name', 'ingredient_names']
 
 class SCMDSerializer(serializers.ModelSerializer):
     vmp_code = serializers.CharField(source='vmp.code', read_only=True)
@@ -38,7 +40,8 @@ class IngredientQuantitySerializer(serializers.ModelSerializer):
     vmp_name = serializers.CharField(source='vmp.name', read_only=True)
     ods_code = serializers.CharField(source='organisation.ods_code', read_only=True)
     ods_name = serializers.CharField(source='organisation.ods_name', read_only=True)
+    vtm_name = serializers.CharField(read_only=True)
 
     class Meta:
         model = IngredientQuantity
-        fields = ['id', 'year_month', 'ingredient_code', 'ingredient_name', 'vmp_code', 'vmp_name', 'ods_code', 'ods_name', 'quantity', 'unit']
+        fields = ['id', 'year_month', 'ingredient_code', 'ingredient_name', 'vmp_code', 'vmp_name', 'ods_code', 'ods_name', 'quantity', 'unit', 'vtm_name']

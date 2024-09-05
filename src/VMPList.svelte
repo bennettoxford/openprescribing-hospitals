@@ -2,6 +2,7 @@
     import { createEventDispatcher, onMount } from 'svelte';
 
     export let vmps = [];
+    export let currentSearchType = 'vmp';
 
     const dispatch = createEventDispatcher();
 
@@ -24,6 +25,7 @@
     }
 
     $: hasIngredients = vmps.some(vmp => vmp.ingredient);
+    $: hasVTMs = vmps.some(vmp => vmp.vtm);
     
     $: selectedCount = Object.values(checkedVMPs).filter(Boolean).length;
 
@@ -51,6 +53,8 @@
         return '↑↓';
     }
 
+    $: displayField = currentSearchType === 'vmp' ? 'vmp' : (currentSearchType === 'vtm' ? 'vtm' : 'ingredient');
+
     $: sortedVMPs = [...vmps].sort((a, b) => {
         // Always keep 'nan' units at the top
         if (a.unit === 'nan' && b.unit !== 'nan') return -1;
@@ -59,7 +63,7 @@
 
         // For non-'nan' units, apply the regular sorting
         if (sortColumn === 'selected') {
-            return sortDirection * (checkedVMPs[vmps.indexOf(b)] - checkedVMPs[vmps.indexOf(a)]);
+            return sortDirection * (checkedVMPs[b.vmp] - checkedVMPs[a.vmp]);
         }
         let aValue = a[sortColumn] || '';
         let bValue = b[sortColumn] || '';
@@ -108,15 +112,15 @@
             <table class="w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
                 <thead class="bg-gray-100 sticky top-0 z-10">
                     <tr>
-                        <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('vmp')}>
-                            Name <span class="text-gray-400">{getSortIndicator('vmp')}</span>
+                        <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy(displayField)}>
+                            {currentSearchType.toUpperCase()} Name <span class="text-gray-400">{getSortIndicator(displayField)}</span>
                         </th>
                         <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('unit')}>
                             Unit <span class="text-gray-400">{getSortIndicator('unit')}</span>
                         </th>
-                        {#if hasIngredients}
-                            <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('ingredient')}>
-                                Ingredient <span class="text-gray-400">{getSortIndicator('ingredient')}</span>
+                        {#if currentSearchType !== 'vmp'}
+                            <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('vmp')}>
+                                VMP <span class="text-gray-400">{getSortIndicator('vmp')}</span>
                             </th>
                         {/if}
                         <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('selected')}>
@@ -127,10 +131,10 @@
                 <tbody>
                     {#each sortedVMPs as vmp}
                         <tr class="border-t border-gray-200" class:bg-red-100={vmp.unit === 'nan'}>
-                            <td class="px-4 py-2">{vmp.vmp}</td>
+                            <td class="px-4 py-2">{vmp[displayField] || vmp.vmp || 'N/A'}</td>
                             <td class="px-4 py-2">{vmp.unit === 'nan' ? '-' : vmp.unit}</td>
-                            {#if hasIngredients}
-                                <td class="px-4 py-2">{vmp.ingredient || '-'}</td>
+                            {#if currentSearchType !== 'vmp'}
+                                <td class="px-4 py-2">{vmp.vmp}</td>
                             {/if}
                             <td class="px-4 py-2">
                                 <input 

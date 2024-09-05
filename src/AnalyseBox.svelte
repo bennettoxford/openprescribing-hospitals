@@ -15,7 +15,8 @@
     let selectedVMPs = [];
     let selectedODS = [];
     let filteredData = [];
-    let quantityType = '--'; // Set default to '--'
+    let quantityType = '--';
+    let searchType = 'vmp';
 
     let resultsBox;
 
@@ -71,7 +72,8 @@
                 },
                 body: JSON.stringify({
                     vmp_names: selectedVMPs,
-                    ods_names: selectedODS
+                    ods_names: selectedODS,
+                    search_type: searchType
                 })
             });
 
@@ -88,11 +90,11 @@
                 filteredData = [filteredData];
             }
             
-            // Dispatch a custom event with the filtered data
+            // Update the custom event to include the search type
             const analyseBox = document.querySelector('analyse-box');
             if (analyseBox) {
                 analyseBox.dispatchEvent(new CustomEvent('runAnalysis', { 
-                    detail: { data: filteredData, quantityType: quantityType }
+                    detail: { data: filteredData, quantityType: quantityType, searchType: searchType }
                 }));
             }
         } catch (error) {
@@ -106,8 +108,9 @@
     }
 
     function handleVMPSelection(event) {
-        selectedVMPs = event.detail;
-        console.log("Selected VMPs:", selectedVMPs);
+        selectedVMPs = event.detail.items;
+        searchType = event.detail.type;
+        console.log("Selected VMPs:", selectedVMPs, "Search Type:", searchType);
     }
 
     function handleODSSelection(event) {

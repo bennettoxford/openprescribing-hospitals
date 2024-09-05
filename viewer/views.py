@@ -91,40 +91,39 @@ def unique_vtm_names(request):
 
 @api_view(['POST'])
 def filtered_doses(request):
-    vmp_names = request.data.get('vmp_names', {})
+    vmp_names = request.data.get('vmp_names', [])
     ods_names = request.data.get('ods_names', [])
-    
-    search_type = vmp_names.get('type', '')
-    search_items = vmp_names.get('items', [])
-   
-    queryset = Dose.objects.all()
-    
+    search_type = request.data.get('search_type', 'vmp')  # Default to 'vmp' if not provided
+
     if search_type == 'vmp':
         if ods_names:
-            queryset = queryset.filter(vmp__name__in=search_items, organisation__ods_name__in=ods_names)
+            queryset = Dose.objects.filter(vmp__name__in=vmp_names, organisation__ods_name__in=ods_names)
         else:
-            queryset = queryset.filter(vmp__name__in=search_items)
+            queryset = Dose.objects.filter(vmp__name__in=vmp_names)
     elif search_type == 'vtm':
-        
-        # get all vmps for that vtm
-        vmps = VMP.objects.filter(vtm__name__in=search_items)
-
+        vmps = VMP.objects.filter(vtm__name__in=vmp_names)
         if ods_names:
-            queryset = queryset.filter(vmp__in=vmps, organisation__ods_name__in=ods_names)
+            queryset = Dose.objects.filter(vmp__in=vmps, organisation__ods_name__in=ods_names)
         else:
-            queryset = queryset.filter(vmp__in=vmps)
+            queryset = Dose.objects.filter(vmp__in=vmps)
     elif search_type == 'ingredient':
-        
-        vmps = VMP.objects.filter(ingredients__name__in=search_items)
-        
+        vmps = VMP.objects.filter(ingredients__name__in=vmp_names)
         if ods_names:
-            queryset = queryset.filter(vmp__in=vmps, organisation__ods_name__in=ods_names)
+            queryset = Dose.objects.filter(vmp__in=vmps, organisation__ods_name__in=ods_names)
         else:
-            queryset = queryset.filter(vmp__in=vmps)
-    
+            queryset = Dose.objects.filter(vmp__in=vmps)
+
+    queryset = queryset.select_related('vmp__vtm').prefetch_related('vmp__ingredients')
 
     serializer = DoseSerializer(queryset, many=True)
-    return Response(serializer.data)
+    data = serializer.data
+
+    for item in data:
+        vmp = VMP.objects.get(name=item['vmp_name'])
+        item['vtm_name'] = vmp.vtm.name if vmp.vtm else None
+        item['ingredient_names'] = [ing.name for ing in vmp.ingredients.all()]
+
+    return Response(data)
 
 @api_view(['POST'])
 def filtered_scmds(request):
@@ -144,7 +143,7 @@ def filtered_scmds(request):
 
 @api_view(['POST'])
 def filtered_ingredient_quantities(request):
-    vmp_names = request.data.get('vmp_names', {})
+    vmp_names = request.data.get('vmp_names', [])
     ods_names = request.data.get('ods_names', [])
     
     search_type = vmp_names.get('type', '')
@@ -170,7 +169,15 @@ def filtered_ingredient_quantities(request):
         else:
             queryset = queryset.filter(vmp__in=vmps)
 
+    queryset = queryset.select_related('vmp__vtm')
+
     serializer = IngredientQuantitySerializer(queryset, many=True)
-    return Response(serializer.data)
+    data = serializer.data
+
+    for item in data:
+        vmp = VMP.objects.get(name=item['vmp_name'])
+        item['vtm_name'] = vmp.vtm.name if vmp.vtm else None
+
+    return Response(data)
 
 

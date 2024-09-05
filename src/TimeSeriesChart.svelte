@@ -9,6 +9,7 @@
 
     export let data = [];
     export let quantityType = 'Dose';
+    export let searchType = 'vmp';
 
     let canvas;
     let chart;
@@ -16,6 +17,7 @@
     let organizations = [];
     let units = [];
     let ingredientUnitPairs = [];
+    let vtms = [];
     let legendContainer;
 
     $: {
@@ -23,7 +25,16 @@
         if (data.length > 0) {
             organizations = [...new Set(data.map(item => item.ods_name))];
             units = [...new Set(data.map(item => item.unit))];
-            ingredientUnitPairs = [...new Set(data.map(item => `${item.ingredient_name || 'Unknown'}-${item.unit}`))];
+            if (searchType === 'ingredient') {
+                ingredientUnitPairs = [...new Set(data.map(item => 
+                    `${item.ingredient_name || item.ingredient_names[0] || 'Unknown'}-${item.unit}`
+                ))];
+            } else {
+                ingredientUnitPairs = [...new Set(data.map(item => 
+                    `${item.ingredient_names ? item.ingredient_names[0] : 'Unknown'}-${item.unit}`
+                ))];
+            }
+            vtms = [...new Set(data.map(item => item.vtm_name || 'Unknown'))];
             if (chart) {
                 updateChart();
             }
@@ -91,7 +102,13 @@
             case 'Unit':
                 return item.unit;
             case 'Ingredient-Unit':
-                return `${item.ingredient_name || 'Unknown'}-${item.unit}`;
+                if (searchType === 'ingredient') {
+                    return `${item.ingredient_name || item.ingredient_names[0] || 'Unknown'}-${item.unit}`;
+                } else {
+                    return `${item.ingredient_names ? item.ingredient_names[0] : 'Unknown'}-${item.unit}`;
+                }
+            case 'VTM':
+                return item.vtm_name || 'Unknown';
             default:
                 return 'Total';
         }
@@ -105,6 +122,8 @@
                 return units;
             case 'Ingredient-Unit':
                 return ingredientUnitPairs;
+            case 'VTM':
+                return vtms;
             default:
                 return ['Total'];
         }
@@ -236,9 +255,12 @@
         <select id="view-mode-select" bind:value={viewMode} on:change={handleViewModeChange} class="p-2 border rounded mr-4">
             <option value="Total">Total</option>
             <option value="Organization">Organization Breakdown</option>
-            <option value={quantityType === 'Dose' ? 'Unit' : 'Ingredient-Unit'}>
-                {quantityType === 'Dose' ? 'Dose Unit Breakdown' : 'Ingredient-Unit Breakdown'}
-            </option>
+            <option value="Unit">Unit Breakdown</option>
+            {#if searchType === 'vtm'}
+                <option value="VTM">VTM Breakdown</option>
+            {:else if searchType === 'ingredient'}
+                <option value="Ingredient-Unit">Ingredient-Unit Breakdown</option>
+            {/if}
         </select>
     </div>
     <div class="flex">
