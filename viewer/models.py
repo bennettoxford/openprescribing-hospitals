@@ -18,6 +18,11 @@ class VMP(models.Model):
     def __str__(self):
         return f"{self.name} ({self.code})"
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['name']),
+        ]
+
 
 class Ingredient(models.Model):
     code = models.CharField(max_length=20, primary_key=True)
@@ -36,6 +41,11 @@ class Organisation(models.Model):
     def __str__(self):
         return f"{self.ods_name} ({self.ods_code})"
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['ods_name']),
+        ]
+
 
 class Dose(models.Model):
     year_month = models.DateField()
@@ -50,6 +60,10 @@ class Dose(models.Model):
 
     class Meta:
         ordering = ['year_month', 'vmp__name', 'organisation__ods_name']
+        indexes = [
+            models.Index(fields=['vmp', 'organisation']),
+            models.Index(fields=['year_month']),
+        ]
 
 
 class SCMD(models.Model):
@@ -65,6 +79,10 @@ class SCMD(models.Model):
 
     class Meta:
         ordering = ['year_month', 'vmp__name', 'organisation__ods_name']
+        indexes = [
+            models.Index(fields=['vmp', 'organisation']),
+            models.Index(fields=['year_month']),
+        ]
 
 
 class IngredientQuantity(models.Model):
@@ -85,12 +103,16 @@ class IngredientQuantity(models.Model):
     class Meta:
         ordering = ['year_month', 'ingredient__name', 'vmp__name',
                     'organisation__ods_name']
+        indexes = [
+            models.Index(fields=['vmp', 'organisation', 'ingredient']),
+            models.Index(fields=['year_month']),
+        ]
 
 
 class Measure(models.Model):
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField()
-    sql_file = models.CharField(max_length=255)  # This will store the filename of the SQL file
+    sql_file = models.CharField(max_length=255)
 
     def __str__(self):
         return self.name
