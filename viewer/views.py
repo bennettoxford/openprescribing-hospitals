@@ -1,16 +1,16 @@
-from django.shortcuts import render
+import json
+
 from django.views.generic import TemplateView
-from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Dose, Organisation, VMP, SCMD, IngredientQuantity, Ingredient, VTM, Measure
-from .serializers import DoseSerializer, SCMDSerializer, IngredientQuantitySerializer
-import json
-from .measures.measure_utils import execute_measure_sql
 from django.db.models import Prefetch
 from django.db.models.functions import Coalesce
 from django.db.models import F
 from django.db.models import Value
+
+from .models import Dose, Organisation, VMP, IngredientQuantity, Ingredient, VTM, Measure
+from .measures.measure_utils import execute_measure_sql
+
 
 class IndexView(TemplateView):
     template_name = "index.html"
@@ -49,7 +49,6 @@ class MeasureItemView(TemplateView):
         try:
             result = execute_measure_sql(measure.name)
             values = result.get('values', [])
-            # Convert the values to a JSON string, ensuring proper escaping
             context['measure_result'] = json.dumps(values, ensure_ascii=False)
 
         except ValueError as e:
@@ -60,18 +59,6 @@ class MeasureItemView(TemplateView):
             context['error'] = str(e)
         return context
 
-
-class DoseViewSet(viewsets.ModelViewSet):
-    queryset = Dose.objects.all()
-    serializer_class = DoseSerializer
-
-class SCMDViewSet(viewsets.ModelViewSet):
-    queryset = SCMD.objects.all()
-    serializer_class = SCMDSerializer
-
-class IngredientQuantityViewSet(viewsets.ModelViewSet):
-    queryset = IngredientQuantity.objects.all()
-    serializer_class = IngredientQuantitySerializer
 
 @api_view(['GET'])
 def unique_vmp_names(request):
@@ -132,21 +119,6 @@ def filtered_doses(request):
 
     return Response(data)
 
-@api_view(['POST'])
-def filtered_scmds(request):
-    vmp_names = request.data.get('vmp_names', [])
-    ods_names = request.data.get('ods_names', [])
-    
-    queryset = SCMD.objects.all()
-    
-    if vmp_names:
-        queryset = queryset.filter(vmp__name__in=vmp_names)
-    
-    if ods_names:
-        queryset = queryset.filter(organisation__ods_name__in=ods_names)
-    
-    serializer = SCMDSerializer(queryset, many=True)
-    return Response(serializer.data)
 
 @api_view(['POST'])
 def filtered_ingredient_quantities(request):

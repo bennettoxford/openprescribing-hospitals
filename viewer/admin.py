@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import VTM, VMP, Ingredient, Organisation, Dose, SCMD, IngredientQuantity, Measure
+from .models import VTM, VMP, Ingredient, Organisation, Dose, IngredientQuantity, Measure
 
 # Register your models here.
 
@@ -27,12 +27,6 @@ class OrganisationAdmin(admin.ModelAdmin):
 
 @admin.register(Dose)
 class DoseAdmin(admin.ModelAdmin):
-    list_display = ('year_month', 'vmp', 'quantity', 'unit', 'organisation')
-    list_filter = ('year_month', 'unit', 'organisation')
-    search_fields = ('vmp__name', 'organisation__ods_name')
-
-@admin.register(SCMD)
-class SCMDAdmin(admin.ModelAdmin):
     list_display = ('year_month', 'vmp', 'quantity', 'unit', 'organisation')
     list_filter = ('year_month', 'unit', 'organisation')
     search_fields = ('vmp__name', 'organisation__ods_name')
