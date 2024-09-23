@@ -23,6 +23,7 @@
     const quantityOptions = ['--', 'Dose', 'Ingredient Quantity'];
 
     let errorMessage = '';
+    let usedOrganizationSelection = false;
 
     async function fetchVMPNames() {
         const response = await fetch('/api/unique-vmp-names/');
@@ -49,7 +50,7 @@
         }
 
         // Updated check for ODS selection
-        if (selectedODS && selectedODS.length === 0) {
+        if (selectedODS && selectedODS.length === 0 && usedOrganizationSelection) {
             errorMessage = "You've selected to filter by organizations, but haven't chosen any. Please select at least one organization or clear the organization filter.";
             return;
         }
@@ -86,7 +87,6 @@
             
             // Ensure filteredData is an array
             if (!Array.isArray(filteredData)) {
-                console.warn("Filtered data is not an array, converting to array");
                 filteredData = [filteredData];
             }
             
@@ -114,8 +114,8 @@
     }
 
     function handleODSSelection(event) {
-        selectedODS = event.detail;
-        console.log("Selected ODS:", selectedODS);
+        selectedODS = event.detail.selectedItems;
+        usedOrganizationSelection = event.detail.usedOrganizationSelection;
     }
 
     function handleQuantityTypeChange(event) {

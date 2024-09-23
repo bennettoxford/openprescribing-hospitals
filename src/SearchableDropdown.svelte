@@ -22,10 +22,17 @@
 
     // Initialize selectedItems with all items on component creation
     $: if (items.length > 0 && !initialized) {
-        selectedItems = [...items];
+        selectedItems = showOrganizationSelection ? [...items] : [];
         initialized = true;
         dispatchSelectionChange();
     }
+
+    $: if (!showOrganizationSelection) {
+        selectedItems = [];
+        dispatchSelectionChange();
+    }
+
+    $: maxSelected = selectedItems.length >= 10;
 
     function toggleDropdown() {
         if (showOrganizationSelection) {
@@ -36,19 +43,13 @@
     function toggleItem(item) {
         if (selectedItems.includes(item)) {
             selectedItems = selectedItems.filter(i => i !== item);
-        } else {
+        } else if (selectedItems.length < 10) { // Check if less than 10 items are selected
             selectedItems = [...selectedItems, item];
         }
-        selectedItems = [...selectedItems]; // Force reactivity
         dispatchSelectionChange();
     }
 
     $: isItemSelected = (item) => selectedItems.includes(item);
-
-    function selectAll() {
-        selectedItems = [...items];
-        dispatchSelectionChange();
-    }
 
     function deselectAll() {
         selectedItems = [];
@@ -56,14 +57,15 @@
     }
 
     function dispatchSelectionChange() {
-        dispatch('selectionChange', selectedItems);
+        dispatch('selectionChange', {
+            selectedItems: selectedItems,
+            usedOrganizationSelection: showOrganizationSelection
+        });
     }
 
     function toggleOrganizationSelection() {
         showOrganizationSelection = !showOrganizationSelection;
-        if (!showOrganizationSelection) {
-            isOpen = false;
-        }
+        dispatchSelectionChange();
     }
 
     onMount(() => {
@@ -115,12 +117,6 @@
                     />
                     <div class="flex justify-between mb-2">
                         <button
-                            on:click={selectAll}
-                            class="btn-green-sm"
-                        >
-                            Select All
-                        </button>
-                        <button
                             on:click={deselectAll}
                             class="btn-red-sm"
                         >
@@ -131,16 +127,21 @@
                 <ul class="max-h-60 overflow-y-auto divide-y divide-gray-200">
                     {#each filteredItems as item (item)}
                         <li 
-                            class="p-2 cursor-pointer transition duration-150 ease-in-out"
+                            class="p-2 cursor-pointer transition duration-150 ease-in-out relative {maxSelected && !isItemSelected(item) ? 'bg-gray-300 cursor-not-allowed' : ''}"
                             class:bg-oxford-100={isItemSelected(item)}
                             class:text-oxford-500={isItemSelected(item)}
-                            class:hover:bg-gray-100={!isItemSelected(item)}
-                            on:click={() => toggleItem(item)}
+                            class:hover:bg-gray-100={!isItemSelected(item) && !maxSelected}
+                            on:click={() => { if (!maxSelected || isItemSelected(item)) toggleItem(item); }}
                         >
                             <div class="flex items-center">
                                 <span>{item}</span>
                                 {#if isItemSelected(item)}
                                     <span class="ml-auto text-sm font-medium">Selected</span>
+                                {/if}
+                                {#if maxSelected && !isItemSelected(item)}
+                                    <div class="absolute top-0 left-full ml-2 w-auto p-1 text-sm text-white bg-black rounded">
+                                        Max selected
+                                    </div>
                                 {/if}
                             </div>
                         </li>

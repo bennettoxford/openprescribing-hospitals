@@ -16,9 +16,10 @@
     let organizations = [];
     let selectedOrganizations = [];
     let legendContainer;
+    let usedOrganizationSelection = false;
 
     $: {
-        console.log('Received measureData:', measureData);
+        
         try {
             if (typeof measureData === 'string') {
                 let unescapedData = measureData.replace(/\\u([\d\w]{4})/gi, (match, grp) => String.fromCharCode(parseInt(grp, 16)));
@@ -26,7 +27,6 @@
             } else {
                 parsedData = measureData;
             }
-            console.log('Parsed measureData:', parsedData);
             organizations = [...new Set(parsedData.map(item => item.organization))];
             if (chart) {
                 updateChart();
@@ -42,9 +42,20 @@
             return { labels: [], datasets: [] };
         }
 
-        const filteredData = selectedOrganizations.length > 0
-            ? data.filter(item => selectedOrganizations.includes(item.organization))
-            : data;
+        let filteredData;
+        let breakdownKeys;
+
+        if (usedOrganizationSelection) {
+            if (selectedOrganizations.length > 0) {
+                filteredData = data.filter(item => selectedOrganizations.includes(item.organization));
+                breakdownKeys = selectedOrganizations;
+            } else {
+                return { labels: [], datasets: [] };
+            }
+        } else {
+            filteredData = data;
+            breakdownKeys = organizations;
+        }
 
         const groupedData = filteredData.reduce((acc, item) => {
             const key = item.month;
@@ -60,7 +71,6 @@
         }, {});
 
         const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
-        const breakdownKeys = selectedOrganizations.length > 0 ? selectedOrganizations : organizations;
 
         return {
             labels: sortedDates,
@@ -127,7 +137,8 @@
     }
 
     function handleOrganizationSelection(event) {
-        selectedOrganizations = event.detail;
+        selectedOrganizations = event.detail.selectedItems;
+        usedOrganizationSelection = event.detail.usedOrganizationSelection;
         updateChart();
     }
 
