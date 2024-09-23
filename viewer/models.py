@@ -61,7 +61,8 @@ class Dose(models.Model):
     class Meta:
         ordering = ['year_month', 'vmp__name', 'organisation__ods_name']
         indexes = [
-            models.Index(fields=['vmp', 'organisation']),
+            models.Index(fields=['vmp']),
+            models.Index(fields=['organisation']),
             models.Index(fields=['year_month']),
         ]
 
@@ -80,7 +81,8 @@ class SCMD(models.Model):
     class Meta:
         ordering = ['year_month', 'vmp__name', 'organisation__ods_name']
         indexes = [
-            models.Index(fields=['vmp', 'organisation']),
+            models.Index(fields=['vmp']),
+            models.Index(fields=['organisation']),
             models.Index(fields=['year_month']),
         ]
 
@@ -104,7 +106,9 @@ class IngredientQuantity(models.Model):
         ordering = ['year_month', 'ingredient__name', 'vmp__name',
                     'organisation__ods_name']
         indexes = [
-            models.Index(fields=['vmp', 'organisation', 'ingredient']),
+            models.Index(fields=['vmp']),
+            models.Index(fields=['organisation']),
+            models.Index(fields=['ingredient']),
             models.Index(fields=['year_month']),
         ]
 
