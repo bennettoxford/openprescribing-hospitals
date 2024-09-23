@@ -1,15 +1,6 @@
 from rest_framework import serializers
 from .models import Dose, Organisation, VMP, SCMD, IngredientQuantity
 
-class OrganisationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Organisation
-        fields = ['ods_code', 'ods_name', 'region']
-
-class VMPSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = VMP
-        fields = ['code', 'name', 'vtm']
 
 class DoseSerializer(serializers.ModelSerializer):
     vmp_code = serializers.CharField(source='vmp.code', read_only=True)

@@ -4,7 +4,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Dose, Organisation, VMP, SCMD, IngredientQuantity, Ingredient, VTM, Measure
-from .serializers import DoseSerializer, OrganisationSerializer, VMPSerializer, SCMDSerializer, IngredientQuantitySerializer
+from .serializers import DoseSerializer, SCMDSerializer, IngredientQuantitySerializer
 import json
 from .measures.measure_utils import execute_measure_sql
 from django.db.models import Prefetch
