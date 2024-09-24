@@ -3,23 +3,33 @@
 
 {% block content %}
 
-<div class=" min-h-screen xl:max-w-screen-xl pt-2 md:pt-6 pb-4">
+<div class="min-h-screen bg-gray-50 xl:max-w-screen-xl pt-2 md:pt-6 pb-4">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <h1 class="text-4xl font-bold mb-8 text-gray-900">Measures</h1>
+        <p class="text-gray-600 my-4">Measures are pre-defined indicators of prescribing practices in hospitals. They provide valuable insights into areas such as cost-effectiveness, patient safety, and adherence to best practices.</p>
         
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-800">About</h2>
-            <p class="text-gray-600 mb-4">Measures are pre-defined indicators of prescribing practices in hospitals. They provide valuable insights into areas such as cost-effectiveness, patient safety, and adherence to best practices.</p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {% for measure in measures %}
-            <div class="bg-white rounded-lg shadow-md p-6 transition duration-300 ease-in-out hover:shadow-lg flex flex-col h-full">
-                <h3 class="text-xl font-semibold mb-4 text-gray-800 line-clamp-2 h-14">{{ measure.name }}</h3>
-                <p class="text-gray-600 mb-4 flex-grow">{{ measure.description }}</p>
-                <a href="{% url 'viewer:measure_item' measure.id %}" class="text-oxford-500 hover:text-oxford-600 font-semibold mt-auto">View measure</a>
+        {% for category, measures in measures_by_category.items %}
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">{{ category }}</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {% for measure in measures %}
+                <div class="bg-white rounded-lg shadow-md transition duration-300 ease-in-out hover:shadow-lg flex flex-col h-full">
+                    <div class="bg-gray-100 p-4 rounded-t-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 line-clamp-2 h-14">{{ measure.name }}</h3>
+                    </div>
+                    <p class="p-6 text-gray-600 mb-4 flex-grow">{{ measure.description }}</p>
+                    <div class="px-6 pb-4">
+                        {% if measure.why %}
+                        <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded">{{ measure.why }}</span>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'viewer:measure_item' measure.slug %}" class="text-white bg-oxford-500 hover:bg-oxford-600 font-semibold mt-auto py-2 px-4 rounded transition duration-300 ease-in-out text-center">View measure</a>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
+        </div>
+        {% endfor %}
     </div>
 </div>
+
 {% endblock %}

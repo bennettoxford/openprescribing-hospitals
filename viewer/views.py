@@ -41,7 +41,19 @@ class MeasuresListView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["measures"] = Measure.objects.all()
+        measures_by_category = {}
+        for measure in Measure.objects.all():
+            category = measure.category or 'Uncategorised'
+            if category not in measures_by_category:
+                measures_by_category[category] = []
+            measures_by_category[category].append(measure)
+        
+        # Ensure "Experimental" category is last
+        if "Experimental" in measures_by_category:
+            experimental_measures = measures_by_category.pop("Experimental")
+            measures_by_category["Experimental"] = experimental_measures
+        
+        context["measures_by_category"] = measures_by_category
         return context
 
 
@@ -50,13 +62,12 @@ class MeasureItemView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        measure_id = self.kwargs.get("pk")
-
-        measure = Measure.objects.get(id=measure_id)
+        slug = self.kwargs.get("slug")
+        measure = Measure.objects.get(slug=slug)
 
         context["measure_name"] = measure.name
         context["description"] = measure.description
-
+        context["why"] = measure.why
         try:
             result = execute_measure_sql(measure.name)
             values = result.get("values", [])

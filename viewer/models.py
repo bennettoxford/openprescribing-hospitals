@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.utils.text import slugify
 
 class VTM(models.Model):
     vtm = models.CharField(max_length=20, primary_key=True)
@@ -119,8 +119,17 @@ class IngredientQuantity(models.Model):
 
 class Measure(models.Model):
     name = models.CharField(max_length=255, unique=True)
+    short_name = models.CharField(max_length=255, null=True)
+    slug = models.SlugField(unique=True, null=True)
     description = models.TextField()
     sql_file = models.CharField(max_length=255)
+    category = models.CharField(max_length=255, null=True)
+    why = models.CharField(max_length=255, null=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug and self.short_name:
+            self.slug = slugify(self.short_name)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name

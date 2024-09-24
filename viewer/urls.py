@@ -33,5 +33,5 @@ urlpatterns = [
         filtered_ingredient_quantities,
         name="filtered-ingredient-quantities",
     ),
-    path("measures/<int:pk>/", MeasureItemView.as_view(), name="measure_item"),
+    path("measures/<slug:slug>/", MeasureItemView.as_view(), name="measure_item"),
 ]
