@@ -56,6 +56,7 @@
         }
 
         isAnalysisRunning = true;
+        dispatchAnalysisRunningChange(true);
         
         // Dispatch event to clear results
         const analyseBox = document.querySelector('analyse-box');
@@ -103,7 +104,15 @@
             errorMessage = "An error occurred while fetching data. Please try again.";
         } finally {
             isAnalysisRunning = false;
+            dispatchAnalysisRunningChange(false);
             console.log("Analysis completed");
+        }
+    }
+
+    function dispatchAnalysisRunningChange(running) {
+        const analyseBox = document.querySelector('analyse-box');
+        if (analyseBox) {
+            analyseBox.dispatchEvent(new CustomEvent('analysisRunningChange', { detail: running }));
         }
     }
 

@@ -7,9 +7,11 @@
   import { onMount } from 'svelte';
   import AnalyseBox from './analyse/AnalyseBox.svelte';
   import ResultsBox from './results/ResultsBox.svelte';
+  import { writable } from 'svelte/store';
 
   let isLeftBoxCollapsed = false;
   let leftBoxWidth = 'w-1/4';
+  let isAnalysisRunning = writable(false);
 
   function toggleLeftBox() {
     isLeftBoxCollapsed = !isLeftBoxCollapsed;
@@ -23,6 +25,12 @@
     if (analyseBox && resultsBox) {
       analyseBox.addEventListener('runAnalysis', (event) => {
         resultsBox.dispatchEvent(new CustomEvent('updateData', { detail: event.detail }));
+      });
+
+      // Add this new event listener
+      analyseBox.addEventListener('analysisRunningChange', (event) => {
+        isAnalysisRunning.set(event.detail);
+        resultsBox.dispatchEvent(new CustomEvent('analysisRunningChange', { detail: event.detail }));
       });
     }
   });
@@ -40,7 +48,7 @@
       </button>
     </div>
     <div class={`flex-grow transition-all duration-300 ease-in-out ${isLeftBoxCollapsed ? 'pl-[72px]' : ''}`}>
-      <results-box class="bg-white rounded-lg shadow-md h-full"></results-box>
+      <results-box class="bg-white rounded-lg shadow-md h-full" {isAnalysisRunning}></results-box>
     </div>
   </div>
 </div>

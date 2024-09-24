@@ -16,6 +16,7 @@
     let isLoading = false;
     let missingVMPs = [];
     let currentSearchType = 'vmp';
+    let isAnalysisRunning = false;
 
     function handleUpdateData(event) {
         const { data, quantityType: newQuantityType, searchType } = event.detail;
@@ -54,23 +55,31 @@
         isLoading = true;
     }
 
+    function handleAnalysisRunningChange(event) {
+        isAnalysisRunning = event.detail;
+    }
+
     onMount(() => {
         console.log("ResultsBox onMount called");
         const resultsBox = document.querySelector('results-box');
         resultsBox.addEventListener('updateData', handleUpdateData);
         resultsBox.addEventListener('clearResults', handleClearResults);
+        resultsBox.addEventListener('analysisRunningChange', handleAnalysisRunningChange);
 
         return () => {
             resultsBox.removeEventListener('updateData', handleUpdateData);
             resultsBox.removeEventListener('clearResults', handleClearResults);
+            resultsBox.removeEventListener('analysisRunningChange', handleAnalysisRunningChange);
         };
     });
 </script>
 
 <div class="results-box bg-white rounded-lg shadow-md h-full flex flex-col">
     <h2 class="text-xl font-bold p-4">Results</h2>
-    {#if isLoading}
-        <p class="p-4">Loading results...</p>
+    {#if isAnalysisRunning}
+        <div class="flex-grow flex items-center justify-center">
+            <div class="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-oxford-500"></div>
+        </div>
     {:else if selectedData.length > 0}
         <div class="flex-grow overflow-y-auto">
             <div class="p-4">
