@@ -1,4 +1,6 @@
 import json
+from collections import defaultdict
+from datetime import datetime
 
 from django.views.generic import TemplateView
 from rest_framework.decorators import api_view
@@ -71,7 +73,49 @@ class MeasureItemView(TemplateView):
         try:
             result = execute_measure_sql(measure.name)
             values = result.get("values", [])
-            context["measure_result"] = json.dumps(values, ensure_ascii=False)
+
+            org_data = defaultdict(lambda: defaultdict(float))
+            all_months = set()
+            all_orgs = set()
+
+            for row in values:
+                month = row['month']
+                org = row['organisation']
+                value = row['quantity']
+                org_data[org][month] = value
+                all_months.add(month)
+                all_orgs.add(org)
+
+            all_months = sorted(all_months)
+
+            # Fill in missing data with 0
+            filled_values = []
+            for org in all_orgs:
+                for month in all_months:
+                    filled_values.append({
+                        'organisation': org,
+                        'region': next((v['region'] for v in values if v['organisation'] == org), ''),
+                        'month': month,
+                        'quantity': org_data[org][month]
+                    })
+
+            context["measure_result"] = json.dumps(filled_values, ensure_ascii=False)
+
+            results_by_month = defaultdict(list)
+            for row in filled_values:
+                month = row['month']
+                value = row['quantity']
+                results_by_month[month].append(value)
+
+            percentiles = {}
+            percentile_values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
+            for month, values in results_by_month.items():
+                sorted_values = sorted(values)
+                percentiles[month] = [
+                    sorted_values[int(len(sorted_values) * p / 100)] for p in percentile_values
+                ]
+
+            context["deciles"] = json.dumps(percentiles, ensure_ascii=False)
 
         except ValueError as e:
             context["error"] = str(e)

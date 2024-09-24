@@ -9,6 +9,7 @@
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
 
     export let measureData = '[]';
+    export let deciles = '{}';
 
     let parsedData = [];
     let chartDiv;
@@ -16,6 +17,8 @@
     let selectedOrganisations = [];
     let usedOrganisationSelection = false;
     let tooltip;
+    let selectedMode = 'organisation'; // 'organisation' or 'deciles'
+ 
 
     $: {
         try {
@@ -33,51 +36,151 @@
             console.error('Error parsing measureData:', e);
             parsedData = [];
         }
+
+        try {
+            if (typeof deciles === 'string') {
+                let unescapedDeciles = deciles.replace(/\\u([\d\w]{4})/gi, (match, grp) => String.fromCharCode(parseInt(grp, 16)));
+                deciles = JSON.parse(unescapedDeciles);
+            } 
+        } catch (e) {
+            console.error('Error parsing deciles:', e);
+            deciles = {};
+        }
     }
 
     function prepareChartData(data) {
-        if (data.length === 0) {
+
+        if (data.length === 0 && selectedMode === 'organisation') {
             return { labels: [], datasets: [] };
         }
 
         let filteredData;
         let breakdownKeys;
 
-        if (usedOrganisationSelection) {
-            if (selectedOrganisations.length > 0) {
-                filteredData = data.filter(item => selectedOrganisations.includes(item.organisation));
-                breakdownKeys = selectedOrganisations;
+        if (selectedMode === 'organisation') {
+            if (usedOrganisationSelection) {
+                if (selectedOrganisations.length > 0) {
+                    filteredData = data.filter(item => selectedOrganisations.includes(item.organisation));
+                    breakdownKeys = selectedOrganisations;
+                } else {
+                    return { labels: [], datasets: [] };
+                }
             } else {
-                return { labels: [], datasets: [] };
+                filteredData = data;
+                breakdownKeys = organisations;
             }
-        } else {
-            filteredData = data;
-            breakdownKeys = organisations;
+
+            const groupedData = filteredData.reduce((acc, item) => {
+                const key = item.month;
+                if (!acc[key]) {
+                    acc[key] = {};
+                }
+                const breakdownKey = item.organisation;
+                if (!acc[key][breakdownKey]) {
+                    acc[key][breakdownKey] = 0;
+                }
+                acc[key][breakdownKey] += parseFloat(item.quantity);
+                return acc;
+            }, {});
+
+
+            const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
+
+            return {
+                labels: sortedDates,
+                datasets: breakdownKeys.map((key, index) => {
+                    const dataPoints = sortedDates.map(date => {
+                        if (!groupedData[date]) {
+                            console.warn(`No data for date: ${date}`);
+                            return 0;
+                        }
+                        if (!(key in groupedData[date])) {
+                            console.warn(`No data for organisation ${key} on date ${date}`);
+                            return 0;
+                        }
+                        return groupedData[date][key];
+                    });
+                    return {
+                        label: key,
+                        data: dataPoints,
+                        color: `hsl(${index * 360 / breakdownKeys.length}, 70%, 50%)`,
+                        strokeWidth: 2
+                    };
+                })
+            };
+        } else if (selectedMode === 'deciles') {
+            const sortedDates = Object.keys(deciles).sort((a, b) => new Date(a) - new Date(b));
+    
+            const decileDatasets = Array.from({ length: 27 }, (_, i) => {
+                let label;
+                let color;
+                let strokeWidth;
+                let strokeDasharray;
+
+                if (i < 9) {
+                    label = `${i + 1}th Percentile`;
+                    color = 'blue';
+                    strokeWidth = 1;
+                    strokeDasharray = '2,2'; // Dotted blue
+                } else if (i < 18) {
+                    label = `${(i - 9 + 1) * 10}th Percentile`;
+                    color = 'blue';
+                    strokeWidth = 2;
+                    strokeDasharray = '4,2'; // Dashed blue
+                } else if (i === 13) { // 50th percentile
+                    label = '50th Percentile';
+                    color = 'red';
+                    strokeWidth = 3;
+                    strokeDasharray = '4,2'; // Dashed red
+                } else {
+                    label = `${i - 17 + 90}th Percentile`;
+                    color = 'blue';
+                    strokeWidth = 1;
+                    strokeDasharray = '2,2'; // Dotted blue
+                }
+
+                return {
+                    label: label,
+                    data: sortedDates.map(date => deciles[date][i] || 0),
+                    color: color,
+                    strokeWidth: strokeWidth,
+                    strokeDasharray: strokeDasharray
+                };
+            });
+
+            if (usedOrganisationSelection && selectedOrganisations.length > 0) {
+                const filteredData = data.filter(item => selectedOrganisations.includes(item.organisation));
+                const groupedData = filteredData.reduce((acc, item) => {
+                    const key = item.month;
+                    if (!acc[key]) {
+                        acc[key] = {};
+                    }
+                    const breakdownKey = item.organisation;
+                    if (!acc[key][breakdownKey]) {
+                        acc[key][breakdownKey] = 0;
+                    }
+                    acc[key][breakdownKey] += parseFloat(item.quantity);
+                    return acc;
+                }, {});
+
+                const organisationDatasets = selectedOrganisations.map((key, index) => ({
+                    label: key,
+                    data: sortedDates.map(date => groupedData[date][key] || 0),
+                    color: `hsl(${index * 360 / selectedOrganisations.length}, 70%, 50%)`,
+                    strokeWidth: 3 // Thicker lines for selected organisations
+                }));
+
+                return {
+                    labels: sortedDates,
+                    datasets: [...decileDatasets, ...organisationDatasets]
+                };
+            }
+
+            return {
+                labels: sortedDates,
+                datasets: decileDatasets
+            };
         }
-
-        const groupedData = filteredData.reduce((acc, item) => {
-            const key = item.month;
-            if (!acc[key]) {
-                acc[key] = {};
-            }
-            const breakdownKey = item.organisation;
-            if (!acc[key][breakdownKey]) {
-                acc[key][breakdownKey] = 0;
-            }
-            acc[key][breakdownKey] += parseFloat(item.quantity);
-            return acc;
-        }, {});
-
-        const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
-
-        return {
-            labels: sortedDates,
-            datasets: breakdownKeys.map((key, index) => ({
-                label: key,
-                data: sortedDates.map(date => groupedData[date][key] || 0),
-                color: `hsl(${index * 360 / breakdownKeys.length}, 70%, 50%)`
-            }))
-        };
     }
 
     function updateChart() {
@@ -100,9 +203,12 @@
                 .domain(d3.extent(chartData.labels, d => new Date(d)))
                 .range([0, width]);
 
+            const yMax = selectedMode === 'deciles'
+                ? 1
+                : Math.max(1, d3.max(chartData.datasets, d => d3.max(d.data.map(value => Math.max(value, 0)))));
+
             const y = d3.scaleLinear()
-                .domain([0, Math.max(1, d3.max(chartData.datasets, d => d3.max(d.data.map(value => Math.max(value, 0)))))])
-                .nice()
+                .domain([0, yMax]).nice()
                 .range([height, 0]);
 
             svg.append('g')
@@ -169,15 +275,18 @@
             lines.append('path')
                 .attr('fill', 'none')
                 .attr('stroke', d => d.color)
-                .attr('stroke-width', 2)
+                .attr('stroke-width', d => d.strokeWidth)
+                .attr('stroke-dasharray', d => d.strokeDasharray)
                 .attr('d', d => line(d.data.map((value, i) => ({ date: chartData.labels[i], value }))));
 
-            lines.append('text')
-                .datum(d => ({ name: d.label, value: d.data[d.data.length - 1] }))
-                .attr('transform', d => `translate(${x(new Date(chartData.labels[chartData.labels.length - 1]))},${y(Math.max(d.value, 0))})`)
-                .attr('x', 3)
-                .attr('dy', '0.35em')
-                .style('font', '10px sans-serif');
+            if (selectedMode === 'organisation') {
+                lines.append('text')
+                    .datum(d => ({ name: d.label, value: d.data[d.data.length - 1] }))
+                    .attr('transform', d => `translate(${x(new Date(chartData.labels[chartData.labels.length - 1]))},${y(Math.max(d.value, 0))})`)
+                    .attr('x', 3)
+                    .attr('dy', '0.35em')
+                    .style('font', '10px sans-serif');
+            }
 
             // Tooltip
             tooltip = d3.select(chartDiv)
@@ -240,6 +349,11 @@
         updateChart();
     }
 
+    function handleModeChange(event) {
+        selectedMode = event.target.value;
+        updateChart();
+    }
+
     onMount(() => {
         updateChart();
 
@@ -265,10 +379,19 @@
 </script>
 
 <div class="flex flex-col">
-    <div class="mb-4">
-        <OrganisationSearch items={organisations} on:selectionChange={handleOrganisationSelection} />
+    <div class="flex justify-between items-end mb-4">
+        <div class="w-3/4">
+            <OrganisationSearch items={organisations} on:selectionChange={handleOrganisationSelection} />
+        </div>
+        <div class="w-1/4 ml-4">
+            <label for="mode-select" class="block text-sm font-medium text-gray-700 mb-1">Select Mode</label>
+            <select id="mode-select" class="w-full p-2 border border-gray-300 rounded-md bg-white" on:change={handleModeChange}>
+                <option value="organisation">Organisation</option>
+                <option value="deciles">Deciles</option>
+            </select>
+        </div>
     </div>
-    
+
     <div class="flex">
         <div class="chart-container flex-grow" style="height: 400px;">
             {#if parsedData.length === 0}
@@ -278,5 +401,34 @@
             {/if}
         </div>
     </div>
+
+    {#if selectedMode === 'deciles'}
+    <div class="flex justify-center mt-4">
+
+        <div class="flex items-center mr-4">
+
+            <div class="w-8 h-0.5 border-t border-blue-500 border-dotted mr-2"></div>
+
+            <span class="text-sm">1st-9th Percentile</span>
+
+        </div>
+
+        <div class="flex items-center mr-4">
+
+            <div class="w-8 h-0.5 border-t border-blue-500 border-dashed mr-2"></div>
+
+            <span class="text-sm">10th-90th Percentile</span>
+
+        </div>
+
+        <div class="flex items-center">
+
+            <div class="w-8 h-0.5 border-t border-red-500 border-dashed mr-2"></div>
+
+            <span class="text-sm">50th Percentile</span>
+
+        </div>
+    </div>
+    {/if}
 </div>
 

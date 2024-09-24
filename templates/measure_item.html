@@ -7,8 +7,8 @@
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen py-8 px-4 sm:px-6 lg:px-8 pt-1">
-    <div class="max-w-5xl mx-auto">
+<div class="container xl:max-w-screen-xl pt-2 md:pt-6 pb-4">
+    <div class="px-6 py-8 sm:p-10">
         <nav class="flex mb-6" aria-label="Breadcrumb">
             <ol class="inline-flex items-center space-x-1 md:space-x-3">
                 <li class="inline-flex items-center">
@@ -27,7 +27,7 @@
         </nav>
 
         <div class="overflow-hidden">
-            <div class="px-6 py-8 sm:p-10">
+            <div>
                 <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl mb-2">{{ measure_name }}</h1>
                 {% if error %}
                     <div class="mt-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded" role="alert">
@@ -48,7 +48,7 @@
                     
                     <div>
                         <div id="measure-chart">
-                            <measure-component measureData='{{ measure_result|escapejs }}'></measure-component>
+                            <measure-component measureData='{{ measure_result|escapejs }}' deciles='{{ deciles|escapejs }}'></measure-component>
                         </div>
                     </div>
                 {% endif %}
