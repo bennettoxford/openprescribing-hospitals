@@ -7,7 +7,7 @@
     import { onMount } from 'svelte';
     import TimeSeriesChart from './TimeSeriesChart.svelte';
     import DataTable from './DataTable.svelte';
-    import VMPList from './VMPList.svelte';
+    import ProductList from './ProductList.svelte';
 
     let selectedData = [];
     let quantityType = 'Dose';
@@ -74,7 +74,7 @@
     {:else if selectedData.length > 0}
         <div class="flex-grow overflow-y-auto">
             <div class="p-4">
-                <VMPList {vmps} {currentSearchType} on:dataFiltered={handleFilteredData} />
+                <ProductList {vmps} {currentSearchType} on:dataFiltered={handleFilteredData} />
             </div>
             {#if missingVMPs.length > 0}
                 <div class="mx-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700">

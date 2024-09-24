@@ -6,7 +6,7 @@
 <script>
     import { onMount, afterUpdate } from 'svelte';
     import Chart from 'chart.js/auto';
-    import SearchableDropdown from './SearchableDropdown.svelte';
+    import OrganisationSearch from '../common/OrganisationSearch.svelte';
 
     export let measureData = '[]';
 
@@ -201,7 +201,7 @@
     
     <div class="mb-4">
         <h4 class="text-md font-semibold mb-2">Filter Organizations</h4>
-        <SearchableDropdown items={organizations} on:selectionChange={handleOrganizationSelection} />
+        <OrganisationSearch items={organizations} on:selectionChange={handleOrganizationSelection} />
     </div>
     
     <div class="flex">

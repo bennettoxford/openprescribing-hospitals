@@ -16,11 +16,11 @@ export default defineConfig({
     outDir: "assets/assets",
     rollupOptions: {
       input: {
-        'search-box': "./src/Search.svelte",
-        'time-series-chart': "./src/TimeSeriesChart.svelte",
-        'searchable-dropdown': "./src/SearchableDropdown.svelte",
-        'data-table': "./src/DataTable.svelte",
-        'measure': "./src/Measure.svelte",
+        'search-box': "./src/components/common/Search.svelte",
+        'time-series-chart': "./src/components/analyse/results/TimeSeriesChart.svelte",
+        'organisation-search': "./src/components/common/OrganisationSearch.svelte",
+        'data-table': "./src/components/analyse/results/DataTable.svelte",
+        'measure': "./src/components/measures/Measure.svelte",
       }
     }
   },

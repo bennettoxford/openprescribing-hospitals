@@ -1,11 +1,11 @@
 <svelte:options customElement={{
-    tag: 'searchable-dropdown',
+    tag: 'organisation-search',
     shadow: 'none'
   }} />
 
 <script>
     import { onMount, createEventDispatcher } from 'svelte';
-    import './styles/styles.css';
+    import '../../styles/styles.css';
 
     const dispatch = createEventDispatcher();
 

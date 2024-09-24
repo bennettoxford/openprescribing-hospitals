@@ -5,8 +5,8 @@
 
 <script>
   import { onMount } from 'svelte';
-  import AnalyseBox from './AnalyseBox.svelte';
-  import ResultsBox from './ResultsBox.svelte';
+  import AnalyseBox from './analyse/AnalyseBox.svelte';
+  import ResultsBox from './results/ResultsBox.svelte';
 
   let isLeftBoxCollapsed = false;
   let leftBoxWidth = 'w-1/4';

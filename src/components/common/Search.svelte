@@ -4,7 +4,7 @@
   }} />
 <script>
     import { onMount, createEventDispatcher } from 'svelte';
-    import './styles/styles.css';
+    import '../../styles/styles.css';
 
     const dispatch = createEventDispatcher();
 

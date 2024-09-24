@@ -5,9 +5,9 @@
 
 <script>
     import { onMount } from 'svelte';
-    import './styles/styles.css';
-    import Search from './Search.svelte';
-    import SearchableDropdown from './SearchableDropdown.svelte';
+    import '../../../styles/styles.css';
+    import Search from '../../common/Search.svelte';
+    import OrganisationSearch from '../../common/OrganisationSearch.svelte';
 
     let isAnalysisRunning = false;
     let vmpNames = [];
@@ -159,7 +159,7 @@
 
     <div class="mb-4">
         <h3 class="text-xl font-semibold mb-2">Select organisations</h3>
-        <SearchableDropdown items={odsNames} on:selectionChange={handleODSSelection} />
+        <OrganisationSearch items={odsNames} on:selectionChange={handleODSSelection} />
     </div>
     
     {#if errorMessage}
