@@ -36,7 +36,7 @@
                     </div>
                 {% else %}
                     <p class="text-xl text-gray-500 mb-8">{{ description }}</p>
-                    <div class="bg-gray-50 rounded-lg p-6 shadow-inner">
+                    <div>
                         <div id="measure-chart">
                             <measure-component measureData='{{ measure_result|escapejs }}'></measure-component>
                         </div>

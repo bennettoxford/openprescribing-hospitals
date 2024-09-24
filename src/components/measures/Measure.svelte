@@ -1,25 +1,23 @@
 <svelte:options customElement={{
     tag: 'measure-component',
     shadow: 'none'
-  }} />
+}} />
 
 <script>
-    import { onMount, afterUpdate } from 'svelte';
-    import Chart from 'chart.js/auto';
+    import { onMount, afterUpdate, onDestroy } from 'svelte';
+    import * as d3 from 'd3';
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
 
     export let measureData = '[]';
 
     let parsedData = [];
-    let canvas;
-    let chart;
-    let organizations = [];
-    let selectedOrganizations = [];
-    let legendContainer;
-    let usedOrganizationSelection = false;
+    let chartDiv;
+    let organisations = [];
+    let selectedOrganisations = [];
+    let usedOrganisationSelection = false;
+    let tooltip;
 
     $: {
-        
         try {
             if (typeof measureData === 'string') {
                 let unescapedData = measureData.replace(/\\u([\d\w]{4})/gi, (match, grp) => String.fromCharCode(parseInt(grp, 16)));
@@ -27,8 +25,8 @@
             } else {
                 parsedData = measureData;
             }
-            organizations = [...new Set(parsedData.map(item => item.organization))];
-            if (chart) {
+            organisations = [...new Set(parsedData.map(item => item.organisation))];
+            if (chartDiv) {
                 updateChart();
             }
         } catch (e) {
@@ -45,16 +43,16 @@
         let filteredData;
         let breakdownKeys;
 
-        if (usedOrganizationSelection) {
-            if (selectedOrganizations.length > 0) {
-                filteredData = data.filter(item => selectedOrganizations.includes(item.organization));
-                breakdownKeys = selectedOrganizations;
+        if (usedOrganisationSelection) {
+            if (selectedOrganisations.length > 0) {
+                filteredData = data.filter(item => selectedOrganisations.includes(item.organisation));
+                breakdownKeys = selectedOrganisations;
             } else {
                 return { labels: [], datasets: [] };
             }
         } else {
             filteredData = data;
-            breakdownKeys = organizations;
+            breakdownKeys = organisations;
         }
 
         const groupedData = filteredData.reduce((acc, item) => {
@@ -62,7 +60,7 @@
             if (!acc[key]) {
                 acc[key] = {};
             }
-            const breakdownKey = item.organization;
+            const breakdownKey = item.organisation;
             if (!acc[key][breakdownKey]) {
                 acc[key][breakdownKey] = 0;
             }
@@ -77,131 +75,198 @@
             datasets: breakdownKeys.map((key, index) => ({
                 label: key,
                 data: sortedDates.map(date => groupedData[date][key] || 0),
-                borderColor: `hsl(${index * 360 / breakdownKeys.length}, 70%, 50%)`,
-                tension: 0.1
+                color: `hsl(${index * 360 / breakdownKeys.length}, 70%, 50%)`
             }))
         };
     }
 
-    const scrollableLegendPlugin = {
-        id: 'scrollableLegend',
-        afterRender: (chart, args, options) => {
-            const ul = document.createElement('ul');
-            ul.style.overflowY = 'auto';
-            ul.style.maxHeight = '350px';
-            ul.style.padding = '10px';
-            ul.style.margin = '0';
-            ul.style.listStyle = 'none';
-
-            chart.data.datasets.forEach((dataset, index) => {
-                const li = document.createElement('li');
-                li.style.display = 'flex';
-                li.style.alignItems = 'center';
-                li.style.marginBottom = '5px';
-                li.style.cursor = 'pointer';
-
-                const colorBox = document.createElement('span');
-                colorBox.style.width = '20px';
-                colorBox.style.height = '20px';
-                colorBox.style.backgroundColor = dataset.borderColor;
-                colorBox.style.display = 'inline-block';
-                colorBox.style.marginRight = '5px';
-
-                const text = document.createTextNode(dataset.label);
-
-                li.appendChild(colorBox);
-                li.appendChild(text);
-
-                li.onclick = () => {
-                    const meta = chart.getDatasetMeta(index);
-                    meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
-                    chart.update();
-                };
-
-                ul.appendChild(li);
-            });
-
-            if (legendContainer) {
-                legendContainer.innerHTML = '';
-                legendContainer.appendChild(ul);
-            }
-        }
-    };
-
     function updateChart() {
-        if (chart) {
+        if (chartDiv) {
             const chartData = prepareChartData(parsedData);
-            chart.data = chartData;
-            chart.update();
+            const margin = { top: 20, right: 30, bottom: 50, left: 50 };
+            const width = chartDiv.clientWidth - margin.left - margin.right;
+            const height = 400 - margin.top - margin.bottom;
+
+            d3.select(chartDiv).selectAll('*').remove();
+
+            const svg = d3.select(chartDiv)
+                .append('svg')
+                .attr('width', width + margin.left + margin.right)
+                .attr('height', height + margin.top + margin.bottom)
+                .append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+
+            const x = d3.scaleTime()
+                .domain(d3.extent(chartData.labels, d => new Date(d)))
+                .range([0, width]);
+
+            const y = d3.scaleLinear()
+                .domain([0, Math.max(1, d3.max(chartData.datasets, d => d3.max(d.data.map(value => Math.max(value, 0)))))])
+                .nice()
+                .range([height, 0]);
+
+            svg.append('g')
+                .attr('class', 'grid')
+                .attr('transform', `translate(0,${height})`)
+                .call(d3.axisBottom(x)
+                    .ticks(d3.timeYear.every(1))
+                    .tickSize(-height)
+                    .tickFormat(''))
+                .selectAll('line')
+                .attr('stroke', 'lightgrey')
+                .attr('stroke-dasharray', '2,2');
+
+            svg.append('g')
+                .attr('class', 'grid')
+                .call(d3.axisLeft(y)
+                    .tickSize(-width)
+                    .tickFormat(''))
+                .selectAll('line')
+                .attr('stroke', 'lightgrey')
+                .attr('stroke-dasharray', '2,2');
+
+            svg.selectAll('.grid path')
+                .style('display', 'none');
+
+            svg.append('g')
+                .attr('transform', `translate(0,${height})`)
+                .call(d3.axisBottom(x)
+                    .ticks(d3.timeYear.every(1))
+                    .tickFormat(d3.timeFormat('%Y')))
+                .selectAll('text')
+                .style('font-size', '12px');
+
+            svg.append('g')
+                .call(d3.axisLeft(y))
+                .selectAll('text')
+                .style('font-size', '12px');
+
+            // X-axis label
+            svg.append('text')
+                .attr('transform', `translate(${width / 2},${height + margin.bottom - 10})`)
+                .style('text-anchor', 'middle')
+                .text('Date');
+
+            // Y-axis label
+            svg.append('text')
+                .attr('transform', 'rotate(-90)')
+                .attr('y', 0 - margin.left)
+                .attr('x', 0 - (height / 2))
+                .attr('dy', '1em')
+                .style('text-anchor', 'middle')
+                .text('Proportion');
+
+            const line = d3.line()
+                .x(d => x(new Date(d.date)))
+                .y(d => y(Math.max(d.value, 0)));
+
+            const lines = svg.selectAll('.line')
+                .data(chartData.datasets)
+                .enter()
+                .append('g')
+                .attr('class', 'line');
+
+            lines.append('path')
+                .attr('fill', 'none')
+                .attr('stroke', d => d.color)
+                .attr('stroke-width', 2)
+                .attr('d', d => line(d.data.map((value, i) => ({ date: chartData.labels[i], value }))));
+
+            lines.append('text')
+                .datum(d => ({ name: d.label, value: d.data[d.data.length - 1] }))
+                .attr('transform', d => `translate(${x(new Date(chartData.labels[chartData.labels.length - 1]))},${y(Math.max(d.value, 0))})`)
+                .attr('x', 3)
+                .attr('dy', '0.35em')
+                .style('font', '10px sans-serif');
+
+            // Tooltip
+            tooltip = d3.select(chartDiv)
+                .append('div')
+                .attr('class', 'tooltip p-2 bg-gray-800 text-white rounded shadow-lg text-sm')
+                .style('position', 'absolute')
+                .style('pointer-events', 'none')
+                .style('opacity', 0);
+
+            function showTooltip(event, d) {
+                d3.select(this).attr('stroke-width', 3);
+                tooltip.style('opacity', 1);
+                svg.selectAll('.line path').style('opacity', 0.2);
+                d3.select(this).style('opacity', 1);
+            }
+
+            function moveTooltip(event, d) {
+                const [xPos, yPos] = d3.pointer(event);
+                const date = x.invert(xPos);
+                const tooltipWidth = tooltip.node().offsetWidth;
+                const tooltipHeight = tooltip.node().offsetHeight;
+
+                const bisectDate = d3.bisector(d => new Date(d)).left;
+                const index = bisectDate(chartData.labels, date);
+                const nearestIndex = index > 0 && (index === chartData.labels.length || (date - new Date(chartData.labels[index - 1])) < (new Date(chartData.labels[index]) - date)) ? index - 1 : index;
+                const nearestDate = new Date(chartData.labels[nearestIndex]);
+                const nearestValue = d.data[nearestIndex];
+
+                const orgName = d.label.length > 20 ? `${d.label.substring(0, 20)}...` : d.label;
+
+                const leftPosition = xPos < width / 2 ? event.clientX + 10 : event.clientX - tooltipWidth - 10;
+                const topPosition = yPos < height / 2 ? event.clientY : event.clientY - tooltipHeight;
+
+                tooltip
+                    .html(`<strong>Org:</strong> ${orgName}<br><strong>Date:</strong> ${d3.timeFormat('%b %Y')(nearestDate)}<br><strong>Proportion:</strong> ${nearestValue.toFixed(2)}`)
+                    .style('left', `${leftPosition}px`)
+                    .style('top', `${topPosition}px`);
+            }
+
+            function hideTooltip(event, d) {
+                d3.select(this).attr('stroke-width', 2);
+                tooltip.style('opacity', 0);
+                svg.selectAll('.line path').style('opacity', 1);
+            }
+
+            svg.selectAll('.line path')
+                .on('mouseover', showTooltip)
+                .on('mousemove', moveTooltip)
+                .on('mouseout', hideTooltip)
+                .on('click', function(event, d) {
+                    showTooltip.call(this, event, d);
+                    moveTooltip.call(this, event, d);
+                });
         }
     }
 
-    function handleOrganizationSelection(event) {
-        selectedOrganizations = event.detail.selectedItems;
-        usedOrganizationSelection = event.detail.usedOrganizationSelection;
+    function handleOrganisationSelection(event) {
+        selectedOrganisations = event.detail.selectedItems;
+        usedOrganisationSelection = event.detail.usedOrganisationSelection;
         updateChart();
     }
 
     onMount(() => {
-        Chart.register(scrollableLegendPlugin);
-        chart = new Chart(canvas, {
-            type: 'line',
-            data: prepareChartData(parsedData),
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-                transitions: {
-                    active: {
-                        animation: {
-                            duration: 0
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Quantity'
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Date'
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            },
-            plugins: [scrollableLegendPlugin]
-        });
+        updateChart();
+
+        const handleResize = () => {
+            updateChart();
+        };
+
+        window.addEventListener('resize', handleResize);
 
         return () => {
-            if (chart) {
-                chart.destroy();
+            window.removeEventListener('resize', handleResize);
+            if (chartDiv) {
+                d3.select(chartDiv).selectAll('*').remove();
             }
         };
     });
 
     afterUpdate(() => {
-        if (chart) {
+        if (chartDiv) {
             updateChart();
         }
     });
 </script>
 
 <div class="flex flex-col">
-
-    
     <div class="mb-4">
-        <h4 class="text-md font-semibold mb-2">Filter Organizations</h4>
-        <OrganisationSearch items={organizations} on:selectionChange={handleOrganizationSelection} />
+        <OrganisationSearch items={organisations} on:selectionChange={handleOrganisationSelection} />
     </div>
     
     <div class="flex">
@@ -209,19 +274,9 @@
             {#if parsedData.length === 0}
                 <p class="text-center text-gray-500 pt-8">No data available.</p>
             {:else}
-                <canvas bind:this={canvas}></canvas>
+                <div bind:this={chartDiv}></div>
             {/if}
         </div>
-        <div bind:this={legendContainer} class="legend-container w-48 ml-4"></div>
     </div>
 </div>
 
-<style>
-    .chart-container {
-        position: relative;
-    }
-    .legend-container {
-        max-height: 400px;
-        overflow-y: auto;
-    }
-</style>
