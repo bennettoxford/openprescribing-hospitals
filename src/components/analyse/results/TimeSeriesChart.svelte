@@ -14,7 +14,7 @@
     let canvas;
     let chart;
     let viewMode = 'Total';
-    let organizations = [];
+    let organisations = [];
     let units = [];
     let ingredientUnitPairs = [];
     let vtms = [];
@@ -23,7 +23,7 @@
     $: {
         console.log('Data received in TimeSeriesChart:', data);
         if (data.length > 0) {
-            organizations = [...new Set(data.map(item => item.ods_name))];
+            organisations = [...new Set(data.map(item => item.ods_name))];
             units = [...new Set(data.map(item => item.unit))];
             if (searchType === 'ingredient') {
                 ingredientUnitPairs = [...new Set(data.map(item => 
@@ -97,7 +97,7 @@
 
     function getBreakdownKey(item, viewMode) {
         switch (viewMode) {
-            case 'Organization':
+            case 'Organisation':
                 return item.ods_name;
             case 'Unit':
                 return item.unit;
@@ -116,8 +116,8 @@
 
     function getBreakdownKeys(viewMode) {
         switch (viewMode) {
-            case 'Organization':
-                return organizations;
+            case 'Organisation':
+                return organisations;
             case 'Unit':
                 return units;
             case 'Ingredient-Unit':
@@ -254,7 +254,7 @@
         <label for="view-mode-select" class="mr-2">View Mode:</label>
         <select id="view-mode-select" bind:value={viewMode} on:change={handleViewModeChange} class="p-2 border rounded mr-4">
             <option value="Total">Total</option>
-            <option value="Organization">Organization Breakdown</option>
+            <option value="Organisation">Organisation Breakdown</option>
             <option value="Unit">Unit Breakdown</option>
             {#if searchType === 'vtm'}
                 <option value="VTM">VTM Breakdown</option>

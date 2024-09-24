@@ -23,7 +23,7 @@
     const quantityOptions = ['--', 'Dose', 'Ingredient Quantity'];
 
     let errorMessage = '';
-    let usedOrganizationSelection = false;
+    let usedOrganisationSelection = false;
 
     async function fetchVMPNames() {
         const response = await fetch('/api/unique-vmp-names/');
@@ -50,8 +50,8 @@
         }
 
         // Updated check for ODS selection
-        if (selectedODS && selectedODS.length === 0 && usedOrganizationSelection) {
-            errorMessage = "You've selected to filter by organizations, but haven't chosen any. Please select at least one organization or clear the organization filter.";
+        if (selectedODS && selectedODS.length === 0 && usedOrganisationSelection) {
+            errorMessage = "You've selected to filter by organisations, but haven't chosen any. Please select at least one organisation or clear the organisation filter.";
             return;
         }
 
@@ -115,7 +115,7 @@
 
     function handleODSSelection(event) {
         selectedODS = event.detail.selectedItems;
-        usedOrganizationSelection = event.detail.usedOrganizationSelection;
+        usedOrganisationSelection = event.detail.usedOrganisationSelection;
     }
 
     function handleQuantityTypeChange(event) {

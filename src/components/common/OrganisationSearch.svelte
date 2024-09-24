@@ -13,7 +13,7 @@
     let isOpen = false;
     let searchTerm = '';
     let selectedItems = [];
-    let showOrganizationSelection = false;
+    let showOrganisationSelection = false;
     let initialized = false;
 
     $: filteredItems = items.filter(item => 
@@ -22,12 +22,12 @@
 
     // Initialize selectedItems with all items on component creation
     $: if (items.length > 0 && !initialized) {
-        selectedItems = showOrganizationSelection ? [...items] : [];
+        selectedItems = showOrganisationSelection ? [...items] : [];
         initialized = true;
         dispatchSelectionChange();
     }
 
-    $: if (!showOrganizationSelection) {
+    $: if (!showOrganisationSelection) {
         selectedItems = [];
         dispatchSelectionChange();
     }
@@ -35,7 +35,7 @@
     $: maxSelected = selectedItems.length >= 10;
 
     function toggleDropdown() {
-        if (showOrganizationSelection) {
+        if (showOrganisationSelection) {
             isOpen = !isOpen;
         }
     }
@@ -59,12 +59,12 @@
     function dispatchSelectionChange() {
         dispatch('selectionChange', {
             selectedItems: selectedItems,
-            usedOrganizationSelection: showOrganizationSelection
+            usedOrganisationSelection: showOrganisationSelection
         });
     }
 
-    function toggleOrganizationSelection() {
-        showOrganizationSelection = !showOrganizationSelection;
+    function toggleOrganisationSelection() {
+        showOrganisationSelection = !showOrganisationSelection;
         dispatchSelectionChange();
     }
 
@@ -87,17 +87,17 @@
     <div class="flex items-center mb-2">
         <input
             type="checkbox"
-            id="showOrganizationSelection"
-            checked={showOrganizationSelection}
-            on:change={() => toggleOrganizationSelection()}
+            id="showOrganisationSelection"
+            checked={showOrganisationSelection}
+            on:change={() => toggleOrganisationSelection()}
             class="mr-2 w-4 h-4"
         />
-        <label for="showOrganizationSelection" class="text-sm font-medium text-gray-700">
-            Filter by specific organizations
+        <label for="showOrganisationSelection" class="text-sm font-medium text-gray-700">
+            Filter by specific organisations
         </label>
     </div>
 
-    {#if showOrganizationSelection}
+    {#if showOrganisationSelection}
         <button
             on:click={toggleDropdown}
             class="w-full p-2 border border-gray-300 rounded-md bg-white flex justify-between items-center"

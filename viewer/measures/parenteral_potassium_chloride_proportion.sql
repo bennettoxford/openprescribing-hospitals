@@ -1,6 +1,6 @@
 WITH measure_data AS (
     SELECT 
-        org.ods_name AS organization,
+        org.ods_name AS organisation,
         org.region AS region,
         strftime('%Y-%m', dose.year_month) AS month,
         SUM(CASE WHEN vmp.code IN ('22498311000001100', '22498911000001100', '4898111000001100', '22497711000001100', '36019911000001100', '26821911000001101') THEN dose.quantity ELSE 0 END) AS amp_vial_quantity,
@@ -22,7 +22,7 @@ SELECT
     'ratio' AS unit,
     json_group_array(
         json_object(
-            'organization', organization,
+            'organisation', organisation,
             'region', region,
             'month', month,
             'quantity', CAST(amp_vial_quantity AS FLOAT) / NULLIF(total_quantity, 0)

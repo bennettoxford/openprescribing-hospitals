@@ -207,13 +207,13 @@ class Command(BaseCommand):
             "*.csv")
         doses["vmp_code"] = doses["vmp_code"].astype(int).astype(str)
 
-        organizations = {
+        organisations = {
             org.ods_code: org for org in Organisation.objects.all()}
         vmps = {vmp.code: vmp for vmp in VMP.objects.all()}
 
         # Filter out rows with missing org or vmp
         valid_doses = doses[doses["ods_code"].isin(
-            organizations) & doses["vmp_code"].isin(vmps)]
+            organisations) & doses["vmp_code"].isin(vmps)]
 
         batch_size = 1000
         total_doses = 0
@@ -230,7 +230,7 @@ class Command(BaseCommand):
                     year_month = datetime.strptime(
                         row.year_month, "%Y-%m-%d").date()
                     vmp = vmps[row.vmp_code]
-                    org = organizations[row.ods_code]
+                    org = organisations[row.ods_code]
 
                     dose_objects.append(
                         Dose(
@@ -295,14 +295,14 @@ class Command(BaseCommand):
             "ingredient_code"
         ].apply(lambda x: str(int(x)) if pd.notnull(x) else x)
 
-        organizations = {
+        organisations = {
             org.ods_code: org for org in Organisation.objects.all()}
         vmps = {vmp.code: vmp for vmp in VMP.objects.all()}
         ingredients = {ing.code: ing for ing in Ingredient.objects.all()}
 
         # Filter out rows with missing org, vmp, or ingredient
         valid_iq = ingredient_quantities[
-            ingredient_quantities["ods_code"].isin(organizations)
+            ingredient_quantities["ods_code"].isin(organisations)
             & ingredient_quantities["vmp_code"].isin(vmps)
             & ingredient_quantities["ingredient_code"].isin(ingredients)
         ]
@@ -331,7 +331,7 @@ class Command(BaseCommand):
                                 else None
                             ),
                             unit=row.ingredient_unit,
-                            organisation=organizations[row.ods_code],
+                            organisation=organisations[row.ods_code],
                         )
                     )
 
