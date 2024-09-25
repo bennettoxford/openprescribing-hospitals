@@ -6,13 +6,10 @@
     {% vite_asset './src/components/analyse/Analyse.svelte' %}
 {% endblock %}
 
+{% block title %}Analyse{% endblock %}
+
 {% block content %}
 <div class="pt-1">
     <layout-component></layout-component>
 </div>
-
-
-<script>
-    window.dummyData = JSON.parse('{{ dummy_data|escapejs }}');
-</script>
 {% endblock %}
