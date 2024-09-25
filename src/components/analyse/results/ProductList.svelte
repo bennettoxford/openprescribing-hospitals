@@ -109,34 +109,34 @@
     </p>
     <div class="overflow-x-auto">
         <div class="max-h-96 overflow-y-auto relative">
-            <table class="w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
-                <thead class="bg-gray-100 sticky top-0 z-10">
+            <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
+                <thead class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal sticky top-0 z-10">
                     <tr>
-                        <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy(displayField)}>
+                        <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy(displayField)}>
                             {currentSearchType.toUpperCase()} Name <span class="text-gray-400">{getSortIndicator(displayField)}</span>
                         </th>
-                        <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('unit')}>
+                        <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('unit')}>
                             Unit <span class="text-gray-400">{getSortIndicator('unit')}</span>
                         </th>
                         {#if currentSearchType !== 'vmp'}
-                            <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('vmp')}>
+                            <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('vmp')}>
                                 VMP <span class="text-gray-400">{getSortIndicator('vmp')}</span>
                             </th>
                         {/if}
-                        <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('selected')}>
+                        <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('selected')}>
                             Select <span class="text-gray-400">{getSortIndicator('selected')}</span>
                         </th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="text-gray-600 text-sm">
                     {#each sortedVMPs as vmp}
-                        <tr class="border-t border-gray-200" class:bg-red-100={vmp.unit === 'nan'}>
-                            <td class="px-4 py-2">{vmp[displayField] || vmp.vmp || 'N/A'}</td>
-                            <td class="px-4 py-2">{vmp.unit === 'nan' ? '-' : vmp.unit}</td>
+                        <tr class="border-b border-gray-200 hover:bg-gray-100" class:bg-red-100={vmp.unit === 'nan'}>
+                            <td class="py-3 px-6 text-left">{vmp[displayField] || vmp.vmp || 'N/A'}</td>
+                            <td class="py-3 px-6 text-left">{vmp.unit === 'nan' ? '-' : vmp.unit}</td>
                             {#if currentSearchType !== 'vmp'}
-                                <td class="px-4 py-2">{vmp.vmp}</td>
+                                <td class="py-3 px-6 text-left">{vmp.vmp}</td>
                             {/if}
-                            <td class="px-4 py-2">
+                            <td class="py-3 px-6 text-left">
                                 <input 
                                     type="checkbox" 
                                     checked={checkedVMPs[vmp.vmp] ?? false}

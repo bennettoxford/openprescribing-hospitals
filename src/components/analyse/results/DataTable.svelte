@@ -56,41 +56,46 @@
     }
 </script>
 
-<div class="overflow-x-auto">
-    <table class="min-w-full bg-white">
-        <thead>
-            <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
-                <th class="py-3 px-6 text-left">{searchType.toUpperCase()} Name</th>
-                {#if searchType !== 'vmp'}
-                    <th class="py-3 px-6 text-left">Unit</th>
-                {/if}
-                <th class="py-3 px-6 text-right">Total {quantityType}</th>
-            </tr>
-        </thead>
-        <tbody class="text-gray-600 text-sm font-light">
-            {#each groupedData as group}
-                <tr class="border-b border-gray-200 hover:bg-gray-100 font-bold">
-                    <td class="py-3 px-6 text-left" rowspan={group.units.length + 1}>
-                        {group.key}
-                    </td>
-                    {#if searchType !== 'vmp'}
-                        <td class="py-3 px-6 text-left">All Units</td>
-                    {/if}
-                    <td class="py-3 px-6 text-right">
-                        {formatNumber(group.total)}
-                    </td>
-                </tr>
-                {#each group.units as unitData}
-                    {#if searchType !== 'vmp'}
-                        <tr class="border-b border-gray-200 hover:bg-gray-100">
-                            <td class="py-3 px-6 text-left">{unitData.unit}</td>
+<div class="p-4">
+    <h3 class="text-xl font-semibold mb-4">Data Summary</h3>
+    <div class="overflow-x-auto">
+        <div class="max-h-96 overflow-y-auto relative">
+            <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
+                <thead class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal sticky top-0 z-10">
+                    <tr>
+                        <th class="py-3 px-6 text-left">{searchType.toUpperCase()} Name</th>
+                        {#if searchType !== 'vmp'}
+                            <th class="py-3 px-6 text-left">Unit</th>
+                        {/if}
+                        <th class="py-3 px-6 text-right">Total {quantityType}</th>
+                    </tr>
+                </thead>
+                <tbody class="text-gray-600 text-sm">
+                    {#each groupedData as group}
+                        <tr class="border-b border-gray-200 hover:bg-gray-100 font-bold">
+                            <td class="py-3 px-6 text-left" rowspan={group.units.length + 1}>
+                                {group.key}
+                            </td>
+                            {#if searchType !== 'vmp'}
+                                <td class="py-3 px-6 text-left">All Units</td>
+                            {/if}
                             <td class="py-3 px-6 text-right">
-                                {formatNumber(unitData.quantity)}
+                                {formatNumber(group.total)}
                             </td>
                         </tr>
-                    {/if}
-                {/each}
-            {/each}
-        </tbody>
-    </table>
+                        {#each group.units as unitData}
+                            {#if searchType !== 'vmp'}
+                                <tr class="border-b border-gray-200 hover:bg-gray-100">
+                                    <td class="py-3 px-6 text-left">{unitData.unit}</td>
+                                    <td class="py-3 px-6 text-right">
+                                        {formatNumber(unitData.quantity)}
+                                    </td>
+                                </tr>
+                            {/if}
+                        {/each}
+                    {/each}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
