@@ -19,6 +19,10 @@
     let vtms = [];
     let tooltip;
     let resizeTimer;
+    let visibleDatasets = [];
+
+    let chartContainer;
+    let isSmallScreen = false;
 
     $: {
         console.log('Data received in TimeSeriesChart:', data);
@@ -80,14 +84,12 @@
                 }]
             };
         } else {
-            return {
-                labels: sortedDates,
-                datasets: breakdownKeys.map((key, index) => ({
-                    label: key,
-                    data: sortedDates.map(date => groupedData[date][key] || 0),
-                    color: `hsl(${index * 360 / breakdownKeys.length}, 70%, 50%)`
-                }))
-            };
+            const datasets = breakdownKeys.map((key, index) => ({
+                label: key,
+                data: sortedDates.map(date => groupedData[date][key] || 0),
+                color: `hsl(${index * 360 / breakdownKeys.length}, 70%, 50%)`
+            }));
+            return { labels: sortedDates, datasets };
         }
     }
 
@@ -128,15 +130,21 @@
     function updateChart() {
         if (chartDiv) {
             const chartData = prepareChartData(data, viewMode);
-            const margin = { top: 20, right: 100, bottom: 50, left: 60 };
-            const width = chartDiv.clientWidth - margin.left - margin.right;
+            visibleDatasets = chartData.datasets.map((_, i) => i);
+            
+            isSmallScreen = window.innerWidth < 768; // Adjust this breakpoint as needed
+
+            const showLegend = viewMode !== 'Total' && viewMode !== 'Organisation' && !isSmallScreen;
+            const legendWidth = showLegend ? 150 : 0; // Adjust this value as needed
+            const margin = { top: 20, right: 20 + legendWidth, bottom: 50, left: 60 };
+            const width = chartContainer.clientWidth - margin.left - margin.right;
             const height = Math.min(400, window.innerHeight * 0.6) - margin.top - margin.bottom;
 
             d3.select(chartDiv).selectAll('*').remove();
 
             const svg = d3.select(chartDiv)
                 .append('svg')
-                .attr('width', width + margin.left + margin.right)
+                .attr('width', chartContainer.clientWidth)
                 .attr('height', height + margin.top + margin.bottom)
                 .append('g')
                 .attr('transform', `translate(${margin.left},${margin.top})`);
@@ -184,8 +192,8 @@
 
             svg.append('g')
                 .call(d3.axisLeft(y)
-                    .ticks(5) // Limit the number of ticks
-                    .tickFormat(d3.format('.2s'))) // Use SI-prefix notation
+                    .ticks(5)
+                    .tickFormat(d3.format('.2s')))
                 .selectAll('text')
                 .style('font-size', '12px');
 
@@ -208,40 +216,161 @@
                 .x(d => x(new Date(d.date)))
                 .y(d => y(d.value));
 
-            const lines = svg.selectAll('.line')
-                .data(chartData.datasets)
-                .enter()
-                .append('g')
-                .attr('class', 'line');
+            
+            function updateLines() {
+                const lines = svg.selectAll('.line')
+                    .data(chartData.datasets.filter((_, i) => visibleDatasets.includes(i)));
 
-            lines.append('path')
-                .attr('fill', 'none')
-                .attr('stroke', d => d.color)
-                .attr('stroke-width', 2)
-                .attr('d', d => line(d.data.map((value, i) => ({ date: chartData.labels[i], value }))))
-                .attr('class', (d, i) => `line-${i}`);
+                lines.exit().remove();
 
-            // Add legend (except for organisation breakdown)
-            if (viewMode !== 'Organisation') {
-                const legend = svg.selectAll('.legend')
+                lines.enter()
+                    .append('path')
+                    .attr('class', 'line')
+                    .merge(lines)
+                    .attr('fill', 'none')
+                    .attr('stroke', d => d.color)
+                    .attr('stroke-width', 2)
+                    .attr('d', d => line(d.data.map((value, i) => ({ date: new Date(chartData.labels[i]), value }))));
+            }
+
+            // Initial drawing of lines
+            updateLines();
+
+            // Modify the initial y-axis and y-grid creation
+            svg.append('g')
+                .attr('class', 'y-axis')
+                .call(d3.axisLeft(y)
+                    .ticks(5)
+                    .tickFormat(d3.format('.2s')))
+                .selectAll('text')
+                .style('font-size', '12px');
+
+            svg.append('g')
+                .attr('class', 'grid y')
+                .call(d3.axisLeft(y)
+                    .ticks(5)
+                    .tickSize(-width)
+                    .tickFormat(''))
+                .call(g => g.select('.domain').remove())
+                .call(g => g.selectAll('.tick line')
+                    .attr('stroke', 'lightgrey')
+                    .attr('stroke-dasharray', '2,2'));
+
+            if (showLegend) {
+                console.log("Creating legend for view mode:", viewMode);
+                
+                const legendItemHeight = 20;
+                const legendItemPadding = 5;
+                const legendPadding = 10;
+                const maxLegendWidth = 200;
+                const maxLegendHeight = height;
+
+          
+                const tempSvg = d3.select(chartDiv).append('svg').style('visibility', 'hidden');
+                const textWidths = chartData.datasets.map(d => {
+                    const text = tempSvg.append('text').text(d.label);
+                    const width = text.node().getComputedTextLength();
+                    text.remove();
+                    return width;
+                });
+                tempSvg.remove();
+
+                const maxTextWidth = Math.min(d3.max(textWidths), maxLegendWidth - 40); // 40 for color indicator and padding
+                const legendWidth = maxTextWidth + 40;
+                const legendHeight = Math.min(maxLegendHeight, chartData.datasets.length * (legendItemHeight + legendItemPadding) + legendPadding * 2);
+
+                const legend = svg.append('g')
+                    .attr('class', 'legend')
+                    .attr('transform', `translate(${width + 10}, 0)`);
+
+                legend.append('rect')
+                    .attr('width', legendWidth)
+                    .attr('height', legendHeight)
+                    .attr('fill', 'white')
+                    .attr('stroke', '#ccc')
+                    .attr('stroke-width', 1)
+                    .attr('rx', 5)
+                    .attr('ry', 5);
+
+                const legendContent = legend.append('g')
+                    .attr('class', 'legend-content')
+                    .attr('transform', `translate(${legendPadding}, ${legendPadding})`)
+                    .attr('clip-path', 'url(#legend-clip)');
+
+                legend.append('clipPath')
+                    .attr('id', 'legend-clip')
+                    .append('rect')
+                    .attr('width', legendWidth - legendPadding * 2)
+                    .attr('height', legendHeight - legendPadding * 2);
+
+                const legendItems = legendContent.selectAll('.legend-item')
                     .data(chartData.datasets)
                     .enter()
                     .append('g')
-                    .attr('class', 'legend')
-                    .attr('transform', (d, i) => `translate(${width + 10},${i * 20})`);
+                    .attr('class', 'legend-item')
+                    .attr('transform', (d, i) => `translate(0, ${i * (legendItemHeight + legendItemPadding)})`);
 
-                legend.append('rect')
-                    .attr('x', 0)
-                    .attr('width', 18)
-                    .attr('height', 18)
-                    .style('fill', d => d.color);
+                legendItems.append('line')
+                    .attr('x1', 0)
+                    .attr('y1', legendItemHeight / 2)
+                    .attr('x2', 15)
+                    .attr('y2', legendItemHeight / 2)
+                    .attr('stroke', d => d.color)
+                    .attr('stroke-width', 2);
 
-                legend.append('text')
-                    .attr('x', 24)
-                    .attr('y', 9)
+                legendItems.append('text')
+                    .attr('x', 20)
+                    .attr('y', legendItemHeight / 2)
                     .attr('dy', '.35em')
-                    .style('text-anchor', 'start')
+                    .style('font-size', '10px')
+                    .style('fill', '#333')
+                    .text(d => {
+                        const maxLength = Math.floor((maxTextWidth - 20) / 6);
+                        return d.label.length > maxLength ? d.label.substring(0, maxLength - 3) + '...' : d.label;
+                    })
+                    .append('title')
                     .text(d => d.label);
+
+                if (chartData.datasets.length * (legendItemHeight + legendItemPadding) > legendHeight - legendPadding * 2) {
+                    const scrollableArea = legend.append('foreignObject')
+                        .attr('x', legendPadding)
+                        .attr('y', legendPadding)
+                        .attr('width', legendWidth - legendPadding * 2)
+                        .attr('height', legendHeight - legendPadding * 2)
+                        .append('xhtml:div')
+                        .style('width', '100%')
+                        .style('height', '100%')
+                        .style('overflow-y', 'scroll');
+
+                    scrollableArea.node().appendChild(legendContent.node());
+                }
+
+                legendItems.style('cursor', 'pointer')
+                    .on('click', function(event, d) {
+                        const index = chartData.datasets.indexOf(d);
+                        const legendItem = d3.select(this);
+                        
+                        if (visibleDatasets.includes(index)) {
+                            // Toggle off the dataset
+                            visibleDatasets = visibleDatasets.filter(i => i !== index);
+                            legendItem.style('opacity', 0.5);
+                        } else {
+                            // Toggle on the dataset
+                            visibleDatasets.push(index);
+                            legendItem.style('opacity', 1);
+                        }
+                        
+                        if (visibleDatasets.length === 0) {
+                            visibleDatasets = chartData.datasets.map((_, i) => i);
+                            legend.selectAll('.legend-item').style('opacity', 1);
+                        }
+                        
+                        updateLines();
+                    });
+
+                svg.attr('width', width + margin.left + margin.right + legendWidth + 10);
+            } else {
+                console.log("Not creating legend: Total view, Organisation breakdown, or small screen");
             }
 
             // Tooltip
@@ -297,7 +426,6 @@
                     moveTooltip.call(this, event, d);
                 });
 
-            // Add a transparent overlay for better tooltip interaction
             svg.append('rect')
                 .attr('width', width)
                 .attr('height', height)
@@ -326,6 +454,7 @@
     }
 
     function handleViewModeChange() {
+        console.log("View mode changed to:", viewMode);
         updateChart();
     }
 
@@ -369,7 +498,7 @@
         </select>
     </div>
     <div class="flex">
-        <div class="chart-container flex-grow" style="height: auto; min-height: 300px;">
+        <div bind:this={chartContainer} class="chart-container flex-grow" style="height: auto; min-height: 300px;">
             {#if data.length === 0}
                 <p class="text-center text-gray-500 pt-8">No data available. Please select at least one VMP.</p>
             {:else}
@@ -379,9 +508,3 @@
     </div>
 </div>
 
-<style>
-    .chart-container {
-        position: relative;
-        width: 100%;
-    }
-</style>

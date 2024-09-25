@@ -125,7 +125,7 @@
                         </button>
                     </div>
                 </div>
-                <ul class="flex-grow overflow-y-auto divide-y divide-gray-200 max-h-60">
+                <ul class="flex-grow overflow-y-auto divide-y divide-gray-200">
                     {#each filteredItems as item (item)}
                         <li 
                             class="p-2 cursor-pointer transition duration-150 ease-in-out relative {maxSelected && !isItemSelected(item) ? 'bg-gray-300 cursor-not-allowed' : ''}"

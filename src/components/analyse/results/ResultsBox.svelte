@@ -55,12 +55,10 @@
 
 {#if showResults}
     <div class="results-box bg-white rounded-lg shadow-md h-full flex flex-col">
-        <div class="bg-gradient-to-r from-oxford-600/60 via-bn-roman-600/70 to-bn-strawberry-600/60 text-white p-2 rounded-t-lg">
-            <h2 class="text-lg font-semibold">Results</h2>
-        </div>
-        <div class="flex-grow overflow-y-auto">
+        
+        <div class="flex-grow overflow-y-auto rounded-t-lg">
             {#if $isAnalysisRunning}
-                <div class="flex-grow flex items-center justify-center p-16"> <!-- Added p-16 for more padding -->
+                <div class="flex-grow flex items-center justify-center p-16">
                     <div class="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-oxford-500"></div>
                 </div>
             {:else if selectedData.length > 0}
