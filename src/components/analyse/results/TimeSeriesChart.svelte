@@ -4,21 +4,21 @@
   }} />
 
 <script>
-    import { onMount, afterUpdate } from 'svelte';
-    import Chart from 'chart.js/auto';
+    import { onMount, afterUpdate, onDestroy } from 'svelte';
+    import * as d3 from 'd3';
 
     export let data = [];
     export let quantityType = 'Dose';
     export let searchType = 'vmp';
 
-    let canvas;
-    let chart;
+    let chartDiv;
     let viewMode = 'Total';
     let organisations = [];
     let units = [];
     let ingredientUnitPairs = [];
     let vtms = [];
-    let legendContainer;
+    let tooltip;
+    let resizeTimer;
 
     $: {
         console.log('Data received in TimeSeriesChart:', data);
@@ -35,15 +35,13 @@
                 ))];
             }
             vtms = [...new Set(data.map(item => item.vtm_name || 'Unknown'))];
-            if (chart) {
+            if (chartDiv) {
                 updateChart();
             }
         } else {
             console.log('No data available for chart');
-            if (chart) {
-                chart.data.datasets = [];
-                chart.data.labels = [];
-                chart.update();
+            if (chartDiv) {
+                d3.select(chartDiv).selectAll('*').remove();
             }
         }
     }
@@ -78,8 +76,7 @@
                     data: sortedDates.map(date => 
                         Object.values(groupedData[date]).reduce((sum, val) => sum + val, 0)
                     ),
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
+                    color: 'rgb(75, 192, 192)'
                 }]
             };
         } else {
@@ -88,8 +85,7 @@
                 datasets: breakdownKeys.map((key, index) => ({
                     label: key,
                     data: sortedDates.map(date => groupedData[date][key] || 0),
-                    borderColor: `hsl(${index * 360 / breakdownKeys.length}, 70%, 50%)`,
-                    tension: 0.1
+                    color: `hsl(${index * 360 / breakdownKeys.length}, 70%, 50%)`
                 }))
             };
         }
@@ -129,123 +125,232 @@
         }
     }
 
-    const scrollableLegendPlugin = {
-        id: 'scrollableLegend',
-        afterRender: (chart, args, options) => {
-            if (viewMode === 'Total') {
-                if (legendContainer) legendContainer.innerHTML = '';
-                return;
-            }
-
-            const ul = document.createElement('ul');
-            ul.style.overflowY = 'auto';
-            ul.style.maxHeight = '350px';
-            ul.style.padding = '10px';
-            ul.style.margin = '0';
-            ul.style.listStyle = 'none';
-
-            chart.data.datasets.forEach((dataset, index) => {
-                const li = document.createElement('li');
-                li.style.display = 'flex';
-                li.style.alignItems = 'center';
-                li.style.marginBottom = '5px';
-                li.style.cursor = 'pointer';
-
-                const colorBox = document.createElement('span');
-                colorBox.style.width = '20px';
-                colorBox.style.height = '20px';
-                colorBox.style.backgroundColor = dataset.borderColor;
-                colorBox.style.display = 'inline-block';
-                colorBox.style.marginRight = '5px';
-
-                const text = document.createTextNode(dataset.label);
-
-                li.appendChild(colorBox);
-                li.appendChild(text);
-
-                li.onclick = () => {
-                    const meta = chart.getDatasetMeta(index);
-                    meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
-                    chart.update();
-                };
-
-                ul.appendChild(li);
-            });
-
-            if (legendContainer) {
-                legendContainer.innerHTML = '';
-                legendContainer.appendChild(ul);
-            }
-        }
-    };
-
     function updateChart() {
-        console.log('Updating chart');
-        if (chart) {
+        if (chartDiv) {
             const chartData = prepareChartData(data, viewMode);
-            chart.data = chartData;
-            chart.update('none');
+            const margin = { top: 20, right: 100, bottom: 50, left: 60 };
+            const width = chartDiv.clientWidth - margin.left - margin.right;
+            const height = Math.min(400, window.innerHeight * 0.6) - margin.top - margin.bottom;
+
+            d3.select(chartDiv).selectAll('*').remove();
+
+            const svg = d3.select(chartDiv)
+                .append('svg')
+                .attr('width', width + margin.left + margin.right)
+                .attr('height', height + margin.top + margin.bottom)
+                .append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+
+            const x = d3.scaleTime()
+                .domain(d3.extent(chartData.labels, d => new Date(d)))
+                .range([0, width]);
+
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(chartData.datasets, d => d3.max(d.data))]).nice()
+                .range([height, 0]);
+
+            // Add grid lines
+            svg.append('g')
+                .attr('class', 'grid')
+                .attr('transform', `translate(0,${height})`)
+                .call(d3.axisBottom(x)
+                    .ticks(d3.timeYear.every(1))
+                    .tickSize(-height)
+                    .tickFormat(''))
+                .selectAll('line')
+                .attr('stroke', 'lightgrey')
+                .attr('stroke-dasharray', '2,2');
+
+            svg.append('g')
+                .attr('class', 'grid')
+                .call(d3.axisLeft(y)
+                    .tickSize(-width)
+                    .tickFormat(''))
+                .selectAll('line')
+                .attr('stroke', 'lightgrey')
+                .attr('stroke-dasharray', '2,2');
+
+            svg.selectAll('.grid path')
+                .style('display', 'none');
+
+            // Add axes
+            svg.append('g')
+                .attr('transform', `translate(0,${height})`)
+                .call(d3.axisBottom(x)
+                    .ticks(d3.timeYear.every(1))
+                    .tickFormat(d3.timeFormat('%Y')))
+                .selectAll('text')
+                .style('font-size', '12px');
+
+            svg.append('g')
+                .call(d3.axisLeft(y)
+                    .ticks(5) // Limit the number of ticks
+                    .tickFormat(d3.format('.2s'))) // Use SI-prefix notation
+                .selectAll('text')
+                .style('font-size', '12px');
+
+            // Add axis labels
+            svg.append('text')
+                .attr('transform', `translate(${width / 2},${height + margin.bottom - 10})`)
+                .style('text-anchor', 'middle')
+                .text('Date');
+
+            svg.append('text')
+                .attr('transform', 'rotate(-90)')
+                .attr('y', 0 - margin.left)
+                .attr('x', 0 - (height / 2))
+                .attr('dy', '1em')
+                .style('text-anchor', 'middle')
+                .text(quantityType);
+
+            // Add lines
+            const line = d3.line()
+                .x(d => x(new Date(d.date)))
+                .y(d => y(d.value));
+
+            const lines = svg.selectAll('.line')
+                .data(chartData.datasets)
+                .enter()
+                .append('g')
+                .attr('class', 'line');
+
+            lines.append('path')
+                .attr('fill', 'none')
+                .attr('stroke', d => d.color)
+                .attr('stroke-width', 2)
+                .attr('d', d => line(d.data.map((value, i) => ({ date: chartData.labels[i], value }))))
+                .attr('class', (d, i) => `line-${i}`);
+
+            // Add legend (except for organisation breakdown)
+            if (viewMode !== 'Organisation') {
+                const legend = svg.selectAll('.legend')
+                    .data(chartData.datasets)
+                    .enter()
+                    .append('g')
+                    .attr('class', 'legend')
+                    .attr('transform', (d, i) => `translate(${width + 10},${i * 20})`);
+
+                legend.append('rect')
+                    .attr('x', 0)
+                    .attr('width', 18)
+                    .attr('height', 18)
+                    .style('fill', d => d.color);
+
+                legend.append('text')
+                    .attr('x', 24)
+                    .attr('y', 9)
+                    .attr('dy', '.35em')
+                    .style('text-anchor', 'start')
+                    .text(d => d.label);
+            }
+
+            // Tooltip
+            tooltip = d3.select(chartDiv)
+                .append('div')
+                .attr('class', 'tooltip p-2 bg-gray-800 text-white rounded shadow-lg text-sm')
+                .style('position', 'absolute')
+                .style('pointer-events', 'none')
+                .style('opacity', 0);
+
+            function showTooltip(event, d, index) {
+                tooltip.style('opacity', 1);
+                svg.selectAll('.line path').style('opacity', 0.2);
+                svg.select(`.line-${index}`).raise().style('opacity', 1).style('stroke-width', 3);
+            }
+
+            function moveTooltip(event, d) {
+                const [xPos, yPos] = d3.pointer(event, chartDiv);
+                const date = x.invert(xPos - margin.left);
+                const tooltipWidth = tooltip.node().offsetWidth;
+                const tooltipHeight = tooltip.node().offsetHeight;
+
+                const bisectDate = d3.bisector(d => new Date(d)).left;
+                const index = bisectDate(chartData.labels, date);
+                const nearestIndex = index > 0 && (index === chartData.labels.length || (date - new Date(chartData.labels[index - 1])) < (new Date(chartData.labels[index]) - date)) ? index - 1 : index;
+                const nearestDate = new Date(chartData.labels[nearestIndex]);
+                const nearestValue = d.data[nearestIndex];
+
+                const leftPosition = xPos + 10;
+                const topPosition = yPos - tooltipHeight / 2;
+
+                tooltip
+                    .html(`<strong>${d.label}</strong><br><strong>Date:</strong> ${d3.timeFormat('%b %Y')(nearestDate)}<br><strong>${quantityType}:</strong> ${nearestValue.toLocaleString('en-GB', { maximumFractionDigits: 2 })}`)
+                    .style('left', `${leftPosition}px`)
+                    .style('top', `${topPosition}px`);
+            }
+
+            function hideTooltip() {
+                tooltip.style('opacity', 0);
+                svg.selectAll('.line path').style('opacity', 1).style('stroke-width', 2);
+            }
+
+            svg.selectAll('.line path')
+                .on('mouseover', function(event, d) {
+                    const index = chartData.datasets.findIndex(dataset => dataset === d);
+                    showTooltip.call(this, event, d, index);
+                })
+                .on('mousemove', moveTooltip)
+                .on('mouseout', hideTooltip)
+                .on('click', function(event, d) {
+                    const index = chartData.datasets.findIndex(dataset => dataset === d);
+                    showTooltip.call(this, event, d, index);
+                    moveTooltip.call(this, event, d);
+                });
+
+            // Add a transparent overlay for better tooltip interaction
+            svg.append('rect')
+                .attr('width', width)
+                .attr('height', height)
+                .style('fill', 'none')
+                .style('pointer-events', 'all')
+                .on('mousemove', function(event) {
+                    const [xPos, yPos] = d3.pointer(event, this);
+                    const date = x.invert(xPos);
+                    const bisectDate = d3.bisector(d => new Date(d)).left;
+                    const index = bisectDate(chartData.labels, date);
+                    
+                    const nearestDataset = chartData.datasets.reduce((nearest, dataset) => {
+                        const yValue = y(dataset.data[index]);
+                        const distance = Math.abs(yValue - yPos);
+                        return distance < nearest.distance ? { dataset, distance } : nearest;
+                    }, { dataset: null, distance: Infinity }).dataset;
+
+                    if (nearestDataset) {
+                        const datasetIndex = chartData.datasets.findIndex(dataset => dataset === nearestDataset);
+                        showTooltip.call(this, event, nearestDataset, datasetIndex);
+                        moveTooltip.call(this, event, nearestDataset);
+                    }
+                })
+                .on('mouseout', hideTooltip);
         }
     }
-
-    onMount(() => {
-        console.log('Mounting TimeSeriesChart');
-        Chart.register(scrollableLegendPlugin);
-        chart = new Chart(canvas, {
-            type: 'line',
-            data: prepareChartData(data, viewMode),
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-                transitions: {
-                    active: {
-                        animation: {
-                            duration: 0
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: quantityType
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Date'
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            },
-            plugins: [scrollableLegendPlugin]
-        });
-
-        return () => {
-            if (chart) {
-                chart.destroy();
-            }
-        };
-    });
-
-    afterUpdate(() => {
-        console.log('After update in TimeSeriesChart');
-        if (chart) {
-            updateChart();
-        }
-    });
 
     function handleViewModeChange() {
         updateChart();
     }
+
+    function handleResize() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            updateChart();
+        }, 250);
+    }
+
+    onMount(() => {
+        updateChart();
+        window.addEventListener('resize', handleResize);
+    });
+
+    onDestroy(() => {
+        window.removeEventListener('resize', handleResize);
+        clearTimeout(resizeTimer);
+    });
+
+    afterUpdate(() => {
+        if (chartDiv) {
+            updateChart();
+        }
+    });
 </script>
 
 <div class="flex flex-col">
@@ -264,23 +369,19 @@
         </select>
     </div>
     <div class="flex">
-        <div class="chart-container flex-grow" style="height: 400px;">
+        <div class="chart-container flex-grow" style="height: auto; min-height: 300px;">
             {#if data.length === 0}
                 <p class="text-center text-gray-500 pt-8">No data available. Please select at least one VMP.</p>
             {:else}
-                <canvas bind:this={canvas}></canvas>
+                <div bind:this={chartDiv}></div>
             {/if}
         </div>
-        <div bind:this={legendContainer} class="legend-container w-48 bg-white shadow-md ml-4"></div>
     </div>
 </div>
 
 <style>
     .chart-container {
         position: relative;
-    }
-    .legend-container {
-        max-height: 400px;
-        overflow-y: auto;
+        width: 100%;
     }
 </style>

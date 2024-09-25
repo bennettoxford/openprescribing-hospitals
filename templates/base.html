@@ -13,16 +13,23 @@
         {% endblock %}
     </head>
     <body class="preload flex flex-col min-h-screen text-slate bg-white">
-        {% include 'partials/nav.html' %}
-        <div class="min-h-[66vh] flex-grow relative">
-            {% block full_width_content %}{% endblock %}
-            <div>
-                {% block content %}
+        <div class="flex flex-col min-h-screen">
+            <div class="hidden md:block">
+                {% include 'partials/nav.html' %}
+            </div>
+            <div class="flex-grow overflow-y-auto">
+                {% block full_width_content %}{% endblock %}
+                <div>
+                    {% block content %}
+                    {% endblock %}
+                </div>
+                {% block scripts%}
                 {% endblock %}
             </div>
-            {% block scripts%}
-            {% endblock %}
+            <div class="md:hidden">
+                {% include 'partials/nav.html' %}
+            </div>
+            {% include 'partials/footer.html' %}
         </div>
-        {% include 'partials/footer.html' %}
     </body>
 </html>
