@@ -53,7 +53,7 @@
   });
 </script>
 
-<div class="bg-gradient-to-r from-oxford-200/20 via-bn-roman-200/35 to-bn-strawberry-200/25 min-h-screen">
+
   <div class="max-w-screen-xl mx-auto flex flex-col lg:flex-row min-h-screen p-4 sm:p-6">
     <div class="w-full lg:w-1/3 xl:w-1/4 mb-4 lg:mb-0 lg:mr-4 flex flex-col">
       <div class="bg-white rounded-lg shadow-md flex flex-col overflow-visible">
@@ -74,4 +74,3 @@
       <results-box class="bg-white rounded-lg shadow-md h-full" {isAnalysisRunning} {analysisData} {showResults}></results-box>
     </div>
   </div>
-</div>
