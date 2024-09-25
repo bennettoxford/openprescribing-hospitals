@@ -9,18 +9,24 @@
     import DataTable from './DataTable.svelte';
     import ProductList from './ProductList.svelte';
 
+    export let isAnalysisRunning;
+    export let analysisData;
+    export let showResults;
+
     let selectedData = [];
     let quantityType = 'Dose';
     let vmps = [];
     let filteredData = [];
-    let isLoading = false;
     let missingVMPs = [];
     let currentSearchType = 'vmp';
-    let isAnalysisRunning = false;
 
-    function handleUpdateData(event) {
-        const { data, quantityType: newQuantityType, searchType } = event.detail;
-        selectedData = Array.isArray(data) ? data : [data];
+    $: if (analysisData) {
+        handleUpdateData(analysisData);
+    }
+
+    function handleUpdateData(data) {
+        const { data: newData, quantityType: newQuantityType, searchType } = data;
+        selectedData = Array.isArray(newData) ? newData : [newData];
         quantityType = newQuantityType;
         currentSearchType = searchType;
         
@@ -36,7 +42,6 @@
 
         missingVMPs = vmps.filter(vmp => vmp.unit === 'nan').map(vmp => vmp.vmp);
         filteredData = selectedData.filter(item => item.unit !== 'nan');
-        isLoading = false;
     }
 
     function handleFilteredData(event) {
@@ -46,64 +51,42 @@
         );
         console.log('Filtered data in ResultsBox:', filteredData);
     }
-
-    function handleClearResults() {
-        selectedData = [];
-        filteredData = [];
-        vmps = [];
-        missingVMPs = [];
-        isLoading = true;
-    }
-
-    function handleAnalysisRunningChange(event) {
-        isAnalysisRunning = event.detail;
-    }
-
-    onMount(() => {
-        console.log("ResultsBox onMount called");
-        const resultsBox = document.querySelector('results-box');
-        resultsBox.addEventListener('updateData', handleUpdateData);
-        resultsBox.addEventListener('clearResults', handleClearResults);
-        resultsBox.addEventListener('analysisRunningChange', handleAnalysisRunningChange);
-
-        return () => {
-            resultsBox.removeEventListener('updateData', handleUpdateData);
-            resultsBox.removeEventListener('clearResults', handleClearResults);
-            resultsBox.removeEventListener('analysisRunningChange', handleAnalysisRunningChange);
-        };
-    });
 </script>
 
-<div class="results-box bg-white rounded-lg shadow-md h-full flex flex-col">
-    <h2 class="text-xl font-bold p-4">Results</h2>
-    {#if isAnalysisRunning}
-        <div class="flex-grow flex items-center justify-center">
-            <div class="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-oxford-500"></div>
+{#if showResults}
+    <div class="results-box bg-white rounded-lg shadow-md h-full flex flex-col">
+        <div class="bg-gradient-to-r from-oxford-600/60 via-bn-roman-600/70 to-bn-strawberry-600/60 text-white p-2 rounded-t-lg">
+            <h2 class="text-lg font-semibold">Results</h2>
         </div>
-    {:else if selectedData.length > 0}
         <div class="flex-grow overflow-y-auto">
-            <div class="p-4">
-                <ProductList {vmps} {currentSearchType} on:dataFiltered={handleFilteredData} />
-            </div>
-            {#if missingVMPs.length > 0}
-                <div class="mx-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700">
-                    <p class="font-bold">Warning: Missing quantities</p>
-                    <p>The chosen quantity for the following VMPs can't be calculated and are excluded from the analysis:</p>
-                    <ul class="list-disc list-inside mt-2">
-                        {#each missingVMPs as vmp}
-                            <li>{vmp}</li>
-                        {/each}
-                    </ul>
+            {#if $isAnalysisRunning}
+                <div class="flex-grow flex items-center justify-center p-16"> <!-- Added p-16 for more padding -->
+                    <div class="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-oxford-500"></div>
                 </div>
+            {:else if selectedData.length > 0}
+                <div class="p-4">
+                    <ProductList {vmps} {currentSearchType} on:dataFiltered={handleFilteredData} />
+                </div>
+                {#if missingVMPs.length > 0}
+                    <div class="mx-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700">
+                        <p class="font-bold">Warning: Missing quantities</p>
+                        <p>The chosen quantity for the following VMPs can't be calculated and are excluded from the analysis:</p>
+                        <ul class="list-disc list-inside mt-2">
+                            {#each missingVMPs as vmp}
+                                <li>{vmp}</li>
+                            {/each}
+                        </ul>
+                    </div>
+                {/if}
+                <div class="p-4">
+                    <TimeSeriesChart data={filteredData} {quantityType} searchType={currentSearchType} />
+                </div>
+                <div class="p-4 pt-0">
+                    <DataTable data={filteredData} {quantityType} searchType={currentSearchType} />
+                </div>
+            {:else}
+                <p class="p-4 text-oxford">Analysis complete. No results to display.</p>
             {/if}
-            <div class="p-4">
-                <TimeSeriesChart data={filteredData} {quantityType} searchType={currentSearchType} />
-            </div>
-            <div class="p-4 pt-0">
-                <DataTable data={filteredData} {quantityType} searchType={currentSearchType} />
-            </div>
         </div>
-    {:else}
-        <p class="p-4">Build a query to see results here.</p>
-    {/if}
-</div>
+    </div>
+{/if}

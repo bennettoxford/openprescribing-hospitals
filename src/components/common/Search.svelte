@@ -8,11 +8,12 @@
 
     const dispatch = createEventDispatcher();
 
+    export let items = [];
+
     let searchTerm = '';
     let searchResults = [];
     let selectedItems = [];
-    let searchType = 'vmp'; // Default search type
-    let items = [];
+    let searchType = 'vmp';
 
     const searchTypes = [
         { value: 'vmp', label: 'VMP' },
@@ -79,7 +80,7 @@
 
     $: {
         fetchItems(searchType);
-        selectedItems = []; // Clear selected items when search type changes
+        selectedItems = [];
         dispatchSelectionChange();
     }
 
