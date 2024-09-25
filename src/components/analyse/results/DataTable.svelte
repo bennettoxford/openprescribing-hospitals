@@ -57,7 +57,7 @@
 </script>
 
 <div class="p-4">
-    <h3 class="text-xl font-semibold mb-4">Data Summary</h3>
+    <h3 class="text-xl font-semibold mb-4">Total {quantityType} by {searchType.toUpperCase()}</h3>
     <div class="overflow-x-auto">
         <div class="max-h-96 overflow-y-auto relative">
             <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
