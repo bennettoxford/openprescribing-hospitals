@@ -89,6 +89,7 @@
                 data: sortedDates.map(date => groupedData[date][key] || 0),
                 color: `hsl(${index * 360 / breakdownKeys.length}, 70%, 50%)`
             }));
+            console.log("Prepared datasets:", datasets);
             return { labels: sortedDates, datasets };
         }
     }
@@ -192,8 +193,8 @@
 
             svg.append('g')
                 .call(d3.axisLeft(y)
-                    .ticks(5)
-                    .tickFormat(d3.format('.2s')))
+                    .ticks(5) // Limit the number of ticks
+                    .tickFormat(d3.format('.2s'))) // Use SI-prefix notation
                 .selectAll('text')
                 .style('font-size', '12px');
 
@@ -216,7 +217,39 @@
                 .x(d => x(new Date(d.date)))
                 .y(d => y(d.value));
 
-            
+            function updateYScale() {
+                const visibleData = chartData.datasets
+                    .filter((_, i) => visibleDatasets.includes(i))
+                    .flatMap(d => d.data);
+                
+                y.domain([0, d3.max(visibleData)]).nice();
+
+                // Update y-axis
+                svg.select('.y-axis')
+                    .call(d3.axisLeft(y)
+                        .ticks(5)
+                        .tickFormat(d3.format('.2s')));
+
+                // Update y-grid
+                svg.select('.grid.y')
+                    .call(d3.axisLeft(y)
+                        .ticks(5)
+                        .tickSize(-width)
+                        .tickFormat(''))
+                    .call(g => g.select('.domain').remove())
+                    .call(g => g.selectAll('.tick line')
+                        .attr('stroke', 'lightgrey')
+                        .attr('stroke-dasharray', '2,2'));
+
+                // Adjust y-axis labels to prevent overlap
+                svg.selectAll('.y-axis text')
+                    .attr('dy', function(d, i, nodes) {
+                        const thisWidth = this.getBBox().width;
+                        const prevWidth = i > 0 ? nodes[i-1].getBBox().width : 0;
+                        return i > 0 && Math.abs(y(d) - y(+nodes[i-1].textContent)) < Math.max(thisWidth, prevWidth) ? '0.7em' : '0.35em';
+                    });
+            }
+
             function updateLines() {
                 const lines = svg.selectAll('.line')
                     .data(chartData.datasets.filter((_, i) => visibleDatasets.includes(i)));
@@ -256,16 +289,17 @@
                     .attr('stroke', 'lightgrey')
                     .attr('stroke-dasharray', '2,2'));
 
+            // Add legend to the right side of the chart
             if (showLegend) {
                 console.log("Creating legend for view mode:", viewMode);
                 
                 const legendItemHeight = 20;
                 const legendItemPadding = 5;
                 const legendPadding = 10;
-                const maxLegendWidth = 200;
-                const maxLegendHeight = height;
+                const maxLegendWidth = 200; // Maximum width for the legend
+                const maxLegendHeight = height; // Maximum height for the legend
 
-          
+                // Create a temporary SVG to measure text widths
                 const tempSvg = d3.select(chartDiv).append('svg').style('visibility', 'hidden');
                 const textWidths = chartData.datasets.map(d => {
                     const text = tempSvg.append('text').text(d.label);
@@ -283,6 +317,7 @@
                     .attr('class', 'legend')
                     .attr('transform', `translate(${width + 10}, 0)`);
 
+                // Add a border for the legend
                 legend.append('rect')
                     .attr('width', legendWidth)
                     .attr('height', legendHeight)
@@ -297,6 +332,7 @@
                     .attr('transform', `translate(${legendPadding}, ${legendPadding})`)
                     .attr('clip-path', 'url(#legend-clip)');
 
+                // Add a clip path to prevent content from overflowing
                 legend.append('clipPath')
                     .attr('id', 'legend-clip')
                     .append('rect')
@@ -325,12 +361,13 @@
                     .style('font-size', '10px')
                     .style('fill', '#333')
                     .text(d => {
-                        const maxLength = Math.floor((maxTextWidth - 20) / 6);
+                        const maxLength = Math.floor((maxTextWidth - 20) / 6); // Approximate characters that fit
                         return d.label.length > maxLength ? d.label.substring(0, maxLength - 3) + '...' : d.label;
                     })
                     .append('title')
                     .text(d => d.label);
 
+                // Make legend scrollable if there are too many items
                 if (chartData.datasets.length * (legendItemHeight + legendItemPadding) > legendHeight - legendPadding * 2) {
                     const scrollableArea = legend.append('foreignObject')
                         .attr('x', legendPadding)
@@ -345,6 +382,7 @@
                     scrollableArea.node().appendChild(legendContent.node());
                 }
 
+                // Modify the click event for legend items
                 legendItems.style('cursor', 'pointer')
                     .on('click', function(event, d) {
                         const index = chartData.datasets.indexOf(d);
@@ -360,6 +398,7 @@
                             legendItem.style('opacity', 1);
                         }
                         
+                        // If all datasets are hidden, show all of them
                         if (visibleDatasets.length === 0) {
                             visibleDatasets = chartData.datasets.map((_, i) => i);
                             legend.selectAll('.legend-item').style('opacity', 1);
@@ -368,6 +407,7 @@
                         updateLines();
                     });
 
+                // Adjust SVG width to accommodate the legend
                 svg.attr('width', width + margin.left + margin.right + legendWidth + 10);
             } else {
                 console.log("Not creating legend: Total view, Organisation breakdown, or small screen");
@@ -426,6 +466,7 @@
                     moveTooltip.call(this, event, d);
                 });
 
+            // Add a transparent overlay for better tooltip interaction
             svg.append('rect')
                 .attr('width', width)
                 .attr('height', height)
@@ -508,3 +549,9 @@
     </div>
 </div>
 
+<style>
+    .chart-container {
+        position: relative;
+        width: 100%;
+    }
+</style>
