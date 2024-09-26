@@ -19,6 +19,7 @@ from .models import (
     Ingredient,
     VTM,
     Measure,
+    PrecomputedMeasure,
     OrgSubmissionCache,
 )
 from .measures.measure_utils import execute_measure_sql
@@ -72,18 +73,18 @@ class MeasureItemView(TemplateView):
         context["measure_name"] = measure.name
         context["description"] = measure.description
         context["why"] = measure.why
+
         try:
-            result = execute_measure_sql(measure.name)
-        
-            values = result.get("values", [])
+            precomputed_measures = PrecomputedMeasure.objects.filter(measure=measure)
+            values = precomputed_measures.values('organisation__ods_name', 'month', 'quantity')
 
             org_data = defaultdict(lambda: defaultdict(float))
             all_months = set()
             all_orgs = set()
 
             for row in values:
-                month = row['month']
-                org = row['organisation']
+                month = row['month'].strftime("%Y-%m-%d")  # Convert date to string
+                org = row['organisation__ods_name']
                 value = row['quantity']
                 org_data[org][month] = value
                 all_months.add(month)
@@ -91,11 +92,8 @@ class MeasureItemView(TemplateView):
 
             all_months = sorted(all_months)
 
-            # Filter out organisations with all None values
             non_zero_orgs = {org for org in all_orgs if any(org_data[org][month] is not None for month in all_months)}
-            
 
-            # relpace None with 0
             for org in all_orgs:
                 for month in all_months:
                     if org_data[org][month] is None:
@@ -105,13 +103,12 @@ class MeasureItemView(TemplateView):
             included_orgs = len(non_zero_orgs)
             context["orgs_included"] = {"included": included_orgs, "total": total_orgs}
 
-            # Fill in missing data with 0 for non-zero organisations only
             filled_values = []
             for org in non_zero_orgs:
                 for month in all_months:
                     filled_values.append({
                         'organisation': org,
-                        'region': next((v['region'] for v in values if v['organisation'] == org), ''),
+                        'region': Organisation.objects.get(ods_name=org).region,
                         'month': month,
                         'quantity': org_data[org][month]
                     })
@@ -134,10 +131,6 @@ class MeasureItemView(TemplateView):
 
             context["deciles"] = json.dumps(percentiles, ensure_ascii=False)
 
-        except ValueError as e:
-            context["error"] = str(e)
-        except FileNotFoundError as e:
-            context["error"] = str(e)
         except Exception as e:
             context["error"] = str(e)
         return context
