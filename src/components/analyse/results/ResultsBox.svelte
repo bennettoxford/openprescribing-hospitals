@@ -34,7 +34,7 @@
             return JSON.stringify({
                 vmp: item.vmp_name,
                 unit: item.unit,
-                ingredient: item.ingredient_names ? item.ingredient_names[0] : null,
+                ingredient: item.ingredient_name || (item.ingredient_names && item.ingredient_names[0]) || null,
                 vtm: item.vtm_name || null,
                 searchType: currentSearchType
             });

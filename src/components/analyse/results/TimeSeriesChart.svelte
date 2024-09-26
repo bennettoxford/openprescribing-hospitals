@@ -102,9 +102,9 @@
                 return item.unit;
             case 'Ingredient-Unit':
                 if (searchType === 'ingredient') {
-                    return `${item.ingredient_name || item.ingredient_names[0] || 'Unknown'}-${item.unit}`;
+                    return `${item.ingredient_name || (item.ingredient_names && item.ingredient_names[0]) || 'Unknown'} (${item.unit})`;
                 } else {
-                    return `${item.ingredient_names ? item.ingredient_names[0] : 'Unknown'}-${item.unit}`;
+                    return `${(item.ingredient_names && item.ingredient_names[0]) || 'Unknown'} (${item.unit})`;
                 }
             case 'VTM':
                 return item.vtm_name || 'Unknown';
@@ -296,8 +296,8 @@
                 const legendItemHeight = 20;
                 const legendItemPadding = 5;
                 const legendPadding = 10;
-                const maxLegendWidth = 200; // Maximum width for the legend
-                const maxLegendHeight = height; // Maximum height for the legend
+                const maxLegendWidth = 250; // Increased from 200
+                const maxLegendHeight = height;
 
                 // Create a temporary SVG to measure text widths
                 const tempSvg = d3.select(chartDiv).append('svg').style('visibility', 'hidden');
@@ -344,7 +344,7 @@
                     .enter()
                     .append('g')
                     .attr('class', 'legend-item')
-                    .attr('transform', (d, i) => `translate(0, ${i * (legendItemHeight + legendItemPadding)})`);
+                    .attr('transform', (d, i) => `translate(0, ${i * (legendItemHeight * 1.5 + legendItemPadding)})`);
 
                 legendItems.append('line')
                     .attr('x1', 0)
@@ -360,12 +360,28 @@
                     .attr('dy', '.35em')
                     .style('font-size', '10px')
                     .style('fill', '#333')
-                    .text(d => {
-                        const maxLength = Math.floor((maxTextWidth - 20) / 6); // Approximate characters that fit
-                        return d.label.length > maxLength ? d.label.substring(0, maxLength - 3) + '...' : d.label;
-                    })
-                    .append('title')
-                    .text(d => d.label);
+                    .each(function(d) {
+                        const text = d3.select(this);
+                        const words = d.label.split(/\s+/);
+                        let line = '';
+                        const lineHeight = 1.1; // ems
+                        const y = text.attr('y');
+                        const dy = parseFloat(text.attr('dy'));
+                        let tspan = text.text(null).append('tspan').attr('x', 20).attr('y', y).attr('dy', dy + 'em');
+
+                        for (let i = 0; i < words.length; i++) {
+                            const testLine = line + words[i] + ' ';
+                            const testWidth = this.getComputedTextLength();
+                            if (testWidth > maxTextWidth && i > 0) {
+                                tspan.text(line);
+                                line = words[i] + ' ';
+                                tspan = text.append('tspan').attr('x', 20).attr('y', y).attr('dy', `${++lineNumber * lineHeight + dy}em`).text(words[i]);
+                            } else {
+                                line = testLine;
+                            }
+                        }
+                        tspan.text(line);
+                    });
 
                 // Make legend scrollable if there are too many items
                 if (chartData.datasets.length * (legendItemHeight + legendItemPadding) > legendHeight - legendPadding * 2) {
