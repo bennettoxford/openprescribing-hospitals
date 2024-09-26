@@ -21,6 +21,7 @@ export default defineConfig({
         'organisation-search': "./src/components/common/OrganisationSearch.svelte",
         'data-table': "./src/components/analyse/results/DataTable.svelte",
         'measure': "./src/components/measures/Measure.svelte",
+        'org-submission': "./src/components/dq/OrgSubmission.svelte",
       }
     }
   },

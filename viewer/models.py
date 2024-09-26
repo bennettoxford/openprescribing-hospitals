@@ -133,3 +133,13 @@ class Measure(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class OrgSubmissionCache(models.Model):
+    organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
+    successor = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name='successors', null=True, blank=True)
+    month = models.DateField()
+    has_submitted = models.BooleanField()
+
+    class Meta:
+        unique_together = ('organisation', 'month')

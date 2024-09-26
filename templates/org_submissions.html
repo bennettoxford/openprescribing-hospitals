@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load static %}
+{% load django_vite %}
+
+{% block head %}
+    {% vite_asset './src/components/dq/OrgSubmission.svelte' %}
+{% endblock %}
+
+{% block title %}Organisation Submissions{% endblock %}
+
+{% block content %}
+<div class="container xl:max-w-screen-xl pt-2 md:pt-6 pb-4">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <h1 class="text-4xl font-bold mb-6 text-gray-900">Organisation Submissions</h1>
+        
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-800">About This Chart</h2>
+            <p class="text-gray-700 mb-4">This chart visualises the data submission history for organisations within the SCMD. It offers a quick overview of submission patterns, helping to identify gaps and organisational changes over time.</p>
+            
+            <h3 class="text-xl font-semibold mb-3 text-gray-800">How to Read the Chart</h3>
+            <ul class="list-disc list-outside ml-6 text-gray-600 space-y-2">
+                <li><span class="font-semibold">Organisations:</span> Listed vertically on the left. Predecessor organisations are shown beneath their successors and are shaded.</li>
+                <li><span class="font-semibold">Time Periods:</span> Displayed horizontally, representing months from left to right.</li>
+                <li><span class="font-semibold">Submission Status:</span> Each square represents a monthly submission:
+                    <ul class="list-circle list-inside ml-4 mt-1">
+                        <li><span class="text-green-600">Green</span>: Successful submission</li>
+                        <li><span class="text-red-600">Red</span>: Missing submission</li>
+                    </ul>
+                </li>
+                <li><span class="font-semibold">Group Separators:</span> Horizontal lines divide unrelated organisation groups for improved readability.</li>
+            </ul>
+            
+            <p class="text-gray-700 mt-4">For detailed information about a specific submission, hover over any coloured square in the chart.</p>
+        </div>
+
+        <org-submission orgData="{{ org_data_json|escapejs }}"></org-submission>
+    </div>
+</div>
+
+{% endblock %}
