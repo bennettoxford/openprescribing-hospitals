@@ -524,7 +524,7 @@
 </script>
 
 <div class="flex flex-col">
-    <h3 class="text-lg font-semibold mb-2">Trends over time for {quantityType}</h3>
+    <h3 class="text-xl font-semibold mb-2">Trends over time for {quantityType}</h3>
     <div class="mb-4 flex items-center">
         <label for="view-mode-select" class="mr-2">View Mode:</label>
         <select id="view-mode-select" bind:value={viewMode} on:change={handleViewModeChange} class="p-2 border rounded mr-4">
