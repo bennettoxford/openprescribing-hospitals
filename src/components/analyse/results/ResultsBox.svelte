@@ -66,18 +66,6 @@
                         <ProductList {vmps} {currentSearchType} on:dataFiltered={handleFilteredData} />
                     </section>
 
-                    {#if missingVMPs.length > 0}
-                        <section class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-lg">
-                            <h3 class="font-bold text-lg mb-2">Warning: Missing quantities</h3>
-                            <p class="mb-2">The chosen quantity for the following VMPs can't be calculated and are excluded from the analysis:</p>
-                            <ul class="list-disc list-inside">
-                                {#each missingVMPs as vmp}
-                                    <li>{vmp}</li>
-                                {/each}
-                            </ul>
-                        </section>
-                    {/if}
-
                     <section class="bg-gray-50 rounded-lg p-4">
                         <TimeSeriesChart data={filteredData} {quantityType} searchType={currentSearchType} />
                     </section>

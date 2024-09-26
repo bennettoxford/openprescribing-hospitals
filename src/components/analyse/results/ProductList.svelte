@@ -100,6 +100,9 @@
             updateFilteredData();
         }
     }
+
+    $: missingVMPs = vmps.filter(vmp => vmp.unit === 'nan').map(vmp => vmp.vmp);
+    $: hasMissingVMPs = missingVMPs.length > 0;
 </script>
 
 <div class="p-4">
@@ -164,6 +167,18 @@
         <div class="mt-4 p-4 bg-orange-100 border-l-4 border-orange-500 text-orange-700">
             <p class="font-bold">Warning</p>
             <p>This list contains multiple unit-ingredient combinations. Please review carefully.</p>
+        </div>
+    {/if}
+
+    {#if hasMissingVMPs}
+        <div class="mt-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700">
+            <p class="font-bold">Warning: Missing quantities</p>
+            <p class="mb-2">The chosen quantity for the following VMPs can't be calculated and are excluded from the analysis:</p>
+            <ul class="list-disc list-inside">
+                {#each missingVMPs as vmp}
+                    <li>{vmp}</li>
+                {/each}
+            </ul>
         </div>
     {/if}
 </div>
