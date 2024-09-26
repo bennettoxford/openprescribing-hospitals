@@ -4,6 +4,7 @@
 
     export let vmps = [];
     export let currentSearchType = 'vmp';
+    export let quantityType = 'Dose';
 
     const dispatch = createEventDispatcher();
 
@@ -31,9 +32,10 @@
     $: selectedCount = Object.values(checkedVMPs).filter(Boolean).length;
 
     $: uniqueUnits = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => vmp.unit))];
-    $: uniqueUnitIngredientPairs = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => `${vmp.unit}-${vmp.ingredient || ''}`))]
     $: showUnitWarning = uniqueUnits.length > 1;
-    $: showUnitIngredientWarning = hasIngredients && uniqueUnitIngredientPairs.length > 1;
+
+    $: uniqueUnitIngredientPairs = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => `${vmp.unit}-${vmp.ingredient || ''}`))]
+    $: showUnitIngredientWarning = quantityType === 'Ingredient' && hasIngredients && uniqueUnitIngredientPairs.length > 1;
 
     let sortColumn = 'vmp';
     let sortDirection = 1;
@@ -105,9 +107,9 @@
     $: missingVMPs = vmps.filter(vmp => vmp.unit === 'nan').map(vmp => vmp.vmp);
     $: hasMissingVMPs = missingVMPs.length > 0;
 
-    let showWarnings = false;
-
     $: hasWarnings = showUnitWarning || showUnitIngredientWarning || hasMissingVMPs;
+
+    let showWarnings = false;
 </script>
 
 <div class="p-4">
