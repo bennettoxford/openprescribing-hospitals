@@ -19,8 +19,20 @@
     let selectedOrganisations = [];
     let usedOrganisationSelection = false;
     let tooltip;
-    let selectedMode = 'organisation'; // 'organisation' or 'deciles'
+    let selectedMode = 'organisation';
     let modeSelectWidth = 'auto';
+    let regions = [];
+    let legendItems = [];
+
+    const regionColors = {
+        'East Of England': '#1f77b4',
+        'South East': '#ff7f0e',
+        'Midlands': '#2ca02c',
+        'North East And Yorkshire': '#d62728',
+        'London': '#9467bd',
+        'South West': '#8c564b',
+        'North West': '#e377c2'
+    };
 
     $: {
         try {
@@ -47,6 +59,24 @@
         } catch (e) {
             console.error('Error parsing deciles:', e);
             deciles = {};
+        }
+
+    
+        regions = [...new Set(parsedData.map(item => item.region))];
+
+        if (selectedMode === 'deciles') {
+            legendItems = [
+                { label: '1st-9th Percentile', style: 'border-blue-500 border-dotted' },
+                { label: '10th-90th Percentile', style: 'border-blue-500 border-dashed' },
+                { label: '50th Percentile', style: 'border-red-500 border-dashed' }
+            ];
+        } else if (selectedMode === 'region') {
+            legendItems = Object.entries(regionColors).map(([region, color]) => ({
+                label: region,
+                style: `background-color: ${color}`
+            }));
+        } else {
+            legendItems = [];
         }
     }
 
@@ -192,6 +222,44 @@
             return {
                 labels: sortedDates,
                 datasets: decileDatasets
+            };
+        } else if (selectedMode === 'region') {
+            filteredData = data;
+            breakdownKeys = Object.keys(regionColors);
+
+            const groupedData = filteredData.reduce((acc, item) => {
+                const key = item.month;
+                if (!acc[key]) {
+                    acc[key] = {};
+                }
+                const breakdownKey = item.region;
+                if (!acc[key][breakdownKey]) {
+                    acc[key][breakdownKey] = { sum: 0, count: 0 };
+                }
+                acc[key][breakdownKey].sum += parseFloat(item.quantity);
+                acc[key][breakdownKey].count += 1;
+                return acc;
+            }, {});
+
+            const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
+
+            return {
+                labels: sortedDates,
+                datasets: breakdownKeys.map(key => {
+                    const dataPoints = sortedDates.map(date => {
+                        if (!groupedData[date] || !groupedData[date][key]) {
+                            return 0;
+                        }
+                        const { sum, count } = groupedData[date][key];
+                        return count > 0 ? sum / count : 0;
+                    });
+                    return {
+                        label: key,
+                        data: dataPoints,
+                        color: regionColors[key],
+                        strokeWidth: 2
+                    };
+                })
             };
         }
     }
@@ -431,6 +499,7 @@
             >
                 <option value="organisation">Organisation</option>
                 <option value="deciles">Deciles</option>
+                <option value="region">Region</option>
             </select>
         </div>
     </div>
@@ -445,20 +514,18 @@
         </div>
     </div>
 
-    {#if selectedMode === 'deciles'}
-    <div class="flex justify-center mt-4">
-        <div class="flex items-center mr-4">
-            <div class="w-8 h-0.5 border-t border-blue-500 border-dotted mr-2"></div>
-            <span class="text-sm">1st-9th Percentile</span>
-        </div>
-        <div class="flex items-center mr-4">
-            <div class="w-8 h-0.5 border-t border-blue-500 border-dashed mr-2"></div>
-            <span class="text-sm">10th-90th Percentile</span>
-        </div>
-        <div class="flex items-center">
-            <div class="w-8 h-0.5 border-t border-red-500 border-dashed mr-2"></div>
-            <span class="text-sm">50th Percentile</span>
-        </div>
+    {#if legendItems.length > 0}
+    <div class="flex flex-wrap justify-center mt-4">
+        {#each legendItems as item}
+            <div class="flex items-center mr-4 mb-2">
+                {#if selectedMode === 'deciles'}
+                    <div class="w-8 h-0.5 border-t {item.style} mr-2"></div>
+                {:else}
+                    <div class="w-4 h-4 mr-2" style="{item.style}"></div>
+                {/if}
+                <span class="text-sm">{item.label}</span>
+            </div>
+        {/each}
     </div>
     {/if}
 </div>
