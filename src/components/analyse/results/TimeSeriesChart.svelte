@@ -13,6 +13,7 @@
 
     let chartDiv;
     let viewMode = 'Total';
+    let availableViewModes = ['Total'];
     let organisations = [];
     let units = [];
     let ingredientUnitPairs = [];
@@ -27,15 +28,19 @@
     $: {
         console.log('Data received in TimeSeriesChart:', data);
         if (data.length > 0) {
+            updateAvailableViewModes();
+            if (!availableViewModes.includes(viewMode)) {
+                viewMode = availableViewModes[0];
+            }
             organisations = [...new Set(data.map(item => item.ods_name))];
             units = [...new Set(data.map(item => item.unit))];
             if (searchType === 'ingredient') {
                 ingredientUnitPairs = [...new Set(data.map(item => 
-                    `${item.ingredient_name || item.ingredient_names[0] || 'Unknown'}-${item.unit}`
+                    `${getIngredientName(item)}-${item.unit}`
                 ))];
             } else {
                 ingredientUnitPairs = [...new Set(data.map(item => 
-                    `${item.ingredient_names ? item.ingredient_names[0] : 'Unknown'}-${item.unit}`
+                    `${getIngredientName(item)}-${item.unit}`
                 ))];
             }
             vtms = [...new Set(data.map(item => item.vtm_name || 'Unknown'))];
@@ -47,6 +52,46 @@
             if (chartDiv) {
                 d3.select(chartDiv).selectAll('*').remove();
             }
+        }
+    }
+
+    function updateAvailableViewModes() {
+        availableViewModes = ['Total', 'Organisation'];
+        if (quantityType === 'Ingredient Quantity') {
+            availableViewModes.push('Ingredient-Unit');
+        } else {
+            if (searchType === 'vmp' || searchType === 'vtm') {
+                availableViewModes.push('Unit');
+            }
+            if (searchType === 'vtm') {
+                availableViewModes.push('VTM');
+            }
+        }
+    }
+
+    function getIngredientName(item) {
+        if (item.ingredient_name) {
+            return item.ingredient_name;
+        } else if (Array.isArray(item.ingredient_names) && item.ingredient_names.length > 0) {
+            return item.ingredient_names[0];
+        } else {
+            return 'Unknown';
+        }
+    }
+
+    function getBreakdownKey(item, viewMode) {
+        switch (viewMode) {
+            case 'Organisation':
+                return item.ods_name;
+            case 'Unit':
+                return item.unit;
+            case 'Ingredient-Unit':
+                const ingredientName = getIngredientName(item);
+                return `${ingredientName} (${item.unit})`;
+            case 'VTM':
+                return item.vtm_name || 'Unknown';
+            default:
+                return 'Total';
         }
     }
 
@@ -70,7 +115,7 @@
         }, {});
 
         const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
-        const breakdownKeys = getBreakdownKeys(viewMode);
+        const breakdownKeys = [...new Set(data.map(item => getBreakdownKey(item, viewMode)))];
 
         if (viewMode === 'Total') {
             return {
@@ -91,25 +136,6 @@
             }));
             console.log("Prepared datasets:", datasets);
             return { labels: sortedDates, datasets };
-        }
-    }
-
-    function getBreakdownKey(item, viewMode) {
-        switch (viewMode) {
-            case 'Organisation':
-                return item.ods_name;
-            case 'Unit':
-                return item.unit;
-            case 'Ingredient-Unit':
-                if (searchType === 'ingredient') {
-                    return `${item.ingredient_name || (item.ingredient_names && item.ingredient_names[0]) || 'Unknown'} (${item.unit})`;
-                } else {
-                    return `${(item.ingredient_names && item.ingredient_names[0]) || 'Unknown'} (${item.unit})`;
-                }
-            case 'VTM':
-                return item.vtm_name || 'Unknown';
-            default:
-                return 'Total';
         }
     }
 
@@ -544,14 +570,9 @@
     <div class="mb-4 flex items-center">
         <label for="view-mode-select" class="mr-2">View Mode:</label>
         <select id="view-mode-select" bind:value={viewMode} on:change={handleViewModeChange} class="p-2 border rounded mr-4">
-            <option value="Total">Total</option>
-            <option value="Organisation">Organisation Breakdown</option>
-            <option value="Unit">Unit Breakdown</option>
-            {#if searchType === 'vtm'}
-                <option value="VTM">VTM Breakdown</option>
-            {:else if searchType === 'ingredient'}
-                <option value="Ingredient-Unit">Ingredient-Unit Breakdown</option>
-            {/if}
+            {#each availableViewModes as mode}
+                <option value={mode}>{mode} Breakdown</option>
+            {/each}
         </select>
     </div>
     <div class="flex">
