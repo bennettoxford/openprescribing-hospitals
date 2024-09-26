@@ -1,5 +1,6 @@
 <script>
     import { createEventDispatcher, onMount } from 'svelte';
+    import { slide } from 'svelte/transition';
 
     export let vmps = [];
     export let currentSearchType = 'vmp';
@@ -103,6 +104,10 @@
 
     $: missingVMPs = vmps.filter(vmp => vmp.unit === 'nan').map(vmp => vmp.vmp);
     $: hasMissingVMPs = missingVMPs.length > 0;
+
+    let showWarnings = false;
+
+    $: hasWarnings = showUnitWarning || showUnitIngredientWarning || hasMissingVMPs;
 </script>
 
 <div class="p-4">
@@ -121,6 +126,7 @@
     <p class="mb-2 text-sm text-gray-600">
         Selected: <span class="font-semibold">{selectedCount}</span> out of <span class="font-semibold">{vmps.length}</span>
     </p>
+    
     <div class="overflow-x-auto">
         <div class="max-h-96 overflow-y-auto relative">
             <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
@@ -144,7 +150,10 @@
                 </thead>
                 <tbody class="text-gray-600 text-sm">
                     {#each sortedVMPs as vmp}
-                        <tr class="border-b border-gray-200 hover:bg-gray-100" class:bg-red-100={vmp.unit === 'nan'}>
+                        <tr class="border-b border-gray-200" 
+                            class:hover:bg-gray-100={vmp.unit !== 'nan'}
+                            class:bg-red-100={vmp.unit === 'nan'}
+                        >
                             <td class="py-3 px-6 text-left">{vmp[displayField] || vmp.vmp || 'N/A'}</td>
                             <td class="py-3 px-6 text-left">{vmp.unit === 'nan' ? '-' : vmp.unit}</td>
                             {#if currentSearchType !== 'vmp'}
@@ -167,29 +176,45 @@
         </div>
     </div>
 
-    {#if showUnitWarning}
-        <div class="mt-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700">
-            <p class="font-bold">Warning</p>
-            <p>This list contains multiple units. Please review carefully.</p>
-        </div>
-    {/if}
-
-    {#if showUnitIngredientWarning}
-        <div class="mt-4 p-4 bg-orange-100 border-l-4 border-orange-500 text-orange-700">
-            <p class="font-bold">Warning</p>
-            <p>This list contains multiple unit-ingredient combinations. Please review carefully.</p>
-        </div>
-    {/if}
-
-    {#if hasMissingVMPs}
-        <div class="mt-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700">
-            <p class="font-bold">Warning: Missing quantities</p>
-            <p class="mb-2">The chosen quantity for the following VMPs can't be calculated and are excluded from the analysis:</p>
-            <ul class="list-disc list-inside">
-                {#each missingVMPs as vmp}
-                    <li>{vmp}</li>
-                {/each}
-            </ul>
+    {#if hasWarnings}
+        <div class="mt-4">
+            <button
+                class="flex items-center justify-between w-full p-4 bg-yellow-100 text-yellow-800 border border-yellow-200 transition-all duration-300 ease-in-out"
+                class:rounded-lg={!showWarnings}
+                class:rounded-t-lg={showWarnings}
+                on:click={() => showWarnings = !showWarnings}
+            >
+                <span class="font-semibold">Warnings</span>
+                <svg class="w-5 h-5 transition-transform" class:rotate-180={showWarnings} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+            {#if showWarnings}
+                <div transition:slide class="p-4 bg-yellow-50 border border-yellow-200 rounded-b-lg">
+                    <ul class="list-disc list-inside space-y-2">
+                        {#if showUnitWarning}
+                            <li class="text-yellow-700">
+                                This list contains multiple units. Please review carefully.
+                            </li>
+                        {/if}
+                        {#if showUnitIngredientWarning}
+                            <li class="text-yellow-700">
+                                This list contains multiple unit-ingredient combinations. Please review carefully.
+                            </li>
+                        {/if}
+                        {#if hasMissingVMPs}
+                            <li class="text-yellow-700">
+                                Some products have missing quantity data and are excluded from the analysis:
+                                <ul class="list-disc list-inside ml-4 mt-1">
+                                    {#each missingVMPs as vmp}
+                                        <li>{vmp}</li>
+                                    {/each}
+                                </ul>
+                            </li>
+                        {/if}
+                    </ul>
+                </div>
+            {/if}
         </div>
     {/if}
 </div>
