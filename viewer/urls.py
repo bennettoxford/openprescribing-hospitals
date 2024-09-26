@@ -10,6 +10,7 @@ from .views import (
     AnalyseView,
     MeasuresListView,
     MeasureItemView,
+    OrgsSubmittingDataView,
 )
 
 
@@ -34,4 +35,5 @@ urlpatterns = [
         name="filtered-ingredient-quantities",
     ),
     path("measures/<slug:slug>/", MeasureItemView.as_view(), name="measure_item"),
+    path("data-quality/", OrgsSubmittingDataView.as_view(), name="data_quality"),
 ]

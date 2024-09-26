@@ -1,6 +1,6 @@
 import json
 from collections import defaultdict
-from datetime import datetime
+from datetime import date
 
 from django.views.generic import TemplateView
 from rest_framework.decorators import api_view
@@ -9,6 +9,7 @@ from django.db.models import Prefetch
 from django.db.models.functions import Coalesce
 from django.db.models import F
 from django.db.models import Value
+from django.utils.safestring import mark_safe
 
 from .models import (
     Dose,
@@ -18,6 +19,7 @@ from .models import (
     Ingredient,
     VTM,
     Measure,
+    OrgSubmissionCache,
 )
 from .measures.measure_utils import execute_measure_sql
 
@@ -255,3 +257,57 @@ def filtered_ingredient_quantities(request):
     )
 
     return Response(list(data))
+
+
+class OrgsSubmittingDataView(TemplateView):
+    template_name = 'org_submissions.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Step 1: Collect data
+        org_data = defaultdict(lambda: {'successor': None, 'submissions': {}, 'predecessors': []})
+        for cache in OrgSubmissionCache.objects.select_related('organisation', 'successor').order_by('organisation__ods_name', 'month'):
+            org_name = cache.organisation.ods_name
+            org_data[org_name]['successor'] = cache.successor.ods_name if cache.successor else None
+            month_str = cache.month.isoformat() if isinstance(cache.month, date) else str(cache.month)
+            org_data[org_name]['submissions'][month_str] = cache.has_submitted
+
+        # Step 2: Build predecessor relationships
+        for org_name, data in org_data.items():
+            if data['successor']:
+                org_data[data['successor']]['predecessors'].append(org_name)
+
+        # Step 3: Restructure data
+        restructured_data = []
+        processed_orgs = set()
+
+        def build_org_hierarchy(org_name):
+            org_entry = {
+                'name': org_name,
+                'data': org_data[org_name]['submissions'],
+                'predecessors': []
+            }
+            processed_orgs.add(org_name)
+
+            # Sort predecessors to ensure consistent ordering
+            sorted_predecessors = sorted(org_data[org_name]['predecessors'])
+            for pred in sorted_predecessors:
+                if pred not in processed_orgs:
+                    org_entry['predecessors'].append(build_org_hierarchy(pred))
+
+            return org_entry
+
+        # Process current organizations (those without successors) first
+        current_orgs = sorted([org for org, data in org_data.items() if not data['successor']])
+        for org in current_orgs:
+            if org not in processed_orgs:
+                restructured_data.append(build_org_hierarchy(org))
+
+        # Process any remaining organizations
+        for org in sorted(org_data.keys()):
+            if org not in processed_orgs:
+                restructured_data.append(build_org_hierarchy(org))
+
+        context['org_data_json'] = mark_safe(json.dumps(restructured_data))
+        return context
