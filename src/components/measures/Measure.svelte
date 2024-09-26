@@ -130,21 +130,20 @@
                 let color;
                 let strokeWidth;
                 let strokeDasharray;
-
                 if (i < 9) {
                     label = `${i + 1}th Percentile`;
                     color = 'blue';
                     strokeWidth = 1;
                     strokeDasharray = '2,2'; // Dotted blue
-                } else if (i < 18) {
+                } else if (i < 17) {
                     label = `${(i - 9 + 1) * 10}th Percentile`;
                     color = 'blue';
                     strokeWidth = 2;
                     strokeDasharray = '4,2'; // Dashed blue
-                } else if (i === 13) { // 50th percentile
+                } else if (i === 17) { // 50th percentile
                     label = '50th Percentile';
                     color = 'red';
-                    strokeWidth = 3;
+                    strokeWidth = 4;
                     strokeDasharray = '4,2'; // Dashed red
                 } else {
                     label = `${i - 17 + 90}th Percentile`;
@@ -306,7 +305,7 @@
             }
 
             // Tooltip
-            tooltip = d3.select(chartDiv)
+            tooltip = d3.select('body')
                 .append('div')
                 .attr('class', 'tooltip p-2 bg-gray-800 text-white rounded shadow-lg text-sm')
                 .style('position', 'absolute')
@@ -314,7 +313,7 @@
                 .style('opacity', 0);
 
             function showTooltip(event, d) {
-                d3.select(this).attr('stroke-width', 3);
+                d3.select(this).attr('stroke-width', d.strokeWidth + 1); // Increase stroke-width by 1 on hover
                 tooltip.style('opacity', 1);
                 svg.selectAll('.line path').style('opacity', 0.2);
                 d3.select(this).style('opacity', 1);
@@ -339,12 +338,12 @@
 
                 tooltip
                     .html(`<strong>Org:</strong> ${orgName}<br><strong>Date:</strong> ${d3.timeFormat('%b %Y')(nearestDate)}<br><strong>Proportion:</strong> ${nearestValue.toFixed(2)}`)
-                    .style('left', `${leftPosition}px`)
-                    .style('top', `${topPosition}px`);
+                    .style('left', `${Math.max(0, Math.min(leftPosition, window.innerWidth - tooltipWidth))}px`)
+                    .style('top', `${Math.max(0, Math.min(topPosition, window.innerHeight - tooltipHeight))}px`);
             }
 
             function hideTooltip(event, d) {
-                d3.select(this).attr('stroke-width', 2);
+                d3.select(this).attr('stroke-width', d.strokeWidth); // Reset stroke-width to original
                 tooltip.style('opacity', 0);
                 svg.selectAll('.line path').style('opacity', 1);
             }
