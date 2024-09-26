@@ -1,11 +1,11 @@
 <svelte:options customElement={{
-    tag: 'searchable-dropdown',
+    tag: 'organisation-search',
     shadow: 'none'
   }} />
 
 <script>
     import { onMount, createEventDispatcher } from 'svelte';
-    import './styles/styles.css';
+    import '../../styles/styles.css';
 
     const dispatch = createEventDispatcher();
 
@@ -13,7 +13,7 @@
     let isOpen = false;
     let searchTerm = '';
     let selectedItems = [];
-    let showOrganizationSelection = false;
+    let showOrganisationSelection = false;
     let initialized = false;
 
     $: filteredItems = items.filter(item => 
@@ -22,33 +22,35 @@
 
     // Initialize selectedItems with all items on component creation
     $: if (items.length > 0 && !initialized) {
-        selectedItems = [...items];
+        selectedItems = showOrganisationSelection ? [...items] : [];
         initialized = true;
         dispatchSelectionChange();
     }
 
+    $: if (!showOrganisationSelection) {
+        selectedItems = [];
+        dispatchSelectionChange();
+    }
+
+    $: maxSelected = selectedItems.length >= 10;
+
     function toggleDropdown() {
-        if (showOrganizationSelection) {
+        if (showOrganisationSelection) {
             isOpen = !isOpen;
+            dispatch('dropdownToggle', { isOpen });
         }
     }
 
     function toggleItem(item) {
         if (selectedItems.includes(item)) {
             selectedItems = selectedItems.filter(i => i !== item);
-        } else {
+        } else if (selectedItems.length < 10) {
             selectedItems = [...selectedItems, item];
         }
-        selectedItems = [...selectedItems]; // Force reactivity
         dispatchSelectionChange();
     }
 
     $: isItemSelected = (item) => selectedItems.includes(item);
-
-    function selectAll() {
-        selectedItems = [...items];
-        dispatchSelectionChange();
-    }
 
     function deselectAll() {
         selectedItems = [];
@@ -56,14 +58,15 @@
     }
 
     function dispatchSelectionChange() {
-        dispatch('selectionChange', selectedItems);
+        dispatch('selectionChange', {
+            selectedItems: selectedItems,
+            usedOrganisationSelection: showOrganisationSelection
+        });
     }
 
-    function toggleOrganizationSelection() {
-        showOrganizationSelection = !showOrganizationSelection;
-        if (!showOrganizationSelection) {
-            isOpen = false;
-        }
+    function toggleOrganisationSelection() {
+        showOrganisationSelection = !showOrganisationSelection;
+        dispatchSelectionChange();
     }
 
     onMount(() => {
@@ -81,32 +84,32 @@
     });
 </script>
 
-<div class="dropdown relative w-full">
-    <div class="flex items-center mb-2">
+<div class="dropdown relative w-full h-full flex flex-col">
+    <div class="flex items-center mb-2 flex-shrink-0">
         <input
             type="checkbox"
-            id="showOrganizationSelection"
-            checked={showOrganizationSelection}
-            on:change={() => toggleOrganizationSelection()}
+            id="showOrganisationSelection"
+            checked={showOrganisationSelection}
+            on:change={() => toggleOrganisationSelection()}
             class="mr-2 w-4 h-4"
         />
-        <label for="showOrganizationSelection" class="text-sm font-medium text-gray-700">
-            Filter by specific organizations
+        <label for="showOrganisationSelection" class="text-sm font-medium text-gray-700">
+            Filter by specific organisations
         </label>
     </div>
 
-    {#if showOrganizationSelection}
+    {#if showOrganisationSelection}
         <button
             on:click={toggleDropdown}
-            class="w-full p-2 border border-gray-300 rounded-md bg-white flex justify-between items-center"
+            class="w-full p-2 border border-gray-300 rounded-md bg-white flex justify-between items-center flex-shrink-0"
         >
             <span>{selectedItems.length} ODS name(s) selected</span>
             <span class="ml-2">▼</span>
         </button>
 
         {#if isOpen}
-            <div class="absolute top-full left-0 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10">
-                <div class="p-2">
+            <div class="mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 flex-grow overflow-hidden flex flex-col">
+                <div class="p-2 flex-shrink-0">
                     <input
                         type="text"
                         bind:value={searchTerm}
@@ -115,12 +118,6 @@
                     />
                     <div class="flex justify-between mb-2">
                         <button
-                            on:click={selectAll}
-                            class="btn-green-sm"
-                        >
-                            Select All
-                        </button>
-                        <button
                             on:click={deselectAll}
                             class="btn-red-sm"
                         >
@@ -128,19 +125,24 @@
                         </button>
                     </div>
                 </div>
-                <ul class="max-h-60 overflow-y-auto divide-y divide-gray-200">
+                <ul class="flex-grow overflow-y-auto divide-y divide-gray-200">
                     {#each filteredItems as item (item)}
                         <li 
-                            class="p-2 cursor-pointer transition duration-150 ease-in-out"
+                            class="p-2 cursor-pointer transition duration-150 ease-in-out relative {maxSelected && !isItemSelected(item) ? 'bg-gray-300 cursor-not-allowed' : ''}"
                             class:bg-oxford-100={isItemSelected(item)}
                             class:text-oxford-500={isItemSelected(item)}
-                            class:hover:bg-gray-100={!isItemSelected(item)}
-                            on:click={() => toggleItem(item)}
+                            class:hover:bg-gray-100={!isItemSelected(item) && !maxSelected}
+                            on:click={() => { if (!maxSelected || isItemSelected(item)) toggleItem(item); }}
                         >
                             <div class="flex items-center">
                                 <span>{item}</span>
                                 {#if isItemSelected(item)}
                                     <span class="ml-auto text-sm font-medium">Selected</span>
+                                {/if}
+                                {#if maxSelected && !isItemSelected(item)}
+                                    <div class="absolute top-0 left-full ml-2 w-auto p-1 text-sm text-white bg-black rounded">
+                                        Max selected
+                                    </div>
                                 {/if}
                             </div>
                         </li>

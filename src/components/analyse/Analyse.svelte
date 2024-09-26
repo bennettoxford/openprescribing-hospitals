@@ -1,0 +1,76 @@
+<svelte:options customElement={{
+    tag: 'layout-component',
+    shadow: 'none'
+  }} />
+
+<script>
+  import { onMount } from 'svelte';
+  import AnalyseBox from './analyse/AnalyseBox.svelte';
+  import ResultsBox from './results/ResultsBox.svelte';
+  import { writable } from 'svelte/store';
+
+  let isAnalysisRunning = writable(false);
+  let isOrganisationDropdownOpen = false;
+  let showResults = false;
+  let analysisData = null;
+
+  function handleAnalysisStart() {
+    showResults = true;
+    isAnalysisRunning.set(true);
+    analysisData = null;
+  }
+
+  function handleAnalysisComplete(event) {
+    isAnalysisRunning.set(false);
+    analysisData = event.detail;
+  }
+
+  function handleAnalysisError(event) {
+    isAnalysisRunning.set(false);
+    // Handle error if needed
+  }
+
+  function handleOrganisationDropdownToggle(event) {
+    isOrganisationDropdownOpen = event.detail.isOpen;
+  }
+
+  onMount(() => {
+    const analyseBox = document.querySelector('analyse-box');
+    const resultsBox = document.querySelector('results-box');
+
+    if (analyseBox && resultsBox) {
+      analyseBox.addEventListener('runAnalysis', (event) => {
+        handleAnalysisStart();
+        handleAnalysisComplete(event);
+      });
+
+      analyseBox.addEventListener('analysisRunningChange', (event) => {
+        isAnalysisRunning.set(event.detail);
+      });
+
+      analyseBox.addEventListener('organisationDropdownToggle', handleOrganisationDropdownToggle);
+    }
+  });
+</script>
+
+
+  <div class="max-w-screen-xl mx-auto flex flex-col lg:flex-row min-h-screen p-4 sm:p-6">
+    <div class="w-full lg:w-1/3 xl:w-1/4 mb-4 lg:mb-0 lg:mr-4 flex flex-col">
+      <div class="bg-white rounded-lg shadow-md flex flex-col overflow-visible">
+        <div class="bg-gradient-to-r from-oxford-600/60 via-bn-roman-600/70 to-bn-strawberry-600/60 text-white p-2 rounded-t-lg">
+          <h2 class="text-lg font-semibold">Analysis</h2>
+        </div>
+        <div class="flex-grow overflow-y-auto overflow-x-visible">
+          <analyse-box 
+            on:analysisStart={handleAnalysisStart}
+            on:analysisComplete={handleAnalysisComplete}
+            on:analysisError={handleAnalysisError}
+            on:organisationDropdownToggle={handleOrganisationDropdownToggle}
+          ></analyse-box>
+        </div>
+      </div>
+    </div>
+    <div class="flex-grow">
+      <results-box class="bg-white rounded-lg shadow-md h-full" {isAnalysisRunning} {analysisData} {showResults}></results-box>
+    </div>
+  </div>

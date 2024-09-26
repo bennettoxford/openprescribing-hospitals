@@ -1,8 +1,10 @@
 <script>
     import { createEventDispatcher, onMount } from 'svelte';
+    import { slide } from 'svelte/transition';
 
     export let vmps = [];
     export let currentSearchType = 'vmp';
+    export let quantityType = 'Dose';
 
     const dispatch = createEventDispatcher();
 
@@ -30,9 +32,10 @@
     $: selectedCount = Object.values(checkedVMPs).filter(Boolean).length;
 
     $: uniqueUnits = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => vmp.unit))];
-    $: uniqueUnitIngredientPairs = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => `${vmp.unit}-${vmp.ingredient || ''}`))]
     $: showUnitWarning = uniqueUnits.length > 1;
-    $: showUnitIngredientWarning = hasIngredients && uniqueUnitIngredientPairs.length > 1;
+
+    $: uniqueUnitIngredientPairs = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => `${vmp.unit}-${vmp.ingredient || ''}`))]
+    $: showUnitIngredientWarning = quantityType === 'Ingredient' && hasIngredients && uniqueUnitIngredientPairs.length > 1;
 
     let sortColumn = 'vmp';
     let sortDirection = 1;
@@ -100,43 +103,65 @@
             updateFilteredData();
         }
     }
+
+    $: missingVMPs = vmps.filter(vmp => vmp.unit === 'nan').map(vmp => vmp.vmp);
+    $: hasMissingVMPs = missingVMPs.length > 0;
+
+    $: hasWarnings = showUnitWarning || showUnitIngredientWarning || hasMissingVMPs;
+
+    let showWarnings = false;
 </script>
 
 <div class="p-4">
     <h3 class="text-xl font-semibold mb-4">Products included</h3>
+    
+    <div class="mb-4 text-sm text-gray-700">
+        <p class="mb-2">This table shows all products returned in your analysis. You can select which products to include in your analysis:</p>
+        <ul class="list-disc list-inside mb-2">
+            <li>Use the checkboxes to select or deselect products.</li>
+            <li>Products highlighted in red have missing quantity data and cannot be included.</li>
+            <li>Click on column headers to sort the table.</li>
+        </ul>
+        <p>Only selected products with valid values for the chosen quantity type will be used in the analysis.</p>
+    </div>
+
     <p class="mb-2 text-sm text-gray-600">
         Selected: <span class="font-semibold">{selectedCount}</span> out of <span class="font-semibold">{vmps.length}</span>
     </p>
+    
     <div class="overflow-x-auto">
         <div class="max-h-96 overflow-y-auto relative">
-            <table class="w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
-                <thead class="bg-gray-100 sticky top-0 z-10">
+            <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
+                <thead class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal sticky top-0 z-10">
                     <tr>
-                        <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy(displayField)}>
+                        <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy(displayField)}>
                             {currentSearchType.toUpperCase()} Name <span class="text-gray-400">{getSortIndicator(displayField)}</span>
                         </th>
-                        <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('unit')}>
+                        <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('unit')}>
                             Unit <span class="text-gray-400">{getSortIndicator('unit')}</span>
                         </th>
                         {#if currentSearchType !== 'vmp'}
-                            <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('vmp')}>
+                            <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('vmp')}>
                                 VMP <span class="text-gray-400">{getSortIndicator('vmp')}</span>
                             </th>
                         {/if}
-                        <th class="px-4 py-2 text-left cursor-pointer" on:click={() => sortBy('selected')}>
+                        <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('selected')}>
                             Select <span class="text-gray-400">{getSortIndicator('selected')}</span>
                         </th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="text-gray-600 text-sm">
                     {#each sortedVMPs as vmp}
-                        <tr class="border-t border-gray-200" class:bg-red-100={vmp.unit === 'nan'}>
-                            <td class="px-4 py-2">{vmp[displayField] || vmp.vmp || 'N/A'}</td>
-                            <td class="px-4 py-2">{vmp.unit === 'nan' ? '-' : vmp.unit}</td>
+                        <tr class="border-b border-gray-200" 
+                            class:hover:bg-gray-100={vmp.unit !== 'nan'}
+                            class:bg-red-100={vmp.unit === 'nan'}
+                        >
+                            <td class="py-3 px-6 text-left">{vmp[displayField] || vmp.vmp || 'N/A'}</td>
+                            <td class="py-3 px-6 text-left">{vmp.unit === 'nan' ? '-' : vmp.unit}</td>
                             {#if currentSearchType !== 'vmp'}
-                                <td class="px-4 py-2">{vmp.vmp}</td>
+                                <td class="py-3 px-6 text-left">{vmp.vmp}</td>
                             {/if}
-                            <td class="px-4 py-2">
+                            <td class="py-3 px-6 text-left">
                                 <input 
                                     type="checkbox" 
                                     checked={checkedVMPs[vmp.vmp] ?? false}
@@ -153,17 +178,45 @@
         </div>
     </div>
 
-    {#if showUnitWarning}
-        <div class="mt-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700">
-            <p class="font-bold">Warning</p>
-            <p>This list contains multiple units. Please review carefully.</p>
-        </div>
-    {/if}
-
-    {#if showUnitIngredientWarning}
-        <div class="mt-4 p-4 bg-orange-100 border-l-4 border-orange-500 text-orange-700">
-            <p class="font-bold">Warning</p>
-            <p>This list contains multiple unit-ingredient combinations. Please review carefully.</p>
+    {#if hasWarnings}
+        <div class="mt-4">
+            <button
+                class="flex items-center justify-between w-full p-4 bg-yellow-100 text-yellow-800 border border-yellow-200 transition-all duration-300 ease-in-out"
+                class:rounded-lg={!showWarnings}
+                class:rounded-t-lg={showWarnings}
+                on:click={() => showWarnings = !showWarnings}
+            >
+                <span class="font-semibold">Warnings</span>
+                <svg class="w-5 h-5 transition-transform" class:rotate-180={showWarnings} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+            {#if showWarnings}
+                <div transition:slide class="p-4 bg-yellow-50 border border-yellow-200 rounded-b-lg">
+                    <ul class="list-disc list-inside space-y-2">
+                        {#if showUnitWarning}
+                            <li class="text-yellow-700">
+                                This list contains multiple units. Please review carefully.
+                            </li>
+                        {/if}
+                        {#if showUnitIngredientWarning}
+                            <li class="text-yellow-700">
+                                This list contains multiple unit-ingredient combinations. Please review carefully.
+                            </li>
+                        {/if}
+                        {#if hasMissingVMPs}
+                            <li class="text-yellow-700">
+                                Some products have missing quantity data and are excluded from the analysis:
+                                <ul class="list-disc list-inside ml-4 mt-1">
+                                    {#each missingVMPs as vmp}
+                                        <li>{vmp}</li>
+                                    {/each}
+                                </ul>
+                            </li>
+                        {/if}
+                    </ul>
+                </div>
+            {/if}
         </div>
     {/if}
 </div>

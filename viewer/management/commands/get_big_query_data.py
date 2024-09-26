@@ -20,11 +20,13 @@ credentials = service_account.Credentials.from_service_account_file(
     os.path.join(settings.BASE_DIR, "bq-service-account.json"),
 )
 
+
 def get_bigquery_client() -> bigquery.Client:
     credentials = service_account.Credentials.from_service_account_file(
         CREDENTIALS_FILE
     )
     return bigquery.Client(project=PROJECT_ID, credentials=credentials)
+
 
 def execute_query(client, query):
     try:
@@ -40,12 +42,15 @@ def execute_query(client, query):
 
 
 class Command(BaseCommand):
-    help = 'Gets data from BigQuery'
+    help = "Gets data from BigQuery"
 
     def handle(self, *args, **options):
         client = get_bigquery_client()
         # self.get_and_save_table(client, "ingredient", self.ingredient_table_sql)
-        self.get_and_save_table(client, "organisation", self.organisation_table_sql)
+        self.get_and_save_table(
+            client,
+            "organisation",
+            self.organisation_table_sql)
         # self.get_and_save_table(client, "vtm", self.vtm_table_sql)
         # self.get_and_save_table(client, "vmp", self.vmp_table_sql)
         # self.get_and_save_partitioned_table(client, "dose", self.dose_table_sql, "dose_quantity")
@@ -55,16 +60,20 @@ class Command(BaseCommand):
         print(f"Getting {table_name} table")
         df = execute_query(client, sql_query)
         df.to_csv(DATA_DIR / f"{table_name}_table.csv", index=False)
-    
-    def get_and_save_partitioned_table(self, client, table_name, sql_query, folder):
+
+    def get_and_save_partitioned_table(
+            self, client, table_name, sql_query, folder):
         print(f"Getting {table_name} table")
         partitions = self.get_partitions(client, table_name)
-        
+
         for partition in tqdm(partitions):
             query = sql_query.format(partition=partition)
             df = execute_query(client, query)
-            df.to_csv(DATA_DIR / folder / f"{table_name}_table_{partition}.csv", index=False)
-        
+            df.to_csv(
+                DATA_DIR /
+                folder /
+                f"{table_name}_table_{partition}.csv",
+                index=False)
 
     def get_partitions(self, client, table_name):
         query = f"""
@@ -73,7 +82,7 @@ class Command(BaseCommand):
         ORDER BY year_month
         """
         df = execute_query(client, query)
-        return df['year_month'].tolist()
+        return df["year_month"].tolist()
 
     ingredient_table_sql = """
         SELECT DISTINCT ingredient_code, ing_nm
@@ -95,7 +104,7 @@ class Command(BaseCommand):
             s.vmp_name,
             s.ing AS ingredient
         FROM `ebmdatalab.scmd.dose` d
-        LEFT JOIN `ebmdatalab.scmd.scmd_dmd` s 
+        LEFT JOIN `ebmdatalab.scmd.scmd_dmd` s
             ON d.vmp_code = COALESCE(s.vmp_code, s.vmp_code_prev)
     """
 
@@ -106,7 +115,7 @@ class Command(BaseCommand):
             s.vmp_name,
             s.ing AS ingredient
         FROM `ebmdatalab.scmd.dose` d
-        LEFT JOIN `ebmdatalab.scmd.scmd_dmd` s 
+        LEFT JOIN `ebmdatalab.scmd.scmd_dmd` s
             ON d.vmp_code = COALESCE(s.vmp_code, s.vmp_code_prev)
     """
 
