@@ -75,7 +75,7 @@ class MeasureItemView(TemplateView):
         context["why"] = measure.why
 
         try:
-            precomputed_measures = PrecomputedMeasure.objects.filter(measure=measure)
+            precomputed_measures = PrecomputedMeasure.objects.filter(measure=measure).select_related('organisation')
             values = precomputed_measures.values('organisation__ods_name', 'month', 'quantity')
 
             org_data = defaultdict(lambda: defaultdict(float))
@@ -107,15 +107,21 @@ class MeasureItemView(TemplateView):
             included_orgs = len(non_zero_orgs)
             context["orgs_included"] = {"included": included_orgs, "total": total_orgs}
 
-            filled_values = []
-            for org in non_zero_orgs:
-                for month in all_months:
-                    filled_values.append({
-                        'organisation': org,
-                        'region': Organisation.objects.get(ods_name=org).region,
-                        'month': month,
-                        'quantity': org_data[org][month]
-                    })
+            # Create a mapping of ods_name to region to avoid repeated DB hits
+            org_to_region = {
+                org.ods_name: org.region for org in Organisation.objects.filter(ods_name__in=non_zero_orgs)
+            }
+
+            filled_values = [
+                {
+                    'organisation': org,
+                    'region': org_to_region[org],
+                    'month': month,
+                    'quantity': org_data[org][month]
+                }
+                for org in non_zero_orgs
+                for month in all_months
+            ]
 
             context["measure_result"] = json.dumps(filled_values, ensure_ascii=False)
 
