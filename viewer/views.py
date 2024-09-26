@@ -92,7 +92,11 @@ class MeasureItemView(TemplateView):
 
             all_months = sorted(all_months)
 
-            non_zero_orgs = {org for org in all_orgs if any(org_data[org][month] is not None for month in all_months)}
+            # Filter out organisations with all 0 or None values
+            non_zero_orgs = {
+                org for org in all_orgs
+                if any(org_data[org][month] not in (0, None) for month in all_months)
+            }
 
             for org in all_orgs:
                 for month in all_months:
