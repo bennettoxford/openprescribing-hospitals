@@ -74,6 +74,7 @@ class MeasureItemView(TemplateView):
         context["why"] = measure.why
         try:
             result = execute_measure_sql(measure.name)
+        
             values = result.get("values", [])
 
             org_data = defaultdict(lambda: defaultdict(float))
@@ -90,9 +91,23 @@ class MeasureItemView(TemplateView):
 
             all_months = sorted(all_months)
 
-            # Fill in missing data with 0
-            filled_values = []
+            # Filter out organisations with all None values
+            non_zero_orgs = {org for org in all_orgs if any(org_data[org][month] is not None for month in all_months)}
+            
+
+            # relpace None with 0
             for org in all_orgs:
+                for month in all_months:
+                    if org_data[org][month] is None:
+                        org_data[org][month] = 0
+
+            total_orgs = len(all_orgs)
+            included_orgs = len(non_zero_orgs)
+            context["orgs_included"] = {"included": included_orgs, "total": total_orgs}
+
+            # Fill in missing data with 0 for non-zero organisations only
+            filled_values = []
+            for org in non_zero_orgs:
                 for month in all_months:
                     filled_values.append({
                         'organisation': org,
