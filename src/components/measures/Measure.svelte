@@ -13,12 +13,14 @@
 
     let parsedData = [];
     let chartDiv;
+    let chartContainer;
+    let resizeObserver;
     let organisations = [];
     let selectedOrganisations = [];
     let usedOrganisationSelection = false;
     let tooltip;
     let selectedMode = 'organisation'; // 'organisation' or 'deciles'
- 
+    let modeSelectWidth = 'auto';
 
     $: {
         try {
@@ -46,6 +48,18 @@
             console.error('Error parsing deciles:', e);
             deciles = {};
         }
+    }
+
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
     }
 
     function prepareChartData(data) {
@@ -184,18 +198,21 @@
     }
 
     function updateChart() {
-        if (chartDiv) {
+        if (chartDiv && chartContainer) {
             const chartData = prepareChartData(parsedData);
+            const containerWidth = chartContainer.clientWidth;
+            const containerHeight = chartContainer.clientHeight;
+
             const margin = { top: 20, right: 30, bottom: 50, left: 50 };
-            const width = chartDiv.clientWidth - margin.left - margin.right;
-            const height = 400 - margin.top - margin.bottom;
+            const width = containerWidth - margin.left - margin.right;
+            const height = containerHeight - margin.top - margin.bottom;
 
             d3.select(chartDiv).selectAll('*').remove();
 
             const svg = d3.select(chartDiv)
                 .append('svg')
-                .attr('width', width + margin.left + margin.right)
-                .attr('height', height + margin.top + margin.bottom)
+                .attr('width', containerWidth)
+                .attr('height', containerHeight)
                 .append('g')
                 .attr('transform', `translate(${margin.left},${margin.top})`);
 
@@ -343,6 +360,8 @@
         }
     }
 
+    const debouncedUpdateChart = debounce(updateChart, 250);
+
     function handleOrganisationSelection(event) {
         selectedOrganisations = event.detail.selectedItems;
         usedOrganisationSelection = event.detail.usedOrganisationSelection;
@@ -354,81 +373,95 @@
         updateChart();
     }
 
+    function handleResize() {
+        updateChart();
+    }
+
+    function adjustModeSelectWidth() {
+        const select = document.getElementById('mode-select');
+        if (select) {
+            const tempSpan = document.createElement('span');
+            tempSpan.style.visibility = 'hidden';
+            tempSpan.style.position = 'absolute';
+            tempSpan.style.whiteSpace = 'nowrap';
+            tempSpan.innerHTML = select.options[select.selectedIndex].text;
+            document.body.appendChild(tempSpan);
+            const width = tempSpan.offsetWidth;
+            document.body.removeChild(tempSpan);
+            modeSelectWidth = `${width + 40}px`; // Add some padding
+        }
+    }
+
+    $: selectedMode, adjustModeSelectWidth();
+
     onMount(() => {
         updateChart();
+        resizeObserver = new ResizeObserver(handleResize);
+        if (chartContainer) {
+            resizeObserver.observe(chartContainer);
+        }
+        adjustModeSelectWidth();
+    });
 
-        const handleResize = () => {
-            updateChart();
-        };
-
-        window.addEventListener('resize', handleResize);
-
-        return () => {
-            window.removeEventListener('resize', handleResize);
-            if (chartDiv) {
-                d3.select(chartDiv).selectAll('*').remove();
-            }
-        };
+    onDestroy(() => {
+        if (resizeObserver) {
+            resizeObserver.disconnect();
+        }
     });
 
     afterUpdate(() => {
         if (chartDiv) {
-            updateChart();
+            debouncedUpdateChart();
         }
     });
 </script>
 
 <div class="flex flex-col">
-    <div class="flex justify-between items-end mb-4">
-        <div class="w-3/4">
+    <div class="flex flex-wrap justify-between items-end mb-4">
+        <div class="flex-grow mr-4">
             <OrganisationSearch items={organisations} on:selectionChange={handleOrganisationSelection} />
         </div>
-        <div class="w-1/4 ml-4">
+        <div class="flex-shrink-0 mr-8">
             <label for="mode-select" class="block text-sm font-medium text-gray-700 mb-1">Select Mode</label>
-            <select id="mode-select" class="w-full p-2 border border-gray-300 rounded-md bg-white" on:change={handleModeChange}>
+            <select 
+                id="mode-select" 
+                class="p-2 border border-gray-300 rounded-md bg-white" 
+                on:change={handleModeChange}
+                style="width: {modeSelectWidth};"
+                bind:value={selectedMode}
+            >
                 <option value="organisation">Organisation</option>
                 <option value="deciles">Deciles</option>
             </select>
         </div>
     </div>
 
-    <div class="flex">
-        <div class="chart-container flex-grow" style="height: 400px;">
+    <div class="flex-grow relative" style="min-height: 400px;">
+        <div bind:this={chartContainer} class="chart-container absolute inset-0">
             {#if parsedData.length === 0}
                 <p class="text-center text-gray-500 pt-8">No data available.</p>
             {:else}
-                <div bind:this={chartDiv}></div>
+                <div bind:this={chartDiv} class="w-full h-full"></div>
             {/if}
         </div>
     </div>
 
     {#if selectedMode === 'deciles'}
     <div class="flex justify-center mt-4">
-
         <div class="flex items-center mr-4">
-
             <div class="w-8 h-0.5 border-t border-blue-500 border-dotted mr-2"></div>
-
             <span class="text-sm">1st-9th Percentile</span>
-
         </div>
-
         <div class="flex items-center mr-4">
-
             <div class="w-8 h-0.5 border-t border-blue-500 border-dashed mr-2"></div>
-
             <span class="text-sm">10th-90th Percentile</span>
-
         </div>
-
         <div class="flex items-center">
-
             <div class="w-8 h-0.5 border-t border-red-500 border-dashed mr-2"></div>
-
             <span class="text-sm">50th Percentile</span>
-
         </div>
     </div>
     {/if}
 </div>
+
 
