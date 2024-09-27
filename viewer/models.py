@@ -134,6 +134,21 @@ class Measure(models.Model):
     def __str__(self):
         return self.name
 
+class PrecomputedMeasure(models.Model):
+    measure = models.ForeignKey(Measure, on_delete=models.CASCADE, related_name="precomputed_measures")
+    organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name="precomputed_measures")
+    month = models.DateField()
+    quantity = models.FloatField(null=True)
+
+    class Meta:
+        unique_together = ('measure', 'organisation', 'month')
+        indexes = [
+            models.Index(fields=['measure', 'organisation', 'month']),
+        ]
+
+    def __str__(self):
+        return f"{self.measure.name} - {self.organisation.ods_name} - {self.month}"
+
 
 class OrgSubmissionCache(models.Model):
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)

@@ -19,8 +19,20 @@
     let selectedOrganisations = [];
     let usedOrganisationSelection = false;
     let tooltip;
-    let selectedMode = 'organisation'; // 'organisation' or 'deciles'
+    let selectedMode = 'organisation';
     let modeSelectWidth = 'auto';
+    let regions = [];
+    let legendItems = [];
+
+    const regionColors = {
+        'East Of England': '#1f77b4',
+        'South East': '#ff7f0e',
+        'Midlands': '#2ca02c',
+        'North East And Yorkshire': '#d62728',
+        'London': '#9467bd',
+        'South West': '#8c564b',
+        'North West': '#e377c2'
+    };
 
     $: {
         try {
@@ -47,6 +59,24 @@
         } catch (e) {
             console.error('Error parsing deciles:', e);
             deciles = {};
+        }
+
+    
+        regions = [...new Set(parsedData.map(item => item.region))];
+
+        if (selectedMode === 'deciles') {
+            legendItems = [
+                { label: '1st-9th Percentile', style: 'border-blue-500 border-dotted' },
+                { label: '10th-90th Percentile', style: 'border-blue-500 border-dashed' },
+                { label: '50th Percentile', style: 'border-red-500 border-dashed' }
+            ];
+        } else if (selectedMode === 'region') {
+            legendItems = Object.entries(regionColors).map(([region, color]) => ({
+                label: region,
+                style: `background-color: ${color}`
+            }));
+        } else {
+            legendItems = [];
         }
     }
 
@@ -130,21 +160,20 @@
                 let color;
                 let strokeWidth;
                 let strokeDasharray;
-
                 if (i < 9) {
                     label = `${i + 1}th Percentile`;
                     color = 'blue';
                     strokeWidth = 1;
                     strokeDasharray = '2,2'; // Dotted blue
-                } else if (i < 18) {
+                } else if (i < 17) {
                     label = `${(i - 9 + 1) * 10}th Percentile`;
                     color = 'blue';
                     strokeWidth = 2;
                     strokeDasharray = '4,2'; // Dashed blue
-                } else if (i === 13) { // 50th percentile
+                } else if (i === 17) { // 50th percentile
                     label = '50th Percentile';
                     color = 'red';
-                    strokeWidth = 3;
+                    strokeWidth = 4;
                     strokeDasharray = '4,2'; // Dashed red
                 } else {
                     label = `${i - 17 + 90}th Percentile`;
@@ -193,6 +222,44 @@
             return {
                 labels: sortedDates,
                 datasets: decileDatasets
+            };
+        } else if (selectedMode === 'region') {
+            filteredData = data;
+            breakdownKeys = Object.keys(regionColors);
+
+            const groupedData = filteredData.reduce((acc, item) => {
+                const key = item.month;
+                if (!acc[key]) {
+                    acc[key] = {};
+                }
+                const breakdownKey = item.region;
+                if (!acc[key][breakdownKey]) {
+                    acc[key][breakdownKey] = { sum: 0, count: 0 };
+                }
+                acc[key][breakdownKey].sum += parseFloat(item.quantity);
+                acc[key][breakdownKey].count += 1;
+                return acc;
+            }, {});
+
+            const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
+
+            return {
+                labels: sortedDates,
+                datasets: breakdownKeys.map(key => {
+                    const dataPoints = sortedDates.map(date => {
+                        if (!groupedData[date] || !groupedData[date][key]) {
+                            return 0;
+                        }
+                        const { sum, count } = groupedData[date][key];
+                        return count > 0 ? sum / count : 0;
+                    });
+                    return {
+                        label: key,
+                        data: dataPoints,
+                        color: regionColors[key],
+                        strokeWidth: 2
+                    };
+                })
             };
         }
     }
@@ -306,7 +373,7 @@
             }
 
             // Tooltip
-            tooltip = d3.select(chartDiv)
+            tooltip = d3.select('body')
                 .append('div')
                 .attr('class', 'tooltip p-2 bg-gray-800 text-white rounded shadow-lg text-sm')
                 .style('position', 'absolute')
@@ -314,7 +381,7 @@
                 .style('opacity', 0);
 
             function showTooltip(event, d) {
-                d3.select(this).attr('stroke-width', 3);
+                d3.select(this).attr('stroke-width', d.strokeWidth + 1); // Increase stroke-width by 1 on hover
                 tooltip.style('opacity', 1);
                 svg.selectAll('.line path').style('opacity', 0.2);
                 d3.select(this).style('opacity', 1);
@@ -339,12 +406,12 @@
 
                 tooltip
                     .html(`<strong>Org:</strong> ${orgName}<br><strong>Date:</strong> ${d3.timeFormat('%b %Y')(nearestDate)}<br><strong>Proportion:</strong> ${nearestValue.toFixed(2)}`)
-                    .style('left', `${leftPosition}px`)
-                    .style('top', `${topPosition}px`);
+                    .style('left', `${Math.max(0, Math.min(leftPosition, window.innerWidth - tooltipWidth))}px`)
+                    .style('top', `${Math.max(0, Math.min(topPosition, window.innerHeight - tooltipHeight))}px`);
             }
 
             function hideTooltip(event, d) {
-                d3.select(this).attr('stroke-width', 2);
+                d3.select(this).attr('stroke-width', d.strokeWidth); // Reset stroke-width to original
                 tooltip.style('opacity', 0);
                 svg.selectAll('.line path').style('opacity', 1);
             }
@@ -418,8 +485,12 @@
 
 <div class="flex flex-col">
     <div class="flex flex-wrap justify-between items-end mb-4">
-        <div class="flex-grow mr-4">
-            <OrganisationSearch items={organisations} on:selectionChange={handleOrganisationSelection} />
+        <div class="flex-grow mr-4 relative">
+            <OrganisationSearch 
+                items={organisations} 
+                on:selectionChange={handleOrganisationSelection}
+                overlayMode={true}
+            />
         </div>
         <div class="flex-shrink-0 mr-8">
             <label for="mode-select" class="block text-sm font-medium text-gray-700 mb-1">Select Mode</label>
@@ -432,6 +503,7 @@
             >
                 <option value="organisation">Organisation</option>
                 <option value="deciles">Deciles</option>
+                <option value="region">Region</option>
             </select>
         </div>
     </div>
@@ -446,20 +518,18 @@
         </div>
     </div>
 
-    {#if selectedMode === 'deciles'}
-    <div class="flex justify-center mt-4">
-        <div class="flex items-center mr-4">
-            <div class="w-8 h-0.5 border-t border-blue-500 border-dotted mr-2"></div>
-            <span class="text-sm">1st-9th Percentile</span>
-        </div>
-        <div class="flex items-center mr-4">
-            <div class="w-8 h-0.5 border-t border-blue-500 border-dashed mr-2"></div>
-            <span class="text-sm">10th-90th Percentile</span>
-        </div>
-        <div class="flex items-center">
-            <div class="w-8 h-0.5 border-t border-red-500 border-dashed mr-2"></div>
-            <span class="text-sm">50th Percentile</span>
-        </div>
+    {#if legendItems.length > 0}
+    <div class="flex flex-wrap justify-center mt-4">
+        {#each legendItems as item}
+            <div class="flex items-center mr-4 mb-2">
+                {#if selectedMode === 'deciles'}
+                    <div class="w-8 h-0.5 border-t {item.style} mr-2"></div>
+                {:else}
+                    <div class="w-4 h-4 mr-2" style="{item.style}"></div>
+                {/if}
+                <span class="text-sm">{item.label}</span>
+            </div>
+        {/each}
     </div>
     {/if}
 </div>
