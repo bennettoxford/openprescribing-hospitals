@@ -10,6 +10,7 @@
     const dispatch = createEventDispatcher();
 
     export let items = [];
+    export let overlayMode = false;
     let isOpen = false;
     let searchTerm = '';
     let selectedItems = [];
@@ -108,7 +109,8 @@
         </button>
 
         {#if isOpen}
-            <div class="mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 flex-grow overflow-hidden flex flex-col">
+            <div class="mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 flex-grow overflow-hidden flex flex-col max-h-96"
+                 class:absolute={overlayMode} class:top-full={overlayMode} class:left-0={overlayMode} class:right-0={overlayMode}>
                 <div class="p-2 flex-shrink-0">
                     <input
                         type="text"

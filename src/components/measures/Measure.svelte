@@ -485,8 +485,12 @@
 
 <div class="flex flex-col">
     <div class="flex flex-wrap justify-between items-end mb-4">
-        <div class="flex-grow mr-4">
-            <OrganisationSearch items={organisations} on:selectionChange={handleOrganisationSelection} />
+        <div class="flex-grow mr-4 relative">
+            <OrganisationSearch 
+                items={organisations} 
+                on:selectionChange={handleOrganisationSelection}
+                overlayMode={true}
+            />
         </div>
         <div class="flex-shrink-0 mr-8">
             <label for="mode-select" class="block text-sm font-medium text-gray-700 mb-1">Select Mode</label>
