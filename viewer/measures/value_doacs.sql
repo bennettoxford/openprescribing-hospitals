@@ -2,7 +2,7 @@ WITH measure_data AS (
     SELECT 
         org.ods_name AS organisation,
         org.region AS region,
-        strftime('%Y-%m', ingredient_quantity.year_month) AS month,
+        to_char(ingredient_quantity.year_month, 'YYYY-MM') AS month,
         COALESCE(
             CAST(SUM(CASE WHEN vtm.vtm IN ('774624002', '777455008') THEN ingredient_quantity.quantity ELSE 0 END) AS FLOAT) / 
             NULLIF(SUM(CASE WHEN vtm.vtm IN ('774624002', '777455008', '775732007', '13568411000001103') THEN ingredient_quantity.quantity ELSE 0 END), 0),
@@ -16,18 +16,20 @@ WITH measure_data AS (
     GROUP BY 
         org.ods_name, 
         org.region,
-        strftime('%Y-%m', ingredient_quantity.year_month)
+        to_char(ingredient_quantity.year_month, 'YYYY-MM')
 )
 SELECT 
     'value_doacs' AS name,
     'Proportion of DOACs (apixaban and rivaroxaban) to all DOACs' AS description,
     'ratio' AS unit,
-    json_group_array(
-        json_object(
-            'organisation', organisation,
+    jsonb_build_object(
+        'measure_values', jsonb_agg(
+            jsonb_build_object(
+                'organisation', organisation,
             'region', region,
             'month', month,
-            'quantity', ROUND(CASE WHEN quantity > 1 THEN 1 ELSE quantity END, 4)
+            'quantity', quantity
+            )
         )
     ) AS measure_values
 FROM measure_data
