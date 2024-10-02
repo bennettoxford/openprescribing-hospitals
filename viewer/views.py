@@ -112,10 +112,17 @@ class MeasureItemView(TemplateView):
                 org.ods_name: org.region for org in Organisation.objects.filter(ods_name__in=non_zero_orgs)
             }
 
+            # create a mapping of ods_name to ICB
+            org_to_icb = {
+                org.ods_name: org.icb for org in Organisation.objects.filter(ods_name__in=non_zero_orgs)
+            }
+
+
             filled_values = [
                 {
                     'organisation': org,
                     'region': org_to_region[org],
+                    'icb': org_to_icb[org],
                     'month': month,
                     'quantity': org_data[org][month]
                 }
