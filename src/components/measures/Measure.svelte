@@ -22,6 +22,7 @@
     let selectedMode = 'organisation';
     let modeSelectWidth = 'auto';
     let regions = [];
+    let icbs = [];
     let legendItems = [];
 
     const regionColors = {
@@ -63,6 +64,7 @@
 
     
         regions = [...new Set(parsedData.map(item => item.region))];
+        icbs = [...new Set(parsedData.map(item => item.icb))];
 
         if (selectedMode === 'deciles') {
             legendItems = [
@@ -90,6 +92,14 @@
             clearTimeout(timeout);
             timeout = setTimeout(later, wait);
         };
+    }
+
+    function getColor(key, index, total) {
+        if (selectedMode === 'region') {
+            return regionColors[key] || `hsl(${index * 360 / total}, 70%, 50%)`;
+        } else {
+            return `hsl(${index * 360 / total}, 70%, 50%)`;
+        }
     }
 
     function prepareChartData(data) {
@@ -224,16 +234,16 @@
                 labels: sortedDates,
                 datasets: decileDatasets
             };
-        } else if (selectedMode === 'region') {
+        } else if (selectedMode === 'region' || selectedMode === 'icb') {
             filteredData = data;
-            breakdownKeys = Object.keys(regionColors);
+            breakdownKeys = selectedMode === 'region' ? Object.keys(regionColors) : icbs;
 
             const groupedData = filteredData.reduce((acc, item) => {
                 const key = item.month;
                 if (!acc[key]) {
                     acc[key] = {};
                 }
-                const breakdownKey = item.region;
+                const breakdownKey = selectedMode === 'region' ? item.region : item.icb;
                 if (!acc[key][breakdownKey]) {
                     acc[key][breakdownKey] = { sum: 0, count: 0 };
                 }
@@ -246,7 +256,7 @@
 
             return {
                 labels: sortedDates,
-                datasets: breakdownKeys.map(key => {
+                datasets: breakdownKeys.map((key, index) => {
                     const dataPoints = sortedDates.map(date => {
                         if (!groupedData[date] || !groupedData[date][key]) {
                             return 0;
@@ -257,7 +267,7 @@
                     return {
                         label: key,
                         data: dataPoints,
-                        color: regionColors[key],
+                        color: getColor(key, index, breakdownKeys.length),
                         strokeWidth: 2
                     };
                 })
@@ -505,6 +515,7 @@
                 <option value="organisation">Organisation</option>
                 <option value="deciles">Deciles</option>
                 <option value="region">Region</option>
+                <option value="icb">ICB</option>
             </select>
         </div>
     </div>
@@ -534,5 +545,3 @@
     </div>
     {/if}
 </div>
-
-
