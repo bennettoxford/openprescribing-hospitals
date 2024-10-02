@@ -8,3 +8,4 @@ db.sqlite3
 bq-service-account.json
 .cursorrules
 data
+ca-certificate.crt

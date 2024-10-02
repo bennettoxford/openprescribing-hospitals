@@ -160,17 +160,18 @@
                 let color;
                 let strokeWidth;
                 let strokeDasharray;
+                
                 if (i < 9) {
                     label = `${i + 1}th Percentile`;
                     color = 'blue';
                     strokeWidth = 1;
                     strokeDasharray = '2,2'; // Dotted blue
-                } else if (i < 17) {
+                } else if (i < 18 && i !== 13) {
                     label = `${(i - 9 + 1) * 10}th Percentile`;
                     color = 'blue';
                     strokeWidth = 2;
                     strokeDasharray = '4,2'; // Dashed blue
-                } else if (i === 17) { // 50th percentile
+                } else if (i === 13) { // 50th percentile
                     label = '50th Percentile';
                     color = 'red';
                     strokeWidth = 4;
