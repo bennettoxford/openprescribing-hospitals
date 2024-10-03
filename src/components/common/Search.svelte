@@ -18,14 +18,16 @@
     const searchTypes = [
         { value: 'vmp', label: 'VMP' },
         { value: 'vtm', label: 'VTM' },
-        { value: 'ingredient', label: 'Ingredient' }
+        { value: 'ingredient', label: 'Ingredient' },
+        { value: 'atc', label: 'ATC' }
     ];
 
     async function fetchItems(type) {
         const endpoints = {
             vmp: '/api/unique-vmp-names/',
             vtm: '/api/unique-vtm-names/',
-            ingredient: '/api/unique-ingredient-names/'
+            ingredient: '/api/unique-ingredient-names/',
+            atc: '/api/unique-atc-codes/'
         };
 
         try {
@@ -43,9 +45,27 @@
     }
 
     function search() {
-        searchResults = items.filter(item =>
-            item.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        if (searchType === 'atc') {
+            searchResults = items.filter(item =>
+                item.toLowerCase().includes(searchTerm.toLowerCase())
+            ).sort((a, b) => {
+                const aCode = a.split(' | ')[0];
+                const bCode = b.split(' | ')[0];
+                // First, sort by whether the item starts with the search term
+                if (aCode.startsWith(searchTerm) && !bCode.startsWith(searchTerm)) return -1;
+                if (!aCode.startsWith(searchTerm) && bCode.startsWith(searchTerm)) return 1;
+                // Then, sort by code length
+                if (aCode.length !== bCode.length) {
+                    return aCode.length - bCode.length;
+                }
+                // If lengths are equal, sort alphanumerically
+                return aCode.localeCompare(bCode);
+            });
+        } else {
+            searchResults = items.filter(item =>
+                item.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
     }
 
     function addItem(item) {

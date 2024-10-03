@@ -12,6 +12,7 @@ from django.db.models import Value
 from django.utils.safestring import mark_safe
 
 from .models import (
+    ATC,
     Dose,
     Organisation,
     VMP,
@@ -153,6 +154,16 @@ class MeasureItemView(TemplateView):
         return context
 
 
+def get_all_child_atc_codes(atc_codes):
+    all_codes = []
+    
+    for code in atc_codes:
+        children = ATC.objects.filter(code__startswith=code).exclude(code=code).values_list('code', flat=True)
+        all_codes.extend(children)
+    
+    return list(all_codes)
+
+
 @api_view(["GET"])
 def unique_vmp_names(request):
     vmp_data = VMP.objects.values('name', 'code').distinct().order_by('name')
@@ -181,6 +192,13 @@ def unique_vtm_names(request):
     return Response(formatted_vtm)
 
 
+@api_view(["GET"])
+def unique_atc_codes(request):
+    atc_data = ATC.objects.values('code', 'name').distinct().order_by('name')
+    formatted_atc = [f"{item['code']} | {item['name']}" for item in atc_data]
+    return Response(formatted_atc)
+
+
 @api_view(["POST"])
 def filtered_doses(request):
     search_items = request.data.get("names", [])
@@ -195,6 +213,11 @@ def filtered_doses(request):
         queryset = Dose.objects.filter(vmp__vtm__vtm__in=search_items)
     elif search_type == "ingredient":
         queryset = Dose.objects.filter(vmp__ingredients__code__in=search_items)
+    elif search_type == "atc":
+        # Get all children of the selected ATC codes
+        all_atc_codes = get_all_child_atc_codes(search_items)
+        queryset = Dose.objects.filter(vmp__atcs__code__in=all_atc_codes)
+    
  
     if ods_names:
         ods_names = [item.split("|")[0].strip() for item in ods_names]
@@ -255,6 +278,9 @@ def filtered_ingredient_quantities(request):
         queryset = queryset.filter(vmp__vtm__vtm__in=search_items)
     elif search_type == "ingredient":
         queryset = queryset.filter(ingredient__name__in=search_items)
+    elif search_type == "atc":
+        all_atc_codes = get_all_child_atc_codes(search_items)
+        queryset = queryset.filter(vmp__atcs__code__in=all_atc_codes)
 
     if ods_names:
         ods_names = [item.split("|")[0].strip() for item in ods_names]
