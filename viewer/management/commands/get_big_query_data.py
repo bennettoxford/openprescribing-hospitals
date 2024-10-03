@@ -46,15 +46,18 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         client = get_bigquery_client()
-        # self.get_and_save_table(client, "ingredient", self.ingredient_table_sql)
+        self.get_and_save_table(client, "ingredient", self.ingredient_table_sql)
         self.get_and_save_table(
             client,
             "organisation",
             self.organisation_table_sql)
-        # self.get_and_save_table(client, "vtm", self.vtm_table_sql)
-        # self.get_and_save_table(client, "vmp", self.vmp_table_sql)
-        # self.get_and_save_partitioned_table(client, "dose", self.dose_table_sql, "dose_quantity")
-        # self.get_and_save_partitioned_table(client, "ingredient_quantity", self.ingredient_quantity_table_sql, "ingredient_quantity")
+        self.get_and_save_table(client, "vtm", self.vtm_table_sql)
+        self.get_and_save_table(client, "vmp", self.vmp_table_sql)
+        self.get_and_save_partitioned_table(client, "dose", self.dose_table_sql, "dose_quantity")
+        self.get_and_save_partitioned_table(client, "ingredient_quantity", self.ingredient_quantity_table_sql, "ingredient_quantity")
+        self.get_and_save_table(client, "atc", self.atc_table_sql)
+        self.get_and_save_table(client, "ddd", self.ddd_table_sql)
+        self.get_and_save_table(client, "atc_mapping", self.atc_vmp_table_sql)
 
     def get_and_save_table(self, client, table_name, sql_query):
         print(f"Getting {table_name} table")
@@ -131,4 +134,28 @@ class Command(BaseCommand):
                ingredient_unit, ods_code, logic
         FROM `ebmdatalab.scmd.ingredient_quantity`
         WHERE year_month = '{partition}'
+    """
+
+    atc_table_sql = """
+        SELECT DISTINCT
+            atc_code,
+            name
+        FROM `ebmdatalab.scmd.atc`
+    """
+
+    ddd_table_sql = """
+        SELECT DISTINCT
+            atc_code,
+            ddd,
+            unit_type,
+            adm_code
+        FROM `ebmdatalab.scmd.ddd`
+    """
+
+    atc_vmp_table_sql = """
+        SELECT DISTINCT
+            vmp_code,
+            bnf_code,
+            atc_code
+        FROM `ebmdatalab.scmd.scmd_dmd_supp`
     """
