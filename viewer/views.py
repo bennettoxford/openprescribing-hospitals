@@ -392,3 +392,24 @@ class OrgsSubmittingDataView(TemplateView):
 
         context['org_data_json'] = mark_safe(json.dumps(restructured_data))
         return context
+
+
+@api_view(["POST"])
+def filtered_vmp_count(request):
+    search_items = request.data.get("names", [])
+    search_type = request.data.get("search_type", "vmp")
+
+    search_items = [item.split("|")[0].strip() for item in search_items]
+    
+    if search_type == "vmp":
+        queryset = VMP.objects.filter(code__in=search_items)
+    elif search_type == "vtm":
+        queryset = VMP.objects.filter(vtm__vtm__in=search_items)
+    elif search_type == "ingredient":
+        queryset = VMP.objects.filter(ingredients__code__in=search_items)
+    elif search_type == "atc":
+        all_atc_codes = get_all_child_atc_codes(search_items)
+        queryset = VMP.objects.filter(atcs__code__in=all_atc_codes)
+    
+    vmp_count = queryset.distinct().count()
+    return Response({"vmp_count": vmp_count})

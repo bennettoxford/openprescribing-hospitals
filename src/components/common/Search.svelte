@@ -25,6 +25,9 @@
 
     let atcHierarchy = {};
 
+    let vmpCount = 0;
+    let isCalculating = false;
+
     async function fetchItems(type) {
         const endpoints = {
             vmp: '/api/unique-vmp-names/',
@@ -157,6 +160,34 @@
             type: searchType, 
             items: searchType === 'atc' ? selectedItems.map(i => i.code) : selectedItems 
         });
+        fetchVmpCount();
+    }
+
+    async function fetchVmpCount() {
+        if (selectedItems.length === 0) {
+            vmpCount = 0;
+            return;
+        }
+
+        isCalculating = true;
+        try {
+            const response = await fetch('/api/filtered-vmp-count/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    names: searchType === 'atc' ? selectedItems.map(i => i.code) : selectedItems,
+                    search_type: searchType,
+                }),
+            });
+            const data = await response.json();
+            vmpCount = data.vmp_count;
+        } catch (error) {
+            console.error('Error fetching VMP count:', error);
+        } finally {
+            isCalculating = false;
+        }
     }
 
     function isItemSelected(item) {
@@ -265,6 +296,19 @@
                     </li>
                 {/each}
             </ul>
+            <p class="mt-2 text-sm text-gray-600">
+                {#if isCalculating}
+                    Calculating number of individual products analysed...
+                {:else if vmpCount > 0}
+                    This selection will analyse {vmpCount} unique VMP{vmpCount !== 1 ? 's' : ''}.
+                    {#if vmpCount > 100}
+                        <span class="text-amber-600 font-semibold">
+                            Warning: This is a large number of products. The analysis may take a long time. 
+                            Consider making your selection more specific.
+                        </span>
+                    {/if}
+                {/if}
+            </p>
         </div>
     {/if}
 </div>
