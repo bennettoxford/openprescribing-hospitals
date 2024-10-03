@@ -155,50 +155,50 @@ class MeasureItemView(TemplateView):
 
 @api_view(["GET"])
 def unique_vmp_names(request):
-    vmp_names = VMP.objects.values_list(
-        "name", flat=True).distinct().order_by("name")
-    return Response(list(vmp_names))
+    vmp_data = VMP.objects.values('name', 'code').distinct().order_by('name')
+    formatted_vmp = [f"{item['code']} | {item['name']}" for item in vmp_data]
+    return Response(formatted_vmp)
 
 
 @api_view(["GET"])
 def unique_ods_names(request):
-    ods_names = (
-        Organisation.objects.values_list("ods_name", flat=True)
-        .distinct()
-        .order_by("ods_name")
-    )
-    return Response(list(ods_names))
+    ods_data = Organisation.objects.values('ods_name', 'ods_code').distinct().order_by('ods_name')
+    formatted_ods = [f"{item['ods_code']} | {item['ods_name']}" for item in ods_data]
+    return Response(formatted_ods)
 
 
 @api_view(["GET"])
 def unique_ingredient_names(request):
-    ingredient_names = (Ingredient.objects.values_list(
-        "name", flat=True).distinct().order_by("name"))
-    return Response(list(ingredient_names))
+    ingredient_data = Ingredient.objects.values('name', 'code').distinct().order_by('name')
+    formatted_ingredient = [f"{item['code']} | {item['name']}" for item in ingredient_data]
+    return Response(formatted_ingredient)
 
 
 @api_view(["GET"])
 def unique_vtm_names(request):
-    vtm_names = VTM.objects.values_list(
-        "name", flat=True).distinct().order_by("name")
-    return Response(list(vtm_names))
+    vtm_data = VTM.objects.values('vtm', 'name').distinct().order_by('name')
+    formatted_vtm = [f"{item['vtm']} | {item['name']}" for item in vtm_data]
+    return Response(formatted_vtm)
 
 
 @api_view(["POST"])
 def filtered_doses(request):
-    vmp_names = request.data.get("vmp_names", [])
+    search_items = request.data.get("names", [])
     ods_names = request.data.get("ods_names", [])
     search_type = request.data.get("search_type", "vmp")
 
-    if search_type == "vmp":
-        queryset = Dose.objects.filter(vmp__name__in=vmp_names)
-    elif search_type == "vtm":
-        queryset = Dose.objects.filter(vmp__vtm__name__in=vmp_names)
-    elif search_type == "ingredient":
-        queryset = Dose.objects.filter(vmp__ingredients__name__in=vmp_names)
+    search_items = [item.split("|")[0].strip() for item in search_items]
 
+    if search_type == "vmp":
+        queryset = Dose.objects.filter(vmp__code__in=search_items)
+    elif search_type == "vtm":
+        queryset = Dose.objects.filter(vmp__vtm__vtm__in=search_items)
+    elif search_type == "ingredient":
+        queryset = Dose.objects.filter(vmp__ingredients__code__in=search_items)
+ 
     if ods_names:
-        queryset = queryset.filter(organisation__ods_name__in=ods_names)
+        ods_names = [item.split("|")[0].strip() for item in ods_names]
+        queryset = queryset.filter(organisation__ods_code__in=ods_names)
 
     queryset = (
         queryset.select_related("vmp", "organisation", "vmp__vtm")
@@ -240,22 +240,25 @@ def filtered_doses(request):
 @api_view(["POST"])
 def filtered_ingredient_quantities(request):
 
-    search_items = request.data.get("vmp_names", [])
+    search_items = request.data.get("names", [])
     ods_names = request.data.get("ods_names", [])
 
     search_type = request.data.get("search_type", "")
 
     queryset = IngredientQuantity.objects.all()
 
+    search_items = [item.split("|")[0].strip() for item in search_items]
+
     if search_type == "vmp":
-        queryset = queryset.filter(vmp__name__in=search_items)
+        queryset = queryset.filter(vmp__code__in=search_items)
     elif search_type == "vtm":
-        queryset = queryset.filter(vmp__vtm__name__in=search_items)
+        queryset = queryset.filter(vmp__vtm__vtm__in=search_items)
     elif search_type == "ingredient":
         queryset = queryset.filter(ingredient__name__in=search_items)
 
     if ods_names:
-        queryset = queryset.filter(organisation__ods_name__in=ods_names)
+        ods_names = [item.split("|")[0].strip() for item in ods_names]
+        queryset = queryset.filter(organisation__ods_code__in=ods_names)
 
     queryset = queryset.select_related(
         "vmp",
