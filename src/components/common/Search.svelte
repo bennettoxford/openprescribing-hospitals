@@ -13,6 +13,7 @@
     let searchTerm = '';
     let searchResults = [];
     let selectedItems = [];
+    let selectedChildItems = new Set();
     let searchType = 'vmp';
 
     const searchTypes = [
@@ -21,6 +22,8 @@
         { value: 'ingredient', label: 'Ingredient' },
         { value: 'atc', label: 'ATC' }
     ];
+
+    let atcHierarchy = {};
 
     async function fetchItems(type) {
         const endpoints = {
@@ -40,6 +43,39 @@
             }
         } catch (error) {
             console.error('Error fetching items:', error);
+            items = [];
+        }
+    }
+
+    async function fetchAtcHierarchy() {
+        try {
+            const response = await fetch('/api/atc-hierarchy/');
+            if (response.ok) {
+                atcHierarchy = await response.json();
+            } else {
+                console.error('Failed to fetch ATC hierarchy:', response.status, response.statusText);
+            }
+        } catch (error) {
+            console.error('Error fetching ATC hierarchy:', error);
+        }
+    }
+
+    async function fetchAtcCodes() {
+        try {
+            const response = await fetch('/api/unique-atc-codes/');
+            if (response.ok) {
+                const data = await response.json();
+                items = data.map(item => item.name);
+                atcHierarchy = data.reduce((acc, item) => {
+                    acc[item.code] = item.children;
+                    return acc;
+                }, {});
+            } else {
+                console.error('Failed to fetch ATC codes:', response.status, response.statusText);
+                items = [];
+            }
+        } catch (error) {
+            console.error('Error fetching ATC codes:', error);
             items = [];
         }
     }
@@ -69,26 +105,75 @@
     }
 
     function addItem(item) {
-        if (!selectedItems.includes(item)) {
-            selectedItems = [...selectedItems, item];
-            dispatchSelectionChange();
+        if (searchType === 'atc') {
+            const [selectedCode, selectedName] = item.split(' | ');
+            if (!selectedItems.some(i => i.code === selectedCode)) {
+                selectedItems = [...selectedItems, { code: selectedCode, name: selectedName }];
+                // Add all child codes to selectedChildItems
+                function addChildren(code) {
+                    if (atcHierarchy[code]) {
+                        atcHierarchy[code].forEach(childCode => {
+                            selectedChildItems.add(childCode);
+                            addChildren(childCode);
+                        });
+                    }
+                }
+                addChildren(selectedCode);
+                selectedChildItems = new Set(selectedChildItems);
+            }
+        } else {
+            if (!selectedItems.includes(item)) {
+                selectedItems = [...selectedItems, item];
+            }
         }
+        dispatchSelectionChange();
         searchTerm = '';
         searchResults = [];
     }
 
     function removeItem(item) {
-        selectedItems = selectedItems.filter(i => i !== item);
+        if (searchType === 'atc') {
+            const codeToRemove = typeof item === 'string' ? item.split(' | ')[0] : item.code;
+            selectedItems = selectedItems.filter(i => i.code !== codeToRemove);
+            // Remove all child codes from selectedChildItems
+            function removeChildren(code) {
+                if (atcHierarchy[code]) {
+                    atcHierarchy[code].forEach(childCode => {
+                        selectedChildItems.delete(childCode);
+                        removeChildren(childCode);
+                    });
+                }
+            }
+            removeChildren(codeToRemove);
+            selectedChildItems = new Set(selectedChildItems); 
+        } else {
+            selectedItems = selectedItems.filter(i => i !== item);
+        }
         dispatchSelectionChange();
     }
 
     function dispatchSelectionChange() {
-        dispatch('selectionChange', { type: searchType, items: selectedItems });
+        dispatch('selectionChange', { 
+            type: searchType, 
+            items: searchType === 'atc' ? selectedItems.map(i => i.code) : selectedItems 
+        });
     }
 
     function isItemSelected(item) {
+        if (searchType === 'atc') {
+            const [code] = item.split(' | ');
+            return selectedItems.some(i => i.code === code) || selectedChildItems.has(code);
+        }
         return selectedItems.includes(item);
     }
+
+    onMount(() => {
+        if (searchType === 'atc') {
+            fetchAtcCodes();
+        } else {
+            fetchItems(searchType);
+        }
+    });
 
     $: {
         if (searchTerm.length > 0) {
@@ -99,13 +184,27 @@
     }
 
     $: {
-        fetchItems(searchType);
+        if (searchType === 'atc') {
+            fetchAtcCodes();
+        } else {
+            fetchItems(searchType);
+        }
         selectedItems = [];
         dispatchSelectionChange();
     }
 
+    $: {
+        if (searchType === 'atc' && !atcHierarchy) {
+            fetchAtcHierarchy();
+        }
+    }
+
     onMount(() => {
-        fetchItems(searchType);
+        if (searchType === 'atc') {
+            fetchAtcCodes();
+        } else {
+            fetchItems(searchType);
+        }
     });
 </script>
 
@@ -130,19 +229,18 @@
     {#if searchResults.length > 0}
         <ul class="mb-4 border border-gray-300 rounded-b-md rounded-l-md rounded-r-md max-h-60 overflow-y-auto divide-y divide-gray-200">
             {#each searchResults as result}
-                {#if isItemSelected(result)}
-                    <li class="p-2 bg-oxford-200 text-oxford-700 flex items-center">
-                        <span>{result}</span>
+                {@const isSelected = isItemSelected(result)}
+                <li 
+                    class="p-2 hover:bg-gray-100 cursor-pointer transition duration-150 ease-in-out flex items-center"
+                    class:bg-oxford-200={isSelected}
+                    class:text-oxford-700={isSelected}
+                    on:click={() => isSelected ? removeItem(result) : addItem(result)}
+                >
+                    <span>{result}</span>
+                    {#if isSelected}
                         <span class="ml-auto text-sm font-medium">Selected</span>
-                    </li>
-                {:else}
-                    <li 
-                        class="p-2 hover:bg-gray-100 cursor-pointer transition duration-150 ease-in-out"
-                        on:click={() => addItem(result)}
-                    >
-                        {result}
-                    </li>
-                {/if}
+                    {/if}
+                </li>
             {/each}
         </ul>
     {/if}
@@ -153,7 +251,9 @@
             <ul class="border border-gray-200 rounded-md">
                 {#each selectedItems as item}
                     <li class="flex items-center justify-between px-2 py-1">
-                        <span class="text-gray-800">{item}</span>
+                        <span class="text-gray-800">
+                            {searchType === 'atc' ? `${item.code} | ${item.name}` : item}
+                        </span>
                         <button 
                             on:click={() => removeItem(item)}
                             class="btn-red-sm"

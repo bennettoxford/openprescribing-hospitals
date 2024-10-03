@@ -5,6 +5,7 @@ from datetime import date
 from django.views.generic import TemplateView
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from django.http import JsonResponse
 from django.db.models import Prefetch
 from django.db.models.functions import Coalesce
 from django.db.models import F
@@ -155,11 +156,11 @@ class MeasureItemView(TemplateView):
 
 
 def get_all_child_atc_codes(atc_codes):
-    all_codes = []
+    all_codes = set(atc_codes)
     
     for code in atc_codes:
         children = ATC.objects.filter(code__startswith=code).exclude(code=code).values_list('code', flat=True)
-        all_codes.extend(children)
+        all_codes.update(children)
     
     return list(all_codes)
 
@@ -194,9 +195,36 @@ def unique_vtm_names(request):
 
 @api_view(["GET"])
 def unique_atc_codes(request):
-    atc_data = ATC.objects.values('code', 'name').distinct().order_by('name')
-    formatted_atc = [f"{item['code']} | {item['name']}" for item in atc_data]
-    return Response(formatted_atc)
+    atc_data = ATC.objects.values('code', 'name').distinct().order_by('code')
+    
+  
+    atc_hierarchy = {}
+    
+    for item in atc_data:
+        code = item['code']
+        name = item['name']
+        formatted_item = f"{code} | {name}"
+        
+        atc_hierarchy[code] = {
+            'name': formatted_item,
+            'children': []
+        }
+     
+        for i in range(1, len(code)):
+            parent_code = code[:i]
+            if parent_code in atc_hierarchy:
+                atc_hierarchy[parent_code]['children'].append(code)
+ 
+    formatted_atc = [
+        {
+            'code': code,
+            'name': data['name'],
+            'children': data['children']
+        }
+        for code, data in atc_hierarchy.items()
+    ]
+    
+    return JsonResponse(formatted_atc, safe=False)
 
 
 @api_view(["POST"])
@@ -206,7 +234,6 @@ def filtered_doses(request):
     search_type = request.data.get("search_type", "vmp")
 
     search_items = [item.split("|")[0].strip() for item in search_items]
-
     if search_type == "vmp":
         queryset = Dose.objects.filter(vmp__code__in=search_items)
     elif search_type == "vtm":
