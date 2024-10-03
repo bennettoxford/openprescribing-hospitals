@@ -6,12 +6,12 @@ import os
 import pandas as pd
 from django.db import transaction
 from viewer.models import (
+    ATC,
     VTM,
     VMP,
     Ingredient,
     Organisation,
     Dose,
-    SCMD,
     IngredientQuantity,
 )
 import glob
@@ -31,6 +31,7 @@ class Command(BaseCommand):
         self.load_organisation(data_dir)
         self.load_scmd_and_dose(data_dir)
         self.load_ingredient_quantity(data_dir)
+        self.load_atc(data_dir)
 
         self.stdout.write(self.style.SUCCESS(
             "Successfully loaded all data into the database"))
@@ -190,6 +191,59 @@ class Command(BaseCommand):
                 f"Loaded {len(org_objects)} Organisations and updated {len(successor_updates)} successor relationships"
             )
         )
+
+    def calculate_atc_level(self, code):
+        """
+        Calculate the ATC level based on the length of the code
+        """
+        if len(code) == 1:
+            return 1
+        elif len(code) == 3:
+            return 2
+        elif len(code) == 4:
+            return 3
+        elif len(code) == 5:
+            return 4
+        elif len(code) == 7:
+            return 5
+        else:
+            return 0
+        
+    def load_atc(self, directory):
+        atcs = self.load_csv("atc_table", directory)
+        atc_mapping = self.load_csv("atc_mapping_table", directory)
+        combined = atcs.merge(atc_mapping, on="atc_code", how="left")
+        combined["bnf_code"] = combined["bnf_code"].apply(lambda x: str(int(x)) if pd.notnull(x) else None)
+        combined["atc_code"] = combined["atc_code"].astype(str)
+        combined["vmp_code"] = combined["vmp_code"].apply(lambda x: str(int(x)) if pd.notnull(x) else None)
+
+        with transaction.atomic():
+            atc_objects = [
+                ATC(
+                    code=row["atc_code"],
+                    name=row["name"],
+                    bnf_code=row["bnf_code"],
+                    level=self.calculate_atc_level(row["atc_code"])
+                )
+                for _, row in combined.iterrows()
+            ]
+            ATC.objects.bulk_create(atc_objects, ignore_conflicts=True)
+
+            existing_vmp_codes = set(VMP.objects.values_list('code', flat=True))
+
+            vmp_atc_relations = []
+            for _, row in combined.iterrows():
+                if pd.notnull(row["vmp_code"]) and row["vmp_code"] in existing_vmp_codes:
+                    vmp_atc_relations.append(
+                        VMP.atcs.through(
+                            vmp_id=row["vmp_code"],
+                            atc_id=row["atc_code"]
+                        )
+                    )
+
+            VMP.atcs.through.objects.bulk_create(vmp_atc_relations, ignore_conflicts=True)
+
+        self.stdout.write(self.style.SUCCESS(f"Loaded {len(atc_objects)} ATCs and {len(vmp_atc_relations)} VMP-ATC relationships"))
 
     def load_monthly_csv(self, directory, pattern):
         files = glob.glob(os.path.join(directory, pattern))

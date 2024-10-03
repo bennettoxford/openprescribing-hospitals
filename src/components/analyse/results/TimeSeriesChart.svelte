@@ -60,11 +60,14 @@
         if (quantityType === 'Ingredient Quantity') {
             availableViewModes.push('Ingredient-Unit');
         } else {
-            if (searchType === 'vmp' || searchType === 'vtm') {
+            if (searchType === 'vmp' || searchType === 'vtm' || searchType === 'atc') {
                 availableViewModes.push('Unit');
             }
             if (searchType === 'vtm') {
                 availableViewModes.push('VTM');
+            }
+            if (searchType === 'atc') {
+                availableViewModes.push('ATC');
             }
         }
     }
@@ -86,10 +89,11 @@
             case 'Unit':
                 return item.unit;
             case 'Ingredient-Unit':
-                const ingredientName = getIngredientName(item);
-                return `${ingredientName} (${item.unit})`;
+                return `${item.ingredient_name} (${item.unit})`;
             case 'VTM':
                 return item.vtm_name || 'Unknown';
+            case 'ATC':
+                return `${item.atc_code} | ${item.atc_name}` || 'Unknown ATC';
             default:
                 return 'Total';
         }

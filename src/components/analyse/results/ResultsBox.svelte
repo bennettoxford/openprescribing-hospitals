@@ -34,8 +34,10 @@
             return JSON.stringify({
                 vmp: item.vmp_name,
                 unit: item.unit,
-                ingredient: Array.isArray(item.ingredient_names) ? item.ingredient_names[0] : item.ingredient_name,
+                ingredient: item.ingredient_name || (Array.isArray(item.ingredient_names) ? item.ingredient_names[0] : null),
                 vtm: item.vtm_name || null,
+                atc_code: item.atc_code || null,
+                atc_name: item.atc_name || null,
                 searchType: currentSearchType
             });
         }))).map(JSON.parse);

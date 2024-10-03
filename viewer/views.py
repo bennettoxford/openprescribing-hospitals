@@ -5,13 +5,16 @@ from datetime import date
 from django.views.generic import TemplateView
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from django.http import JsonResponse
 from django.db.models import Prefetch
 from django.db.models.functions import Coalesce
 from django.db.models import F
 from django.db.models import Value
 from django.utils.safestring import mark_safe
+from django.db.models import Exists, OuterRef
 
 from .models import (
+    ATC,
     Dose,
     Organisation,
     VMP,
@@ -153,52 +156,109 @@ class MeasureItemView(TemplateView):
         return context
 
 
+def get_all_child_atc_codes(atc_codes):
+    all_codes = set(atc_codes)
+    
+    for code in atc_codes:
+        children = ATC.objects.filter(code__startswith=code).exclude(code=code).values_list('code', flat=True)
+        all_codes.update(children)
+    
+    return list(all_codes)
+
+
 @api_view(["GET"])
 def unique_vmp_names(request):
-    vmp_names = VMP.objects.values_list(
-        "name", flat=True).distinct().order_by("name")
-    return Response(list(vmp_names))
+    vmp_data = VMP.objects.values('name', 'code').distinct().order_by('name')
+    formatted_vmp = [f"{item['code']} | {item['name']}" for item in vmp_data]
+    return Response(formatted_vmp)
 
 
 @api_view(["GET"])
 def unique_ods_names(request):
-    ods_names = (
-        Organisation.objects.values_list("ods_name", flat=True)
-        .distinct()
-        .order_by("ods_name")
-    )
-    return Response(list(ods_names))
+    ods_data = Organisation.objects.values('ods_name', 'ods_code').distinct().order_by('ods_name')
+    formatted_ods = [f"{item['ods_code']} | {item['ods_name']}" for item in ods_data]
+    return Response(formatted_ods)
 
 
 @api_view(["GET"])
 def unique_ingredient_names(request):
-    ingredient_names = (Ingredient.objects.values_list(
-        "name", flat=True).distinct().order_by("name"))
-    return Response(list(ingredient_names))
+    ingredient_data = Ingredient.objects.values('name', 'code').distinct().order_by('name')
+    formatted_ingredient = [f"{item['code']} | {item['name']}" for item in ingredient_data]
+    return Response(formatted_ingredient)
 
 
 @api_view(["GET"])
 def unique_vtm_names(request):
-    vtm_names = VTM.objects.values_list(
-        "name", flat=True).distinct().order_by("name")
-    return Response(list(vtm_names))
+    vtm_data = VTM.objects.values('vtm', 'name').distinct().order_by('name')
+    formatted_vtm = [f"{item['vtm']} | {item['name']}" for item in vtm_data]
+    return Response(formatted_vtm)
+
+
+@api_view(["GET"])
+def unique_atc_codes(request):
+    # Subquery to check if an ATC code has associated VMPs
+    vmp_exists = VMP.objects.filter(atcs__code=OuterRef('code')).values('code')
+
+    atc_data = ATC.objects.annotate(
+        has_vmps=Exists(vmp_exists)
+    ).values('code', 'name', 'has_vmps').distinct().order_by('code')
+    
+    atc_hierarchy = {}
+    
+    for item in atc_data:
+        code = item['code']
+        name = item['name']
+        has_vmps = item['has_vmps']
+        formatted_item = f"{code} | {name}"
+        
+        atc_hierarchy[code] = {
+            'name': formatted_item,
+            'children': [],
+            'has_vmps': has_vmps
+        }
+     
+        for i in range(1, len(code)):
+            parent_code = code[:i]
+            if parent_code in atc_hierarchy:
+                atc_hierarchy[parent_code]['children'].append(code)
+                # If a child has VMPs, the parent should be marked as having VMPs too
+                if has_vmps:
+                    atc_hierarchy[parent_code]['has_vmps'] = True
+ 
+    formatted_atc = [
+        {
+            'code': code,
+            'name': data['name'],
+            'children': data['children'],
+            'has_vmps': data['has_vmps']
+        }
+        for code, data in atc_hierarchy.items()
+    ]
+    
+    return JsonResponse(formatted_atc, safe=False)
 
 
 @api_view(["POST"])
 def filtered_doses(request):
-    vmp_names = request.data.get("vmp_names", [])
+    search_items = request.data.get("names", [])
     ods_names = request.data.get("ods_names", [])
     search_type = request.data.get("search_type", "vmp")
 
+    search_items = [item.split("|")[0].strip() for item in search_items]
     if search_type == "vmp":
-        queryset = Dose.objects.filter(vmp__name__in=vmp_names)
+        queryset = Dose.objects.filter(vmp__code__in=search_items)
     elif search_type == "vtm":
-        queryset = Dose.objects.filter(vmp__vtm__name__in=vmp_names)
+        queryset = Dose.objects.filter(vmp__vtm__vtm__in=search_items)
     elif search_type == "ingredient":
-        queryset = Dose.objects.filter(vmp__ingredients__name__in=vmp_names)
-
+        queryset = Dose.objects.filter(vmp__ingredients__code__in=search_items)
+    elif search_type == "atc":
+        # Get all children of the selected ATC codes
+        all_atc_codes = get_all_child_atc_codes(search_items)
+        queryset = Dose.objects.filter(vmp__atcs__code__in=all_atc_codes)
+    
     if ods_names:
-        queryset = queryset.filter(organisation__ods_name__in=ods_names)
+        ods_names = [item.split("|")[0].strip() for item in ods_names]
+        queryset = queryset.filter(organisation__ods_code__in=ods_names)
 
     queryset = (
         queryset.select_related("vmp", "organisation", "vmp__vtm")
@@ -207,7 +267,8 @@ def filtered_doses(request):
                 "vmp__ingredients",
                 queryset=Ingredient.objects.only("name"),
                 to_attr="prefetched_ingredients",
-            )
+            ),
+            "vmp__atcs"
         )
         .order_by("year_month", "vmp__name", "organisation__ods_name")
     )
@@ -226,62 +287,81 @@ def filtered_doses(request):
         )
     )
 
-    # Add ingredient names to the data
+    # Add ingredient names and ATC information to the data
     vmp_ingredient_map = {
         dose.id: [ing.name for ing in dose.vmp.prefetched_ingredients]
         for dose in queryset
     }
+    vmp_atc_map = {
+        dose.id: [{'code': atc.code, 'name': atc.name} for atc in dose.vmp.atcs.all()]
+        for dose in queryset
+    }
     for item in data:
         item["ingredient_names"] = vmp_ingredient_map[item["id"]]
+        atc_info = vmp_atc_map[item["id"]]
+        item["atc_code"] = atc_info[0]['code'] if atc_info else ""
+        item["atc_name"] = atc_info[0]['name'] if atc_info else "Unknown ATC"
 
     return Response(data)
 
 
 @api_view(["POST"])
 def filtered_ingredient_quantities(request):
-
-    search_items = request.data.get("vmp_names", [])
+    search_items = request.data.get("names", [])
     ods_names = request.data.get("ods_names", [])
-
     search_type = request.data.get("search_type", "")
 
     queryset = IngredientQuantity.objects.all()
 
+    search_items = [item.split("|")[0].strip() for item in search_items]
+
     if search_type == "vmp":
-        queryset = queryset.filter(vmp__name__in=search_items)
+        queryset = queryset.filter(vmp__code__in=search_items)
     elif search_type == "vtm":
-        queryset = queryset.filter(vmp__vtm__name__in=search_items)
+        queryset = queryset.filter(vmp__vtm__vtm__in=search_items)
     elif search_type == "ingredient":
         queryset = queryset.filter(ingredient__name__in=search_items)
+    elif search_type == "atc":
+        all_atc_codes = get_all_child_atc_codes(search_items)
+        queryset = queryset.filter(vmp__atcs__code__in=all_atc_codes)
 
     if ods_names:
-        queryset = queryset.filter(organisation__ods_name__in=ods_names)
+        ods_names = [item.split("|")[0].strip() for item in ods_names]
+        queryset = queryset.filter(organisation__ods_code__in=ods_names)
 
-    queryset = queryset.select_related(
-        "vmp",
-        "organisation",
-        "vmp__vtm",
-        "ingredient").order_by(
-        "year_month",
-        "vmp__name",
-        "organisation__ods_name",
-        "ingredient__name")
-
-    data = queryset.values(
-        "id",
-        "year_month",
-        "quantity",
-        "unit",
-        ingredient_code=F("ingredient__code"),
-        ingredient_name=F("ingredient__name"),
-        vmp_code=F("vmp__code"),
-        vmp_name=F("vmp__name"),
-        ods_code=F("organisation__ods_code"),
-        ods_name=F("organisation__ods_name"),
-        vtm_name=Coalesce("vmp__vtm__name", Value("")),
+    queryset = (
+        queryset.select_related("vmp", "organisation", "vmp__vtm", "ingredient")
+        .prefetch_related("vmp__atcs")
+        .order_by("year_month", "vmp__name", "organisation__ods_name", "ingredient__name")
     )
 
-    return Response(list(data))
+    data = list(
+        queryset.values(
+            "id",
+            "year_month",
+            "quantity",
+            "unit",
+            ingredient_code=F("ingredient__code"),
+            ingredient_name=F("ingredient__name"),
+            vmp_code=F("vmp__code"),
+            vmp_name=F("vmp__name"),
+            ods_code=F("organisation__ods_code"),
+            ods_name=F("organisation__ods_name"),
+            vtm_name=Coalesce("vmp__vtm__name", Value("")),
+        )
+    )
+
+    # Add ATC information to the data
+    vmp_atc_map = {
+        iq.id: [{'code': atc.code, 'name': atc.name} for atc in iq.vmp.atcs.all()]
+        for iq in queryset
+    }
+    for item in data:
+        atc_info = vmp_atc_map[item["id"]]
+        item["atc_code"] = atc_info[0]['code'] if atc_info else ""
+        item["atc_name"] = atc_info[0]['name'] if atc_info else "Unknown ATC"
+
+    return Response(data)
 
 
 class OrgsSubmittingDataView(TemplateView):
@@ -336,3 +416,24 @@ class OrgsSubmittingDataView(TemplateView):
 
         context['org_data_json'] = mark_safe(json.dumps(restructured_data))
         return context
+
+
+@api_view(["POST"])
+def filtered_vmp_count(request):
+    search_items = request.data.get("names", [])
+    search_type = request.data.get("search_type", "vmp")
+
+    search_items = [item.split("|")[0].strip() for item in search_items]
+    
+    if search_type == "vmp":
+        queryset = VMP.objects.filter(code__in=search_items)
+    elif search_type == "vtm":
+        queryset = VMP.objects.filter(vtm__vtm__in=search_items)
+    elif search_type == "ingredient":
+        queryset = VMP.objects.filter(ingredients__code__in=search_items)
+    elif search_type == "atc":
+        all_atc_codes = get_all_child_atc_codes(search_items)
+        queryset = VMP.objects.filter(atcs__code__in=all_atc_codes)
+    
+    vmp_count = queryset.distinct().count()
+    return Response({"vmp_count": vmp_count})

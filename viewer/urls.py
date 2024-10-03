@@ -1,7 +1,9 @@
 from django.urls import path
 from .views import (
+    filtered_vmp_count,
     unique_vmp_names,
     unique_ods_names,
+    unique_atc_codes,
     IndexView,
     filtered_doses,
     filtered_ingredient_quantities,
@@ -20,8 +22,10 @@ urlpatterns = [
     path("", IndexView.as_view(), name="index"),
     path("analyse/", AnalyseView.as_view(), name="analyse"),
     path("measures/", MeasuresListView.as_view(), name="measures_list"),
+    path("api/filtered-vmp-count/", filtered_vmp_count, name="filtered_vmp_count"),
     path("api/unique-vmp-names/", unique_vmp_names, name="unique_vmp_names"),
     path("api/unique-ods-names/", unique_ods_names, name="unique_ods_names"),
+    path("api/unique-atc-codes/", unique_atc_codes, name="unique_atc_codes"),
     path(
         "api/unique-ingredient-names/",
         unique_ingredient_names,

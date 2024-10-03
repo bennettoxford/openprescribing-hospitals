@@ -71,7 +71,7 @@
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    vmp_names: selectedVMPs,
+                    names: selectedVMPs,
                     ods_names: selectedODS,
                     search_type: searchType
                 })
