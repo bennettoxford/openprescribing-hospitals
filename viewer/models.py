@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.text import slugify
+from django.core.validators import RegexValidator
 
 class VTM(models.Model):
     vtm = models.CharField(max_length=20, primary_key=True)
@@ -17,6 +18,7 @@ class VMP(models.Model):
     )
     ingredients = models.ManyToManyField(
         "Ingredient", related_name="vmps", null=True)
+    atcs = models.ManyToManyField("ATC", related_name="vmps", null=True)
 
     def __str__(self):
         return f"{self.name} ({self.code})"
@@ -159,3 +161,36 @@ class OrgSubmissionCache(models.Model):
 
     class Meta:
         unique_together = ('organisation', 'month')
+
+class ATC(models.Model):
+    code = models.CharField(
+        max_length=7,
+        primary_key=True,
+        validators=[
+            RegexValidator(
+                regex=r'^[A-Z](\d{2}([A-Z](\d{2}([A-Z](\d{2})?)?)?)?)?$',
+                message='Invalid ATC code format',
+            )
+        ]
+    )
+    bnf_code = models.CharField(max_length=20, null=True)
+    name = models.CharField(max_length=255)
+    level = models.IntegerField()
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='children')
+
+    def save(self, *args, **kwargs):
+        self.level = len(self.code)
+        if self.level > 1:
+            self.parent = ATC.objects.get(code=self.code[:-2])
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['code']),
+            models.Index(fields=['level']),
+            models.Index(fields=['parent']),
+        ]
+
