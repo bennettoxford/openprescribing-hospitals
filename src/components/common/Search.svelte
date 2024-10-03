@@ -231,10 +231,12 @@
             {#each searchResults as result}
                 {@const isSelected = isItemSelected(result)}
                 <li 
-                    class="p-2 hover:bg-gray-100 cursor-pointer transition duration-150 ease-in-out flex items-center"
+                    class="p-2 transition duration-150 ease-in-out flex items-center"
                     class:bg-oxford-200={isSelected}
                     class:text-oxford-700={isSelected}
-                    on:click={() => isSelected ? removeItem(result) : addItem(result)}
+                    class:hover:bg-gray-100={!isSelected}
+                    class:cursor-pointer={!isSelected}
+                    on:click={() => !isSelected && addItem(result)}
                 >
                     <span>{result}</span>
                     {#if isSelected}
