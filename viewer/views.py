@@ -256,7 +256,6 @@ def filtered_doses(request):
         all_atc_codes = get_all_child_atc_codes(search_items)
         queryset = Dose.objects.filter(vmp__atcs__code__in=all_atc_codes)
     
- 
     if ods_names:
         ods_names = [item.split("|")[0].strip() for item in ods_names]
         queryset = queryset.filter(organisation__ods_code__in=ods_names)
@@ -268,7 +267,8 @@ def filtered_doses(request):
                 "vmp__ingredients",
                 queryset=Ingredient.objects.only("name"),
                 to_attr="prefetched_ingredients",
-            )
+            ),
+            "vmp__atcs"
         )
         .order_by("year_month", "vmp__name", "organisation__ods_name")
     )
@@ -287,23 +287,28 @@ def filtered_doses(request):
         )
     )
 
-    # Add ingredient names to the data
+    # Add ingredient names and ATC information to the data
     vmp_ingredient_map = {
         dose.id: [ing.name for ing in dose.vmp.prefetched_ingredients]
         for dose in queryset
     }
+    vmp_atc_map = {
+        dose.id: [{'code': atc.code, 'name': atc.name} for atc in dose.vmp.atcs.all()]
+        for dose in queryset
+    }
     for item in data:
         item["ingredient_names"] = vmp_ingredient_map[item["id"]]
+        atc_info = vmp_atc_map[item["id"]]
+        item["atc_code"] = atc_info[0]['code'] if atc_info else ""
+        item["atc_name"] = atc_info[0]['name'] if atc_info else "Unknown ATC"
 
     return Response(data)
 
 
 @api_view(["POST"])
 def filtered_ingredient_quantities(request):
-
     search_items = request.data.get("names", [])
     ods_names = request.data.get("ods_names", [])
-
     search_type = request.data.get("search_type", "")
 
     queryset = IngredientQuantity.objects.all()
@@ -324,31 +329,39 @@ def filtered_ingredient_quantities(request):
         ods_names = [item.split("|")[0].strip() for item in ods_names]
         queryset = queryset.filter(organisation__ods_code__in=ods_names)
 
-    queryset = queryset.select_related(
-        "vmp",
-        "organisation",
-        "vmp__vtm",
-        "ingredient").order_by(
-        "year_month",
-        "vmp__name",
-        "organisation__ods_name",
-        "ingredient__name")
-
-    data = queryset.values(
-        "id",
-        "year_month",
-        "quantity",
-        "unit",
-        ingredient_code=F("ingredient__code"),
-        ingredient_name=F("ingredient__name"),
-        vmp_code=F("vmp__code"),
-        vmp_name=F("vmp__name"),
-        ods_code=F("organisation__ods_code"),
-        ods_name=F("organisation__ods_name"),
-        vtm_name=Coalesce("vmp__vtm__name", Value("")),
+    queryset = (
+        queryset.select_related("vmp", "organisation", "vmp__vtm", "ingredient")
+        .prefetch_related("vmp__atcs")
+        .order_by("year_month", "vmp__name", "organisation__ods_name", "ingredient__name")
     )
 
-    return Response(list(data))
+    data = list(
+        queryset.values(
+            "id",
+            "year_month",
+            "quantity",
+            "unit",
+            ingredient_code=F("ingredient__code"),
+            ingredient_name=F("ingredient__name"),
+            vmp_code=F("vmp__code"),
+            vmp_name=F("vmp__name"),
+            ods_code=F("organisation__ods_code"),
+            ods_name=F("organisation__ods_name"),
+            vtm_name=Coalesce("vmp__vtm__name", Value("")),
+        )
+    )
+
+    # Add ATC information to the data
+    vmp_atc_map = {
+        iq.id: [{'code': atc.code, 'name': atc.name} for atc in iq.vmp.atcs.all()]
+        for iq in queryset
+    }
+    for item in data:
+        atc_info = vmp_atc_map[item["id"]]
+        item["atc_code"] = atc_info[0]['code'] if atc_info else ""
+        item["atc_name"] = atc_info[0]['name'] if atc_info else "Unknown ATC"
+
+    return Response(data)
 
 
 class OrgsSubmittingDataView(TemplateView):

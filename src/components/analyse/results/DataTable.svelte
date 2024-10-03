@@ -19,6 +19,8 @@
                 groupKey = item.vtm_name || 'Unknown VTM';
             } else if (searchType === 'ingredient') {
                 groupKey = item.ingredient_names ? item.ingredient_names[0] : 'Unknown Ingredient';
+            } else if (searchType === 'atc') {
+                groupKey = `${item.atc_code} | ${item.atc_name}` || 'Unknown ATC';
             }
             
             if (!acc[groupKey]) {
