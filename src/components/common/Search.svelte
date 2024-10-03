@@ -68,9 +68,9 @@
             const response = await fetch('/api/unique-atc-codes/');
             if (response.ok) {
                 const data = await response.json();
-                items = data.map(item => item.name);
+                items = data;
                 atcHierarchy = data.reduce((acc, item) => {
-                    acc[item.code] = item.children;
+                    acc[item.code] = item;
                     return acc;
                 }, {});
             } else {
@@ -86,10 +86,10 @@
     function search() {
         if (searchType === 'atc') {
             searchResults = items.filter(item =>
-                item.toLowerCase().includes(searchTerm.toLowerCase())
+                item.name.toLowerCase().includes(searchTerm.toLowerCase())
             ).sort((a, b) => {
-                const aCode = a.split(' | ')[0];
-                const bCode = b.split(' | ')[0];
+                const aCode = a.name.split(' | ')[0];
+                const bCode = b.name.split(' | ')[0];
                 // First, sort by whether the item starts with the search term
                 if (aCode.startsWith(searchTerm) && !bCode.startsWith(searchTerm)) return -1;
                 if (!aCode.startsWith(searchTerm) && bCode.startsWith(searchTerm)) return 1;
@@ -109,15 +109,17 @@
 
     function addItem(item) {
         if (searchType === 'atc') {
-            const [selectedCode, selectedName] = item.split(' | ');
-            if (!selectedItems.some(i => i.code === selectedCode)) {
+            const [selectedCode, selectedName] = item.name.split(' | ');
+            if (!selectedItems.some(i => i.code === selectedCode) && item.has_vmps) {
                 selectedItems = [...selectedItems, { code: selectedCode, name: selectedName }];
                 // Add all child codes to selectedChildItems
                 function addChildren(code) {
                     if (atcHierarchy[code]) {
-                        atcHierarchy[code].forEach(childCode => {
-                            selectedChildItems.add(childCode);
-                            addChildren(childCode);
+                        atcHierarchy[code].children.forEach(childCode => {
+                            if (atcHierarchy[childCode].has_vmps) {
+                                selectedChildItems.add(childCode);
+                                addChildren(childCode);
+                            }
                         });
                     }
                 }
@@ -141,7 +143,7 @@
             // Remove all child codes from selectedChildItems
             function removeChildren(code) {
                 if (atcHierarchy[code]) {
-                    atcHierarchy[code].forEach(childCode => {
+                    atcHierarchy[code].children.forEach(childCode => {
                         selectedChildItems.delete(childCode);
                         removeChildren(childCode);
                     });
@@ -192,7 +194,7 @@
 
     function isItemSelected(item) {
         if (searchType === 'atc') {
-            const [code] = item.split(' | ');
+            const [code] = item.name.split(' | ');
             return selectedItems.some(i => i.code === code) || selectedChildItems.has(code);
         }
         return selectedItems.includes(item);
@@ -261,17 +263,22 @@
         <ul class="mb-4 border border-gray-300 rounded-b-md rounded-l-md rounded-r-md max-h-60 overflow-y-auto divide-y divide-gray-200">
             {#each searchResults as result}
                 {@const isSelected = isItemSelected(result)}
+                {@const hasNoData = searchType === 'atc' && !result.has_vmps}
                 <li 
                     class="p-2 transition duration-150 ease-in-out flex items-center"
                     class:bg-oxford-200={isSelected}
                     class:text-oxford-700={isSelected}
-                    class:hover:bg-gray-100={!isSelected}
-                    class:cursor-pointer={!isSelected}
-                    on:click={() => !isSelected && addItem(result)}
+                    class:hover:bg-gray-100={!isSelected && !hasNoData}
+                    class:cursor-pointer={!isSelected && !hasNoData}
+                    class:text-gray-400={hasNoData}
+                    class:cursor-not-allowed={hasNoData}
+                    on:click={() => !isSelected && !hasNoData && addItem(result)}
                 >
-                    <span>{result}</span>
+                    <span>{searchType === 'atc' ? result.name : result}</span>
                     {#if isSelected}
                         <span class="ml-auto text-sm font-medium">Selected</span>
+                    {:else if hasNoData}
+                        <span class="ml-auto text-sm font-medium text-gray-400">No data</span>
                     {/if}
                 </li>
             {/each}

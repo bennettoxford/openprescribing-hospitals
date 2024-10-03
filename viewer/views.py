@@ -11,6 +11,7 @@ from django.db.models.functions import Coalesce
 from django.db.models import F
 from django.db.models import Value
 from django.utils.safestring import mark_safe
+from django.db.models import Exists, OuterRef
 
 from .models import (
     ATC,
@@ -195,31 +196,41 @@ def unique_vtm_names(request):
 
 @api_view(["GET"])
 def unique_atc_codes(request):
-    atc_data = ATC.objects.values('code', 'name').distinct().order_by('code')
+    # Subquery to check if an ATC code has associated VMPs
+    vmp_exists = VMP.objects.filter(atcs__code=OuterRef('code')).values('code')
+
+    atc_data = ATC.objects.annotate(
+        has_vmps=Exists(vmp_exists)
+    ).values('code', 'name', 'has_vmps').distinct().order_by('code')
     
-  
     atc_hierarchy = {}
     
     for item in atc_data:
         code = item['code']
         name = item['name']
+        has_vmps = item['has_vmps']
         formatted_item = f"{code} | {name}"
         
         atc_hierarchy[code] = {
             'name': formatted_item,
-            'children': []
+            'children': [],
+            'has_vmps': has_vmps
         }
      
         for i in range(1, len(code)):
             parent_code = code[:i]
             if parent_code in atc_hierarchy:
                 atc_hierarchy[parent_code]['children'].append(code)
+                # If a child has VMPs, the parent should be marked as having VMPs too
+                if has_vmps:
+                    atc_hierarchy[parent_code]['has_vmps'] = True
  
     formatted_atc = [
         {
             'code': code,
             'name': data['name'],
-            'children': data['children']
+            'children': data['children'],
+            'has_vmps': data['has_vmps']
         }
         for code, data in atc_hierarchy.items()
     ]
