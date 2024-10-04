@@ -238,7 +238,7 @@
                         {/if}
                         {#if hasMultipleRoutes}
                             <li class="text-yellow-700">
-                                Some products have multiple routes of administration. This may affect the analysis:
+                                Some products have multiple routes of administration. These will not be included in breakdowns by route of administration:
                                 <ul class="list-disc list-inside ml-4 mt-1">
                                     {#each vmps.filter(vmp => vmp.routes && vmp.routes.length > 1) as vmp}
                                         <li>{vmp.vmp}: {vmp.routes.map(route => route.name).join(', ')}</li>

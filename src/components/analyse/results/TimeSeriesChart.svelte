@@ -15,6 +15,7 @@
     let units = [];
     let ingredientUnitPairs = [];
     let vtms = [];
+    let routes = [];
     let tooltip;
     let resizeTimer;
     let visibleDatasets = [];
@@ -45,6 +46,7 @@
                 ))];
             }
             vtms = [...new Set(data.map(item => item.vtm_name || 'Unknown'))];
+            routes = [...new Set(data.filter(item => item.route_name).map(item => item.route_name))];
             if (chartDiv) {
                 updateChart();
             }
@@ -71,6 +73,7 @@
                 availableViewModes.push('ATC');
             }
         }
+        availableViewModes.push('Route');
     }
 
     function getIngredientName(item) {
@@ -95,6 +98,8 @@
                 return item.vtm_name || 'Unknown';
             case 'ATC':
                 return `${item.atc_code} | ${item.atc_name}` || 'Unknown ATC';
+            case 'Route':
+                return item.route_name || 'Unknown Route';
             default:
                 return 'Total';
         }
@@ -112,10 +117,20 @@
                 acc[key] = {};
             }
             const breakdownKey = getBreakdownKey(item, viewMode);
-            if (!acc[key][breakdownKey]) {
-                acc[key][breakdownKey] = 0;
+            
+            if (viewMode === 'Route') {
+                if (item.route_name) {
+                    if (!acc[key][breakdownKey]) {
+                        acc[key][breakdownKey] = 0;
+                    }
+                    acc[key][breakdownKey] += parseFloat(item.quantity);
+                }
+            } else {
+                if (!acc[key][breakdownKey]) {
+                    acc[key][breakdownKey] = 0;
+                }
+                acc[key][breakdownKey] += parseFloat(item.quantity);
             }
-            acc[key][breakdownKey] += parseFloat(item.quantity);
             return acc;
         }, {});
 
