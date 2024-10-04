@@ -58,6 +58,7 @@
                 vtm: item.vtm_name || null,
                 atc_code: item.atc_code || null,
                 atc_name: item.atc_name || null,
+                routes: item.routes,
                 searchType: currentSearchType
             });
         }))).map(JSON.parse);

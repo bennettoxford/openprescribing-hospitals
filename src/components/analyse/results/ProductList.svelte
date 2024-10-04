@@ -119,7 +119,9 @@
     $: missingVMPs = vmps.filter(vmp => vmp.unit === 'nan').map(vmp => vmp.vmp);
     $: hasMissingVMPs = missingVMPs.length > 0;
 
-    $: hasWarnings = showUnitWarning || showUnitIngredientWarning || hasMissingVMPs;
+    $: hasMultipleRoutes = vmps.some(vmp => vmp.routes && vmp.routes.length > 1);
+    
+    $: hasWarnings = showUnitWarning || showUnitIngredientWarning || hasMissingVMPs || hasMultipleRoutes;
 
     let showWarnings = false;
 </script>
@@ -230,6 +232,16 @@
                                 <ul class="list-disc list-inside ml-4 mt-1">
                                     {#each missingVMPs as vmp}
                                         <li>{vmp}</li>
+                                    {/each}
+                                </ul>
+                            </li>
+                        {/if}
+                        {#if hasMultipleRoutes}
+                            <li class="text-yellow-700">
+                                Some products have multiple routes of administration. This may affect the analysis:
+                                <ul class="list-disc list-inside ml-4 mt-1">
+                                    {#each vmps.filter(vmp => vmp.routes && vmp.routes.length > 1) as vmp}
+                                        <li>{vmp.vmp}: {vmp.routes.map(route => route.name).join(', ')}</li>
                                     {/each}
                                 </ul>
                             </li>
