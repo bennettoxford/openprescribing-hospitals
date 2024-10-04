@@ -15,6 +15,7 @@ from viewer.models import (
     IngredientQuantity,
     DataStatus,
     SCMDQuantity,
+    Route,
 )
 import glob
 from tqdm import tqdm
@@ -36,6 +37,7 @@ class Command(BaseCommand):
         self.load_ingredient_quantity(data_dir)
         self.load_atc(data_dir)
         self.load_data_status(data_dir)
+        self.load_route(data_dir)
 
         self.stdout.write(self.style.SUCCESS(
             "Successfully loaded all data into the database"))
@@ -248,6 +250,37 @@ class Command(BaseCommand):
             VMP.atcs.through.objects.bulk_create(vmp_atc_relations, ignore_conflicts=True)
 
         self.stdout.write(self.style.SUCCESS(f"Loaded {len(atc_objects)} ATCs and {len(vmp_atc_relations)} VMP-ATC relationships"))
+
+    def load_route(self, directory):
+        routes = self.load_csv("route_table", directory)
+        routes.rename(columns={"route_cd": "code", "route_descr": "name"}, inplace=True)
+        routes["code"] = routes["code"].astype(str)
+
+        unique_routes = routes.drop_duplicates(subset=["code", "name"])
+        unique_routes = unique_routes.to_dict(orient="records")
+        
+        route_objects = [Route(code=route["code"], name=route["name"]) for route in unique_routes]
+        Route.objects.bulk_create(route_objects, ignore_conflicts=True)
+
+        # Get existing VMP codes
+        existing_vmp_codes = set(VMP.objects.values_list('code', flat=True))
+
+        # Add routes to VMPs
+        vmp_route_relations = []
+        for _, row in routes.iterrows():
+            if pd.notnull(row["vmp_code"]):
+                vmp_code = str(int(row["vmp_code"]))
+                if vmp_code in existing_vmp_codes:
+                    vmp_route_relations.append(
+                        VMP.routes.through(
+                            vmp_id=vmp_code,
+                            route_id=row["code"]
+                        )
+                    )
+
+        VMP.routes.through.objects.bulk_create(vmp_route_relations, ignore_conflicts=True)
+
+        self.stdout.write(self.style.SUCCESS(f"Loaded {len(route_objects)} Routes and {len(vmp_route_relations)} VMP-Route relationships"))
 
     def load_monthly_csv(self, directory, pattern):
         files = glob.glob(os.path.join(directory, pattern))
