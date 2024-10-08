@@ -11,6 +11,8 @@
 
     export let items = [];
     export let overlayMode = false;
+    export let filterType = 'organisation';
+
     let isOpen = false;
     let searchTerm = '';
     let selectedItems = [];
@@ -95,7 +97,9 @@
             class="mr-2 w-4 h-4"
         />
         <label for="showOrganisationSelection" class="text-sm font-medium text-gray-700">
-            Filter by specific organisations
+            Filter by specific {filterType === 'organisation' ? 'organisations' : 
+                                filterType === 'icb' ? 'ICBs' : 
+                                'regions'}
         </label>
     </div>
 
@@ -104,7 +108,9 @@
             on:click={toggleDropdown}
             class="w-full p-2 border border-gray-300 rounded-md bg-white flex justify-between items-center flex-shrink-0"
         >
-            <span>{selectedItems.length} ODS name(s) selected</span>
+            <span>{selectedItems.length} {filterType === 'organisation' ? 'ODS' : 
+                                          filterType === 'icb' ? 'ICB' : 
+                                          'region'} name(s) selected</span>
             <span class="ml-2">▼</span>
         </button>
 
@@ -115,7 +121,9 @@
                     <input
                         type="text"
                         bind:value={searchTerm}
-                        placeholder="Search ODS names..."
+                        placeholder="Search {filterType === 'organisation' ? 'ODS' : 
+                                              filterType === 'icb' ? 'ICB' : 
+                                              'region'} names..."
                         class="w-full p-2 border border-gray-300 rounded-md mb-2"
                     />
                     <div class="flex justify-between mb-2">

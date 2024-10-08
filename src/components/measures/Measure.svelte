@@ -16,7 +16,7 @@
     let chartContainer;
     let resizeObserver;
     let organisations = [];
-    let selectedOrganisations = [];
+    let selectedItems = [];
     let usedOrganisationSelection = false;
     let tooltip;
     let selectedMode = 'organisation';
@@ -24,6 +24,7 @@
     let regions = [];
     let icbs = [];
     let legendItems = [];
+    let filteredData = parsedData;
 
     const regionColors = {
         'East Of England': '#1f77b4',
@@ -65,6 +66,26 @@
     
         regions = [...new Set(parsedData.map(item => item.region))];
         icbs = [...new Set(parsedData.map(item => item.icb))];
+
+        if (selectedMode === 'organisation' || selectedMode === 'icb' || selectedMode === 'region') {
+            if (usedOrganisationSelection && selectedItems.length > 0) {
+                filteredData = parsedData.filter(item => 
+                    selectedMode === 'organisation' ? selectedItems.includes(item.organisation) :
+                    selectedMode === 'icb' ? selectedItems.includes(item.icb) :
+                    selectedItems.includes(item.region)
+                );
+            } else {
+                filteredData = parsedData;
+            }
+        } else if (selectedMode === 'deciles') {
+            if (usedOrganisationSelection && selectedItems.length > 0) {
+                filteredData = parsedData.filter(item => selectedItems.includes(item.organisation));
+            } else {
+                filteredData = parsedData;
+            }
+        } else {
+            filteredData = parsedData;
+        }
 
         if (selectedMode === 'deciles') {
             legendItems = [
@@ -111,17 +132,23 @@
         let filteredData;
         let breakdownKeys;
 
-        if (selectedMode === 'organisation') {
+        if (selectedMode === 'organisation' || selectedMode === 'icb' || selectedMode === 'region') {
             if (usedOrganisationSelection) {
-                if (selectedOrganisations.length > 0) {
-                    filteredData = data.filter(item => selectedOrganisations.includes(item.organisation));
-                    breakdownKeys = selectedOrganisations;
+                if (selectedItems.length > 0) {
+                    filteredData = data.filter(item => 
+                        selectedMode === 'organisation' ? selectedItems.includes(item.organisation) :
+                        selectedMode === 'icb' ? selectedItems.includes(item.icb) :
+                        selectedItems.includes(item.region)
+                    );
+                    breakdownKeys = selectedItems;
                 } else {
                     return { labels: [], datasets: [] };
                 }
             } else {
                 filteredData = data;
-                breakdownKeys = organisations;
+                breakdownKeys = selectedMode === 'organisation' ? organisations :
+                                selectedMode === 'icb' ? icbs :
+                                regions;
             }
 
             const groupedData = filteredData.reduce((acc, item) => {
@@ -129,14 +156,16 @@
                 if (!acc[key]) {
                     acc[key] = {};
                 }
-                const breakdownKey = item.organisation;
+                const breakdownKey = selectedMode === 'organisation' ? item.organisation :
+                                     selectedMode === 'icb' ? item.icb :
+                                     item.region;
                 if (!acc[key][breakdownKey]) {
-                    acc[key][breakdownKey] = 0;
+                    acc[key][breakdownKey] = { sum: 0, count: 0 };
                 }
-                acc[key][breakdownKey] += parseFloat(item.quantity);
+                acc[key][breakdownKey].sum += parseFloat(item.quantity);
+                acc[key][breakdownKey].count += 1;
                 return acc;
             }, {});
-
 
             const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
 
@@ -144,20 +173,16 @@
                 labels: sortedDates,
                 datasets: breakdownKeys.map((key, index) => {
                     const dataPoints = sortedDates.map(date => {
-                        if (!groupedData[date]) {
-                            console.warn(`No data for date: ${date}`);
+                        if (!groupedData[date] || !groupedData[date][key]) {
                             return 0;
                         }
-                        if (!(key in groupedData[date])) {
-                            console.warn(`No data for organisation ${key} on date ${date}`);
-                            return 0;
-                        }
-                        return groupedData[date][key];
+                        const { sum, count } = groupedData[date][key];
+                        return count > 0 ? sum / count : 0;
                     });
                     return {
                         label: key,
                         data: dataPoints,
-                        color: `hsl(${index * 360 / breakdownKeys.length}, 70%, 50%)`,
+                        color: getColor(key, index, breakdownKeys.length),
                         strokeWidth: 2
                     };
                 })
@@ -202,8 +227,8 @@
                 };
             });
 
-            if (usedOrganisationSelection && selectedOrganisations.length > 0) {
-                const filteredData = data.filter(item => selectedOrganisations.includes(item.organisation));
+            if (usedOrganisationSelection && selectedItems.length > 0) {
+                const filteredData = data.filter(item => selectedItems.includes(item.organisation));
                 const groupedData = filteredData.reduce((acc, item) => {
                     const key = item.month;
                     if (!acc[key]) {
@@ -217,10 +242,10 @@
                     return acc;
                 }, {});
 
-                const organisationDatasets = selectedOrganisations.map((key, index) => ({
+                const organisationDatasets = selectedItems.map((key, index) => ({
                     label: key,
                     data: sortedDates.map(date => groupedData[date][key] || 0),
-                    color: `hsl(${index * 360 / selectedOrganisations.length}, 70%, 50%)`,
+                    color: `hsl(${index * 360 / selectedItems.length}, 70%, 50%)`,
                     strokeWidth: 3 // Thicker lines for selected organisations
                 }));
 
@@ -440,14 +465,19 @@
 
     const debouncedUpdateChart = debounce(updateChart, 250);
 
-    function handleOrganisationSelection(event) {
-        selectedOrganisations = event.detail.selectedItems;
+    function handleItemSelection(event) {
+        selectedItems = event.detail.selectedItems;
         usedOrganisationSelection = event.detail.usedOrganisationSelection;
         updateChart();
     }
 
     function handleModeChange(event) {
         selectedMode = event.target.value;
+        // Reset selection when mode changes, except for 'deciles'
+        if (selectedMode !== 'deciles') {
+            selectedItems = [];
+            usedOrganisationSelection = false;
+        }
         updateChart();
     }
 
@@ -498,9 +528,13 @@
     <div class="flex flex-wrap justify-between items-end mb-4">
         <div class="flex-grow mr-4 relative">
             <OrganisationSearch 
-                items={organisations} 
-                on:selectionChange={handleOrganisationSelection}
+                items={selectedMode === 'deciles' ? organisations :
+                       selectedMode === 'organisation' ? organisations : 
+                       selectedMode === 'icb' ? icbs : 
+                       regions}
+                on:selectionChange={handleItemSelection}
                 overlayMode={true}
+                filterType={selectedMode === 'deciles' ? 'organisation' : selectedMode}
             />
         </div>
         <div class="flex-shrink-0 mr-8">
