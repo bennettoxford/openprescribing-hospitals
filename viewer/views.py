@@ -26,6 +26,7 @@ from .models import (
     OrgSubmissionCache,
 )
 from .measures.measure_utils import execute_measure_sql
+from markdown2 import Markdown
 
 
 class IndexView(TemplateView):
@@ -50,16 +51,18 @@ class MeasuresListView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         measures_by_category = {}
-        for measure in Measure.objects.all():
+        for measure in Measure.objects.select_related('reason').filter(draft=False):
             category = measure.category or 'Uncategorised'
             if category not in measures_by_category:
                 measures_by_category[category] = []
+            markdowner = Markdown()
+            measure.why_it_matters = markdowner.convert(measure.why_it_matters)
             measures_by_category[category].append(measure)
         
         # Ensure "Experimental" category is last
-        if "Experimental" in measures_by_category:
-            experimental_measures = measures_by_category.pop("Experimental")
-            measures_by_category["Experimental"] = experimental_measures
+        if "Exploratory" in measures_by_category:
+            experimental_measures = measures_by_category.pop("Exploratory")
+            measures_by_category["Exploratory"] = experimental_measures
         
         context["measures_by_category"] = measures_by_category
         return context
@@ -71,11 +74,16 @@ class MeasureItemView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         slug = self.kwargs.get("slug")
-        measure = Measure.objects.get(slug=slug)
+        measure = Measure.objects.select_related('reason').get(slug=slug)
+
+        markdowner = Markdown()
+        measure.why_it_matters = markdowner.convert(measure.why_it_matters)
 
         context["measure_name"] = measure.name
-        context["description"] = measure.description
-        context["why"] = measure.why
+        context["measure_name_short"] = measure.short_name
+        context["why_it_matters"] = measure.why_it_matters
+        context["reason"] = measure.reason.reason if measure.reason else None
+        context["reason_colour"] = measure.reason.colour if measure.reason else None
 
         try:
             precomputed_measures = PrecomputedMeasure.objects.filter(measure=measure).select_related('organisation')
