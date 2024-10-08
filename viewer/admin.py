@@ -7,6 +7,7 @@ from .models import (
     Dose,
     IngredientQuantity,
     Measure,
+    MeasureReason,
     ATC,
 )
 
@@ -62,8 +63,14 @@ class IngredientQuantityAdmin(admin.ModelAdmin):
 
 @admin.register(Measure)
 class MeasureAdmin(admin.ModelAdmin):
-    list_display = ("name", "description")
-    search_fields = ("name", "description")
+    list_display = ("name", "reason")
+    search_fields = ("name", "reason")
+
+
+@admin.register(MeasureReason)
+class MeasureReasonAdmin(admin.ModelAdmin):
+    list_display = ("reason", "colour")
+    search_fields = ("reason", "colour")
 
 
 @admin.register(ATC)
