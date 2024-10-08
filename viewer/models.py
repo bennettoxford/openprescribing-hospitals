@@ -119,15 +119,23 @@ class IngredientQuantity(models.Model):
             models.Index(fields=["year_month"]),
         ]
 
+class MeasureReason(models.Model):
+    reason = models.CharField(max_length=255)
+    description = models.TextField(null=True)
+    colour = models.CharField(max_length=255, null=True)
+
+    def __str__(self):
+        return f"{self.reason}"
 
 class Measure(models.Model):
     name = models.CharField(max_length=255, unique=True)
     short_name = models.CharField(max_length=255, null=True)
     slug = models.SlugField(unique=True, null=True)
-    description = models.TextField()
+    why_it_matters = models.TextField()
     sql_file = models.CharField(max_length=255)
     category = models.CharField(max_length=255, null=True)
-    why = models.CharField(max_length=255, null=True)
+    reason = models.ForeignKey(MeasureReason, on_delete=models.CASCADE, related_name="measures", null=True)
+    draft = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
         if not self.slug and self.short_name:
