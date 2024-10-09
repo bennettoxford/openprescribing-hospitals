@@ -109,7 +109,8 @@
         chartWidth = chartContainer.clientWidth;
         chartHeight = Math.max(400, flatOrgs.length * 30);
 
-        const margin = { top: 20, right: 30, bottom: 40, left: 350 };
+        const margin = { top: 40, right: 50, bottom: 40, left: 350 };
+
         const width = chartWidth - margin.left - margin.right;
         const height = chartHeight - margin.top - margin.bottom;
 
@@ -198,6 +199,34 @@
         flatOrgs.forEach((org, i) => {
             drawOrgData(svg, org, x, y, width);
         });
+
+        const getMiddleOfMonth = (date) => {
+            const middleDate = new Date(date);
+            middleDate.setDate(15);
+            return middleDate;
+        };
+
+        const xAxis = svg.append('g')
+            .attr('class', 'x-axis')
+            .attr('transform', `translate(0, -10)`)
+            .call(d3.axisTop(x)
+                .tickValues([
+                    getMiddleOfMonth(new Date(months[0])),
+                    getMiddleOfMonth(new Date(months[months.length - 1]))
+                ])
+                .tickFormat(d3.timeFormat('%b %Y'))
+                .tickSize(-12));
+
+        xAxis.selectAll('.tick text')
+            .attr('dy', '-0.5em')
+            .style('font-size', '14px')
+            .style('text-anchor', 'middle');
+
+        xAxis.selectAll('.tick line')
+            .attr('stroke', 'black')
+            .attr('stroke-width', 2);
+
+        xAxis.select('.domain').remove();
 
         tooltip = d3.select(chartContainer)
             .append("div")
