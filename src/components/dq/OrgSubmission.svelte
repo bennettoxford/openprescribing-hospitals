@@ -26,6 +26,8 @@
     const PREDECESSOR_ORG_COLOR = "#7f8c8d";
     const CURRENT_ORG_FONT_SIZE = "12px";
     const PREDECESSOR_ORG_FONT_SIZE = "10px";
+    const DATA_SUBMITTED_COLOR = "#005AB5";  // Blue
+    const DATA_NOT_SUBMITTED_COLOR = "#DC3220";
 
     function unescapeUnicode(str) {
         return str.replace(/\\u([a-fA-F0-9]{4})/g, function(g, m1) {
@@ -183,7 +185,7 @@
             .attr('y', y(org.name))
             .attr('width', width / (months.length))
             .attr('height', y.bandwidth())
-            .attr('fill', d => d.hasData ? '#4CAF50' : '#FF5252')
+            .attr('fill', d => d.hasData ? DATA_SUBMITTED_COLOR : DATA_NOT_SUBMITTED_COLOR)
             .attr('opacity', org.level === 0 ? 1 : 0.7)  // Slightly reduce opacity for predecessors
             .on("mouseover", function(event, d) {
                 tooltip.style("opacity", 1);
