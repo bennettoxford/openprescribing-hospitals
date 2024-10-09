@@ -48,11 +48,30 @@
         return name.replace(/[^a-z0-9]/gi, '-').toLowerCase();
     }
 
+    let expandedOrgs = new Set();
+
+    function toggleExpansion(orgName) {
+        const scrollPosition = window.pageYOffset;
+        
+        if (expandedOrgs.has(orgName)) {
+            expandedOrgs.delete(orgName);
+        } else {
+            expandedOrgs.add(orgName);
+        }
+        expandedOrgs = expandedOrgs;
+        
+        // Use setTimeout to ensure this runs after the chart has been redrawn
+        setTimeout(() => {
+            createChart();
+            window.scrollTo(0, scrollPosition);
+        }, 0);
+    }
+
     function flattenOrganisations(orgs, level = 0) {
         let flattened = [];
         orgs.forEach(org => {
             flattened.push({ ...org, level });
-            if (org.predecessors && org.predecessors.length > 0) {
+            if (org.predecessors && org.predecessors.length > 0 && expandedOrgs.has(org.name)) {
                 flattened = flattened.concat(flattenOrganisations(org.predecessors, level + 1));
             }
         });
@@ -133,6 +152,26 @@
                 
                 if (org && org.level > 0) {
                     text.attr('transform', `translate(${-20 * org.level},0)`);
+                }
+
+                if (org.predecessors && org.predecessors.length > 0) {
+                    const button = tick.append('foreignObject')
+                        .attr('x', -margin.left)
+                        .attr('y', -10)
+                        .attr('width', 120)
+                        .attr('height', 20)
+                        .append('xhtml:button')
+                        .attr('class', 'expand-collapse-btn')
+                        .html(() => {
+                            const arrow = expandedOrgs.has(org.name) ? '▲': '▼';
+                            const text = expandedOrgs.has(org.name) ? 'Hide predecessors' : 'Show predecessors';
+                            return `${arrow} ${text}`;
+                        })
+                        .on('click', (event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            toggleExpansion(org.name);
+                        });
                 }
 
                 // If this is a top-level org and not the first one, add a line above it
@@ -244,3 +283,20 @@
         <div bind:this={chartContainer} class="relative w-full"></div>
     {/if}
 </div>
+
+<style>
+    .expand-collapse-btn {
+        font-size: 12px;
+        padding: 2px 5px;
+        background-color: #f0f0f0;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .expand-collapse-btn:hover {
+        background-color: #e0e0e0;
+    }
+</style>
