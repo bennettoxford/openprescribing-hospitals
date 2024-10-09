@@ -26,6 +26,8 @@
     const PREDECESSOR_ORG_COLOR = "#7f8c8d";
     const CURRENT_ORG_FONT_SIZE = "12px";
     const PREDECESSOR_ORG_FONT_SIZE = "10px";
+    const DATA_SUBMITTED_COLOR = "#005AB5";  // Blue
+    const DATA_NOT_SUBMITTED_COLOR = "#DC3220";
 
     function unescapeUnicode(str) {
         return str.replace(/\\u([a-fA-F0-9]{4})/g, function(g, m1) {
@@ -46,11 +48,30 @@
         return name.replace(/[^a-z0-9]/gi, '-').toLowerCase();
     }
 
+    let expandedOrgs = new Set();
+
+    function toggleExpansion(orgName) {
+        const scrollPosition = window.pageYOffset;
+        
+        if (expandedOrgs.has(orgName)) {
+            expandedOrgs.delete(orgName);
+        } else {
+            expandedOrgs.add(orgName);
+        }
+        expandedOrgs = expandedOrgs;
+        
+        // Use setTimeout to ensure this runs after the chart has been redrawn
+        setTimeout(() => {
+            createChart();
+            window.scrollTo(0, scrollPosition);
+        }, 0);
+    }
+
     function flattenOrganisations(orgs, level = 0) {
         let flattened = [];
         orgs.forEach(org => {
             flattened.push({ ...org, level });
-            if (org.predecessors && org.predecessors.length > 0) {
+            if (org.predecessors && org.predecessors.length > 0 && expandedOrgs.has(org.name)) {
                 flattened = flattened.concat(flattenOrganisations(org.predecessors, level + 1));
             }
         });
@@ -88,7 +109,8 @@
         chartWidth = chartContainer.clientWidth;
         chartHeight = Math.max(400, flatOrgs.length * 30);
 
-        const margin = { top: 20, right: 30, bottom: 40, left: 350 };
+        const margin = { top: 40, right: 50, bottom: 40, left: 350 };
+
         const width = chartWidth - margin.left - margin.right;
         const height = chartHeight - margin.top - margin.bottom;
 
@@ -133,6 +155,26 @@
                     text.attr('transform', `translate(${-20 * org.level},0)`);
                 }
 
+                if (org.predecessors && org.predecessors.length > 0) {
+                    const button = tick.append('foreignObject')
+                        .attr('x', -margin.left)
+                        .attr('y', -10)
+                        .attr('width', 120)
+                        .attr('height', 20)
+                        .append('xhtml:button')
+                        .attr('class', 'expand-collapse-btn')
+                        .html(() => {
+                            const arrow = expandedOrgs.has(org.name) ? '▲': '▼';
+                            const text = expandedOrgs.has(org.name) ? 'Hide predecessors' : 'Show predecessors';
+                            return `${arrow} ${text}`;
+                        })
+                        .on('click', (event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            toggleExpansion(org.name);
+                        });
+                }
+
                 // If this is a top-level org and not the first one, add a line above it
                 if (org.level === 0 && lastGroupEndIndex !== -1) {
                     separatorGroup.append('line')
@@ -157,6 +199,34 @@
         flatOrgs.forEach((org, i) => {
             drawOrgData(svg, org, x, y, width);
         });
+
+        const getMiddleOfMonth = (date) => {
+            const middleDate = new Date(date);
+            middleDate.setDate(15);
+            return middleDate;
+        };
+
+        const xAxis = svg.append('g')
+            .attr('class', 'x-axis')
+            .attr('transform', `translate(0, -10)`)
+            .call(d3.axisTop(x)
+                .tickValues([
+                    getMiddleOfMonth(new Date(months[0])),
+                    getMiddleOfMonth(new Date(months[months.length - 1]))
+                ])
+                .tickFormat(d3.timeFormat('%b %Y'))
+                .tickSize(-12));
+
+        xAxis.selectAll('.tick text')
+            .attr('dy', '-0.5em')
+            .style('font-size', '14px')
+            .style('text-anchor', 'middle');
+
+        xAxis.selectAll('.tick line')
+            .attr('stroke', 'black')
+            .attr('stroke-width', 2);
+
+        xAxis.select('.domain').remove();
 
         tooltip = d3.select(chartContainer)
             .append("div")
@@ -183,7 +253,7 @@
             .attr('y', y(org.name))
             .attr('width', width / (months.length))
             .attr('height', y.bandwidth())
-            .attr('fill', d => d.hasData ? '#4CAF50' : '#FF5252')
+            .attr('fill', d => d.hasData ? DATA_SUBMITTED_COLOR : DATA_NOT_SUBMITTED_COLOR)
             .attr('opacity', org.level === 0 ? 1 : 0.7)  // Slightly reduce opacity for predecessors
             .on("mouseover", function(event, d) {
                 tooltip.style("opacity", 1);
@@ -242,3 +312,20 @@
         <div bind:this={chartContainer} class="relative w-full"></div>
     {/if}
 </div>
+
+<style>
+    .expand-collapse-btn {
+        font-size: 12px;
+        padding: 2px 5px;
+        background-color: #f0f0f0;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .expand-collapse-btn:hover {
+        background-color: #e0e0e0;
+    }
+</style>

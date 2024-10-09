@@ -1,6 +1,6 @@
 import json
 from collections import defaultdict
-from datetime import date
+from datetime import date, datetime
 
 from django.views.generic import TemplateView
 from rest_framework.decorators import api_view
@@ -380,11 +380,13 @@ class OrgsSubmittingDataView(TemplateView):
         
         # Step 1: Collect data
         org_data = defaultdict(lambda: {'successor': None, 'submissions': {}, 'predecessors': []})
+        all_dates = set()
         for cache in OrgSubmissionCache.objects.select_related('organisation', 'successor').order_by('organisation__ods_name', 'month'):
             org_name = cache.organisation.ods_name
             org_data[org_name]['successor'] = cache.successor.ods_name if cache.successor else None
             month_str = cache.month.isoformat() if isinstance(cache.month, date) else str(cache.month)
             org_data[org_name]['submissions'][month_str] = cache.has_submitted
+            all_dates.add(month_str)
 
         # Step 2: Build predecessor relationships
         for org_name, data in org_data.items():
@@ -423,6 +425,17 @@ class OrgsSubmittingDataView(TemplateView):
                 restructured_data.append(build_org_hierarchy(org))
 
         context['org_data_json'] = mark_safe(json.dumps(restructured_data))
+
+        if all_dates:
+            earliest_date = min(all_dates)
+            latest_date = max(all_dates)
+            
+            context['earliest_date'] = datetime.strptime(earliest_date, "%Y-%m-%d").strftime("%B %Y")
+            context['latest_date'] = datetime.strptime(latest_date, "%Y-%m-%d").strftime("%B %Y")
+        else:
+            context['earliest_date'] = None
+            context['latest_date'] = None
+
         return context
 
 
