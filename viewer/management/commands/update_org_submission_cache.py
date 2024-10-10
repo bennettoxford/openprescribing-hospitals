@@ -1,11 +1,6 @@
 from django.core.management.base import BaseCommand
-
 from django.db import transaction
-
-from dateutil.relativedelta import relativedelta
 from viewer.models import OrgSubmissionCache, Dose, Organisation
-from django.db.models import Min, Max, F, Exists, OuterRef
-from django.db.models.functions import TruncMonth
 from tqdm import tqdm
 
 def update_org_submission_cache():
