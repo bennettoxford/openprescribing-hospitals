@@ -133,7 +133,6 @@ class Measure(models.Model):
     slug = models.SlugField(unique=True, null=True)
     why_it_matters = models.TextField()
     sql_file = models.CharField(max_length=255)
-    category = models.CharField(max_length=255, null=True)
     reason = models.ForeignKey(MeasureReason, on_delete=models.CASCADE, related_name="measures", null=True)
     draft = models.BooleanField(default=True)
 
