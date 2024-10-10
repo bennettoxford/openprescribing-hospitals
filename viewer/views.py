@@ -50,21 +50,13 @@ class MeasuresListView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        measures_by_category = {}
-        for measure in Measure.objects.select_related('reason').filter(draft=False):
-            category = measure.category or 'Uncategorised'
-            if category not in measures_by_category:
-                measures_by_category[category] = []
-            markdowner = Markdown()
+        measures = Measure.objects.select_related('reason').filter(draft=False)
+        
+        markdowner = Markdown()
+        for measure in measures:
             measure.why_it_matters = markdowner.convert(measure.why_it_matters)
-            measures_by_category[category].append(measure)
         
-        # Ensure "Experimental" category is last
-        if "Exploratory" in measures_by_category:
-            experimental_measures = measures_by_category.pop("Exploratory")
-            measures_by_category["Exploratory"] = experimental_measures
-        
-        context["measures_by_category"] = measures_by_category
+        context["measures"] = measures
         return context
 
 
