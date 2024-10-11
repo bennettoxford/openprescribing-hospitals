@@ -18,7 +18,7 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         measure_name = kwargs.get('measure')
         if measure_name:
-            measures = Measure.objects.filter(name=measure_name)
+            measures = Measure.objects.filter(short_name=measure_name)
             if not measures.exists():
                 self.stdout.write(self.style.ERROR(f"Measure {measure_name} does not exist."))
                 return
