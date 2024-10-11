@@ -20,7 +20,7 @@
     let initialized = false;
 
     $: filteredItems = items.filter(item => 
-        item.toLowerCase().includes(searchTerm.toLowerCase())
+        item && typeof item === 'string' && item.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     // Initialize selectedItems with all items on component creation
