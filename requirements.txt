@@ -6,6 +6,7 @@ django-browser-reload==1.15.0
 django-vite==3.0.4
 djangorestframework==3.15.2
 environs==11.0.0
+markdown2==2.5.1
 marshmallow==3.22.0
 packaging==24.1
 python-dotenv==1.0.1
