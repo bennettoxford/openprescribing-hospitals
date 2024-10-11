@@ -4,7 +4,8 @@
 }} />
 
 <script>
-    import { onMount,onDestroy } from 'svelte';
+    import { regionColors, chartOptions, decilesLegend, modeOptions } from '../../utils/chartConfig.js';
+    import { onMount, onDestroy } from 'svelte';
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
     import ModeSelector from './ModeSelector.svelte';
     import ChartLegend from './ChartLegend.svelte';
@@ -26,16 +27,6 @@
     let filteredData = parsedData;
     let chartWidth = 0;
     let chartHeight = 0;
-
-    const regionColors = {
-        'East Of England': '#1f77b4',
-        'South East': '#ff7f0e',
-        'Midlands': '#2ca02c',
-        'North East And Yorkshire': '#d62728',
-        'London': '#9467bd',
-        'South West': '#8c564b',
-        'North West': '#e377c2'
-    };
 
     $: {
         try {
@@ -66,7 +57,7 @@
 
         filteredData = filterData(parsedData, selectedMode, selectedItems, usedOrganisationSelection);
 
-        legendItems = createLegendItems(selectedMode, regionColors);
+        legendItems = createLegendItems(selectedMode);
     }
 
     function filterData(data, mode, items, used) {
@@ -84,15 +75,11 @@
         return data;
     }
 
-    function createLegendItems(mode, colors) {
+    function createLegendItems(mode) {
         if (mode === 'deciles') {
-            return [
-                { label: '1st-9th Percentile', style: 'border-blue-500 border-dotted' },
-                { label: '10th-90th Percentile', style: 'border-blue-500 border-dashed' },
-                { label: '50th Percentile', style: 'border-red-500 border-dashed' }
-            ];
+            return decilesLegend;
         } else if (mode === 'region') {
-            return Object.entries(colors).map(([region, color]) => ({
+            return Object.entries(regionColors).map(([region, color]) => ({
                 label: region,
                 style: `background-color: ${color}`
             }));
@@ -339,7 +326,7 @@
         />
     </div>
 
-    <div class="flex-grow relative" style="min-height: 400px;">
+    <div class="flex-grow relative" style="min-height: {chartOptions.minHeight}px;">
         <div bind:this={chartContainer} class="chart-container absolute inset-0">
             {#if parsedData.length === 0}
                 <p class="text-center text-gray-500 pt-8">No data available.</p>

@@ -1,11 +1,12 @@
 <script>
+  import { chartOptions, regionColors } from '../../utils/chartConfig.js';
   import { onMount, afterUpdate, onDestroy } from 'svelte';
   import * as d3 from 'd3';
 
   export let chartData;
   export let selectedMode;
-  export let width = 0;
-  export let height = 0;
+  export let width;
+  export let height;
 
   let chartDiv;
   let tooltip;
@@ -17,7 +18,7 @@
   function updateChart() {
     if (!chartDiv || !width || !height || !chartData || !chartData.labels || !chartData.datasets) return;
 
-    const margin = { top: 20, right: 30, bottom: 50, left: 50 };
+    const { margin } = chartOptions;
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
 
@@ -128,7 +129,7 @@
     // Tooltip
     tooltip = d3.select('body')
       .append('div')
-      .attr('class', 'tooltip p-2 bg-gray-800 text-white rounded shadow-lg text-sm')
+      .attr('class', chartOptions.tooltipClass)
       .style('position', 'absolute')
       .style('pointer-events', 'none')
       .style('opacity', 0);

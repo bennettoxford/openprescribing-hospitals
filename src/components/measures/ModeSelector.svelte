@@ -1,4 +1,6 @@
 <script>
+  import { modeOptions } from '../../utils/chartConfig.js';
+
   export let selectedMode;
   export let handleModeChange;
   
@@ -31,9 +33,8 @@
     style="width: {modeSelectWidth};"
     bind:value={selectedMode}
   >
-    <option value="organisation">Organisation</option>
-    <option value="deciles">Deciles</option>
-    <option value="region">Region</option>
-    <option value="icb">ICB</option>
+    {#each modeOptions as option}
+      <option value={option.value}>{option.label}</option>
+    {/each}
   </select>
 </div>
