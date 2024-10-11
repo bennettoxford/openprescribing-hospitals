@@ -3,8 +3,8 @@ WITH measure_data AS (
         org.ods_name AS organisation,
         org.region AS region,
         to_char(dose.year_month, 'YYYY-MM') AS month,
-        SUM(CASE WHEN vmp.code = '41791911000001107' THEN dose.quantity ELSE 0 END) / 
-            NULLIF(SUM(CASE WHEN vmp.code IN ('41791911000001107', '41792011000001100') THEN dose.quantity ELSE 0 END), 0) AS quantity
+        SUM(CASE WHEN vmp.code = '41791911000001107' THEN dose.quantity ELSE NULL END) AS numerator,
+        SUM(CASE WHEN vmp.code IN ('41791911000001107', '41792011000001100') THEN dose.quantity ELSE NULL END) AS denominator
     FROM 
         viewer_dose dose
     JOIN viewer_vmp vmp ON dose.vmp_id = vmp.code
@@ -26,7 +26,11 @@ SELECT
                 'organisation', organisation,
                 'region', region,
                 'month', month,
-                'quantity', quantity
+                'quantity', CASE
+                    WHEN numerator IS NULL OR denominator IS NULL THEN NULL
+                    WHEN denominator = 0 THEN NULL
+                    ELSE numerator::float / denominator::float
+                END
             )
         )
     ) AS measure_values

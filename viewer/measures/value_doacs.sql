@@ -3,11 +3,8 @@ WITH measure_data AS (
         org.ods_name AS organisation,
         org.region AS region,
         to_char(ingredient_quantity.year_month, 'YYYY-MM') AS month,
-        COALESCE(
-            CAST(SUM(CASE WHEN vtm.vtm IN ('774624002', '777455008') THEN ingredient_quantity.quantity ELSE 0 END) AS FLOAT) / 
-            NULLIF(SUM(CASE WHEN vtm.vtm IN ('774624002', '777455008', '775732007', '13568411000001103') THEN ingredient_quantity.quantity ELSE 0 END), 0),
-            0
-        ) AS quantity
+        SUM(CASE WHEN vtm.vtm IN ('774624002', '777455008') THEN ingredient_quantity.quantity ELSE NULL END) AS numerator,
+        SUM(CASE WHEN vtm.vtm IN ('774624002', '777455008', '775732007', '13568411000001103') THEN ingredient_quantity.quantity ELSE NULL END) AS denominator
     FROM 
         viewer_ingredientquantity ingredient_quantity
     JOIN viewer_vmp vmp ON ingredient_quantity.vmp_id = vmp.code
@@ -26,9 +23,13 @@ SELECT
         'measure_values', jsonb_agg(
             jsonb_build_object(
                 'organisation', organisation,
-            'region', region,
-            'month', month,
-            'quantity', quantity
+                'region', region,
+                'month', month,
+                'quantity', CASE
+                    WHEN numerator IS NULL OR denominator IS NULL THEN NULL
+                    WHEN denominator = 0 THEN NULL
+                    ELSE numerator::float / denominator::float
+                END
             )
         )
     ) AS measure_values

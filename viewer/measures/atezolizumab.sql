@@ -3,8 +3,8 @@ WITH measure_data AS (
         org.ods_name AS organisation,
         org.region AS region,
         to_char(ingredient_quantity.year_month, 'YYYY-MM') AS month,
-        SUM(CASE WHEN vmp.code IN ('42264711000001102') THEN ingredient_quantity.quantity ELSE 0 END)::float / 
-            NULLIF(SUM(CASE WHEN vtm.vtm IN ('774689009') THEN ingredient_quantity.quantity ELSE 0 END), 0)::float AS quantity
+        SUM(CASE WHEN vmp.code IN ('42264711000001102') THEN ingredient_quantity.quantity ELSE NULL END) AS numerator,
+        SUM(CASE WHEN vtm.vtm IN ('774689009') THEN ingredient_quantity.quantity ELSE NULL END) AS denominator
     FROM 
         viewer_ingredientquantity ingredient_quantity
     JOIN viewer_vmp vmp ON ingredient_quantity.vmp_id = vmp.code
@@ -25,7 +25,11 @@ SELECT
                 'organisation', organisation,
                 'region', region,
                 'month', month,
-                'quantity', quantity
+                'quantity', CASE
+                    WHEN numerator IS NULL OR denominator IS NULL THEN NULL
+                    WHEN denominator = 0 THEN NULL
+                    ELSE numerator::float / denominator::float
+                END
             )
         )
     ) AS measure_values

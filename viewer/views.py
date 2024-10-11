@@ -1,7 +1,7 @@
 import json
 from collections import defaultdict
 from datetime import date, datetime
-
+from dateutil.relativedelta import relativedelta
 from django.views.generic import TemplateView
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -79,10 +79,17 @@ class MeasureItemView(TemplateView):
 
         try:
             precomputed_measures = PrecomputedMeasure.objects.filter(measure=measure).select_related('organisation')
+
+            earliest_month = precomputed_measures.order_by('month').first().month
+            latest_month = precomputed_measures.order_by('-month').first().month
+
             values = precomputed_measures.values('organisation__ods_name', 'month', 'quantity')
 
             org_data = defaultdict(lambda: defaultdict(float))
-            all_months = set()
+            all_months = set(
+                (earliest_month + relativedelta(months=i)).strftime("%Y-%m-%d")
+                for i in range((latest_month.year - earliest_month.year) * 12 + latest_month.month - earliest_month.month + 1)
+            )
             all_orgs = set()
 
             for row in values:
@@ -90,21 +97,21 @@ class MeasureItemView(TemplateView):
                 org = row['organisation__ods_name']
                 value = row['quantity']
                 org_data[org][month] = value
-                all_months.add(month)
                 all_orgs.add(org)
+
+            # fill in any missing months with null
+            for org in all_orgs:
+                for month in all_months:
+                    if month not in org_data[org]:
+                        org_data[org][month] = None
 
             all_months = sorted(all_months)
 
             # Filter out organisations with all 0 or None values
             non_zero_orgs = {
                 org for org in all_orgs
-                if any(org_data[org][month] not in (0, None) for month in all_months)
+                if any(org_data[org][month] not in [0, None] for month in all_months)
             }
-
-            for org in all_orgs:
-                for month in all_months:
-                    if org_data[org][month] is None:
-                        org_data[org][month] = 0
 
             total_orgs = len(all_orgs)
             included_orgs = len(non_zero_orgs)
@@ -119,7 +126,6 @@ class MeasureItemView(TemplateView):
             org_to_icb = {
                 org.ods_name: org.icb for org in Organisation.objects.filter(ods_name__in=non_zero_orgs)
             }
-
 
             filled_values = [
                 {
@@ -144,7 +150,8 @@ class MeasureItemView(TemplateView):
             percentiles = {}
             percentile_values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
             for month, values in results_by_month.items():
-                sorted_values = sorted(values)
+                # drop null
+                sorted_values = sorted(filter(None, values))
                 percentiles[month] = [
                     sorted_values[int(len(sorted_values) * p / 100)] for p in percentile_values
                 ]

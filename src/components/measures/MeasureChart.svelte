@@ -118,7 +118,7 @@
       .enter()
       .append('path')
       .attr('class', 'line')
-      .attr('d', d => line(d.data))
+      .attr('d', d => line(d.data.filter(v => v !== null)))  // Filter out null values
       .attr('fill', 'none')
       .attr('stroke', d => d.color || d3.schemeCategory10[i % 10])
       .attr('stroke-width', d => d.strokeWidth || 2)
