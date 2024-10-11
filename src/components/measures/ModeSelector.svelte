@@ -1,12 +1,12 @@
 <script>
   import { modeOptions } from '../../utils/chartConfig.js';
+  import { selectedMode } from '../../stores/measureChartStore.js';
 
-  export let selectedMode;
   export let handleModeChange;
   
   let modeSelectWidth = 'auto';
 
-  $: selectedMode, adjustModeSelectWidth();
+  $: $selectedMode, adjustModeSelectWidth();
 
   function adjustModeSelectWidth() {
     const select = document.getElementById('mode-select');
@@ -31,7 +31,7 @@
     class="p-2 border border-gray-300 rounded-md bg-white" 
     on:change={handleModeChange}
     style="width: {modeSelectWidth};"
-    bind:value={selectedMode}
+    bind:value={$selectedMode}
   >
     {#each modeOptions as option}
       <option value={option.value}>{option.label}</option>

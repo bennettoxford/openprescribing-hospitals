@@ -58,7 +58,10 @@
                             <p class="flex items-center">
                                 Included organisations: {{ orgs_included.included }}/{{ orgs_included.total }}
                             </p>
-                            <measure-component measureData='{{ measure_result|escapejs }}' deciles='{{ deciles|escapejs }}'></measure-component>
+                            <measure-component 
+                                measuredata='{{ measure_result|escapejs }}' 
+                                decilesdata='{{ deciles|escapejs }}'
+                            ></measure-component>
                         </div>
                     </div>
                 </div>

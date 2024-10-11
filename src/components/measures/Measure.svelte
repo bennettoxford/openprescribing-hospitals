@@ -1,287 +1,81 @@
 <svelte:options customElement={{
     tag: 'measure-component',
+    props: {
+        measuredata: { type: 'String', reflect: true },
+        decilesdata: { type: 'String', reflect: true }
+    },
     shadow: 'none'
 }} />
 
 <script>
-    import { regionColors, chartOptions, decilesLegend, modeOptions } from '../../utils/chartConfig.js';
     import { onMount, onDestroy } from 'svelte';
+    import { measureData, deciles, selectedMode, selectedItems, usedOrganisationSelection, filteredData, legendItems, organisations, regions, icbs } from '../../stores/measureChartStore.js';
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
     import ModeSelector from './ModeSelector.svelte';
     import ChartLegend from './ChartLegend.svelte';
     import MeasureChart from './MeasureChart.svelte';
+    import { chartOptions } from '../../utils/chartConfig.js';
 
-    export let measureData = '[]';
-    export let deciles = '{}';
+    export let measuredata = '[]';
+    export let decilesdata = '{}';
 
-    let parsedData = [];
     let chartContainer;
     let resizeObserver;
-    let organisations = [];
-    let selectedItems = [];
-    let usedOrganisationSelection = false;
-    let selectedMode = 'organisation';
-    let regions = [];
-    let icbs = [];
-    let legendItems = [];
-    let filteredData = parsedData;
     let chartWidth = 0;
     let chartHeight = 0;
 
     $: {
+        console.log('Received measuredata:', measuredata);
+        console.log('Received decilesdata:', decilesdata);
+        
         try {
-            if (typeof measureData === 'string') {
-                let unescapedData = measureData.replace(/\\u([\d\w]{4})/gi, (match, grp) => String.fromCharCode(parseInt(grp, 16)));
-                parsedData = JSON.parse(unescapedData);
+            if (typeof measuredata === 'string') {
+                let unescapedData = measuredata.replace(/\\u([\d\w]{4})/gi, (match, grp) => String.fromCharCode(parseInt(grp, 16)));
+                let parsedData = JSON.parse(unescapedData);
+                console.log('Parsed measuredata:', parsedData);
+                measureData.set(parsedData);
+            } else if (Array.isArray(measuredata)) {
+                console.log('Setting measuredata directly:', measuredata);
+                measureData.set(measuredata);
             } else {
-                parsedData = measureData;
+                console.error('Invalid measuredata format');
+                measureData.set([]);
             }
-            organisations = [...new Set(parsedData.map(item => item.organisation))];
         } catch (e) {
             console.error('Error parsing measureData:', e);
-            parsedData = [];
+            measureData.set([]);
         }
 
         try {
-            if (typeof deciles === 'string') {
-                let unescapedDeciles = deciles.replace(/\\u([\d\w]{4})/gi, (match, grp) => String.fromCharCode(parseInt(grp, 16)));
-                deciles = JSON.parse(unescapedDeciles);
-            } 
+            if (typeof decilesdata === 'string') {
+                let unescapedDeciles = decilesdata.replace(/\\u([\d\w]{4})/gi, (match, grp) => String.fromCharCode(parseInt(grp, 16)));
+                let parsedDeciles = JSON.parse(unescapedDeciles);
+                console.log('Parsed decilesdata:', parsedDeciles);
+                deciles.set(parsedDeciles);
+            } else if (typeof decilesdata === 'object' && decilesdata !== null) {
+                console.log('Setting decilesdata directly:', decilesdata);
+                deciles.set(decilesdata);
+            } else {
+                console.error('Invalid decilesdata format');
+                deciles.set({});
+            }
         } catch (e) {
             console.error('Error parsing deciles:', e);
-            deciles = {};
-        }
-
-        regions = [...new Set(parsedData.map(item => item.region))];
-        icbs = [...new Set(parsedData.map(item => item.icb))];
-
-        filteredData = filterData(parsedData, selectedMode, selectedItems, usedOrganisationSelection);
-
-        legendItems = createLegendItems(selectedMode);
-    }
-
-    function filterData(data, mode, items, used) {
-        if (mode === 'organisation' || mode === 'icb' || mode === 'region') {
-            if (used && items.length > 0) {
-                return data.filter(item => 
-                    mode === 'organisation' ? items.includes(item.organisation) :
-                    mode === 'icb' ? items.includes(item.icb) :
-                    items.includes(item.region)
-                );
-            }
-        } else if (mode === 'deciles' && used && items.length > 0) {
-            return data.filter(item => items.includes(item.organisation));
-        }
-        return data;
-    }
-
-    function createLegendItems(mode) {
-        if (mode === 'deciles') {
-            return decilesLegend;
-        } else if (mode === 'region') {
-            return Object.entries(regionColors).map(([region, color]) => ({
-                label: region,
-                style: `background-color: ${color}`
-            }));
-        }
-        return [];
-    }
-
-    function getColor(key, index, total) {
-        if (selectedMode === 'region') {
-            return regionColors[key] || `hsl(${index * 360 / total}, 70%, 50%)`;
-        } else {
-            return `hsl(${index * 360 / total}, 70%, 50%)`;
-        }
-    }
-
-    function prepareChartData(data) {
-        if (data.length === 0) {
-            return { labels: [], datasets: [] };
-        }
-
-        let filteredData;
-        let breakdownKeys;
-
-        if (selectedMode === 'organisation' || selectedMode === 'icb' || selectedMode === 'region') {
-            if (usedOrganisationSelection) {
-                if (selectedItems.length > 0) {
-                    filteredData = data.filter(item => 
-                        selectedMode === 'organisation' ? selectedItems.includes(item.organisation) :
-                        selectedMode === 'icb' ? selectedItems.includes(item.icb) :
-                        selectedItems.includes(item.region)
-                    );
-                    breakdownKeys = selectedItems;
-                } else {
-                    return { labels: [], datasets: [] };
-                }
-            } else {
-                filteredData = data;
-                breakdownKeys = selectedMode === 'organisation' ? organisations :
-                                selectedMode === 'icb' ? icbs :
-                                regions;
-            }
-
-            const groupedData = filteredData.reduce((acc, item) => {
-                const key = item.month;
-                if (!acc[key]) {
-                    acc[key] = {};
-                }
-                const breakdownKey = selectedMode === 'organisation' ? item.organisation :
-                                     selectedMode === 'icb' ? item.icb :
-                                     item.region;
-                if (!acc[key][breakdownKey]) {
-                    acc[key][breakdownKey] = { sum: 0, count: 0 };
-                }
-                acc[key][breakdownKey].sum += parseFloat(item.quantity);
-                acc[key][breakdownKey].count += 1;
-                return acc;
-            }, {});
-
-            const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
-
-            return {
-                labels: sortedDates,
-                datasets: breakdownKeys.map((key, index) => {
-                    const dataPoints = sortedDates.map(date => {
-                        if (!groupedData[date] || !groupedData[date][key]) {
-                            return 0;
-                        }
-                        const { sum, count } = groupedData[date][key];
-                        return count > 0 ? sum / count : 0;
-                    });
-                    return {
-                        label: key,
-                        data: dataPoints,
-                        color: getColor(key, index, breakdownKeys.length),
-                        strokeWidth: 2
-                    };
-                })
-            };
-        } else if (selectedMode === 'deciles') {
-            const sortedDates = Object.keys(deciles).sort((a, b) => new Date(a) - new Date(b));
-    
-            const decileDatasets = Array.from({ length: 27 }, (_, i) => {
-                let label;
-                let color;
-                let strokeWidth;
-                let strokeDasharray;
-                
-                if (i < 9) {
-                    label = `${i + 1}th Percentile`;
-                    color = 'blue';
-                    strokeWidth = 1;
-                    strokeDasharray = '2,2'; // Dotted blue
-                } else if (i < 18 && i !== 13) {
-                    label = `${(i - 9 + 1) * 10}th Percentile`;
-                    color = 'blue';
-                    strokeWidth = 2;
-                    strokeDasharray = '4,2'; // Dashed blue
-                } else if (i === 13) { // 50th percentile
-                    label = '50th Percentile';
-                    color = 'red';
-                    strokeWidth = 4;
-                    strokeDasharray = '4,2'; // Dashed red
-                } else {
-                    label = `${i - 17 + 90}th Percentile`;
-                    color = 'blue';
-                    strokeWidth = 1;
-                    strokeDasharray = '2,2'; // Dotted blue
-                }
-
-                return {
-                    label: label,
-                    data: sortedDates.map(date => deciles[date][i] || 0),
-                    color: color,
-                    strokeWidth: strokeWidth,
-                    strokeDasharray: strokeDasharray
-                };
-            });
-
-            if (usedOrganisationSelection && selectedItems.length > 0) {
-                const filteredData = data.filter(item => selectedItems.includes(item.organisation));
-                const groupedData = filteredData.reduce((acc, item) => {
-                    const key = item.month;
-                    if (!acc[key]) {
-                        acc[key] = {};
-                    }
-                    const breakdownKey = item.organisation;
-                    if (!acc[key][breakdownKey]) {
-                        acc[key][breakdownKey] = 0;
-                    }
-                    acc[key][breakdownKey] += parseFloat(item.quantity);
-                    return acc;
-                }, {});
-
-                const organisationDatasets = selectedItems.map((key, index) => ({
-                    label: key,
-                    data: sortedDates.map(date => groupedData[date][key] || 0),
-                    color: `hsl(${index * 360 / selectedItems.length}, 70%, 50%)`,
-                    strokeWidth: 3 // Thicker lines for selected organisations
-                }));
-
-                return {
-                    labels: sortedDates,
-                    datasets: [...decileDatasets, ...organisationDatasets]
-                };
-            }
-
-            return {
-                labels: sortedDates,
-                datasets: decileDatasets
-            };
-        } else if (selectedMode === 'region' || selectedMode === 'icb') {
-            filteredData = data;
-            breakdownKeys = selectedMode === 'region' ? Object.keys(regionColors) : icbs;
-
-            const groupedData = filteredData.reduce((acc, item) => {
-                const key = item.month;
-                if (!acc[key]) {
-                    acc[key] = {};
-                }
-                const breakdownKey = selectedMode === 'region' ? item.region : item.icb;
-                if (!acc[key][breakdownKey]) {
-                    acc[key][breakdownKey] = { sum: 0, count: 0 };
-                }
-                acc[key][breakdownKey].sum += parseFloat(item.quantity);
-                acc[key][breakdownKey].count += 1;
-                return acc;
-            }, {});
-
-            const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
-
-            return {
-                labels: sortedDates,
-                datasets: breakdownKeys.map((key, index) => {
-                    const dataPoints = sortedDates.map(date => {
-                        if (!groupedData[date] || !groupedData[date][key]) {
-                            return 0;
-                        }
-                        const { sum, count } = groupedData[date][key];
-                        return count > 0 ? sum / count : 0;
-                    });
-                    return {
-                        label: key,
-                        data: dataPoints,
-                        color: getColor(key, index, breakdownKeys.length),
-                        strokeWidth: 2
-                    };
-                })
-            };
+            deciles.set({});
         }
     }
 
     function handleItemSelection(event) {
-        selectedItems = event.detail.selectedItems;
-        usedOrganisationSelection = event.detail.usedOrganisationSelection;
+        selectedItems.set(event.detail.selectedItems);
+        usedOrganisationSelection.set(event.detail.usedOrganisationSelection);
     }
 
     function handleModeChange(event) {
-        selectedMode = event.target.value;
+        selectedMode.set(event.target.value);
         // Reset selection when mode changes, except for 'deciles'
-        if (selectedMode !== 'deciles') {
-            selectedItems = [];
-            usedOrganisationSelection = false;
+        if ($selectedMode !== 'deciles') {
+            selectedItems.set([]);
+            usedOrganisationSelection.set(false);
         }
     }
 
@@ -311,29 +105,24 @@
     <div class="flex flex-wrap justify-between items-end mb-4">
         <div class="flex-grow mr-4 relative">
             <OrganisationSearch 
-                items={selectedMode === 'deciles' ? organisations :
-                       selectedMode === 'organisation' ? organisations : 
-                       selectedMode === 'icb' ? icbs : 
-                       regions}
+                items={$selectedMode === 'deciles' ? $organisations :
+                       $selectedMode === 'organisation' ? $organisations : 
+                       $selectedMode === 'icb' ? $icbs : 
+                       $regions}
                 on:selectionChange={handleItemSelection}
                 overlayMode={true}
-                filterType={selectedMode === 'deciles' ? 'organisation' : selectedMode}
+                filterType={$selectedMode === 'deciles' ? 'organisation' : $selectedMode}
             />
         </div>
-        <ModeSelector
-            selectedMode={selectedMode}
-            handleModeChange={handleModeChange}
-        />
+        <ModeSelector {handleModeChange} />
     </div>
 
     <div class="flex-grow relative" style="min-height: {chartOptions.minHeight}px;">
         <div bind:this={chartContainer} class="chart-container absolute inset-0">
-            {#if parsedData.length === 0}
+            {#if $measureData.length === 0}
                 <p class="text-center text-gray-500 pt-8">No data available.</p>
             {:else}
                 <MeasureChart 
-                    chartData={prepareChartData(filteredData)}
-                    {selectedMode}
                     width={chartWidth}
                     height={chartHeight}
                 />
@@ -341,8 +130,5 @@
         </div>
     </div>
 
-    <ChartLegend
-        legendItems={legendItems}
-        selectedMode={selectedMode}
-    />
+    <ChartLegend />
 </div>
