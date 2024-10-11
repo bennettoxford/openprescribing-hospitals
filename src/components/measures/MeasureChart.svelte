@@ -1,6 +1,6 @@
 <script>
   import { chartOptions, regionColors } from '../../utils/chartConfig.js';
-  import { onMount, afterUpdate, onDestroy } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import * as d3 from 'd3';
   import { selectedMode, filteredData } from '../../stores/measureChartStore.js';
 
@@ -10,14 +10,10 @@
   let chartDiv;
   let tooltip;
 
-  $: {
-    console.log('Width:', width, 'Height:', height);
-    console.log('Filtered Data:', $filteredData);
-    if (width && height && $filteredData && $filteredData.labels && $filteredData.labels.length > 0) {
-      updateChart();
-    } else {
-      console.log('Skipping chart update due to missing data or dimensions');
-    }
+  $: if (width && height && $filteredData && $filteredData.labels && $filteredData.labels.length > 0) {
+    updateChart();
+  } else {
+    console.log('Skipping chart update due to missing data or dimensions');
   }
 
   function updateChart() {
@@ -184,18 +180,6 @@
         moveTooltip.call(this, event, d);
       });
   }
-
-  onMount(() => {
-    if (width && height) {
-      updateChart();
-    }
-  });
-
-  afterUpdate(() => {
-    if (width && height) {
-      updateChart();
-    }
-  });
 
   onDestroy(() => {
     if (tooltip) {
