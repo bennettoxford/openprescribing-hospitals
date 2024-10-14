@@ -115,6 +115,7 @@ class MeasureItemView(TemplateView):
 
             total_orgs = len(all_orgs)
             included_orgs = len(non_zero_orgs)
+            
             context["orgs_included"] = {"included": included_orgs, "total": total_orgs}
 
             # Create a mapping of ods_name to region to avoid repeated DB hits
@@ -140,22 +141,32 @@ class MeasureItemView(TemplateView):
             ]
 
             context["measure_result"] = json.dumps(filled_values, ensure_ascii=False)
-
+           
             results_by_month = defaultdict(list)
             for row in filled_values:
                 month = row['month']
                 value = row['quantity']
                 results_by_month[month].append(value)
 
+            # fill in missing months
+            for month in all_months:
+                if month not in results_by_month:
+                    results_by_month[month] = []
+
             percentiles = {}
             percentile_values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
             for month, values in results_by_month.items():
+                
                 # drop null
                 sorted_values = sorted(filter(None, values))
-                percentiles[month] = [
-                    sorted_values[int(len(sorted_values) * p / 100)] for p in percentile_values
+                
+                # if sorted values is empty - set to 0
+                if not sorted_values:
+                    percentiles[month] = [0] * len(percentile_values)
+                else:
+                    percentiles[month] = [
+                        sorted_values[int(len(sorted_values) * p / 100)] for p in percentile_values
                 ]
-
             context["deciles"] = json.dumps(percentiles, ensure_ascii=False)
 
         except Exception as e:
