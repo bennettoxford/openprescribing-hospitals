@@ -201,3 +201,34 @@ class ATC(models.Model):
             models.Index(fields=['parent']),
         ]
 
+
+class PrecomputedMeasureAggregated(models.Model):
+    measure = models.ForeignKey(Measure, on_delete=models.CASCADE, related_name="precomputed_measures_aggregated")
+    label = models.CharField(max_length=255, null=True)
+    month = models.DateField()
+    quantity = models.FloatField(null=True)
+    category = models.CharField(max_length=20, choices=[('region', 'Region'), ('icb', 'ICB')])
+
+    class Meta:
+        unique_together = ('measure', 'category', 'label', 'month')
+        indexes = [
+            models.Index(fields=['measure', 'category', 'label', 'month']),
+        ]
+
+    def __str__(self):
+        return f"{self.measure.name} - {self.category} - {self.label} - {self.month}"
+
+class PrecomputedPercentile(models.Model):
+    measure = models.ForeignKey(Measure, on_delete=models.CASCADE, related_name="precomputed_percentiles")
+    month = models.DateField()
+    percentile = models.IntegerField()
+    quantity = models.FloatField(null=True)
+
+    class Meta:
+        unique_together = ('measure', 'month', 'percentile')
+        indexes = [
+            models.Index(fields=['measure', 'month', 'percentile']),
+        ]
+
+    def __str__(self):
+        return f"{self.measure.name} - {self.month} - {self.percentile}th percentile"
