@@ -1,9 +1,12 @@
+import numpy as np
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from viewer.models import Measure, PrecomputedMeasure, Organisation
+from django.db.models import Avg, Min, Max
+from viewer.models import Measure, PrecomputedMeasure, PrecomputedMeasureAggregated, Organisation, PrecomputedPercentile
 from viewer.measures.measure_utils import execute_measure_sql
 from collections import defaultdict
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 class Command(BaseCommand):
     help = 'Compute and store measures in the database'
@@ -63,6 +66,113 @@ class Command(BaseCommand):
                         batch_size=1000
                     )
 
+                self.calculate_and_store_aggregations(measure)
+                self.calculate_and_store_percentiles(measure)
+
                 self.stdout.write(self.style.SUCCESS(f"Successfully computed measure: {measure.name}"))
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"Error computing measure {measure.name}: {e}"))
+
+    def calculate_and_store_aggregations(self, measure):
+
+        region_aggregations = (
+            PrecomputedMeasure.objects
+            .filter(measure=measure)
+            .values('organisation__region', 'month')
+            .annotate(quantity=Avg('quantity'))
+        )
+
+        icb_aggregations = (
+            PrecomputedMeasure.objects
+            .filter(measure=measure)
+            .values('organisation__icb', 'month')
+            .annotate(quantity=Avg('quantity'))
+        )
+
+        aggregated_measures = []
+
+        for agg in region_aggregations:
+            aggregated_measures.append(
+                PrecomputedMeasureAggregated(
+                    measure=measure,
+                    label=agg['organisation__region'],
+                    month=agg['month'],
+                    quantity=agg['quantity'],
+                    category='region'
+                )
+            )
+
+        for agg in icb_aggregations:
+            aggregated_measures.append(
+                PrecomputedMeasureAggregated(
+                    measure=measure,
+                    label=agg['organisation__icb'],
+                    month=agg['month'],
+                    quantity=agg['quantity'],
+                    category='icb'
+                )
+            )
+
+        with transaction.atomic():
+            PrecomputedMeasureAggregated.objects.bulk_create(
+                aggregated_measures,
+                update_conflicts=True,
+                update_fields=['quantity'],
+                unique_fields=['measure', 'category', 'label', 'month'],
+                batch_size=1000
+            )
+
+    def calculate_and_store_percentiles(self, measure):
+        date_range = PrecomputedMeasure.objects.filter(measure=measure).aggregate(
+            min_date=Min('month'),
+            max_date=Max('month')
+        )
+        
+        min_date, max_date = date_range['min_date'], date_range['max_date']
+        
+        all_months = [min_date + relativedelta(months=i) for i in range((max_date.year - min_date.year) * 12 + max_date.month - min_date.month + 1)]
+
+        percentile_values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
+        
+        percentiles_to_create = []
+
+        for month in all_months:
+            values = PrecomputedMeasure.objects.filter(
+                measure=measure,
+                month=month,
+                quantity__isnull=False
+            ).values_list('quantity', flat=True)
+
+            values = list(filter(None, values))
+            
+            if values:
+                percentile_results = np.percentile(values, percentile_values)
+                
+                for percentile, value in zip(percentile_values, percentile_results):
+                    percentiles_to_create.append(
+                        PrecomputedPercentile(
+                            measure=measure,
+                            month=month,
+                            percentile=percentile,
+                            quantity=value
+                        )
+                    )
+            else:
+                for percentile in percentile_values:
+                    percentiles_to_create.append(
+                        PrecomputedPercentile(
+                            measure=measure,
+                            month=month,
+                            percentile=percentile,
+                            quantity=None
+                        )
+                    )
+
+        with transaction.atomic():
+            PrecomputedPercentile.objects.bulk_create(
+                percentiles_to_create,
+                update_conflicts=True,
+                update_fields=['quantity'],
+                unique_fields=['measure', 'month', 'percentile'],
+                batch_size=1000
+            )
