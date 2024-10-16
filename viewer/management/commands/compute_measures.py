@@ -172,7 +172,7 @@ class Command(BaseCommand):
                             measure=measure,
                             month=month,
                             percentile=percentile,
-                            quantity=None
+                            quantity=0
                         )
                     )
 

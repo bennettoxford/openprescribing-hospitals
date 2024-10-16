@@ -111,7 +111,7 @@ export const filteredData = derived(
           // Median line
           {
             label: 'Median (50th Percentile)',
-            data: labels.map(month => groupedPercentiles[month][50] || null),
+            data: labels.map(month => groupedPercentiles[month][50] !== undefined ? groupedPercentiles[month][50] : null),
             color: '#DC3220',
             strokeWidth: 2,
             fill: false
@@ -120,8 +120,8 @@ export const filteredData = derived(
           ...percentileRanges.map(({ range: [lower, upper], opacity }) => ({
             label: `${lower}th-${upper}th Percentile`,
             data: labels.map(month => ({
-              lower: groupedPercentiles[month][lower] || null,
-              upper: groupedPercentiles[month][upper] || null
+              lower: groupedPercentiles[month][lower] !== undefined ? groupedPercentiles[month][lower] : null,
+              upper: groupedPercentiles[month][upper] !== undefined ? groupedPercentiles[month][upper] : null
             })),
             color: '#005AB5',
             strokeWidth: 0,
@@ -132,7 +132,7 @@ export const filteredData = derived(
           ...percentileRanges.flatMap(({ range: [lower, upper] }) => [
             {
               label: `${lower}th Percentile`,
-              data: labels.map(month => groupedPercentiles[month][lower] || null),
+              data: labels.map(month => groupedPercentiles[month][lower] !== undefined ? groupedPercentiles[month][lower] : null),
               color: '#005AB5',
               strokeWidth: 1,
               strokeOpacity: 0,
@@ -140,7 +140,7 @@ export const filteredData = derived(
             },
             {
               label: `${upper}th Percentile`,
-              data: labels.map(month => groupedPercentiles[month][upper] || null),
+              data: labels.map(month => groupedPercentiles[month][upper] !== undefined ? groupedPercentiles[month][upper] : null),
               color: '#005AB5',
               strokeWidth: 1,
               strokeOpacity: 0,
