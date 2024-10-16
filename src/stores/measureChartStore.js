@@ -1,138 +1,146 @@
 import { writable, derived } from 'svelte/store';
-import { regionColors, decilesLegend } from '../utils/chartConfig.js';
+import { regionColors, percentilesLegend } from '../utils/chartConfig.js';
 
-export const measureData = writable([]);
-export const deciles = writable({});
-export const selectedMode = writable('organisation');
+export const orgdata = writable([]);
+export const regiondata = writable([]);
+export const icbdata = writable([]);
+export const percentiledata = writable([]);
+export const selectedMode = writable('national');
 export const selectedItems = writable([]);
 export const usedOrganisationSelection = writable(false);
 
-export const organisations = derived(measureData, $measureData => 
-  [...new Set($measureData.map(item => item.organisation))]
-);
+const organisationColors = [
+  '#332288', '#117733', '#44AA99', '#88CCEE', 
+  '#DDCC77', '#CC6677', '#AA4499', '#882255'
+];
 
-export const regions = derived(measureData, $measureData => 
-  [...new Set($measureData.map(item => item.region))]
-);
-
-export const icbs = derived(measureData, $measureData => 
-  [...new Set($measureData.map(item => item.icb))]
-);
+export function getOrganisationColor(index) {
+  return organisationColors[index % organisationColors.length];
+}
 
 export const filteredData = derived(
-  [measureData, selectedMode, selectedItems, usedOrganisationSelection, organisations, regions, icbs, deciles],
-  ([$measureData, $selectedMode, $selectedItems, $usedOrganisationSelection, $organisations, $regions, $icbs, $deciles]) => {
-    console.log('Deriving filteredData:', {
-      measureData: $measureData,
-      selectedMode: $selectedMode,
-      selectedItems: $selectedItems,
-      usedOrganisationSelection: $usedOrganisationSelection
-    });
-
+  [selectedMode, orgdata, regiondata, icbdata, percentiledata, selectedItems],
+  ([$selectedMode, $orgdata, $regiondata, $icbdata, $percentiledata, $selectedItems]) => {
     let labels = [];
     let datasets = [];
 
-    if ($measureData.length === 0 && Object.keys($deciles).length === 0) {
-      return { labels, datasets };
-    }
+    const sortDates = (a, b) => new Date(a) - new Date(b);
 
-    if ($selectedMode === 'deciles') {
-      labels = Object.keys($deciles).sort((a, b) => new Date(a) - new Date(b));
-      
-      // Create datasets for each decile
-      for (let i = 0; i < 27; i++) {
-        let label, color, strokeWidth, strokeDasharray;
-        
-        if (i < 9) {
-          label = `${i + 1}th Percentile`;
-          color = 'blue';
-          strokeWidth = 1;
-          strokeDasharray = '2,2'; // Dotted blue
-        } else if (i < 18 && i !== 13) {
-          label = `${(i - 9 + 1) * 10}th Percentile`;
-          color = 'blue';
-          strokeWidth = 2;
-          strokeDasharray = '4,2'; // Dashed blue
-        } else if (i === 13) { // 50th percentile
-          label = '50th Percentile';
-          color = 'red';
-          strokeWidth = 4;
-          strokeDasharray = '4,2'; // Dashed red
-        } else {
-          label = `${i - 17 + 90}th Percentile`;
-          color = 'blue';
-          strokeWidth = 1;
-          strokeDasharray = '2,2'; // Dotted blue
+    const createDataArrayWithNulls = (data, allDates) => {
+      const dataMap = new Map(data.map(d => [d.month, d.quantity]));
+      return allDates.map(date => dataMap.get(date) || null);
+    };
+
+    switch ($selectedMode) {
+      case 'organisation':
+        if (typeof $orgdata === 'object' && !Array.isArray($orgdata)) {
+
+          const allDates = [...new Set(Object.values($orgdata).flatMap(org => org.map(d => d.month)))].sort(sortDates);
+          labels = allDates;
+          
+          let orgsToShow = $selectedItems.length > 0 ? $selectedItems : Object.keys($orgdata);
+          datasets = orgsToShow.map((org, index) => {
+            const orgData = $orgdata[org];
+            if (!orgData) return null;
+            return {
+              label: org,
+              data: createDataArrayWithNulls(orgData, allDates),
+              color: getOrganisationColor(index)
+            };
+          }).filter(Boolean);
         }
-
-        datasets.push({
-          label: label,
-          data: labels.map(date => $deciles[date][i] || null),
-          color: color,
-          strokeWidth: strokeWidth,
-          strokeDasharray: strokeDasharray
+        break;
+      case 'region':
+        labels = $regiondata.length > 0 ? 
+          $regiondata[0].data.map(d => d.month).sort(sortDates) : [];
+        datasets = $regiondata.map((region, index) => {
+          const sortedData = region.data.sort((a, b) => sortDates(a.month, b.month));
+          return {
+            label: region.name,
+            data: sortedData.map(d => d.quantity),
+            color: regionColors[region.name] || getOrganisationColor(index)
+          };
         });
-      }
-
-      // Add selected organisations if any
-      if ($usedOrganisationSelection && $selectedItems.length > 0) {
-        const orgData = $measureData.filter(item => $selectedItems.includes(item.organisation));
-        const groupedOrgData = groupBy(orgData, 'organisation');
-
-        $selectedItems.forEach((org, index) => {
-          datasets.push({
-            label: org,
-            data: labels.map(date => {
-              const items = groupedOrgData[org]?.filter(item => item.month === date) || [];
-              return items.length > 0 ? items.reduce((sum, i) => sum + parseFloat(i.quantity), 0) / items.length : null;
-            }),
-            color: `hsl(${index * 360 / $selectedItems.length}, 70%, 50%)`,
-            strokeWidth: 3
+        break;
+      case 'icb':
+        labels = $icbdata.length > 0 ? 
+          $icbdata[0].data.map(d => d.month).sort(sortDates) : [];
+        let icbsToShow = $selectedItems.length > 0 ? $selectedItems : $icbdata.map(icb => icb.name);
+        datasets = $icbdata
+          .filter(icb => icbsToShow.includes(icb.name))
+          .map((icb, index) => {
+            const sortedData = icb.data.sort((a, b) => sortDates(a.month, b.month));
+            return {
+              label: icb.name,
+              data: sortedData.map(d => d.quantity),
+              color: getOrganisationColor(index)
+            };
           });
+        break;
+      case 'percentiles':
+        const groupedPercentiles = $percentiledata.reduce((acc, item) => {
+          if (!acc[item.month]) {
+            acc[item.month] = {};
+          }
+          acc[item.month][item.percentile] = item.quantity;
+          return acc;
+        }, {});
+
+        labels = Object.keys(groupedPercentiles).sort((a, b) => new Date(a) - new Date(b));
+
+        const percentilesToShow = [10, 20, 30, 40, 50, 60, 70, 80, 90];
+        datasets = percentilesToShow.map(percentile => {
+          const color = percentile === 50 ? '#DC3220' : '#005AB5';
+          const strokeWidth = percentile === 50 ? 3 : 1;
+          const strokeDasharray = percentile % 10 === 0 ? '4,2' : '2,2';
+
+          return {
+            label: `${percentile}th Percentile`,
+            data: labels.map(month => groupedPercentiles[month][percentile] || null),
+            color: color,
+            strokeWidth: strokeWidth,
+            strokeDasharray: strokeDasharray
+          };
         });
-      }
-    } else {
-      // Sort dates and create labels
-      labels = [...new Set($measureData.map(item => item.month))].sort((a, b) => new Date(a) - new Date(b));
 
-      let groupedData = {};
-      let itemsToUse = $measureData;
-
-      if ($usedOrganisationSelection && $selectedItems.length > 0) {
-        itemsToUse = $measureData.filter(item => 
-          $selectedMode === 'organisation' ? $selectedItems.includes(item.organisation) :
-          $selectedMode === 'icb' ? $selectedItems.includes(item.icb) :
-          $selectedItems.includes(item.region)
-        );
-      }
-
-      itemsToUse.forEach(item => {
-        const key = $selectedMode === 'organisation' ? item.organisation :
-                    $selectedMode === 'icb' ? item.icb : item.region;
-        if (!groupedData[key]) {
-          groupedData[key] = {};
+        if ($selectedItems.length > 0) {
+          $selectedItems.forEach((org, index) => {
+            if ($orgdata[org]) {
+              datasets.push({
+                label: org,
+                data: labels.map(date => {
+                  const dataPoint = $orgdata[org].find(d => d.month === date);
+                  return dataPoint ? dataPoint.quantity : null;
+                }),
+                color: getOrganisationColor(datasets.length),
+                strokeWidth: 2
+              });
+            }
+          });
         }
-        if (!groupedData[key][item.month]) {
-          groupedData[key][item.month] = { sum: 0, count: 0 };
-        }
-        groupedData[key][item.month].sum += parseFloat(item.quantity);
-        groupedData[key][item.month].count += 1;
-      });
+        break;
+      case 'national':
+        if ($regiondata.length > 0) {
+          labels = $regiondata[0].data.map(d => d.month).sort(sortDates);
+          
+          const nationalData = labels.map(month => {
+            const monthData = $regiondata.map(region => 
+              region.data.find(d => d.month === month)?.quantity || 0
+            );
+            const sum = monthData.reduce((a, b) => a + b, 0);
+            return sum / $regiondata.length;
+          });
 
-      const keys = Object.keys(groupedData);
-      datasets = keys.map((key, index) => ({
-        label: key,
-        data: labels.map(date => {
-          if (!groupedData[key][date]) return null;
-          const { sum, count } = groupedData[key][date];
-          return count > 0 ? sum / count : null;
-        }),
-        color: $selectedMode === 'region' ? regionColors[key] || `hsl(${index * 360 / keys.length}, 70%, 50%)` : `hsl(${index * 360 / keys.length}, 70%, 50%)`,
-        strokeWidth: 2
-      }));
+          datasets = [{
+            label: 'National',
+            data: nationalData,
+            color: '#005AB5',
+            strokeWidth: 3
+          }];
+        }
+        break;
     }
 
-    console.log('Derived filteredData:', { labels, datasets });
     return { labels, datasets };
   }
 );

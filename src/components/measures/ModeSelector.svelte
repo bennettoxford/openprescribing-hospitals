@@ -1,9 +1,16 @@
 <script>
-  import { modeOptions } from '../../utils/chartConfig.js';
   import { selectedMode } from '../../stores/measureChartStore.js';
 
   export let handleModeChange;
   
+  const modeOptions = [
+    { value: 'national', label: 'National' },
+    { value: 'organisation', label: 'Organisation' },
+    { value: 'percentiles', label: 'Percentiles' },
+    { value: 'icb', label: 'ICB' },
+    { value: 'region', label: 'Region' }
+  ];
+
   let modeSelectWidth = 'auto';
 
   $: $selectedMode, adjustModeSelectWidth();
@@ -24,7 +31,7 @@
   }
 </script>
 
-<div class="flex-shrink-0 mr-8">
+<div>
   <label for="mode-select" class="block text-sm font-medium text-gray-700 mb-1">Select Mode</label>
   <select 
     id="mode-select" 

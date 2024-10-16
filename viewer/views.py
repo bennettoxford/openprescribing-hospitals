@@ -73,7 +73,6 @@ class MeasureItemView(TemplateView):
             measure = self.get_measure(slug)
             context.update(self.get_measure_context(measure))
             context.update(self.get_precomputed_data(measure))
-            print(context)
         except Exception as e:
             context["error"] = str(e)
 
@@ -93,26 +92,18 @@ class MeasureItemView(TemplateView):
         }
 
     def get_precomputed_data(self, measure):
-        # Define three test months for fetching precomputed data
-        test_months = [
-            datetime(2023, 11, 1),
-            datetime(2023, 12, 1),
-            datetime(2024, 1, 1)
-        ]
+       
 
         org_measures = PrecomputedMeasure.objects.filter(
-            measure=measure, 
-            month__in=test_months
+            measure=measure
         ).select_related('organisation')
         
         aggregated_measures = PrecomputedMeasureAggregated.objects.filter(
-            measure=measure, 
-            month__in=test_months
+            measure=measure
         )
         
         percentiles = PrecomputedPercentile.objects.filter(
-            measure=measure, 
-            month__in=test_months
+            measure=measure
         )
 
         context = {}
@@ -130,15 +121,21 @@ class MeasureItemView(TemplateView):
                             .values_list('organisation__ods_code', flat=True))
 
         org_measures_dict = {}
-        for measure in org_measures.filter(organisation__ods_code__in=non_zero_orgs).values():
-            org_measures_dict.setdefault(measure['organisation_id'], []).append(measure)
+        for measure in org_measures.filter(organisation__ods_code__in=non_zero_orgs).values(
+            'organisation__ods_code', 'organisation__ods_name', 'month', 'quantity'
+        ):
+            org_key = f"{measure['organisation__ods_code']} | {measure['organisation__ods_name']}"
+            org_measures_dict.setdefault(org_key, []).append({
+                'month': measure['month'],
+                'quantity': measure['quantity']
+            })
 
         return {
             "orgs_included": {
                 "included": len(non_zero_orgs),
                 "total": len(all_orgs)
             },
-            "measure_result": json.dumps(org_measures_dict, cls=DjangoJSONEncoder),
+            "org_data": json.dumps(org_measures_dict, cls=DjangoJSONEncoder),
         }
 
     def get_aggregated_data(self, aggregated_measures):
@@ -147,23 +144,16 @@ class MeasureItemView(TemplateView):
 
         for measure in aggregated_measures:
             data = region_data if measure.category == 'region' else icb_data
-            data.setdefault(measure.label, {})[measure.month] = measure.quantity
+            data.setdefault(measure.label, {
+                'name': measure.label,
+                'data': []
+            })['data'].append({
+                'month': measure.month,
+                'quantity': measure.quantity
+            })
 
-        region_list = [
-            {
-                'region': region,
-                'data': [{'month': month, 'quantity': quantity} for month, quantity in data.items()]
-            }
-            for region, data in region_data.items()
-        ]
-
-        icb_list = [
-            {
-                'icb': icb,
-                'data': [{'month': month, 'quantity': quantity} for month, quantity in data.items()]
-            }
-            for icb, data in icb_data.items()
-        ]
+        region_list = list(region_data.values())
+        icb_list = list(icb_data.values())
 
         return {
             "region_data": json.dumps(region_list, cls=DjangoJSONEncoder),
@@ -173,7 +163,7 @@ class MeasureItemView(TemplateView):
     def get_percentile_data(self, percentiles):
         percentiles_list = list(percentiles.values())
         return {
-            "deciles": json.dumps(percentiles_list, cls=DjangoJSONEncoder),
+            "percentile_data": json.dumps(percentiles_list, cls=DjangoJSONEncoder),
         }
 
 

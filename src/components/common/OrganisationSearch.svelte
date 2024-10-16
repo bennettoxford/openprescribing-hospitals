@@ -18,6 +18,7 @@
     let selectedItems = [];
     let showOrganisationSelection = false;
     let initialized = false;
+    let previousFilterType = filterType;
 
     $: filteredItems = items.filter(item => 
         item && typeof item === 'string' && item.toLowerCase().includes(searchTerm.toLowerCase())
@@ -36,6 +37,14 @@
     }
 
     $: maxSelected = selectedItems.length >= 10;
+
+    // Reset selected items when filterType changes
+    $: if (filterType !== previousFilterType) {
+        selectedItems = [];
+        showOrganisationSelection = false;
+        dispatchSelectionChange();
+        previousFilterType = filterType;
+    }
 
     function toggleDropdown() {
         if (showOrganisationSelection) {

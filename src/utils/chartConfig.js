@@ -1,11 +1,11 @@
 export const regionColors = {
-    'East Of England': '#1f77b4',
-    'South East': '#ff7f0e',
-    'Midlands': '#2ca02c',
-    'North East And Yorkshire': '#d62728',
-    'London': '#9467bd',
-    'South West': '#8c564b',
-    'North West': '#e377c2'
+    'North East And Yorkshire': '#332288',
+    'North West': '#117733',
+    'Midlands': '#88CCEE',
+    'East Of England': '#DDCC77',
+    'London': '#CC6677',
+    'South East': '#AA4499',
+    'South West': '#882255'
 };
 
 export const chartOptions = {
@@ -14,10 +14,9 @@ export const chartOptions = {
     tooltipClass: 'tooltip p-2 bg-gray-800 text-white rounded shadow-lg text-sm'
 };
 
-export const decilesLegend = [
-    { label: '1st-9th Percentile', style: 'border-blue-500 border-dotted' },
-    { label: '10th-90th Percentile', style: 'border-blue-500 border-dashed' },
-    { label: '50th Percentile', style: 'border-red-500 border-dashed' }
+export const percentilesLegend = [
+    { label: 'Median', color: '#DC3220', strokeWidth: 3, strokeDasharray: '4,2' },
+    { label: 'Percentile', color: '#005AB5', strokeWidth: 1, strokeDasharray: '4,2' },
 ];
 
 export const modeOptions = [
@@ -26,3 +25,21 @@ export const modeOptions = [
     { value: 'region', label: 'Region' },
     { value: 'icb', label: 'ICB' }
 ];
+
+export const chartConfig = {
+    colours: [
+      '#332288',
+      '#117733',
+      '#44AA99',
+      '#88CCEE',
+      '#DDCC77',
+      '#CC6677',
+      '#AA4499',
+      '#882255'
+    ],
+  };
+  
+  export function getOrganisationColor(organisationIndex) {
+    return chartConfig.colours[organisationIndex % chartConfig.colours.length];
+  }
+  

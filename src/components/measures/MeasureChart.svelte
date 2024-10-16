@@ -1,34 +1,19 @@
 <script>
-  import { chartOptions, regionColors } from '../../utils/chartConfig.js';
   import { onMount, onDestroy } from 'svelte';
   import * as d3 from 'd3';
-  import { selectedMode, filteredData } from '../../stores/measureChartStore.js';
-
-  export let width;
-  export let height;
+  import { filteredData, getOrganisationColor, selectedMode } from '../../stores/measureChartStore.js';
 
   let chartDiv;
   let tooltip;
 
-  $: if (width && height && $filteredData && $filteredData.labels && $filteredData.labels.length > 0) {
-    updateChart();
-  } else {
-    console.log('Skipping chart update due to missing data or dimensions');
-  }
+  function createChart() {
+    d3.select(chartDiv).selectAll('*').remove();
 
-  function updateChart() {
-    if (!chartDiv || !width || !height || !$filteredData || !$filteredData.labels || $filteredData.labels.length === 0) {
-      console.log('Skipping chart update due to missing data or dimensions');
-      return;
-    }
-
-    console.log('Updating chart with data:', $filteredData);
-
-    const { margin } = chartOptions;
+    const margin = { top: 20, right: 20, bottom: 40, left: 70 }; // Increased bottom and left margins
+    const width = chartDiv.clientWidth;
+    const height = 400;
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
-
-    d3.select(chartDiv).selectAll('*').remove();
 
     const svg = d3.select(chartDiv)
       .append('svg')
@@ -41,13 +26,12 @@
       .domain(d3.extent($filteredData.labels, d => new Date(d)))
       .range([0, chartWidth]);
 
-    const yMax = d3.max($filteredData.datasets, d => d3.max(d.data, v => v !== null ? v : -Infinity));
-
+    // Update y scale to have a fixed domain between 0 and 1
     const y = d3.scaleLinear()
-      .domain([0, yMax]).nice()
+      .domain([0, 1])
       .range([chartHeight, 0]);
 
-    // Add grid lines
+    // Add grid
     svg.append('g')
       .attr('class', 'grid')
       .attr('transform', `translate(0,${chartHeight})`)
@@ -55,75 +39,61 @@
         .ticks(d3.timeYear.every(1))
         .tickSize(-chartHeight)
         .tickFormat(''))
-      .selectAll('line')
-      .attr('stroke', 'lightgrey')
-      .attr('stroke-opacity', 0.5)
-      .attr('stroke-dasharray', '2,2');
+      .call(g => g.select('.domain').remove())
+      .call(g => g.selectAll('.tick line')
+        .attr('stroke', '#e0e0e0')
+        .attr('stroke-opacity', 0.7));
 
     svg.append('g')
       .attr('class', 'grid')
       .call(d3.axisLeft(y)
         .tickSize(-chartWidth)
         .tickFormat(''))
-      .selectAll('line')
-      .attr('stroke', 'lightgrey')
-      .attr('stroke-opacity', 0.5)
-      .attr('stroke-dasharray', '2,2');
+      .call(g => g.select('.domain').remove())
+      .call(g => g.selectAll('.tick line')
+        .attr('stroke', '#e0e0e0')
+        .attr('stroke-opacity', 0.7));
 
-    svg.selectAll('.grid path')
-      .style('display', 'none');
-
-    // Add x-axis
     svg.append('g')
       .attr('transform', `translate(0,${chartHeight})`)
-      .call(d3.axisBottom(x)
-        .ticks(d3.timeYear.every(1))
-        .tickFormat(d3.timeFormat('%Y')))
-      .selectAll('text')
-      .style('font-size', '12px');
+      .call(d3.axisBottom(x).ticks(d3.timeYear.every(1)).tickFormat(d3.timeFormat('%Y')))
+      .call(g => g.selectAll('.tick text')
+        .style('font-size', '14px'));
 
-    // Add y-axis
+    // Update y-axis
     svg.append('g')
-      .call(d3.axisLeft(y))
-      .selectAll('text')
-      .style('font-size', '12px');
+      .call(d3.axisLeft(y)
+        .ticks(10)
+        .tickFormat(d3.format('.1f')))
+      .call(g => g.selectAll('.tick text')
+        .style('font-size', '14px'));
 
-    // Add x-axis label
     svg.append('text')
-      .attr('class', 'x-axis-label')
-      .attr('text-anchor', 'middle')
-      .attr('x', chartWidth / 2)
-      .attr('y', chartHeight + margin.bottom - 5)
-      .style('font-size', '14px')
-      .text('Date');
-
-    // Add y-axis label
-    svg.append('text')
-      .attr('class', 'y-axis-label')
-      .attr('text-anchor', 'middle')
-      .attr('transform', `rotate(-90)`)
-      .attr('x', -chartHeight / 2)
-      .attr('y', -margin.left + 15)
-      .style('font-size', '14px')
+      .attr('transform', 'rotate(-90)')
+      .attr('y', 0 - margin.left)
+      .attr('x', 0 - (chartHeight / 2))
+      .attr('dy', '1em')
+      .style('text-anchor', 'middle')
+      .style('font-size', '16px')
       .text('Proportion');
 
-    // Draw lines
     const line = d3.line()
       .x((d, i) => x(new Date($filteredData.labels[i])))
-      .y(d => y(d))
-      .defined(d => d !== null && !isNaN(d));
+      .y(d => d !== null ? y(d) : null)
+      .defined(d => d !== null);
 
     svg.selectAll('.line')
       .data($filteredData.datasets)
       .enter()
       .append('path')
       .attr('class', 'line')
-      .attr('d', d => line(d.data.filter(v => v !== null)))  // Filter out null values
+      .attr('d', d => line(d.data))
       .attr('fill', 'none')
-      .attr('stroke', d => d.color || d3.schemeCategory10[i % 10])
+      .attr('stroke', (d, i) => d.color || getOrganisationColor(i))
       .attr('stroke-width', d => d.strokeWidth || 2)
       .attr('stroke-dasharray', d => d.strokeDasharray || 'none');
 
+    // Add tooltip
     tooltip = d3.select('body')
       .append('div')
       .attr('class', 'tooltip')
@@ -138,10 +108,36 @@
       .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)');
 
     function showTooltip(event, d) {
-      d3.select(this).attr('stroke-width', d.strokeWidth + 1);
+      d3.select(this).attr('stroke-width', d => d.strokeWidth || 5);
       tooltip.style('opacity', 1);
       svg.selectAll('.line').style('opacity', 0.2);
       d3.select(this).style('opacity', 1);
+
+      let displayName, displayCode;
+      if ($selectedMode === 'organisation') {
+        [displayCode, displayName] = d.label.split('|');
+      } else if ($selectedMode === 'national') {
+        displayName = 'National';
+        displayCode = '';
+      } else {
+        displayName = d.label;
+        displayCode = '';
+      }
+
+      const tooltipX = event.pageX + 10;
+      const tooltipY = event.pageY - 10;
+
+      const xPos = d3.pointer(event, this)[0];
+      const date = x.invert(xPos);
+      const bisectDate = d3.bisector(d => new Date(d)).left;
+      const index = bisectDate($filteredData.labels, date);
+      const value = d.data[index];
+
+      tooltip
+        .html(`<strong>${displayName || 'Unknown'}</strong>${displayCode ? `<br>ODS Code: ${displayCode.trim()}` : ''}<br>Date: ${
+        d3.timeFormat('%b %Y')(date)}<br>Proportion: ${value?.toFixed(2) || 'N/A'}`)
+        .style('left', `${tooltipX}px`)
+        .style('top', `${tooltipY}px`);
     }
 
     function moveTooltip(event, d) {
@@ -154,21 +150,32 @@
       const nearestDate = new Date($filteredData.labels[nearestIndex]);
       const nearestValue = d.data[nearestIndex];
 
-      const orgName = d.label ? (d.label.length > 20 ? `${d.label.substring(0, 20)}...` : d.label) : 'Unknown';
+      let displayName, displayCode;
+      if ($selectedMode === 'organisation') {
+        [displayCode, displayName] = d.label.split('|');
+      } else if ($selectedMode === 'national') {
+        displayName = 'National';
+        displayCode = '';
+      } else {
+        displayName = d.label;
+        displayCode = '';
+      }
 
       const tooltipX = event.pageX + 10;
       const tooltipY = event.pageY - 10;
 
       tooltip
-        .html(`<strong>${orgName}</strong><br>Date: ${d3.timeFormat('%b %Y')(nearestDate)}<br>Proportion: ${nearestValue?.toFixed(2) || 'N/A'}`)
+        .html(`<strong>${displayName || 'Unknown'}</strong>${displayCode ? `<br>ODS Code: ${displayCode.trim()}` : ''}<br>Date: ${
+        d3.timeFormat('%b %Y')(nearestDate)}<br>Proportion: ${nearestValue?.toFixed(2) || 'N/A'}`)
         .style('left', `${tooltipX}px`)
         .style('top', `${tooltipY}px`);
     }
 
-    function hideTooltip(event, d) {
-      d3.select(this).attr('stroke-width', d.strokeWidth);
+    function hideTooltip() {
+      d3.select(this).attr('stroke-width', d => d.strokeWidth || 3);
       tooltip.style('opacity', 0);
       svg.selectAll('.line').style('opacity', 1);
+      d3.select(this).style('opacity', 1);
     }
 
     svg.selectAll('.line')
@@ -181,17 +188,55 @@
       });
   }
 
+  function handleResize() {
+    if (chartDiv && $filteredData?.labels?.length > 0) {
+      createChart();
+    }
+  }
+
+  function resizeAction(node) {
+    const resizeObserver = new ResizeObserver(() => {
+      handleResize();
+    });
+
+    resizeObserver.observe(node);
+
+    return {
+      destroy() {
+        resizeObserver.disconnect();
+      }
+    };
+  }
+
+  onMount(() => {
+    if ($filteredData?.labels?.length > 0) {
+      createChart();
+    }
+  });
+
   onDestroy(() => {
     if (tooltip) {
       tooltip.remove();
     }
   });
+
+  $: if ($filteredData?.labels?.length > 0) {
+    handleResize();
+  }
 </script>
 
 <style>
   .tooltip {
     transition: opacity 0.2s ease-in-out;
   }
+
+  .line {
+    transition: stroke-width 0.2s ease-in-out;
+  }
+
+  circle {
+    transition: r 0.2s ease-in-out;
+  }
 </style>
 
-<div bind:this={chartDiv} class="w-full h-full"></div>
+<div bind:this={chartDiv} use:resizeAction class="w-full h-[400px]"></div>
