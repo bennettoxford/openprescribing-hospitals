@@ -22,18 +22,18 @@
     export let icbdata = '[]';
     export let percentiledata = '[]';
    
-    let organisations = [];
+    let trusts = [];
     let icbs = [];
 
-    $: showFilter = $selectedMode === 'organisation' || $selectedMode === 'percentiles' || $selectedMode === 'icb';
-    $: filterItems = $selectedMode === 'icb' ? icbs : organisations;
-    $: filterType = $selectedMode === 'icb' ? 'icb' : 'organisation';
+    $: showFilter = $selectedMode === 'trust' || $selectedMode === 'percentiles' || $selectedMode === 'icb';
+    $: filterItems = $selectedMode === 'icb' ? icbs : trusts;
+    $: filterType = $selectedMode === 'icb' ? 'icb' : 'trust';
     $: showLegend = $selectedMode === 'percentiles' || $selectedMode === 'region';
 
     onMount(() => {
         const parsedOrgData = JSON.parse(orgdata);
         orgStore.set(parsedOrgData);
-        organisations = Object.keys(parsedOrgData);
+        trusts = Object.keys(parsedOrgData);
         
         const parsedIcbData = JSON.parse(icbdata);
         icbStore.set(parsedIcbData);

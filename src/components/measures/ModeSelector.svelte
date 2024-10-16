@@ -5,7 +5,7 @@
   
   const modeOptions = [
     { value: 'national', label: 'National' },
-    { value: 'organisation', label: 'Organisation' },
+    { value: 'trust', label: 'Trust' },
     { value: 'percentiles', label: 'Percentiles' },
     { value: 'icb', label: 'ICB' },
     { value: 'region', label: 'Region' }

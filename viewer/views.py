@@ -131,7 +131,7 @@ class MeasureItemView(TemplateView):
             })
 
         return {
-            "orgs_included": {
+            "trusts_included": {
                 "included": len(non_zero_orgs),
                 "total": len(all_orgs)
             },

@@ -112,10 +112,10 @@
       .data($filteredData.datasets.filter(d => !d.fill))
       .enter()
       .append('path')
-      .attr('class', d => `line ${d.isPercentileLine ? 'percentile-line' : ''} ${d.isOrganisation ? 'organisation-line' : ''}`)
+      .attr('class', d => `line ${d.isPercentileLine ? 'percentile-line' : ''} ${d.isTrust ? 'trust-line' : ''}`)
       .attr('d', d => line(d.data))
       .attr('fill', 'none')
-      .attr('stroke', (d, i) => d.color || getOrganisationColor(i, isPercentileMode))
+      .attr('stroke', (d, i) => d.color || getTrustColor(i, isPercentileMode))
       .attr('stroke-width', 2.5)
       .attr('stroke-opacity', d => {
         if (d.isPercentileLine && d.label !== 'Median (50th Percentile)') {
@@ -145,14 +145,14 @@
       .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)');
 
     function showTooltip(event, d) {
-      const isOrganisation = d.isOrganisation;
+      const isTrust = d.isTrust;
       d3.select(this).attr('stroke-width', 3);
       tooltip.style('opacity', 1);
       svg.selectAll('.line').style('opacity', 0.2);
       d3.select(this).style('opacity', 1);
 
       let displayName, displayCode;
-      if (isOrganisation) {
+      if (isTrust) {
         [displayCode, displayName] = d.label.split('|');
       } else {
         displayName = d.label;
@@ -277,6 +277,9 @@
     stroke-opacity: 0;
   }
   .organisation-line {
+    /* Remove the stroke-width declaration */
+  }
+  .trust-line {
     /* Remove the stroke-width declaration */
   }
 </style>

@@ -18,6 +18,15 @@ export function getOrganisationColor(index) {
   return organisationColors[index % organisationColors.length];
 }
 
+const trustColors = [
+  '#332288', '#117733', '#44AA99', '#88CCEE', 
+  '#DDCC77', '#CC6677', '#AA4499', '#882255'
+];
+
+export function getTrustColor(index) {
+  return trustColors[index % trustColors.length];
+}
+
 export const filteredData = derived(
   [selectedMode, orgdata, regiondata, icbdata, percentiledata, selectedItems],
   ([$selectedMode, $orgdata, $regiondata, $icbdata, $percentiledata, $selectedItems]) => {
@@ -174,6 +183,24 @@ export const filteredData = derived(
             color: '#005AB5',
             strokeWidth: 3
           }];
+        }
+        break;
+      case 'trust':
+        if (typeof $orgdata === 'object' && !Array.isArray($orgdata)) {
+
+          const allDates = [...new Set(Object.values($orgdata).flatMap(trust => trust.map(d => d.month)))].sort(sortDates);
+          labels = allDates;
+          
+          let trustsToShow = $selectedItems.length > 0 ? $selectedItems : Object.keys($orgdata);
+          datasets = trustsToShow.map((trust, index) => {
+            const trustData = $orgdata[trust];
+            if (!trustData) return null;
+            return {
+              label: trust,
+              data: createDataArrayWithNulls(trustData, allDates),
+              color: getTrustColor(index)
+            };
+          }).filter(Boolean);
         }
         break;
     }

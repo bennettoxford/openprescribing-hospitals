@@ -55,7 +55,7 @@ export const percentilesLegend = [
 ];
 
 export const modeOptions = [
-    { value: 'organisation', label: 'Organisation' },
+    { value: 'trust', label: 'Trust' },
     { value: 'deciles', label: 'Deciles' },
     { value: 'region', label: 'Region' },
     { value: 'icb', label: 'ICB' }
@@ -82,7 +82,7 @@ export const chartConfig = {
   ]
 };
 
-export function getOrganisationColor(organisationIndex, isOverlayingPercentiles = false) {
+export function getTrustColor(trustIndex, isOverlayingPercentiles = false) {
   const colours = isOverlayingPercentiles ? chartConfig.restrictedColours : chartConfig.allColours;
-  return colours[organisationIndex % colours.length];
+  return colours[trustIndex % colours.length];
 }
