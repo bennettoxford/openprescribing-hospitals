@@ -31,33 +31,35 @@ class Command(BaseCommand):
         for measure in measures:
             self.stdout.write(f"Computing measure: {measure.name}")
             try:
-                result = execute_measure_sql(measure.name)
-                values = result['values']['measure_values']
-               
-                org_data = defaultdict(lambda: defaultdict(float))
-
-                for row in values:
-                    month = datetime.strptime(row['month'], "%Y-%m").strftime("%Y-%m-%d")
-                    org_data[row['organisation']][month] = row['quantity']
-
-                org_ods_names = set(org_data.keys())
-                organisations = {org.ods_name: org for org in Organisation.objects.filter(ods_name__in=org_ods_names)}
-
-                precomputed_measures = []
-                for org, months in org_data.items():
-                    organisation = organisations.get(org)
-                    if organisation:
-                        for month, quantity in months.items():
-                            precomputed_measures.append(
-                                PrecomputedMeasure(
-                                    measure=measure,
-                                    organisation=organisation,
-                                    month=month,
-                                    quantity=quantity
-                                )
-                            )
-
                 with transaction.atomic():
+                    self.delete_existing_precomputed_data(measure)
+
+                    result = execute_measure_sql(measure.name)
+                    values = result['values']['measure_values']
+                   
+                    org_data = defaultdict(lambda: defaultdict(float))
+
+                    for row in values:
+                        month = datetime.strptime(row['month'], "%Y-%m").strftime("%Y-%m-%d")
+                        org_data[row['organisation']][month] = row['quantity']
+
+                    org_ods_names = set(org_data.keys())
+                    organisations = {org.ods_name: org for org in Organisation.objects.filter(ods_name__in=org_ods_names)}
+
+                    precomputed_measures = []
+                    for org, months in org_data.items():
+                        organisation = organisations.get(org)
+                        if organisation:
+                            for month, quantity in months.items():
+                                precomputed_measures.append(
+                                    PrecomputedMeasure(
+                                        measure=measure,
+                                        organisation=organisation,
+                                        month=month,
+                                        quantity=quantity
+                                    )
+                                )
+
                     PrecomputedMeasure.objects.bulk_create(
                         precomputed_measures,
                         update_conflicts=True,
@@ -72,6 +74,12 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f"Successfully computed measure: {measure.name}"))
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"Error computing measure {measure.name}: {e}"))
+
+    def delete_existing_precomputed_data(self, measure):
+        PrecomputedMeasure.objects.filter(measure=measure).delete()
+        PrecomputedMeasureAggregated.objects.filter(measure=measure).delete()
+        PrecomputedPercentile.objects.filter(measure=measure).delete()
+        self.stdout.write(f"Deleted existing precomputed data for measure: {measure.name}")
 
     def calculate_and_store_aggregations(self, measure):
 
@@ -132,7 +140,7 @@ class Command(BaseCommand):
         
         all_months = [min_date + relativedelta(months=i) for i in range((max_date.year - min_date.year) * 12 + max_date.month - min_date.month + 1)]
 
-        percentile_values = [5, 15, 25, 35, 45, 55, 65, 75, 85, 95]
+        percentile_values = [5, 15, 25, 35, 45, 50, 55, 65, 75, 85, 95]
         
         percentiles_to_create = []
 
