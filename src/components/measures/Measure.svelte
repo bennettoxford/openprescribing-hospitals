@@ -11,7 +11,7 @@
 
 <script>
     import { onMount } from 'svelte';
-    import { selectedMode, orgdata as orgStore, regiondata as regionStore, icbdata as icbStore, percentiledata as percentileStore, selectedItems } from '../../stores/measureChartStore.js';
+    import { selectedMode, orgdata as orgStore, regiondata as regionStore, icbdata as icbStore, percentiledata as percentileStore, selectedItems, resetSelectedItems } from '../../stores/measureChartStore.js';
     import MeasureChart from './MeasureChart.svelte';
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
     import ModeSelector from './ModeSelector.svelte';
@@ -50,14 +50,7 @@
 
     function handleModeChange(event) {
         const newMode = event.target.value;
-        const previousMode = $selectedMode;
         selectedMode.set(newMode);
-        
-        // Reset selected items unless switching between 'organisation' and 'percentiles'
-        if (!((previousMode === 'organisation' && newMode === 'percentiles') || 
-              (previousMode === 'percentiles' && newMode === 'organisation'))) {
-            selectedItems.set([]);
-        }
     }
 </script>
 

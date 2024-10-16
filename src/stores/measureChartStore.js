@@ -227,3 +227,7 @@ function groupBy(array, key) {
     return result;
   }, {});
 }
+
+export const resetSelectedItems = derived(selectedMode, ($selectedMode) => {
+  selectedItems.set([]);
+});
