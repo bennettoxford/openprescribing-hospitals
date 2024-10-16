@@ -1,9 +1,10 @@
 import json
 from collections import defaultdict
 from datetime import date, datetime
-from dateutil.relativedelta import relativedelta
+from markdown2 import Markdown
 from django.views.generic import TemplateView
 from rest_framework.decorators import api_view
+from django.core.serializers.json import DjangoJSONEncoder
 from rest_framework.response import Response
 from django.http import JsonResponse
 from django.db.models import Prefetch
@@ -12,6 +13,7 @@ from django.db.models import F
 from django.db.models import Value
 from django.utils.safestring import mark_safe
 from django.db.models import Exists, OuterRef
+from django.db.models import Count, Q, Prefetch
 
 from .models import (
     ATC,
@@ -23,10 +25,10 @@ from .models import (
     VTM,
     Measure,
     PrecomputedMeasure,
+    PrecomputedMeasureAggregated,
+    PrecomputedPercentile,
     OrgSubmissionCache,
 )
-from .measures.measure_utils import execute_measure_sql
-from markdown2 import Markdown
 
 
 class IndexView(TemplateView):
@@ -66,112 +68,113 @@ class MeasureItemView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         slug = self.kwargs.get("slug")
-        measure = Measure.objects.select_related('reason').get(slug=slug)
-
-        markdowner = Markdown()
-        measure.why_it_matters = markdowner.convert(measure.why_it_matters)
-
-        context["measure_name"] = measure.name
-        context["measure_name_short"] = measure.short_name
-        context["why_it_matters"] = measure.why_it_matters
-        context["reason"] = measure.reason.reason if measure.reason else None
-        context["reason_colour"] = measure.reason.colour if measure.reason else None
 
         try:
-            precomputed_measures = PrecomputedMeasure.objects.filter(measure=measure).select_related('organisation')
-
-            earliest_month = precomputed_measures.order_by('month').first().month
-            latest_month = precomputed_measures.order_by('-month').first().month
-
-            values = precomputed_measures.values('organisation__ods_name', 'month', 'quantity')
-
-            org_data = defaultdict(lambda: defaultdict(float))
-            all_months = set(
-                (earliest_month + relativedelta(months=i)).strftime("%Y-%m-%d")
-                for i in range((latest_month.year - earliest_month.year) * 12 + latest_month.month - earliest_month.month + 1)
-            )
-            all_orgs = set()
-
-            for row in values:
-                month = row['month'].strftime("%Y-%m-%d")  # Convert date to string
-                org = row['organisation__ods_name']
-                value = row['quantity']
-                org_data[org][month] = value
-                all_orgs.add(org)
-
-            # fill in any missing months with null
-            for org in all_orgs:
-                for month in all_months:
-                    if month not in org_data[org]:
-                        org_data[org][month] = None
-
-            all_months = sorted(all_months)
-
-            # Filter out organisations with all 0 or None values
-            non_zero_orgs = {
-                org for org in all_orgs
-                if any(org_data[org][month] not in [0, None] for month in all_months)
-            }
-
-            total_orgs = len(all_orgs)
-            included_orgs = len(non_zero_orgs)
-            
-            context["orgs_included"] = {"included": included_orgs, "total": total_orgs}
-
-            # Create a mapping of ods_name to region to avoid repeated DB hits
-            org_to_region = {
-                org.ods_name: org.region for org in Organisation.objects.filter(ods_name__in=non_zero_orgs)
-            }
-
-            # create a mapping of ods_name to ICB
-            org_to_icb = {
-                org.ods_name: org.icb for org in Organisation.objects.filter(ods_name__in=non_zero_orgs)
-            }
-
-            filled_values = [
-                {
-                    'organisation': org,
-                    'region': org_to_region[org],
-                    'icb': org_to_icb[org],
-                    'month': month,
-                    'quantity': org_data[org][month]
-                }
-                for org in non_zero_orgs
-                for month in all_months
-            ]
-
-            context["measure_result"] = json.dumps(filled_values, ensure_ascii=False)
-           
-            results_by_month = defaultdict(list)
-            for row in filled_values:
-                month = row['month']
-                value = row['quantity']
-                results_by_month[month].append(value)
-
-            # fill in missing months
-            for month in all_months:
-                if month not in results_by_month:
-                    results_by_month[month] = []
-
-            percentiles = {}
-            percentile_values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
-            for month, values in results_by_month.items():
-                
-                # drop null
-                sorted_values = sorted(filter(None, values))
-                
-                # if sorted values is empty - set to 0
-                if not sorted_values:
-                    percentiles[month] = [0] * len(percentile_values)
-                else:
-                    percentiles[month] = [
-                        sorted_values[int(len(sorted_values) * p / 100)] for p in percentile_values
-                ]
-            context["deciles"] = json.dumps(percentiles, ensure_ascii=False)
-
+            measure = self.get_measure(slug)
+            context.update(self.get_measure_context(measure))
+            context.update(self.get_precomputed_data(measure))
+            print(context)
         except Exception as e:
             context["error"] = str(e)
+
         return context
+
+    def get_measure(self, slug):
+        return Measure.objects.select_related('reason').get(slug=slug)
+
+    def get_measure_context(self, measure):
+        markdowner = Markdown()
+        return {
+            "measure_name": measure.name,
+            "measure_name_short": measure.short_name,
+            "why_it_matters": markdowner.convert(measure.why_it_matters),
+            "reason": measure.reason.reason if measure.reason else None,
+            "reason_colour": measure.reason.colour if measure.reason else None,
+        }
+
+    def get_precomputed_data(self, measure):
+        # Define three test months for fetching precomputed data
+        test_months = [
+            datetime(2023, 11, 1),
+            datetime(2023, 12, 1),
+            datetime(2024, 1, 1)
+        ]
+
+        org_measures = PrecomputedMeasure.objects.filter(
+            measure=measure, 
+            month__in=test_months
+        ).select_related('organisation')
+        
+        aggregated_measures = PrecomputedMeasureAggregated.objects.filter(
+            measure=measure, 
+            month__in=test_months
+        )
+        
+        percentiles = PrecomputedPercentile.objects.filter(
+            measure=measure, 
+            month__in=test_months
+        )
+
+        context = {}
+        context.update(self.get_org_data(org_measures))
+        context.update(self.get_aggregated_data(aggregated_measures))
+        context.update(self.get_percentile_data(percentiles))
+
+        return context
+
+    def get_org_data(self, org_measures):
+        all_orgs = set(org_measures.values_list('organisation__ods_name', flat=True).distinct())
+        non_zero_orgs = set(org_measures.values('organisation__ods_code')
+                            .annotate(non_zero_count=Count('id', filter=Q(quantity__isnull=False) & ~Q(quantity=0)))
+                            .filter(non_zero_count__gt=0)
+                            .values_list('organisation__ods_code', flat=True))
+
+        org_measures_dict = {}
+        for measure in org_measures.filter(organisation__ods_code__in=non_zero_orgs).values():
+            org_measures_dict.setdefault(measure['organisation_id'], []).append(measure)
+
+        return {
+            "orgs_included": {
+                "included": len(non_zero_orgs),
+                "total": len(all_orgs)
+            },
+            "measure_result": json.dumps(org_measures_dict, cls=DjangoJSONEncoder),
+        }
+
+    def get_aggregated_data(self, aggregated_measures):
+        region_data = {}
+        icb_data = {}
+
+        for measure in aggregated_measures:
+            data = region_data if measure.category == 'region' else icb_data
+            data.setdefault(measure.label, {})[measure.month] = measure.quantity
+
+        region_list = [
+            {
+                'region': region,
+                'data': [{'month': month, 'quantity': quantity} for month, quantity in data.items()]
+            }
+            for region, data in region_data.items()
+        ]
+
+        icb_list = [
+            {
+                'icb': icb,
+                'data': [{'month': month, 'quantity': quantity} for month, quantity in data.items()]
+            }
+            for icb, data in icb_data.items()
+        ]
+
+        return {
+            "region_data": json.dumps(region_list, cls=DjangoJSONEncoder),
+            "icb_data": json.dumps(icb_list, cls=DjangoJSONEncoder),
+        }
+
+    def get_percentile_data(self, percentiles):
+        percentiles_list = list(percentiles.values())
+        return {
+            "deciles": json.dumps(percentiles_list, cls=DjangoJSONEncoder),
+        }
 
 
 def get_all_child_atc_codes(atc_codes):
