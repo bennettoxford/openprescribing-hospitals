@@ -13,7 +13,11 @@
     {#each legendItems as item}
       <div class="flex items-center mr-4 mb-2">
         {#if $selectedMode === 'percentiles'}
-          <div class="w-8 h-0 mr-2 border-t-2" style="border-color: {item.color}; border-style: {item.strokeDasharray === '4,2' ? 'dashed' : 'dotted'};"></div>
+          {#if item.isLine}
+            <div class="w-8 h-0 mr-2 border-t-2" style="border-color: {item.color}; border-style: dashed; border-width: {item.strokeWidth}px;"></div>
+          {:else if item.isArea}
+            <div class="w-6 h-6 mr-2" style="background-color: {item.color}; opacity: {item.fillOpacity};"></div>
+          {/if}
         {:else}
           <div class="w-4 h-4 mr-2" style="background-color: {item.color};"></div>
         {/if}
@@ -22,3 +26,6 @@
     {/each}
   </div>
 {/if}
+
+
+

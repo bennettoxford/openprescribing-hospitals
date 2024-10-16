@@ -88,21 +88,57 @@ export const filteredData = derived(
 
         labels = Object.keys(groupedPercentiles).sort((a, b) => new Date(a) - new Date(b));
 
-        const percentilesToShow = [10, 20, 30, 40, 50, 60, 70, 80, 90];
-        datasets = percentilesToShow.map(percentile => {
-          const color = percentile === 50 ? '#DC3220' : '#005AB5';
-          const strokeWidth = percentile === 50 ? 3 : 1;
-          const strokeDasharray = percentile % 10 === 0 ? '4,2' : '2,2';
+        const percentileRanges = [
+          { range: [45, 55], opacity: 0.5 },
+          { range: [35, 65], opacity: 0.4 },
+          { range: [25, 75], opacity: 0.3 },
+          { range: [15, 85], opacity: 0.2 },
+          { range: [5, 95], opacity: 0.1 }
+        ];
 
-          return {
-            label: `${percentile}th Percentile`,
-            data: labels.map(month => groupedPercentiles[month][percentile] || null),
-            color: color,
-            strokeWidth: strokeWidth,
-            strokeDasharray: strokeDasharray
-          };
-        });
+        datasets = [
+          // Median line
+          {
+            label: 'Median (50th Percentile)',
+            data: labels.map(month => groupedPercentiles[month][50] || null),
+            color: '#DC3220',
+            strokeWidth: 2,
+            fill: false
+          },
+          // Shaded areas
+          ...percentileRanges.map(({ range: [lower, upper], opacity }) => ({
+            label: `${lower}th-${upper}th Percentile`,
+            data: labels.map(month => ({
+              lower: groupedPercentiles[month][lower] || null,
+              upper: groupedPercentiles[month][upper] || null
+            })),
+            color: '#005AB5',
+            strokeWidth: 0,
+            fill: true,
+            fillOpacity: opacity
+          })),
+          // Invisible lines for percentile boundaries
+          ...percentileRanges.flatMap(({ range: [lower, upper] }) => [
+            {
+              label: `${lower}th Percentile`,
+              data: labels.map(month => groupedPercentiles[month][lower] || null),
+              color: '#005AB5',
+              strokeWidth: 1,
+              strokeOpacity: 0,
+              isPercentileLine: true
+            },
+            {
+              label: `${upper}th Percentile`,
+              data: labels.map(month => groupedPercentiles[month][upper] || null),
+              color: '#005AB5',
+              strokeWidth: 1,
+              strokeOpacity: 0,
+              isPercentileLine: true
+            }
+          ])
+        ];
 
+        // Add selected organisations
         if ($selectedItems.length > 0) {
           $selectedItems.forEach((org, index) => {
             if ($orgdata[org]) {
@@ -113,7 +149,8 @@ export const filteredData = derived(
                   return dataPoint ? dataPoint.quantity : null;
                 }),
                 color: getOrganisationColor(datasets.length),
-                strokeWidth: 2
+                strokeWidth: 2,
+                isOrganisation: true
               });
             }
           });

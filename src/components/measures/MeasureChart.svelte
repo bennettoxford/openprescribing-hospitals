@@ -9,7 +9,7 @@
   function createChart() {
     d3.select(chartDiv).selectAll('*').remove();
 
-    const margin = { top: 20, right: 20, bottom: 40, left: 70 }; // Increased bottom and left margins
+    const margin = { top: 20, right: 20, bottom: 40, left: 70 };
     const width = chartDiv.clientWidth;
     const height = 400;
     const chartWidth = width - margin.left - margin.right;
@@ -26,7 +26,6 @@
       .domain(d3.extent($filteredData.labels, d => new Date(d)))
       .range([0, chartWidth]);
 
-    // Update y scale to have a fixed domain between 0 and 1
     const y = d3.scaleLinear()
       .domain([0, 1])
       .range([chartHeight, 0]);
@@ -82,18 +81,56 @@
       .y(d => d !== null ? y(d) : null)
       .defined(d => d !== null);
 
+    const area = d3.area()
+      .x((d, i) => x(new Date($filteredData.labels[i])))
+      .y0(d => d.lower !== null ? y(d.lower) : y(0))
+      .y1(d => d.upper !== null ? y(d.upper) : y(0))
+      .defined(d => d.lower !== null && d.upper !== null);
+
+    // Draw shaded areas for percentiles
+    if ($selectedMode === 'percentiles') {
+      const percentileDatasets = $filteredData.datasets.filter(d => d.label.includes('Percentile') && d.fill);
+      
+      // Sort datasets to ensure correct layering (widest range first)
+      percentileDatasets.sort((a, b) => {
+        const aRange = a.label.match(/\d+/g).map(Number);
+        const bRange = b.label.match(/\d+/g).map(Number);
+        return (bRange[1] - bRange[0]) - (aRange[1] - aRange[0]);
+      });
+
+      percentileDatasets.forEach((dataset) => {
+        svg.append('path')
+          .datum(dataset.data)
+          .attr('fill', dataset.color)
+          .attr('fill-opacity', dataset.fillOpacity)
+          .attr('d', area);
+      });
+    }
+
+
     svg.selectAll('.line')
-      .data($filteredData.datasets)
+      .data($filteredData.datasets.filter(d => !d.fill))
       .enter()
       .append('path')
-      .attr('class', 'line')
+      .attr('class', d => `line ${d.isPercentileLine ? 'percentile-line' : ''} ${d.isOrganisation ? 'organisation-line' : ''}`)
       .attr('d', d => line(d.data))
       .attr('fill', 'none')
-      .attr('stroke', (d, i) => d.color || getOrganisationColor(i))
-      .attr('stroke-width', d => d.strokeWidth || 2)
-      .attr('stroke-dasharray', d => d.strokeDasharray || 'none');
+      .attr('stroke', (d, i) => d.color || getOrganisationColor(i, isPercentileMode))
+      .attr('stroke-width', 2.5)
+      .attr('stroke-opacity', d => {
+        if (d.isPercentileLine && d.label !== 'Median (50th Percentile)') {
+          return 0;
+        }
+        return d.strokeOpacity || 1;
+      })
+      .attr('stroke-dasharray', d => {
+        if (d.label === 'Median (50th Percentile)') {
+          return '5,5';
+        }
+        return d.strokeDasharray || 'none';
+      });
 
-    // Add tooltip
+ 
     tooltip = d3.select('body')
       .append('div')
       .attr('class', 'tooltip')
@@ -108,17 +145,15 @@
       .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)');
 
     function showTooltip(event, d) {
-      d3.select(this).attr('stroke-width', d => d.strokeWidth || 5);
+      const isOrganisation = d.isOrganisation;
+      d3.select(this).attr('stroke-width', 3);
       tooltip.style('opacity', 1);
       svg.selectAll('.line').style('opacity', 0.2);
       d3.select(this).style('opacity', 1);
 
       let displayName, displayCode;
-      if ($selectedMode === 'organisation') {
+      if (isOrganisation) {
         [displayCode, displayName] = d.label.split('|');
-      } else if ($selectedMode === 'national') {
-        displayName = 'National';
-        displayCode = '';
       } else {
         displayName = d.label;
         displayCode = '';
@@ -172,10 +207,9 @@
     }
 
     function hideTooltip() {
-      d3.select(this).attr('stroke-width', d => d.strokeWidth || 3);
+      d3.select(this).attr('stroke-width', 2.5);
       tooltip.style('opacity', 0);
       svg.selectAll('.line').style('opacity', 1);
-      d3.select(this).style('opacity', 1);
     }
 
     svg.selectAll('.line')
@@ -236,6 +270,14 @@
 
   circle {
     transition: r 0.2s ease-in-out;
+  }
+
+  .percentile-line {
+    pointer-events: all;
+    stroke-opacity: 0;
+  }
+  .organisation-line {
+    /* Remove the stroke-width declaration */
   }
 </style>
 

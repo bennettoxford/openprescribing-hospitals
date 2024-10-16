@@ -132,7 +132,7 @@ class Command(BaseCommand):
         
         all_months = [min_date + relativedelta(months=i) for i in range((max_date.year - min_date.year) * 12 + max_date.month - min_date.month + 1)]
 
-        percentile_values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
+        percentile_values = [5, 15, 25, 35, 45, 55, 65, 75, 85, 95]
         
         percentiles_to_create = []
 
