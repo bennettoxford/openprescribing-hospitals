@@ -37,16 +37,17 @@ export const filteredData = derived(
 
     const createDataArrayWithNulls = (data, allDates) => {
       const dataMap = new Map(data.map(d => [d.month, d.quantity]));
-      return allDates.map(date => dataMap.get(date) || null);
+      return allDates.map(date => {
+        const value = dataMap.get(date);
+        return value !== undefined ? value : null;
+      });
     };
 
     switch ($selectedMode) {
-      case 'organisation':
+      case 'trust':
         if (typeof $orgdata === 'object' && !Array.isArray($orgdata)) {
-
           const allDates = [...new Set(Object.values($orgdata).flatMap(org => org.map(d => d.month)))].sort(sortDates);
           labels = allDates;
-          
           let orgsToShow = $selectedItems.length > 0 ? $selectedItems : Object.keys($orgdata);
           datasets = orgsToShow.map((org, index) => {
             const orgData = $orgdata[org];
@@ -54,7 +55,8 @@ export const filteredData = derived(
             return {
               label: org,
               data: createDataArrayWithNulls(orgData, allDates),
-              color: getOrganisationColor(index)
+              color: getOrganisationColor(index),
+              spanGaps: true
             };
           }).filter(Boolean);
         }
