@@ -11,7 +11,6 @@ WITH measure_data AS (
     JOIN viewer_vtm vtm ON vmp.vtm_id = vtm.vtm
     JOIN viewer_organisation org ON ingredient_quantity.organisation_id = org.ods_code
     LEFT JOIN viewer_organisation org_successor ON org.successor_id = org_successor.ods_code
-    WHERE vtm.vtm = '774689009'
     GROUP BY
         COALESCE(org_successor.ods_name, org.ods_name), 
         COALESCE(org_successor.region, org.region),
@@ -53,4 +52,4 @@ SELECT
     ) AS measure_values
 FROM measure_data md
 LEFT JOIN org_submission_check osc ON md.organisation = osc.organisation AND md.month = osc.month
-GROUP BY name, description, unit
+GROUP BY name, description, unit, md.organisation, md.region, md.month
