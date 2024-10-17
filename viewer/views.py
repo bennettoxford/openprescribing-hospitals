@@ -87,6 +87,7 @@ class MeasureItemView(TemplateView):
             "measure_name": measure.name,
             "measure_name_short": measure.short_name,
             "why_it_matters": markdowner.convert(measure.why_it_matters),
+            "measure_description": markdowner.convert(measure.description),
             "reason": measure.reason.reason if measure.reason else None,
             "reason_colour": measure.reason.colour if measure.reason else None,
             "denominator_vmps": json.dumps(list(measure.denominator_vmps.values('name', 'code')), cls=DjangoJSONEncoder),
