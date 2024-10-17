@@ -1,7 +1,7 @@
 import numpy as np
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from django.db.models import Avg, Min, Max
+from django.db.models import Avg, Min, Max, Sum
 from viewer.models import Measure, PrecomputedMeasure, PrecomputedMeasureAggregated, Organisation, PrecomputedPercentile, VMP
 from viewer.measures.measure_utils import execute_measure_sql
 from collections import defaultdict
@@ -48,11 +48,12 @@ class Command(BaseCommand):
                     measure.numerator_vmps.set(numerator_vmp_objects)
                     measure.denominator_vmps.set(denominator_vmp_objects)
                     
-                    org_data = defaultdict(lambda: defaultdict(lambda: {'quantity': None}))
+                    org_data = defaultdict(lambda: defaultdict(lambda: {'numerator': None, 'denominator': None}))
 
                     for row in measure_values:
                         month = datetime.strptime(row['month'], "%Y-%m").strftime("%Y-%m-%d")
-                        org_data[row['organisation']][month]['quantity'] = row['quantity']
+                        org_data[row['organisation']][month]['numerator'] = row['numerator']
+                        org_data[row['organisation']][month]['denominator'] = row['denominator']
 
                     org_ods_names = set(org_data.keys())
                     organisations = {org.ods_name: org for org in Organisation.objects.filter(ods_name__in=org_ods_names)}
@@ -62,18 +63,23 @@ class Command(BaseCommand):
                         organisation = organisations.get(org)
                         if organisation:
                             for month, data in months.items():
+                                numerator = data['numerator']
+                                denominator = data['denominator']
+                                quantity = numerator / denominator if denominator and denominator != 0 else None
                                 precomputed_measure = PrecomputedMeasure(
                                     measure=measure,
                                     organisation=organisation,
                                     month=month,
-                                    quantity=data['quantity']
+                                    numerator=numerator,
+                                    denominator=denominator,
+                                    quantity=quantity
                                 )
                                 precomputed_measures.append(precomputed_measure)
 
                     PrecomputedMeasure.objects.bulk_create(
                         precomputed_measures,
                         update_conflicts=True,
-                        update_fields=['quantity'],
+                        update_fields=['numerator', 'denominator', 'quantity'],
                         unique_fields=['measure', 'organisation', 'month'],
                         batch_size=100
                     )
@@ -93,42 +99,77 @@ class Command(BaseCommand):
         self.stdout.write(f"Deleted existing precomputed data for measure: {measure.name}")
 
     def calculate_and_store_aggregations(self, measure):
-
         region_aggregations = (
             PrecomputedMeasure.objects
             .filter(measure=measure)
             .values('organisation__region', 'month')
-            .annotate(quantity=Avg('quantity'))
+            .annotate(
+                numerator_sum=Sum('numerator'),
+                denominator_sum=Sum('denominator')
+            )
         )
 
         icb_aggregations = (
             PrecomputedMeasure.objects
             .filter(measure=measure)
             .values('organisation__icb', 'month')
-            .annotate(quantity=Avg('quantity'))
+            .annotate(
+                numerator_sum=Sum('numerator'),
+                denominator_sum=Sum('denominator')
+            )
+        )
+
+        national_aggregations = (
+            PrecomputedMeasure.objects
+            .filter(measure=measure)
+            .values('month')
+            .annotate(
+                numerator_sum=Sum('numerator'),
+                denominator_sum=Sum('denominator')
+            )
         )
 
         aggregated_measures = []
 
         for agg in region_aggregations:
+            quantity = agg['numerator_sum'] / agg['denominator_sum'] if agg['denominator_sum'] and agg['denominator_sum'] != 0 else None
             aggregated_measures.append(
                 PrecomputedMeasureAggregated(
                     measure=measure,
                     label=agg['organisation__region'],
                     month=agg['month'],
-                    quantity=agg['quantity'],
+                    numerator=agg['numerator_sum'],
+                    denominator=agg['denominator_sum'],
+                    quantity=quantity,
                     category='region'
                 )
             )
 
         for agg in icb_aggregations:
+            quantity = agg['numerator_sum'] / agg['denominator_sum'] if agg['denominator_sum'] and agg['denominator_sum'] != 0 else None
             aggregated_measures.append(
                 PrecomputedMeasureAggregated(
                     measure=measure,
                     label=agg['organisation__icb'],
                     month=agg['month'],
-                    quantity=agg['quantity'],
+                    numerator=agg['numerator_sum'],
+                    denominator=agg['denominator_sum'],
+                    quantity=quantity,
                     category='icb'
+                )
+            )
+
+        for agg in national_aggregations:
+            quantity = agg['numerator_sum'] / agg['denominator_sum'] if agg['denominator_sum'] and agg['denominator_sum'] != 0 else None
+            aggregated_measures.append(
+                PrecomputedMeasureAggregated(
+                    measure=measure,
+                    label='National',
+                    month=agg['month'],
+                    numerator=agg['numerator_sum'],
+                    denominator=agg['denominator_sum'],
+                    quantity=quantity,
+                    category='national'
                 )
             )
 
@@ -136,7 +177,7 @@ class Command(BaseCommand):
             PrecomputedMeasureAggregated.objects.bulk_create(
                 aggregated_measures,
                 update_conflicts=True,
-                update_fields=['quantity'],
+                update_fields=['numerator', 'denominator', 'quantity'],
                 unique_fields=['measure', 'category', 'label', 'month'],
                 batch_size=100
             )

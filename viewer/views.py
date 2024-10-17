@@ -125,12 +125,14 @@ class MeasureItemView(TemplateView):
 
         org_measures_dict = {}
         for measure in org_measures.filter(organisation__ods_code__in=non_zero_orgs).values(
-            'organisation__ods_code', 'organisation__ods_name', 'month', 'quantity'
+            'organisation__ods_code', 'organisation__ods_name', 'month', 'quantity', 'numerator', 'denominator'
         ):
             org_key = f"{measure['organisation__ods_code']} | {measure['organisation__ods_name']}"
             org_measures_dict.setdefault(org_key, []).append({
                 'month': measure['month'],
-                'quantity': measure['quantity']
+                'quantity': measure['quantity'],
+                'numerator': measure['numerator'],
+                'denominator': measure['denominator']
             })
 
         return {
@@ -142,18 +144,34 @@ class MeasureItemView(TemplateView):
         }
 
     def get_aggregated_data(self, aggregated_measures):
-        region_data = {}
-        icb_data = {}
+        region_data = defaultdict(lambda: {'name': '', 'data': []})
+        icb_data = defaultdict(lambda: {'name': '', 'data': []})
+        national_data = {'name': 'National', 'data': []}
 
         for measure in aggregated_measures:
-            data = region_data if measure.category == 'region' else icb_data
-            data.setdefault(measure.label, {
-                'name': measure.label,
-                'data': []
-            })['data'].append({
-                'month': measure.month,
-                'quantity': measure.quantity
-            })
+            if measure.category == 'region':
+                region_data[measure.label]['name'] = measure.label
+                region_data[measure.label]['data'].append({
+                    'month': measure.month,
+                    'quantity': measure.quantity,
+                    'numerator': measure.numerator,
+                    'denominator': measure.denominator
+                })
+            elif measure.category == 'icb':
+                icb_data[measure.label]['name'] = measure.label
+                icb_data[measure.label]['data'].append({
+                    'month': measure.month,
+                    'quantity': measure.quantity,
+                    'numerator': measure.numerator,
+                    'denominator': measure.denominator
+                })
+            elif measure.category == 'national':
+                national_data['data'].append({
+                    'month': measure.month,
+                    'quantity': measure.quantity,
+                    'numerator': measure.numerator,
+                    'denominator': measure.denominator
+                })
 
         region_list = list(region_data.values())
         icb_list = list(icb_data.values())
@@ -161,6 +179,7 @@ class MeasureItemView(TemplateView):
         return {
             "region_data": json.dumps(region_list, cls=DjangoJSONEncoder),
             "icb_data": json.dumps(icb_list, cls=DjangoJSONEncoder),
+            "national_data": json.dumps(national_data, cls=DjangoJSONEncoder),
         }
 
     def get_percentile_data(self, percentiles):
@@ -464,3 +483,4 @@ def filtered_vmp_count(request):
     
     vmp_count = queryset.distinct().count()
     return Response({"vmp_count": vmp_count})
+

@@ -159,6 +159,8 @@ class PrecomputedMeasure(models.Model):
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name="precomputed_measures")
     month = models.DateField()
     quantity = models.FloatField(null=True)
+    numerator = models.FloatField(null=True)
+    denominator = models.FloatField(null=True)
 
     class Meta:
         unique_together = ('measure', 'organisation', 'month')
@@ -217,7 +219,9 @@ class PrecomputedMeasureAggregated(models.Model):
     label = models.CharField(max_length=255, null=True)
     month = models.DateField()
     quantity = models.FloatField(null=True)
-    category = models.CharField(max_length=20, choices=[('region', 'Region'), ('icb', 'ICB')])
+    numerator = models.FloatField(null=True)
+    denominator = models.FloatField(null=True)
+    category = models.CharField(max_length=20, choices=[('region', 'Region'), ('icb', 'ICB'), ('national', 'National')])
 
     class Meta:
         unique_together = ('measure', 'category', 'label', 'month')
@@ -227,6 +231,7 @@ class PrecomputedMeasureAggregated(models.Model):
 
     def __str__(self):
         return f"{self.measure.name} - {self.category} - {self.label} - {self.month}"
+
 
 class PrecomputedPercentile(models.Model):
     measure = models.ForeignKey(Measure, on_delete=models.CASCADE, related_name="precomputed_percentiles")

@@ -83,10 +83,15 @@ SELECT
                 'organisation', aom.organisation,
                 'region', aom.region,
                 'month', aom.month,
-                'quantity', CASE
+                'numerator', CASE
                     WHEN osc.has_missing_submission THEN NULL
-                    WHEN COALESCE(md.denominator, 0) = 0 THEN 0
-                    ELSE COALESCE(md.numerator, 0)::float / COALESCE(md.denominator, 1)::float
+                    WHEN md.numerator IS NULL THEN 0
+                    ELSE md.numerator
+                END,
+                'denominator', CASE
+                    WHEN osc.has_missing_submission THEN NULL
+                    WHEN md.denominator IS NULL THEN 0
+                    ELSE md.denominator
                 END
             )
         ),
