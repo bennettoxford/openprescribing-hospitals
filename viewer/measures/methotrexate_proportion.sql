@@ -57,6 +57,15 @@ org_submission_check AS (
         LEFT JOIN viewer_organisation org_successor ON org.successor_id = org_successor.ods_code
     ) subquery
     GROUP BY organisation, month, successor_ods_code
+),
+vmp_lists AS (
+    SELECT 
+        array_agg(DISTINCT vmp.code) FILTER (WHERE vmp.code = '41791911000001107') AS numerator_vmps,
+        array_agg(DISTINCT vmp.code) AS denominator_vmps
+    FROM 
+        viewer_dose dose
+    JOIN viewer_vmp vmp ON dose.vmp_id = vmp.code
+    WHERE vmp.code IN ('41791911000001107', '41792011000001100')
 )
 SELECT 
     'methotrexate_proportion' AS name,
@@ -74,8 +83,10 @@ SELECT
                     ELSE COALESCE(md.numerator, 0)::float / COALESCE(md.denominator, 1)::float
                 END
             )
-        )
-    ) AS measure_values
+        ),
+        'numerator_vmps', (SELECT numerator_vmps FROM vmp_lists),
+        'denominator_vmps', (SELECT denominator_vmps FROM vmp_lists)
+    ) AS values
 FROM all_org_months aom
 LEFT JOIN measure_data md ON aom.organisation = md.organisation AND aom.month = md.month
 LEFT JOIN org_submission_check osc ON aom.organisation = osc.organisation AND aom.month = osc.month

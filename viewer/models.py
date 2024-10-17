@@ -142,6 +142,8 @@ class Measure(models.Model):
     sql_file = models.CharField(max_length=255)
     reason = models.ForeignKey(MeasureReason, on_delete=models.CASCADE, related_name="measures", null=True)
     draft = models.BooleanField(default=True)
+    numerator_vmps = models.ManyToManyField(VMP, related_name="measures_numerator")
+    denominator_vmps = models.ManyToManyField(VMP, related_name="measures_denominator")
 
     def save(self, *args, **kwargs):
         if not self.slug and self.short_name:
@@ -156,6 +158,7 @@ class PrecomputedMeasure(models.Model):
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name="precomputed_measures")
     month = models.DateField()
     quantity = models.FloatField(null=True)
+
     class Meta:
         unique_together = ('measure', 'organisation', 'month')
         indexes = [

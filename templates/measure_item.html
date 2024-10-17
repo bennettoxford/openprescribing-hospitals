@@ -4,6 +4,7 @@
 
 {% block head %}
     {% vite_asset './src/components/measures/Measure.svelte' %}
+    {% vite_asset './src/components/measures/CollapsibleSection.svelte' %}
 {% endblock %}
 
 {% block title %}Measures · {{ measure_name_short }}{% endblock %}
@@ -51,7 +52,17 @@
                     </div>
                 </div>
                 <span class="block w-full h-px bg-gray-300 my-8"></span>
-                    
+                <div class="space-y-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Products included in this measure</h2>
+                    <collapsible-section 
+                        title="VMPs in this measure" 
+                        items="{{ denominator_vmps}}"
+                        numeratorItems="{{ numerator_vmps }}"
+                    ></collapsible-section>
+                </div>
+              
+                
+                <span class="block w-full h-px bg-gray-300 my-8"></span>
                 <div>
                     <div>
                         <div id="measure-chart">

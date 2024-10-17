@@ -89,6 +89,8 @@ class MeasureItemView(TemplateView):
             "why_it_matters": markdowner.convert(measure.why_it_matters),
             "reason": measure.reason.reason if measure.reason else None,
             "reason_colour": measure.reason.colour if measure.reason else None,
+            "denominator_vmps": json.dumps(list(measure.denominator_vmps.values('name', 'code')), cls=DjangoJSONEncoder),
+            "numerator_vmps": json.dumps(list(measure.numerator_vmps.values('name', 'code')), cls=DjangoJSONEncoder),
         }
 
     def get_precomputed_data(self, measure):
