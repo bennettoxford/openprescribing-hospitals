@@ -58,7 +58,6 @@ class Command(BaseCommand):
         self.get_and_save_table(client, "atc", self.atc_table_sql)
         self.get_and_save_table(client, "ddd", self.ddd_table_sql)
         self.get_and_save_table(client, "atc_mapping", self.atc_vmp_table_sql)
-
     def get_and_save_table(self, client, table_name, sql_query):
         print(f"Getting {table_name} table")
         df = execute_query(client, sql_query)
