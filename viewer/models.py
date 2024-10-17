@@ -13,12 +13,14 @@ class VTM(models.Model):
 class VMP(models.Model):
     code = models.CharField(max_length=20, primary_key=True)
     name = models.CharField(max_length=255)
+    form = models.CharField(max_length=255, null=True)
     vtm = models.ForeignKey(
         VTM, on_delete=models.CASCADE, related_name="vmps", null=True
     )
     ingredients = models.ManyToManyField(
         "Ingredient", related_name="vmps", null=True)
     atcs = models.ManyToManyField("ATC", related_name="vmps", null=True)
+    ont_form_routes = models.ManyToManyField("OntFormRoute", related_name="vmps", null=True)
 
     def __str__(self):
         return f"{self.name} ({self.code})"
@@ -28,6 +30,11 @@ class VMP(models.Model):
             models.Index(fields=["name"]),
         ]
 
+class OntFormRoute(models.Model):
+    name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"{self.name}"
 
 class Ingredient(models.Model):
     code = models.CharField(max_length=20, primary_key=True)
@@ -149,7 +156,6 @@ class PrecomputedMeasure(models.Model):
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name="precomputed_measures")
     month = models.DateField()
     quantity = models.FloatField(null=True)
-
     class Meta:
         unique_together = ('measure', 'organisation', 'month')
         indexes = [
