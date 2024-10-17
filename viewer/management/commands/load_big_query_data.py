@@ -29,7 +29,7 @@ class Command(BaseCommand):
         self.load_ingredient(data_dir)
         self.load_vmp(data_dir)
         self.load_organisation(data_dir)
-        self.load_scmd_and_dose(data_dir)
+        self.load_dose(data_dir)
         self.load_ingredient_quantity(data_dir)
         self.load_atc(data_dir)
 
@@ -253,7 +253,7 @@ class Command(BaseCommand):
             all_data.append(df)
         return pd.concat(all_data, ignore_index=True)
 
-    def load_scmd_and_dose(self, directory):
+    def load_dose(self, directory):
         doses = self.load_monthly_csv(
             os.path.join(
                 directory,
@@ -271,14 +271,12 @@ class Command(BaseCommand):
 
         batch_size = 1000
         total_doses = 0
-        total_scmds = 0
 
-        with tqdm(total=len(valid_doses), desc="Processing Doses and SCMDs") as pbar:
+        with tqdm(total=len(valid_doses), desc="Processing Dose") as pbar:
             for batch in self.batch_iterator(
                 valid_doses.itertuples(index=False), batch_size
             ):
                 dose_objects = []
-                scmd_objects = []
 
                 for row in batch:
                     year_month = datetime.strptime(
@@ -300,26 +298,10 @@ class Command(BaseCommand):
                         )
                     )
 
-                    scmd_objects.append(
-                        SCMD(
-                            year_month=year_month,
-                            vmp=vmp,
-                            quantity=(
-                                float(row.SCMD_quantity)
-                                if pd.notnull(row.SCMD_quantity)
-                                else None
-                            ),
-                            unit=row.SCMD_quantity_basis,
-                            organisation=org,
-                        )
-                    )
-
                 with transaction.atomic():
                     try:
                         Dose.objects.bulk_create(dose_objects)
-                        SCMD.objects.bulk_create(scmd_objects)
                         total_doses += len(dose_objects)
-                        total_scmds += len(scmd_objects)
                     except Exception as e:
                         self.stdout.write(
                             self.style.ERROR(f"Error creating batch: {str(e)}")
@@ -328,7 +310,7 @@ class Command(BaseCommand):
                 pbar.update(len(batch))
 
         self.stdout.write(self.style.SUCCESS(
-            f"Loaded {total_doses} Doses and {total_scmds} SCMDs"))
+            f"Loaded {total_doses} Doses"))
 
     def batch_iterator(self, iterable, batch_size):
         iterator = iter(iterable)

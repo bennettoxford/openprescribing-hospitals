@@ -55,10 +55,30 @@
                 <div>
                     <div>
                         <div id="measure-chart">
-                            <p class="flex items-center">
-                                Included organisations: {{ orgs_included.included }}/{{ orgs_included.total }}
-                            </p>
-                            <measure-component measureData='{{ measure_result|escapejs }}' deciles='{{ deciles|escapejs }}'></measure-component>
+                            <div class="flex flex-col sm:flex-row sm:items-center">
+                                <p class="mb-2 sm:mb-0 sm:mr-2">Included Trusts: {{ trusts_included.included }}/{{ trusts_included.total }}</p>
+                                <div class="relative inline-block group">
+                                    <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center">
+                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <div class="absolute z-10 w-72 scale-0 transition-all duration-100 origin-top-left transform 
+                                                group-hover:scale-100 left-0 top-6 mt-1 rounded-md shadow-lg bg-white 
+                                                ring-1 ring-black ring-opacity-5 p-4">
+                                        <p class="text-sm text-gray-500">
+                                            Trusts are only included in this measure if they have issued products in the denominator in at least 1 month.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <measure-component 
+                                orgdata="{{ org_data }}"
+                                regiondata="{{ region_data }}"
+                                icbdata="{{ icb_data }}"
+                                percentiledata="{{ percentile_data }}"
+                            ></measure-component>
                         </div>
                     </div>
                 </div>
