@@ -59,6 +59,16 @@ org_submission_check AS (
         WHERE osc.month BETWEEN (SELECT MIN(year_month) FROM viewer_dose) AND (SELECT MAX(year_month) FROM viewer_dose)
     ) subquery
     GROUP BY organisation, month, successor_ods_code
+),
+vmp_lists AS (
+    SELECT 
+        array_agg(DISTINCT vmp.code) FILTER (WHERE vmp.code IN ('39332111000001100', '39332211000001106')) AS numerator_vmps,
+        array_agg(DISTINCT vmp.code) AS denominator_vmps
+    FROM 
+        viewer_dose dose
+    JOIN viewer_vmp vmp ON dose.vmp_id = vmp.code
+    WHERE dose.year_month BETWEEN (SELECT MIN(year_month) FROM viewer_dose) AND (SELECT MAX(year_month) FROM viewer_dose)
+        AND vmp.code IN ('39332111000001100', '39332211000001106', '41772111000001108', '35903811000001108', '23204911000001105', '41329811000001106', '23985411000001104', '23985511000001100')
 )
 SELECT 
     'phesgo' AS name,
@@ -70,14 +80,21 @@ SELECT
                 'organisation', aom.organisation,
                 'region', aom.region,
                 'month', aom.month,
-                'quantity', CASE
+                'numerator', CASE
                     WHEN osc.has_missing_submission THEN NULL
-                    WHEN COALESCE(md.denominator, 0) = 0 THEN 0
-                    ELSE COALESCE(md.numerator, 0)::float / COALESCE(md.denominator, 1)::float
+                    WHEN md.numerator IS NULL THEN 0
+                    ELSE md.numerator
+                END,
+                'denominator', CASE
+                    WHEN osc.has_missing_submission THEN NULL
+                    WHEN md.denominator IS NULL THEN 0
+                    ELSE md.denominator
                 END
             )
-        )
-    ) AS measure_values
+        ),
+        'numerator_vmps', (SELECT numerator_vmps FROM vmp_lists),
+        'denominator_vmps', (SELECT denominator_vmps FROM vmp_lists)
+    ) AS values
 FROM all_org_months aom
 LEFT JOIN measure_data md ON aom.organisation = md.organisation AND aom.month = md.month
 LEFT JOIN org_submission_check osc ON aom.organisation = osc.organisation AND aom.month = osc.month

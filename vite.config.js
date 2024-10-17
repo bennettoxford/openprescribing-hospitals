@@ -22,6 +22,7 @@ export default defineConfig({
         'data-table': "./src/components/analyse/results/DataTable.svelte",
         'measure': "./src/components/measures/Measure.svelte",
         'org-submission': "./src/components/dq/OrgSubmission.svelte",
+        'collapsible-section': "./src/components/common/CollapsibleSection.svelte",
       }
     }
   },

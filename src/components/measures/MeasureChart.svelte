@@ -167,10 +167,15 @@
       const bisectDate = d3.bisector(d => new Date(d)).left;
       const index = bisectDate($filteredData.labels, date);
       const value = d.data[index];
+      const numerator = d.numerator ? d.numerator[index] : null;
+      const denominator = d.denominator ? d.denominator[index] : null;
 
       tooltip
         .html(`<strong>${displayName || 'Unknown'}</strong>${displayCode ? `<br>ODS Code: ${displayCode.trim()}` : ''}<br>Date: ${
-        d3.timeFormat('%b %Y')(date)}<br>Proportion: ${value?.toFixed(2) || 'N/A'}`)
+        d3.timeFormat('%b %Y')(date)}<br>Proportion: ${value?.toFixed(2) || 'N/A'}${
+        numerator !== null && denominator !== null ? `<br>Numerator: ${numerator.toFixed(2)}<br>Denominator: ${denominator.toFixed(2)}` : ''}${
+        d.org_count ? `<br>Organisations included: ${d.org_count}` : ''
+        }`)
         .style('left', `${tooltipX}px`)
         .style('top', `${tooltipY}px`);
     }
@@ -184,6 +189,8 @@
       const nearestIndex = index > 0 && (index === $filteredData.labels.length || (date - new Date($filteredData.labels[index - 1])) < (new Date($filteredData.labels[index]) - date)) ? index - 1 : index;
       const nearestDate = new Date($filteredData.labels[nearestIndex]);
       const nearestValue = d.data[nearestIndex];
+      const numerator = d.numerator ? d.numerator[nearestIndex] : null;
+      const denominator = d.denominator ? d.denominator[nearestIndex] : null;
 
       let displayName, displayCode;
       if ($selectedMode === 'organisation') {
@@ -201,7 +208,10 @@
 
       tooltip
         .html(`<strong>${displayName || 'Unknown'}</strong>${displayCode ? `<br>ODS Code: ${displayCode.trim()}` : ''}<br>Date: ${
-        d3.timeFormat('%b %Y')(nearestDate)}<br>Proportion: ${nearestValue?.toFixed(2) || 'N/A'}`)
+        d3.timeFormat('%b %Y')(nearestDate)}<br>Proportion: ${nearestValue?.toFixed(2) || 'N/A'}${
+        numerator !== null && denominator !== null ? `<br>Numerator: ${numerator.toFixed(2)}<br>Denominator: ${denominator.toFixed(2)}` : ''}${
+        d.org_count ? `<br>Organisations included: ${d.org_count}` : ''
+        }`)
         .style('left', `${tooltipX}px`)
         .style('top', `${tooltipY}px`);
     }

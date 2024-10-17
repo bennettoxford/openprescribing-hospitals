@@ -138,10 +138,13 @@ class Measure(models.Model):
     name = models.CharField(max_length=255, unique=True)
     short_name = models.CharField(max_length=255, null=True)
     slug = models.SlugField(unique=True, null=True)
+    description = models.TextField(null=True)
     why_it_matters = models.TextField()
     sql_file = models.CharField(max_length=255)
     reason = models.ForeignKey(MeasureReason, on_delete=models.CASCADE, related_name="measures", null=True)
     draft = models.BooleanField(default=True)
+    numerator_vmps = models.ManyToManyField(VMP, related_name="measures_numerator")
+    denominator_vmps = models.ManyToManyField(VMP, related_name="measures_denominator")
 
     def save(self, *args, **kwargs):
         if not self.slug and self.short_name:
@@ -156,6 +159,9 @@ class PrecomputedMeasure(models.Model):
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name="precomputed_measures")
     month = models.DateField()
     quantity = models.FloatField(null=True)
+    numerator = models.FloatField(null=True)
+    denominator = models.FloatField(null=True)
+
     class Meta:
         unique_together = ('measure', 'organisation', 'month')
         indexes = [
@@ -213,7 +219,9 @@ class PrecomputedMeasureAggregated(models.Model):
     label = models.CharField(max_length=255, null=True)
     month = models.DateField()
     quantity = models.FloatField(null=True)
-    category = models.CharField(max_length=20, choices=[('region', 'Region'), ('icb', 'ICB')])
+    numerator = models.FloatField(null=True)
+    denominator = models.FloatField(null=True)
+    category = models.CharField(max_length=20, choices=[('region', 'Region'), ('icb', 'ICB'), ('national', 'National')])
 
     class Meta:
         unique_together = ('measure', 'category', 'label', 'month')
@@ -223,6 +231,7 @@ class PrecomputedMeasureAggregated(models.Model):
 
     def __str__(self):
         return f"{self.measure.name} - {self.category} - {self.label} - {self.month}"
+
 
 class PrecomputedPercentile(models.Model):
     measure = models.ForeignKey(Measure, on_delete=models.CASCADE, related_name="precomputed_percentiles")

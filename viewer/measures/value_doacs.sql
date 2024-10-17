@@ -60,6 +60,17 @@ org_submission_check AS (
         WHERE osc.month BETWEEN (SELECT MIN(year_month) FROM viewer_ingredientquantity) AND (SELECT MAX(year_month) FROM viewer_ingredientquantity)
     ) subquery
     GROUP BY organisation, month, successor_ods_code
+),
+vmp_lists AS (
+    SELECT 
+        array_agg(DISTINCT vmp.code) FILTER (WHERE vtm.vtm IN ('774624002', '777455008')) AS numerator_vmps,
+        array_agg(DISTINCT vmp.code) AS denominator_vmps
+    FROM 
+        viewer_ingredientquantity ingredient_quantity
+    JOIN viewer_vmp vmp ON ingredient_quantity.vmp_id = vmp.code
+    JOIN viewer_vtm vtm ON vmp.vtm_id = vtm.vtm
+    WHERE ingredient_quantity.year_month BETWEEN (SELECT MIN(year_month) FROM viewer_ingredientquantity) AND (SELECT MAX(year_month) FROM viewer_ingredientquantity)
+        AND vtm.vtm IN ('774624002', '777455008', '775732007', '13568411000001103')
 )
 SELECT 
     'value_doacs' AS name,
@@ -71,14 +82,21 @@ SELECT
                 'organisation', aom.organisation,
                 'region', aom.region,
                 'month', aom.month,
-                'quantity', CASE
+                'numerator', CASE
                     WHEN osc.has_missing_submission THEN NULL
-                    WHEN COALESCE(md.denominator, 0) = 0 THEN 0
-                    ELSE COALESCE(md.numerator, 0)::float / COALESCE(md.denominator, 1)::float
+                    WHEN md.numerator IS NULL THEN 0
+                    ELSE md.numerator
+                END,
+                'denominator', CASE
+                    WHEN osc.has_missing_submission THEN NULL
+                    WHEN md.denominator IS NULL THEN 0
+                    ELSE md.denominator
                 END
             )
-        )
-    ) AS measure_values
+        ),
+        'numerator_vmps', (SELECT numerator_vmps FROM vmp_lists),
+        'denominator_vmps', (SELECT denominator_vmps FROM vmp_lists)
+    ) AS values
 FROM all_org_months aom
 LEFT JOIN measure_data md ON aom.organisation = md.organisation AND aom.month = md.month
 LEFT JOIN org_submission_check osc ON aom.organisation = osc.organisation AND aom.month = osc.month

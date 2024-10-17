@@ -35,8 +35,8 @@ export const filteredData = derived(
 
     const sortDates = (a, b) => new Date(a) - new Date(b);
 
-    const createDataArrayWithNulls = (data, allDates) => {
-      const dataMap = new Map(data.map(d => [d.month, d.quantity]));
+    const createDataArrayWithNulls = (data, allDates, field) => {
+      const dataMap = new Map(data.map(d => [d.month, d[field]]));
       return allDates.map(date => {
         const value = dataMap.get(date);
         return value !== undefined ? value : null;
@@ -54,7 +54,9 @@ export const filteredData = derived(
             if (!orgData) return null;
             return {
               label: org,
-              data: createDataArrayWithNulls(orgData, allDates),
+              data: createDataArrayWithNulls(orgData, allDates, 'quantity'),
+              numerator: createDataArrayWithNulls(orgData, allDates, 'numerator'),
+              denominator: createDataArrayWithNulls(orgData, allDates, 'denominator'),
               color: getOrganisationColor(index),
               spanGaps: true
             };
@@ -69,6 +71,8 @@ export const filteredData = derived(
           return {
             label: region.name,
             data: sortedData.map(d => d.quantity),
+            numerator: sortedData.map(d => d.numerator),
+            denominator: sortedData.map(d => d.denominator),
             color: regionColors[region.name] || getOrganisationColor(index)
           };
         });
@@ -84,6 +88,8 @@ export const filteredData = derived(
             return {
               label: icb.name,
               data: sortedData.map(d => d.quantity),
+              numerator: sortedData.map(d => d.numerator),
+              denominator: sortedData.map(d => d.denominator),
               color: getOrganisationColor(index)
             };
           });
@@ -159,6 +165,14 @@ export const filteredData = derived(
                   const dataPoint = $orgdata[org].find(d => d.month === date);
                   return dataPoint ? dataPoint.quantity : null;
                 }),
+                numerator: labels.map(date => {
+                  const dataPoint = $orgdata[org].find(d => d.month === date);
+                  return dataPoint ? dataPoint.numerator : null;
+                }),
+                denominator: labels.map(date => {
+                  const dataPoint = $orgdata[org].find(d => d.month === date);
+                  return dataPoint ? dataPoint.denominator : null;
+                }),
                 color: getOrganisationColor(datasets.length),
                 strokeWidth: 2,
                 isOrganisation: true
@@ -171,17 +185,20 @@ export const filteredData = derived(
         if ($regiondata.length > 0) {
           labels = $regiondata[0].data.map(d => d.month).sort(sortDates);
           
-          const nationalData = labels.map(month => {
-            const monthData = $regiondata.map(region => 
-              region.data.find(d => d.month === month)?.quantity || 0
-            );
-            const sum = monthData.reduce((a, b) => a + b, 0);
-            return sum / $regiondata.length;
-          });
-
           datasets = [{
             label: 'National',
-            data: nationalData,
+            data: labels.map(month => {
+              const dataPoint = $regiondata[0].data.find(d => d.month === month);
+              return dataPoint ? dataPoint.quantity : null;
+            }),
+            numerator: labels.map(month => {
+              const dataPoint = $regiondata[0].data.find(d => d.month === month);
+              return dataPoint ? dataPoint.numerator : null;
+            }),
+            denominator: labels.map(month => {
+              const dataPoint = $regiondata[0].data.find(d => d.month === month);
+              return dataPoint ? dataPoint.denominator : null;
+            }),
             color: '#005AB5',
             strokeWidth: 3
           }];
