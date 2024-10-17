@@ -58,7 +58,8 @@ class Command(BaseCommand):
         self.get_and_save_table(client, "atc", self.atc_table_sql)
         self.get_and_save_table(client, "ddd", self.ddd_table_sql)
         self.get_and_save_table(client, "atc_mapping", self.atc_vmp_table_sql)
-
+        self.get_and_save_table(client, "vmp_form", self.vmp_form_sql)
+        self.get_and_save_table(client, "vmp_ontform", self.vmp_ontform_sql)
     def get_and_save_table(self, client, table_name, sql_query):
         print(f"Getting {table_name} table")
         df = execute_query(client, sql_query)
@@ -159,3 +160,18 @@ class Command(BaseCommand):
             atc_code
         FROM `ebmdatalab.scmd.scmd_dmd_supp`
     """
+
+    vmp_form_sql = """
+        SELECT DISTINCT
+            vmp_code,
+            dform_form
+        FROM `ebmdatalab.scmd.scmd_dmd`
+    """
+
+    vmp_ontform_sql = """
+        SELECT DISTINCT v.id AS vmp, f.descr
+FROM `ebmdatalab.dmd.vmp_full` v
+        LEFT JOIN `ebmdatalab.dmd.ont` o ON o.vmp = v.id
+        LEFT JOIN `ebmdatalab.dmd.ontformroute` f ON f.cd = o.form
+    """
+
