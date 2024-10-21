@@ -2,10 +2,11 @@ import { fontFamily } from "tailwindcss/defaultTheme";
 import tailwindTypography from "@tailwindcss/typography";
 
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   content: [
     './src/**/*.{html,js,svelte,ts}',
-    './templates/**/*.html'
+    './templates/**/*.html',
+    './assets/**/*.js',
   ],
   theme: {
     extend: {

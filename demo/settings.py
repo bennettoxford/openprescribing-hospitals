@@ -13,13 +13,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env.str("SECRET_KEY")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool("RENDER", False) == False
+DEBUG = env.bool("DEBUG", False) 
+DIGITAL_OCEAN_HOSTNAME = env.str("DIGITAL_OCEAN_HOSTNAME")
 
-ALLOWED_HOSTS = ["127.0.0.1"]
-RENDER_EXTERNAL_HOSTNAME = env.str("RENDER_EXTERNAL_HOSTNAME", default=None)
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+ALLOWED_HOSTS = []
+
+if DEBUG:
+    ALLOWED_HOSTS.append("localhost")
+    ALLOWED_HOSTS.append("127.0.0.1")
+
+if DIGITAL_OCEAN_HOSTNAME:
+    ALLOWED_HOSTS.append(DIGITAL_OCEAN_HOSTNAME)
+
 
 # Application definition
 
@@ -37,6 +42,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -115,8 +121,13 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [BASE_DIR / "static", BASE_DIR / "assets/assets"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+    BASE_DIR / "assets" / "dist",
+]
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -126,11 +137,28 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 DJANGO_VITE = {
     "default": {
-        "manifest_path": BASE_DIR / "assets" / ".vite" / "manifest.json",
-        "dev_mode": True,
+        "manifest_path": BASE_DIR / "assets" / "dist" / ".vite" / "manifest.json",
+        "dev_mode": DEBUG,
     }
 }
 
+if DEBUG:
+
+    CSP_DEFAULT_SRC = ("'self'",)
+    CSP_SCRIPT_SRC = ("'self' 'unsafe-inline' http://localhost:5173 http://localhost:3000",)
+    CSP_SCRIPT_SRC_ELEM = ("'self' 'unsafe-inline' http://localhost:5173 http://localhost:3000",)
+    CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
+    CSP_IMG_SRC = ("'self'", "data:")
+    CSP_FONT_SRC = ("'self'",)
+    CSP_CONNECT_SRC = ("'self' http://localhost:5173 ws://localhost:5173 http://localhost:3000 ws://localhost:3000",)
+
+else:
+    CSP_DEFAULT_SRC = ("'self'",)
+    CSP_SCRIPT_SRC = ("'self'",)
+    CSP_STYLE_SRC = ("'self'",)
+    CSP_IMG_SRC = ("'self'", "data:")
+    CSP_FONT_SRC = ("'self'",)
+    CSP_CONNECT_SRC = ("'self'",)
 
 def immutable_file_test(path, url):
     # Match filename with 12 hex digits before the extension
