@@ -5,7 +5,7 @@
 <script>
     import { onMount, createEventDispatcher } from 'svelte';
     import '../../styles/styles.css';
-
+    import { getCookie } from '../../utils/utils';
     const dispatch = createEventDispatcher();
 
     export let items = [];
@@ -27,6 +27,7 @@
 
     let vmpCount = 0;
     let isCalculating = false;
+    const csrftoken = getCookie('csrftoken');
 
     async function fetchItems(type) {
         const endpoints = {
@@ -177,6 +178,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
                 },
                 body: JSON.stringify({
                     names: searchType === 'atc' ? selectedItems.map(i => i.code) : selectedItems,

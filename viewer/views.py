@@ -288,6 +288,7 @@ def unique_atc_codes(request):
 
 
 @login_required
+@csrf_protect
 @api_view(["POST"])
 def filtered_doses(request):
     search_items = request.data.get("names", [])
@@ -356,6 +357,7 @@ def filtered_doses(request):
 
 
 @login_required
+@csrf_protect
 @api_view(["POST"])
 def filtered_ingredient_quantities(request):
     search_items = request.data.get("names", [])

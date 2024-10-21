@@ -9,6 +9,7 @@
     import Search from '../../common/Search.svelte';
     import OrganisationSearch from '../../common/OrganisationSearch.svelte';
     import { createEventDispatcher } from 'svelte';
+    import { getCookie } from '../../../utils/utils';
     const dispatch = createEventDispatcher();
 
     let isAnalysisRunning = false;
@@ -24,6 +25,8 @@
     let usedOrganisationSelection = false;
     let isOrganisationDropdownOpen = false;
 
+    
+    const csrftoken = getCookie('csrftoken');
     // Define quantityOptions
     const quantityOptions = ['--', 'Dose', 'Ingredient Quantity'];
 
@@ -69,6 +72,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
                 },
                 body: JSON.stringify({
                     names: selectedVMPs,
