@@ -14,6 +14,11 @@ from django.db.models import Value
 from django.utils.safestring import mark_safe
 from django.db.models import Exists, OuterRef
 from django.db.models import Count, Q, Prefetch
+from django.views.decorators.csrf import csrf_protect
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from django.contrib.auth.views import LoginView as AuthLoginView
+
 
 from .models import (
     ATC,
@@ -31,6 +36,7 @@ from .models import (
 )
 
 
+@method_decorator(login_required, name='dispatch')
 class IndexView(TemplateView):
     template_name = "index.html"
 
@@ -38,7 +44,10 @@ class IndexView(TemplateView):
         context = super().get_context_data(**kwargs)
         return context
 
+class LoginView(AuthLoginView):
+    template_name = 'login.html'
 
+@method_decorator(login_required, name='dispatch')
 class AnalyseView(TemplateView):
     template_name = "analyse.html"
 
@@ -46,7 +55,7 @@ class AnalyseView(TemplateView):
         context = super().get_context_data(**kwargs)
         return context
 
-
+@method_decorator(login_required, name='dispatch')
 class MeasuresListView(TemplateView):
     template_name = "measures_list.html"
 
@@ -62,6 +71,7 @@ class MeasuresListView(TemplateView):
         return context
 
 
+@method_decorator(login_required, name='dispatch')
 class MeasureItemView(TemplateView):
     template_name = "measure_item.html"
 
@@ -199,6 +209,7 @@ def get_all_child_atc_codes(atc_codes):
     return list(all_codes)
 
 
+@login_required
 @api_view(["GET"])
 def unique_vmp_names(request):
     vmp_data = VMP.objects.values('name', 'code').distinct().order_by('name')
@@ -206,6 +217,7 @@ def unique_vmp_names(request):
     return Response(formatted_vmp)
 
 
+@login_required
 @api_view(["GET"])
 def unique_ods_names(request):
     ods_data = Organisation.objects.values('ods_name', 'ods_code').distinct().order_by('ods_name')
@@ -213,6 +225,7 @@ def unique_ods_names(request):
     return Response(formatted_ods)
 
 
+@login_required
 @api_view(["GET"])
 def unique_ingredient_names(request):
     ingredient_data = Ingredient.objects.values('name', 'code').distinct().order_by('name')
@@ -220,6 +233,7 @@ def unique_ingredient_names(request):
     return Response(formatted_ingredient)
 
 
+@login_required
 @api_view(["GET"])
 def unique_vtm_names(request):
     vtm_data = VTM.objects.values('vtm', 'name').distinct().order_by('name')
@@ -227,6 +241,7 @@ def unique_vtm_names(request):
     return Response(formatted_vtm)
 
 
+@login_required
 @api_view(["GET"])
 def unique_atc_codes(request):
     # Subquery to check if an ATC code has associated VMPs
@@ -271,6 +286,9 @@ def unique_atc_codes(request):
     return JsonResponse(formatted_atc, safe=False)
 
 
+
+@login_required
+@csrf_protect
 @api_view(["POST"])
 def filtered_doses(request):
     search_items = request.data.get("names", [])
@@ -338,6 +356,8 @@ def filtered_doses(request):
     return Response(data)
 
 
+@login_required
+@csrf_protect
 @api_view(["POST"])
 def filtered_ingredient_quantities(request):
     search_items = request.data.get("names", [])
@@ -397,6 +417,7 @@ def filtered_ingredient_quantities(request):
     return Response(data)
 
 
+@method_decorator(login_required, name='dispatch')
 class OrgsSubmittingDataView(TemplateView):
     template_name = 'org_submissions.html'
 
@@ -464,6 +485,7 @@ class OrgsSubmittingDataView(TemplateView):
         return context
 
 
+@login_required
 @api_view(["POST"])
 def filtered_vmp_count(request):
     search_items = request.data.get("names", [])
@@ -483,4 +505,6 @@ def filtered_vmp_count(request):
     
     vmp_count = queryset.distinct().count()
     return Response({"vmp_count": vmp_count})
+
+
 

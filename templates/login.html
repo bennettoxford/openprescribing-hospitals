@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="container xl:max-w-screen-xl pt-2 md:pt-6 pb-4">
+    <div class="relative overflow-hidden">
+        <div class="relative px-6 lg:px-8">
+            <div class="mx-auto max-w-md mt-16 py-8 bg-white rounded-lg px-4 md:px-8">
+                <div class="text-center">
+                    <h1 class="text-3xl font-bold tracking-tight text-oxford-900 sm:text-4xl mb-8">
+                        Login
+                    </h1>
+                    <form method="post" class="space-y-6">
+                        {% csrf_token %}
+                        {% for field in form %}
+                            <div class="text-left">
+                                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-oxford-700">
+                                    {{ field.label }}
+                                </label>
+                                <div class="mt-1">
+                                    {{ field }}
+                                </div>
+                                {% if field.errors %}
+                                    <p class="text-red-500 text-xs italic mt-1">{{ field.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        <div>
+                            <button type="submit" class="btn-blue w-full">
+                                Login
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
