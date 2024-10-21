@@ -1,4 +1,5 @@
 from django.urls import path
+from django.contrib.auth import views as auth_views
 from .views import (
     filtered_vmp_count,
     unique_vmp_names,
@@ -13,6 +14,7 @@ from .views import (
     MeasuresListView,
     MeasureItemView,
     OrgsSubmittingDataView,
+    LoginView,
 )
 
 
@@ -40,4 +42,6 @@ urlpatterns = [
     ),
     path("measures/<slug:slug>/", MeasureItemView.as_view(), name="measure_item"),
     path("data-quality/", OrgsSubmittingDataView.as_view(), name="data_quality"),
+    path('login/', LoginView.as_view(), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
 ]

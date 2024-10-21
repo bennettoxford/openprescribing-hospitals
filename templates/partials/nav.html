@@ -2,7 +2,7 @@
   bg-gradient-to-r from-oxford-200/20 via-bn-roman-200/35 to-bn-strawberry-200/25
   after:absolute after:h-1 after:w-full after:bg-gradient-to-r after:from-oxford-600/60 after:via-bn-roman-600/70 after:to-bn-strawberry-600/60
 ">
-  <nav class="relative container xl:max-w-screen-xl flex justify-center items-center flex-wrap py-3 gap-y-2">
+  <nav class="relative container xl:max-w-screen-xl flex justify-between items-center flex-wrap py-3 gap-y-2">
     <p class="relative z-30 flex-shrink-0 flex items-center mr-4 text-xl font-extrabold tracking-tight leading-none text-stone-700">
       <a class="
         group relative p-2 -ml-2 bg-transparent rounded overflow-hidden focus:text-bn-strawberry-600 focus:outline-none focus:ring-2 focus:ring-oxford-500
@@ -20,7 +20,7 @@
     </p>
 
     {# Mobile nav #}
-    <details-utils class="md:hidden ml-auto" close-click-outside close-esc>
+    <details-utils class="md:hidden" close-click-outside close-esc>
       <details class="group">
         <summary
           class="
@@ -74,12 +74,36 @@
               Data Quality
             </a>
           </li>
+          {% if user.is_authenticated %}
+            <li>
+              <form method="post" action="{% url 'viewer:logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="
+                  relative inline-flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-2 -ml-2 w-full text-left
+                  hover:text-bn-strawberry-700
+                  focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
+                ">
+                  Logout
+                </button>
+              </form>
+            </li>
+          {% else %}
+            <li>
+              <a class="
+                relative inline-flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-2 -ml-2
+                hover:text-bn-strawberry-700
+                focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
+              " href="{% url 'viewer:login' %}">
+                Login
+              </a>
+            </li>
+          {% endif %}
         </ul>
       </details>
     </details-utils>
 
     {# Desktop nav #}
-    <ul class="hidden relative flex-row gap-4 mx-1 ml-auto text-sm font-semibold md:flex">
+    <ul class="hidden relative flex-row gap-4 mx-1 text-sm font-semibold md:flex">
       <li>
         <a class="
           relative flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-0
@@ -123,6 +147,32 @@
         " href="{% url 'viewer:data_quality' %}">
           Data Quality
         </a>
+      </li>
+      {% if user.is_authenticated %}
+        <li>
+          <a class="
+            relative flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-0
+            hover:text-bn-strawberry-700
+            focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
+            before:inline before:absolute before:-top-5 before:h-1 before:left-1/2 before:-translate-x-1 before:bg-bn-strawberry-300 before:w-1 before:transition-all before:opacity-0
+            before:hover:w-full before:hover:opacity-100 before:hover:left-0 before:hover:translate-x-0
+          " href="{% url 'viewer:logout' %}">
+            Logout
+          </a>
+        </li>
+      {% else %}
+        <li>
+          <a class="
+            relative flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-0
+            hover:text-bn-strawberry-700
+            focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
+            before:inline before:absolute before:-top-5 before:h-1 before:left-1/2 before:-translate-x-1 before:bg-bn-strawberry-300 before:w-1 before:transition-all before:opacity-0
+            before:hover:w-full before:hover:opacity-100 before:hover:left-0 before:hover:translate-x-0
+          " href="{% url 'viewer:login' %}">
+            Login
+          </a>
+        </li>
+      {% endif %}
     </ul>
   </nav>
 </header>

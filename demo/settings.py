@@ -139,3 +139,7 @@ def immutable_file_test(path, url):
 
 
 WHITENOISE_IMMUTABLE_FILE_TEST = immutable_file_test
+
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+LOGIN_URL = '/login/'
