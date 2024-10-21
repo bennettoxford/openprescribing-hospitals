@@ -3,8 +3,8 @@
 {% load django_vite %}
 
 {% block head %}
-    {% vite_asset './src/components/measures/Measure.svelte' %}
-    {% vite_asset './src/components/measures/CollapsibleSection.svelte' %}
+    {% vite_asset 'src/components/measures/Measure.svelte' %}
+    {% vite_asset 'src/components/measures/CollapsibleSection.svelte' %}
 {% endblock %}
 
 {% block title %}Measures · {{ measure_name_short }}{% endblock %}
