@@ -14,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = env.str("SECRET_KEY")
 
 DEBUG = env.bool("DEBUG", False) 
-DIGITAL_OCEAN_HOSTNAME = env.str("DIGITAL_OCEAN_HOSTNAME", False)
+DIGITAL_OCEAN_HOSTNAME = env.str("DIGITAL_OCEAN_HOSTNAME", None)
 
 ALLOWED_HOSTS = []
 
