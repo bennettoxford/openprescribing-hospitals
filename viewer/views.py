@@ -209,81 +209,6 @@ def get_all_child_atc_codes(atc_codes):
     return list(all_codes)
 
 
-@login_required
-@api_view(["GET"])
-def unique_vmp_names(request):
-    vmp_data = VMP.objects.values('name', 'code').distinct().order_by('name')
-    formatted_vmp = [f"{item['code']} | {item['name']}" for item in vmp_data]
-    return Response(formatted_vmp)
-
-
-@login_required
-@api_view(["GET"])
-def unique_ods_names(request):
-    ods_data = Organisation.objects.values('ods_name', 'ods_code').distinct().order_by('ods_name')
-    formatted_ods = [f"{item['ods_code']} | {item['ods_name']}" for item in ods_data]
-    return Response(formatted_ods)
-
-
-@login_required
-@api_view(["GET"])
-def unique_ingredient_names(request):
-    ingredient_data = Ingredient.objects.values('name', 'code').distinct().order_by('name')
-    formatted_ingredient = [f"{item['code']} | {item['name']}" for item in ingredient_data]
-    return Response(formatted_ingredient)
-
-
-@login_required
-@api_view(["GET"])
-def unique_vtm_names(request):
-    vtm_data = VTM.objects.values('vtm', 'name').distinct().order_by('name')
-    formatted_vtm = [f"{item['vtm']} | {item['name']}" for item in vtm_data]
-    return Response(formatted_vtm)
-
-
-@login_required
-@api_view(["GET"])
-def unique_atc_codes(request):
-    # Subquery to check if an ATC code has associated VMPs
-    vmp_exists = VMP.objects.filter(atcs__code=OuterRef('code')).values('code')
-
-    atc_data = ATC.objects.annotate(
-        has_vmps=Exists(vmp_exists)
-    ).values('code', 'name', 'has_vmps').distinct().order_by('code')
-    
-    atc_hierarchy = {}
-    
-    for item in atc_data:
-        code = item['code']
-        name = item['name']
-        has_vmps = item['has_vmps']
-        formatted_item = f"{code} | {name}"
-        
-        atc_hierarchy[code] = {
-            'name': formatted_item,
-            'children': [],
-            'has_vmps': has_vmps
-        }
-     
-        for i in range(1, len(code)):
-            parent_code = code[:i]
-            if parent_code in atc_hierarchy:
-                atc_hierarchy[parent_code]['children'].append(code)
-                # If a child has VMPs, the parent should be marked as having VMPs too
-                if has_vmps:
-                    atc_hierarchy[parent_code]['has_vmps'] = True
- 
-    formatted_atc = [
-        {
-            'code': code,
-            'name': data['name'],
-            'children': data['children'],
-            'has_vmps': data['has_vmps']
-        }
-        for code, data in atc_hierarchy.items()
-    ]
-    
-    return JsonResponse(formatted_atc, safe=False)
 
 
 
@@ -518,4 +443,56 @@ class ContactView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         return context
+    
+@login_required
+@api_view(["GET"])
+def get_search_items(request):
+    vmp_data = VMP.objects.values('name', 'code').distinct().order_by('name')
+    ods_data = Organisation.objects.values('ods_name', 'ods_code').distinct().order_by('ods_name')
+    vtm_data = VTM.objects.values('vtm', 'name').distinct().order_by('name')
+    ingredient_data = Ingredient.objects.values('name', 'code').distinct().order_by('name')
+
+    vmp_exists = VMP.objects.filter(atcs__code=OuterRef('code')).values('code')
+    atc_data = ATC.objects.annotate(
+        has_vmps=Exists(vmp_exists)
+    ).values('code', 'name', 'has_vmps').distinct().order_by('code')
+    
+    atc_hierarchy = {}
+    
+    for item in atc_data:
+        code = item['code']
+        name = item['name']
+        has_vmps = item['has_vmps']
+        formatted_item = f"{code} | {name}"
+        
+        atc_hierarchy[code] = {
+            'name': formatted_item,
+            'children': [],
+            'has_vmps': has_vmps
+        }
+     
+        for i in range(1, len(code)):
+            parent_code = code[:i]
+            if parent_code in atc_hierarchy:
+                atc_hierarchy[parent_code]['children'].append(code)
+                if has_vmps:
+                    atc_hierarchy[parent_code]['has_vmps'] = True
+ 
+    formatted_atc = [
+        {
+            'code': code,
+            'name': data['name'],
+            'children': data['children'],
+            'has_vmps': data['has_vmps']
+        }
+        for code, data in atc_hierarchy.items()
+    ]
+
+    return JsonResponse({
+        'vmpNames': [f"{item['code']} | {item['name']}" for item in vmp_data],
+        'odsNames': [f"{item['ods_code']} | {item['ods_name']}" for item in ods_data],
+        'vtmNames': [f"{item['vtm']} | {item['name']}" for item in vtm_data],
+        'ingredientNames': [f"{item['code']} | {item['name']}" for item in ingredient_data],
+        'atcNames': formatted_atc
+    }, safe=False)
 

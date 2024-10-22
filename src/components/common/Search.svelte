@@ -34,16 +34,14 @@
 
     function filterItems(items, term) {
         if (!items) return [];
-        return items.filter(item => {
-            if (typeof item === 'string') {
-                return item.toLowerCase().includes(term.toLowerCase());
-            } else if (typeof item === 'object' && item !== null) {
-                // Assuming ATC codes are objects with a 'code' and 'name' property
-                return item.code.toLowerCase().includes(term.toLowerCase()) ||
-                       item.name.toLowerCase().includes(term.toLowerCase());
-            }
-            return false;
-        });
+        if (type === 'atc') {
+            return items.filter(item => 
+                item.name.toLowerCase().includes(term.toLowerCase())
+            );
+        }
+        return items.filter(item => 
+            item.toLowerCase().includes(term.toLowerCase())
+        );
     }
 
     function handleInput() {
@@ -88,8 +86,9 @@
     }
 
     function handleSelect(item) {
-        if (!selectedItems.includes(item)) {
-            selectedItems = [...selectedItems, item];
+        const selectedItem = type === 'atc' ? item.name : item;
+        if (!selectedItems.includes(selectedItem)) {
+            selectedItems = [...selectedItems, selectedItem];
             searchTerm = '';
             dispatch('selectionChange', { items: selectedItems, type });
             fetchVmpCount();
@@ -137,7 +136,7 @@
                     class="p-2 hover:bg-gray-100 cursor-pointer"
                     on:click={() => handleSelect(item)}
                 >
-                    {typeof item === 'string' ? item : `${item.code} - ${item.name}`}
+                    {type === 'atc' ? item.name : item}
                 </li>
             {/each}
         </ul>

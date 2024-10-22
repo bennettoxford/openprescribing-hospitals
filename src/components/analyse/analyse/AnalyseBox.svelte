@@ -119,7 +119,7 @@
             selectedVMPs: event.detail.items,
             searchType: event.detail.type
         }));
-        console.log("Selected VMPs:", selectedVMPs, "Search Type:", searchType);
+        console.log("Selected Items:", $analyseOptions.selectedVMPs, "Search Type:", $analyseOptions.searchType);
     }
 
     function handleODSSelection(event) {
@@ -144,27 +144,15 @@
 
     onMount(async () => {
         try {
-            const [vmpResponse, odsResponse, vtmResponse, atcResponse, ingredientResponse] = await Promise.all([
-                fetch('/api/unique-vmp-names/'),
-                fetch('/api/unique-ods-names/'),
-                fetch('/api/unique-vtm-names/'),
-                fetch('/api/unique-atc-codes/'),
-                fetch('/api/unique-ingredient-names/')
-            ]);
-
-            const vmpNames = await vmpResponse.json();
-            const odsNames = await odsResponse.json();
-            const vtmNames = await vtmResponse.json();
-            const atcNames = await atcResponse.json();
-            const ingredientNames = await ingredientResponse.json();
+            const response = await fetch('/api/get-search-items/');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
 
             analyseOptions.update(store => ({
                 ...store,
-                vmpNames,
-                odsNames,
-                vtmNames,
-                atcNames,
-                ingredientNames
+                ...data
             }));
         } catch (error) {
             console.error("Error fetching analysis options:", error);
