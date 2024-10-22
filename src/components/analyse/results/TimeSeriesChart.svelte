@@ -6,10 +6,7 @@
 <script>
     import { onMount, afterUpdate, onDestroy } from 'svelte';
     import * as d3 from 'd3';
-
-    export let data = [];
-    export let quantityType = 'Dose';
-    export let searchType = 'vmp';
+    import { resultsStore } from '../../../stores/resultsStore';
 
     let chartDiv;
     let viewMode = 'Total';
@@ -24,6 +21,10 @@
 
     let chartContainer;
     let isSmallScreen = false;
+
+    $: data = $resultsStore.filteredData || [];
+    $: quantityType = $resultsStore.quantityType;
+    $: searchType = $resultsStore.searchType;
 
     $: {
         console.log('Data received in TimeSeriesChart:', data);

@@ -4,9 +4,15 @@
   }} />
 
 <script>
+    import { resultsStore } from '../../../stores/resultsStore';
+
     export let data = [];
     export let quantityType = 'Dose';
     export let searchType = 'vmp';
+
+    $: data = $resultsStore.filteredData || [];
+    $: quantityType = $resultsStore.quantityType;
+    $: searchType = $resultsStore.searchType;
 
     $: groupedData = processData(data, quantityType, searchType);
 

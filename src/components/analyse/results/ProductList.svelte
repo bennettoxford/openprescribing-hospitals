@@ -1,14 +1,16 @@
 <script>
     import { createEventDispatcher, onMount } from 'svelte';
     import { slide } from 'svelte/transition';
+    import { resultsStore } from '../../../stores/resultsStore';
 
     export let vmps = [];
-    export let currentSearchType = 'vmp';
-    export let quantityType = 'Dose';
-
+    
     const dispatch = createEventDispatcher();
 
     let checkedVMPs = {};
+
+    $: currentSearchType = $resultsStore.searchType;
+    $: quantityType = $resultsStore.quantityType;
 
     onMount(() => {
         console.log('VMPs received:', vmps);
@@ -98,6 +100,13 @@
         });
         console.log('Filtered VMPs:', selectedVMPs);
         dispatch('dataFiltered', selectedVMPs);
+
+        resultsStore.update(store => ({
+            ...store,
+            filteredData: $resultsStore.analysisData.data.filter(item => 
+                selectedVMPs.some(vmp => vmp.vmp === item.vmp_name) && item.unit !== 'nan'
+            )
+        }));
     }
 
     // Initial dispatch
