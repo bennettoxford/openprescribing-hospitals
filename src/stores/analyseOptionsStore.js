@@ -5,6 +5,11 @@ export const analyseOptions = writable({
   selectedODS: [],
   quantityType: '--',
   searchType: 'vmp',
-  usedOrganisationSelection: false
+  usedOrganisationSelection: false,
+  vmpNames: [],
+  odsNames: [],
+  vtmNames: [],
+  atcNames: [],
+  ingredientNames: []
 });
 

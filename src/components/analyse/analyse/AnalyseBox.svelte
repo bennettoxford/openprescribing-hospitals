@@ -14,17 +14,16 @@
     const dispatch = createEventDispatcher();
 
     let isAnalysisRunning = false;
-    let vmpNames = [];
-    let odsNames = [];
-    let filteredData = [];
     let errorMessage = '';
     let isOrganisationDropdownOpen = false;
+    let filteredData = [];
 
     $: selectedVMPs = $analyseOptions.selectedVMPs;
     $: selectedODS = $analyseOptions.selectedODS;
     $: quantityType = $analyseOptions.quantityType;
     $: searchType = $analyseOptions.searchType;
     $: usedOrganisationSelection = $analyseOptions.usedOrganisationSelection;
+    $: odsNames = $analyseOptions.odsNames;
 
     const csrftoken = getCookie('csrftoken');
     // Define quantityOptions
@@ -144,8 +143,33 @@
     }
 
     onMount(async () => {
-        await fetchVMPNames();
-        await fetchODSNames();
+        try {
+            const [vmpResponse, odsResponse, vtmResponse, atcResponse, ingredientResponse] = await Promise.all([
+                fetch('/api/unique-vmp-names/'),
+                fetch('/api/unique-ods-names/'),
+                fetch('/api/unique-vtm-names/'),
+                fetch('/api/unique-atc-codes/'),
+                fetch('/api/unique-ingredient-names/')
+            ]);
+
+            const vmpNames = await vmpResponse.json();
+            const odsNames = await odsResponse.json();
+            const vtmNames = await vtmResponse.json();
+            const atcNames = await atcResponse.json();
+            const ingredientNames = await ingredientResponse.json();
+
+            analyseOptions.update(store => ({
+                ...store,
+                vmpNames,
+                odsNames,
+                vtmNames,
+                atcNames,
+                ingredientNames
+            }));
+        } catch (error) {
+            console.error("Error fetching analysis options:", error);
+            errorMessage = "An error occurred while fetching analysis options. Please try again.";
+        }
     });
 </script>
 
@@ -154,7 +178,7 @@
     
     <div class="mb-4 flex-shrink-0">
         <h3 class="text-lg font-semibold mb-2 text-oxford">Product selection</h3>
-        <Search items={vmpNames} on:selectionChange={handleVMPSelection} />
+        <Search on:selectionChange={handleVMPSelection} />
     </div>
     
     <div class="mb-4 flex-shrink-0">
@@ -174,7 +198,7 @@
         <h3 class="text-lg font-semibold mb-2 text-oxford">Select organisations</h3>
         <div class="relative h-full">
             <OrganisationSearch 
-                items={odsNames} 
+                items={$analyseOptions.odsNames} 
                 on:selectionChange={handleODSSelection} 
                 on:dropdownToggle={handleOrganisationDropdownToggle}
             />
