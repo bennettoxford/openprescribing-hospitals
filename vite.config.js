@@ -19,6 +19,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         'main': path.resolve(__dirname, "src/main.js"),
+        'analyse': "./src/components/analyse/Analyse.svelte",
         'search-box': "./src/components/common/Search.svelte",
         'time-series-chart': "./src/components/analyse/results/TimeSeriesChart.svelte",
         'organisation-search': "./src/components/common/OrganisationSearch.svelte",
