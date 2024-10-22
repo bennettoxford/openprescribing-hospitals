@@ -10,22 +10,22 @@
     import OrganisationSearch from '../../common/OrganisationSearch.svelte';
     import { createEventDispatcher } from 'svelte';
     import { getCookie } from '../../../utils/utils';
+    import { analyseOptions } from '../../../stores/analyseOptionsStore';
     const dispatch = createEventDispatcher();
 
     let isAnalysisRunning = false;
     let vmpNames = [];
     let odsNames = [];
-    let selectedVMPs = [];
-    let selectedODS = [];
     let filteredData = [];
-    let quantityType = '--';
-    let searchType = 'vmp';
-
     let errorMessage = '';
-    let usedOrganisationSelection = false;
     let isOrganisationDropdownOpen = false;
 
-    
+    $: selectedVMPs = $analyseOptions.selectedVMPs;
+    $: selectedODS = $analyseOptions.selectedODS;
+    $: quantityType = $analyseOptions.quantityType;
+    $: searchType = $analyseOptions.searchType;
+    $: usedOrganisationSelection = $analyseOptions.usedOrganisationSelection;
+
     const csrftoken = getCookie('csrftoken');
     // Define quantityOptions
     const quantityOptions = ['--', 'Dose', 'Ingredient Quantity'];
@@ -115,19 +115,28 @@
     }
 
     function handleVMPSelection(event) {
-        selectedVMPs = event.detail.items;
-        searchType = event.detail.type;
+        analyseOptions.update(options => ({
+            ...options,
+            selectedVMPs: event.detail.items,
+            searchType: event.detail.type
+        }));
         console.log("Selected VMPs:", selectedVMPs, "Search Type:", searchType);
     }
 
     function handleODSSelection(event) {
-        selectedODS = event.detail.selectedItems;
-        usedOrganisationSelection = event.detail.usedOrganisationSelection;
+        analyseOptions.update(options => ({
+            ...options,
+            selectedODS: event.detail.selectedItems,
+            usedOrganisationSelection: event.detail.usedOrganisationSelection
+        }));
     }
 
     function handleQuantityTypeChange(event) {
-        quantityType = event.target.value;
-        console.log('Quantity type changed:', quantityType);
+        analyseOptions.update(options => ({
+            ...options,
+            quantityType: event.target.value
+        }));
+        console.log('Quantity type changed:', $analyseOptions.quantityType);
     }
 
     function handleOrganisationDropdownToggle(event) {
@@ -151,7 +160,7 @@
     <div class="mb-4 flex-shrink-0">
         <h3 class="text-lg font-semibold mb-2 text-oxford">Select quantity type</h3>
         <select 
-            bind:value={quantityType}
+            bind:value={$analyseOptions.quantityType}
             on:change={handleQuantityTypeChange}
             class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-oxford-500"
         >
@@ -190,4 +199,3 @@
         </button>
     </div>
 </div>
-

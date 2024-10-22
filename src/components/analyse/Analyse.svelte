@@ -8,6 +8,7 @@
   import AnalyseBox from './analyse/AnalyseBox.svelte';
   import ResultsBox from './results/ResultsBox.svelte';
   import { writable } from 'svelte/store';
+  import { analyseOptions } from '../../stores/analyseOptionsStore';
 
   let isAnalysisRunning = writable(false);
   let isOrganisationDropdownOpen = false;
