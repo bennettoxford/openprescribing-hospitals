@@ -29,7 +29,7 @@ measure_data AS (
     JOIN viewer_vtm vtm ON vmp.vtm_id = vtm.vtm
     JOIN viewer_organisation org ON dose.organisation_id = org.ods_code
     LEFT JOIN viewer_organisation org_successor ON org.successor_id = org_successor.ods_code
-    WHERE vmp.vmp_code IN (
+    WHERE vmp.code IN (
         '36018411000001105',
         '36018311000001103',
         '36018511000001109',
@@ -82,7 +82,7 @@ vmp_lists AS (
         viewer_dose dose
     JOIN viewer_vmp vmp ON dose.vmp_id = vmp.code
     JOIN viewer_vtm vtm ON vmp.vtm_id = vtm.vtm
-    WHERE vmp.vmp_code IN (
+    WHERE vmp.code IN (
         '36018411000001105',
         '36018311000001103',
         '36018511000001109',
