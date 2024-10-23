@@ -29,7 +29,22 @@ measure_data AS (
     JOIN viewer_vtm vtm ON vmp.vtm_id = vtm.vtm
     JOIN viewer_organisation org ON dose.organisation_id = org.ods_code
     LEFT JOIN viewer_organisation org_successor ON org.successor_id = org_successor.ods_code
-    WHERE vtm.vtm = '777274002'
+    WHERE vmp.vmp_code IN (
+        '36018411000001105',
+        '36018311000001103',
+        '36018511000001109',
+        '36018611000001108',
+        '36018711000001104',
+        '36018811000001107',
+        '36019111000001107',
+        '36019311000001109',
+        '36019411000001102',
+        '36019511000001103',
+        '36019611000001104',
+        '36019711000001108',
+        '4898111000001106',
+        '36019911000001105'
+        )
     GROUP BY
         COALESCE(org_successor.ods_name, org.ods_name), 
         COALESCE(org_successor.region, org.region),
@@ -67,7 +82,22 @@ vmp_lists AS (
         viewer_dose dose
     JOIN viewer_vmp vmp ON dose.vmp_id = vmp.code
     JOIN viewer_vtm vtm ON vmp.vtm_id = vtm.vtm
-    WHERE vtm.vtm = '777274002'
+    WHERE vmp.vmp_code IN (
+        '36018411000001105',
+        '36018311000001103',
+        '36018511000001109',
+        '36018611000001108',
+        '36018711000001104',
+        '36018811000001107',
+        '36019111000001107',
+        '36019311000001109',
+        '36019411000001102',
+        '36019511000001103',
+        '36019611000001104',
+        '36019711000001108',
+        '4898111000001106',
+        '36019911000001105'
+        )
 )
 SELECT 
     'parenteral_potassium_chloride_proportion' AS name,
