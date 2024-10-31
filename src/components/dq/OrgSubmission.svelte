@@ -9,6 +9,7 @@
 <script>
     import { onMount, afterUpdate, onDestroy } from 'svelte';
     import * as d3 from 'd3';
+    import OrganisationSearch from '../common/OrganisationSearch.svelte';
 
     export let orgData = '{}';
 
@@ -114,18 +115,60 @@
         return flattened;
     }
 
+    let searchTerm = '';
+    let filteredOrganisations = [];
+
+    function filterOrganisations(orgs, searchTerms) {
+        if (!searchTerms || searchTerms.length === 0) return orgs;
+        
+        return orgs.filter(org => {
+            // Check if org name matches any of the selected terms
+            const matchesOrg = searchTerms.some(term => 
+                org.name.toLowerCase().includes(term.toLowerCase())
+            );
+            
+            // Check predecessors
+            const matchesPredecessor = org.predecessors && org.predecessors.length > 0 && 
+                org.predecessors.some(pred => 
+                    searchTerms.some(term => 
+                        pred.name.toLowerCase().includes(term.toLowerCase())
+                    )
+                );
+            
+            return matchesOrg || matchesPredecessor;
+        });
+    }
+
+    function prepareOrganisationsForSearch(orgs) {
+    
+        let successorMap = new Map();
+        
+        function collectOrgs(org) {
+            let allOrgs = [org.name];
+            if (org.predecessors) {
+                org.predecessors.forEach(pred => {
+                    allOrgs = allOrgs.concat(collectOrgs(pred));
+                    successorMap.set(pred.name, org.name);
+                });
+            }
+            return allOrgs;
+        }
+        
+        const allOrgNames = orgs.flatMap(org => collectOrgs(org));
+        return [...new Set(allOrgNames)];
+    }
+
     onMount(() => {
-        console.log("Received orgdata:", orgData);
         try {
             const unescapedData = unescapeUnicode(orgData);
             parsedOrgData = JSON.parse(unescapedData);
             organisations = parsedOrgData;
-            console.log("Parsed organisations:", organisations);
+            filteredOrganisations = organisations;
             
             if (organisations.length > 0) {
                 months = Object.keys(organisations[0].data).sort();
             }
-            console.log("Months:", months);
+
 
             setTimeout(createChart, 0);
         } catch (e) {
@@ -139,10 +182,10 @@
 
         d3.select(chartContainer).selectAll('*').remove();
 
-        const flatOrgs = flattenOrganisations(organisations);  // Use the current organisations state
+        const flatOrgs = flattenOrganisations(filteredOrganisations);
 
         chartWidth = chartContainer.clientWidth;
-        chartHeight = Math.max(400, flatOrgs.length * 30);
+        chartHeight = flatOrgs.length * 30 + 80;
 
         const margin = { top: 40, right: 50, bottom: 40, left: 350 };
 
@@ -268,7 +311,6 @@
             .attr("class", "absolute pointer-events-none opacity-0 bg-gray-800 text-white p-2 rounded shadow-lg text-sm z-10")
             .style("transition", "opacity 0.2s");
 
-        console.log("Chart created with tooltips");
     }
 
     function drawOrgData(svg, org, x, y, width) {
@@ -324,6 +366,39 @@
         return date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
     }
 
+    function handleSearchSelect(event) {
+        const selectedItems = event.detail.selectedItems;
+        if (selectedItems.length === 0) {
+            filteredOrganisations = organisations;
+        } else {
+            // Find all relevant organisations based on selection
+            filteredOrganisations = organisations.filter(org => {
+                // Check if this org is directly selected
+                if (selectedItems.includes(org.name)) {
+                    return true;
+                }
+                
+                // Check if any of this org's predecessors are selected
+                const hasPredecessorSelected = org.predecessors?.some(pred => 
+                    selectedItems.includes(pred.name)
+                );
+                
+                if (hasPredecessorSelected) {
+                    // If a predecessor is selected, we want to show the successor
+                    expandedOrgs.add(org.name); // Auto-expand to show the selected predecessor
+                    return true;
+                }
+                
+                return false;
+            });
+        }
+        createChart();
+    }
+
+    $: {
+        filteredOrganisations = filterOrganisations(organisations, searchTerm);
+    }
+
     onMount(() => {
         createChart();
         window.addEventListener('resize', handleResize);
@@ -339,12 +414,27 @@
 </script>
 
 <div class="flex flex-col w-full">
-    <div class="flex items-center gap-4 mb-6 mr-8 justify-end">
+    <div class="w-96 relative z-50 mb-4">
+        {#if organisations && organisations.length > 0}
+            {#key organisations}
+                <OrganisationSearch
+                    items={prepareOrganisationsForSearch(organisations)}
+                    overlayMode={true}
+                    filterType="organisation"
+                    on:selectionChange={handleSearchSelect}
+                />
+            {/key}
+        {:else}
+            <div class="text-sm text-gray-500">Loading organisations...</div>
+        {/if}
+    </div>
+
+    <div class="flex items-center mb-2 mr-8 justify-end">
         <button 
             class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium 
                    bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 
                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 
-                   transition-all duration-200"
+                   transition-all duration-200 h-[38px]"
             on:click={toggleSort}
         >
             <svg class="mr-2 h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -378,5 +468,4 @@
     .expand-collapse-btn:hover {
         background-color: #e0e0e0;
     }
-    
 </style>
