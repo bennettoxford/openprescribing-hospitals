@@ -41,7 +41,7 @@ urlpatterns = [
         name="filtered-ingredient-quantities",
     ),
     path("measures/<slug:slug>/", MeasureItemView.as_view(), name="measure_item"),
-    path("data-quality/", OrgsSubmittingDataView.as_view(), name="data_quality"),
+    path("submission-history/", OrgsSubmittingDataView.as_view(), name="submission_history"),
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
 ]
