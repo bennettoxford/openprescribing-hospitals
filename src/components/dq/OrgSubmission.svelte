@@ -67,12 +67,48 @@
         }, 0);
     }
 
-    function flattenOrganisations(orgs, level = 0) {
+    let sortBySubmission = false;
+    let parsedOrgData = [];
+    
+    function toggleSort() {
+        sortBySubmission = !sortBySubmission;
+        organisations = flattenOrganisations(parsedOrgData);
+        createChart();
+    }
+
+    function sortOrganisations(orgs) {
+        if (!sortBySubmission) {
+            return orgs;
+        }
+
+        return [...orgs].sort((a, b) => {
+            // First compare by latest submission (non-submitting first)
+            const aSubmission = a.latest_submission;
+            const bSubmission = b.latest_submission;
+            
+            if (aSubmission !== bSubmission) {
+                return aSubmission ? 1 : -1;
+            }
+            // Then alphabetically
+            return a.name.localeCompare(b.name);
+        });
+    }
+
+    function flattenOrganisations(orgs, level = 0, parentSubmission = null) {
         let flattened = [];
-        orgs.forEach(org => {
-            flattened.push({ ...org, level });
+        // Only sort at top level
+        const sortedOrgs = level === 0 ? sortOrganisations(orgs) : orgs;
+        
+        sortedOrgs.forEach(org => {
+            // Use parent's submission status for predecessors when sorting
+            const submissionStatus = level === 0 ? org.latest_submission : parentSubmission;
+            flattened.push({ ...org, level, effective_submission: submissionStatus });
+            
             if (org.predecessors && org.predecessors.length > 0 && expandedOrgs.has(org.name)) {
-                flattened = flattened.concat(flattenOrganisations(org.predecessors, level + 1));
+               
+                flattened = flattened.concat(
+                    flattenOrganisations(org.predecessors, level + 1, submissionStatus)
+                );
             }
         });
         return flattened;
@@ -82,20 +118,19 @@
         console.log("Received orgdata:", orgData);
         try {
             const unescapedData = unescapeUnicode(orgData);
-            organisations = JSON.parse(unescapedData);
+            parsedOrgData = JSON.parse(unescapedData);
+            organisations = parsedOrgData;
             console.log("Parsed organisations:", organisations);
             
             if (organisations.length > 0) {
                 months = Object.keys(organisations[0].data).sort();
             }
             console.log("Months:", months);
+
+            setTimeout(createChart, 0);
         } catch (e) {
             error = `Error parsing JSON data: ${e.message}`;
             console.error(error);
-        }
-
-        if (!error && organisations.length > 0) {
-            setTimeout(createChart, 0);
         }
     });
 
@@ -104,7 +139,7 @@
 
         d3.select(chartContainer).selectAll('*').remove();
 
-        const flatOrgs = flattenOrganisations(organisations);
+        const flatOrgs = flattenOrganisations(organisations);  // Use the current organisations state
 
         chartWidth = chartContainer.clientWidth;
         chartHeight = Math.max(400, flatOrgs.length * 30);
@@ -304,6 +339,21 @@
 </script>
 
 <div class="flex flex-col w-full">
+    <div class="flex items-center gap-4 mb-6 mr-8 justify-end">
+        <button 
+            class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium 
+                   bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 
+                   focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 
+                   transition-all duration-200"
+            on:click={toggleSort}
+        >
+            <svg class="mr-2 h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+            </svg>
+            <span>{sortBySubmission ? 'Sort Alphabetically' : 'Sort by Latest Submission'}</span>
+        </button>
+    </div>
+    
     {#if error}
         <p class="text-red-600">{error}</p>
     {:else if organisations.length === 0}
@@ -328,4 +378,5 @@
     .expand-collapse-btn:hover {
         background-color: #e0e0e0;
     }
+    
 </style>
