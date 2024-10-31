@@ -470,6 +470,10 @@ class OrgsSubmittingDataView(TemplateView):
             if org not in processed_orgs:
                 restructured_data.append(build_org_hierarchy(org))
 
+        latest_date = max(all_dates) if all_dates else None
+        for org_entry in restructured_data:
+            org_entry['latest_submission'] = org_entry['data'].get(latest_date, False)
+
         context['org_data_json'] = mark_safe(json.dumps(restructured_data))
 
         if all_dates:
