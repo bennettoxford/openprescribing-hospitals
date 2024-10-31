@@ -15,17 +15,57 @@
                     <h1 class="text-4xl font-bold tracking-tight text-oxford-900 sm:text-6xl">
                         OpenPrescribing Hospitals
                     </h1>
-                    <p>
+                    
+                    <h2 class="text-xl sm:text-2xl text-oxford-700 font-medium">
+                        Explore NHS hospital medicines data across NHS Trusts in England
+                    </h2>
+                    
+                    <p class="text-gray-600 max-w-prose mx-auto">
                         Every month, NHS England publishes processed pharmacy stock control data in the form of the 
-                        <a href="https://opendata.nhsbsa.net/dataset/secondary-care-medicines-data-indicative-price" target="_blank" class="text-blue-500 font-semibold">Secondary Care Medicines Dataset (SCMD)</a>.
+                        <a href="https://opendata.nhsbsa.net/dataset/secondary-care-medicines-data-indicative-price" target="_blank" class="text-blue-600 hover:text-blue-800 font-semibold">Secondary Care Medicines Dataset (SCMD)</a>.
                         </a> OpenPrescribing Hospitals allows easy exploration of this data 
-                        through a set of curated Measures and a build-your-own analysis interface.
+                        through a set of curated Measures and a custom analysis builder.
                     </p>
                   
-                    <div class="flex items-center justify-center gap-x-3">
-                        <a href="{% url 'viewer:analyse' %}" class="btn-blue">Start Analysing</a>
-                        <a href="{% url 'viewer:measures_list' %}" class="btn-blue">View Measures</span></a>
-                        <a href="{% url 'viewer:submission_history' %}" class="btn-blue">Submission History</a>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 max-w-screen-xl mx-auto">
+                        <div class="bg-white rounded-lg shadow-lg flex flex-col">
+                            <div class="bg-gradient-to-r from-oxford-600/60 via-bn-roman-600/70 to-bn-strawberry-600/60 text-white p-2 rounded-t-lg">
+                                <h2 class="text-lg font-semibold">Submission History</h2>
+                            </div>
+                            <div class="p-4 flex flex-col flex-grow">
+                                <p class="text-gray-600 mb-6 flex-grow">View the data submission history for each NHS Trust in England over time and identify gaps in reporting.</p>
+                                <a href="{% url 'viewer:submission_history' %}" 
+                                   class="w-full bg-oxford-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-oxford-500 transition-colors duration-200 hover:bg-oxford-600 text-center">
+                                    View History
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg shadow-lg flex flex-col">
+                            <div class="bg-gradient-to-r from-oxford-600/60 via-bn-roman-600/70 to-bn-strawberry-600/60 text-white p-2 rounded-t-lg">
+                                <h2 class="text-lg font-semibold">Measures</h2>
+                            </div>
+                            <div class="p-4 flex flex-col flex-grow">
+                                <p class="text-gray-600 mb-6 flex-grow">Explore our curated set of indicators that highlight variation in stock control patterns across NHS Trusts.</p>
+                                <a href="{% url 'viewer:measures_list' %}" 
+                                   class="w-full bg-oxford-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-oxford-500 transition-colors duration-200 hover:bg-oxford-600 text-center">
+                                    View Measures
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg shadow-lg flex flex-col">
+                            <div class="bg-gradient-to-r from-oxford-600/60 via-bn-roman-600/70 to-bn-strawberry-600/60 text-white p-2 rounded-t-lg">
+                                <h2 class="text-lg font-semibold">Custom Analyses</h2>
+                            </div>
+                            <div class="p-4 flex flex-col flex-grow">
+                                <p class="text-gray-600 mb-6 flex-grow">Build your own custom analysis of hospital stock control data. Explore trends for individual products or groups of related products across NHS Trusts.</p>
+                                <a href="{% url 'viewer:analyse' %}" 
+                                   class="w-full bg-oxford-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-oxford-500 transition-colors duration-200 hover:bg-oxford-600 text-center">
+                                    Start Analysing
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
