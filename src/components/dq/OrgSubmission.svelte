@@ -68,7 +68,7 @@
         }, 0);
     }
 
-    let sortBySubmission = false;
+    let sortBySubmission = true;
     let parsedOrgData = [];
     
     function toggleSort() {
