@@ -49,6 +49,14 @@
 
     $: items = $analyseOptions.odsNames;
 
+    $: {
+        if (!$analyseOptions.usedOrganisationSelection && showOrganisationSelection) {
+            showOrganisationSelection = false;
+            selectedItems = [];
+            searchTerm = '';
+        }
+    }
+
     function toggleDropdown() {
         if (showOrganisationSelection) {
             isOpen = !isOpen;

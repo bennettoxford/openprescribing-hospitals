@@ -36,6 +36,12 @@
     isOrganisationDropdownOpen = event.detail.isOpen;
   }
 
+  function handleAnalysisClear() {
+    showResults = false;
+    analysisData = null;
+    isAnalysisRunning.set(false);
+  }
+
   onMount(() => {
     const analyseBox = document.querySelector('analyse-box');
     const resultsBox = document.querySelector('results-box');
@@ -51,6 +57,7 @@
       });
 
       analyseBox.addEventListener('organisationDropdownToggle', handleOrganisationDropdownToggle);
+      analyseBox.addEventListener('analysisClear', handleAnalysisClear);
     }
   });
 </script>
@@ -67,6 +74,7 @@
             on:analysisStart={handleAnalysisStart}
             on:analysisComplete={handleAnalysisComplete}
             on:analysisError={handleAnalysisError}
+            on:analysisClear={handleAnalysisClear}
             on:organisationDropdownToggle={handleOrganisationDropdownToggle}
           ></analyse-box>
         </div>

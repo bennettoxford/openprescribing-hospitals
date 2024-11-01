@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import { clearResults } from './resultsStore';
 
 export const analyseOptions = writable({
   selectedVMPs: [],
@@ -12,4 +13,16 @@ export const analyseOptions = writable({
   atcNames: [],
   ingredientNames: []
 });
+
+export function clearAnalysisOptions() {
+    analyseOptions.update(store => ({
+        ...store,
+        selectedVMPs: [],
+        selectedODS: [],
+        quantityType: '--',
+        searchType: 'vmp',
+        usedOrganisationSelection: false,
+    }));
+    clearResults();
+}
 

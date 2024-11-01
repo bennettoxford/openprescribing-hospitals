@@ -109,6 +109,14 @@
         vmpCount = 0;
     }
 
+    $: {
+        if ($analyseOptions.selectedVMPs.length === 0 && selectedItems.length > 0) {
+            selectedItems = [];
+            searchTerm = '';
+            vmpCount = 0;
+        }
+    }
+
     onMount(() => {
         // Initial filtering of items
         handleInput();
