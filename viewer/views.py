@@ -9,8 +9,7 @@ from rest_framework.response import Response
 from django.http import JsonResponse
 from django.db.models import Prefetch
 from django.db.models.functions import Coalesce
-from django.db.models import F
-from django.db.models import Value
+from django.db.models import F, Value, Min, Max
 from django.utils.safestring import mark_safe
 from django.db.models import Exists, OuterRef
 from django.db.models import Count, Q, Prefetch
@@ -53,6 +52,14 @@ class AnalyseView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        date_range = Dose.objects.aggregate(
+            min_date=Min('year_month'),
+            max_date=Max('year_month')
+        )
+        context['date_range'] = {
+            'min_date': date_range['min_date'].isoformat() if date_range['min_date'] else None,
+            'max_date': date_range['max_date'].isoformat() if date_range['max_date'] else None
+        }
         return context
 
 @method_decorator(login_required, name='dispatch')
