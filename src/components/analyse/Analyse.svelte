@@ -67,7 +67,7 @@
     <div class="w-full lg:w-1/3 xl:w-1/4 mb-4 lg:mb-0 lg:mr-4 flex flex-col">
       <div class="bg-white rounded-lg shadow-md flex flex-col overflow-visible">
         <div class="bg-gradient-to-r from-oxford-600/60 via-bn-roman-600/70 to-bn-strawberry-600/60 text-white p-2 rounded-t-lg">
-          <h2 class="text-lg font-semibold">Analysis</h2>
+          <h2 class="text-lg font-semibold">Analysis builder</h2>
         </div>
         <div class="flex-grow overflow-y-auto overflow-x-visible">
           <analyse-box 
