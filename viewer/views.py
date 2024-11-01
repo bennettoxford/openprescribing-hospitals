@@ -226,19 +226,34 @@ def filtered_doses(request):
     search_items = request.data.get("names", [])
     ods_names = request.data.get("ods_names", [])
     search_type = request.data.get("search_type", "vmp")
+    start_date = request.data.get("start_date")
+    end_date = request.data.get("end_date")
 
     search_items = [item.split("|")[0].strip() for item in search_items]
-    if search_type == "vmp":
-        queryset = Dose.objects.filter(vmp__code__in=search_items)
-    elif search_type == "vtm":
-        queryset = Dose.objects.filter(vmp__vtm__vtm__in=search_items)
-    elif search_type == "ingredient":
-        queryset = Dose.objects.filter(vmp__ingredients__code__in=search_items)
-    elif search_type == "atc":
-        # Get all children of the selected ATC codes
-        all_atc_codes = get_all_child_atc_codes(search_items)
-        queryset = Dose.objects.filter(vmp__atcs__code__in=all_atc_codes)
+
+    base_filters = {}
     
+    if start_date:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        base_filters['year_month__gte'] = start_date
+        
+    if end_date:
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+        base_filters['year_month__lte'] = end_date
+
+    queryset = Dose.objects.filter(**base_filters)
+
+    if search_type == "vmp":
+        queryset = queryset.filter(vmp__code__in=search_items)
+    elif search_type == "vtm":
+        queryset = queryset.filter(vmp__vtm__vtm__in=search_items)
+    elif search_type == "ingredient":
+        queryset = queryset.filter(vmp__ingredients__code__in=search_items)
+    elif search_type == "atc":
+        all_atc_codes = get_all_child_atc_codes(search_items)
+        queryset = queryset.filter(vmp__atcs__code__in=all_atc_codes)
+    
+    # Add organisation filters
     if ods_names:
         ods_names = [item.split("|")[0].strip() for item in ods_names]
         queryset = queryset.filter(organisation__ods_code__in=ods_names)
@@ -295,8 +310,20 @@ def filtered_ingredient_quantities(request):
     search_items = request.data.get("names", [])
     ods_names = request.data.get("ods_names", [])
     search_type = request.data.get("search_type", "")
+    start_date = request.data.get("start_date")
+    end_date = request.data.get("end_date")
 
-    queryset = IngredientQuantity.objects.all()
+    base_filters = {}
+    
+    if start_date:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        base_filters['year_month__gte'] = start_date
+        
+    if end_date:
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+        base_filters['year_month__lte'] = end_date
+
+    queryset = IngredientQuantity.objects.filter(**base_filters)
 
     search_items = [item.split("|")[0].strip() for item in search_items]
 
