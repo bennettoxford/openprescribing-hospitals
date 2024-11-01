@@ -134,12 +134,28 @@
             <div class="mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 flex-grow overflow-hidden flex flex-col max-h-96"
                  class:absolute={overlayMode} class:top-full={overlayMode} class:left-0={overlayMode} class:right-0={overlayMode}>
                 <div class="p-2 flex-shrink-0">
-                    <input
-                        type="text"
-                        bind:value={searchTerm}
-                        placeholder="Search {filterType === 'icb' ? 'ICB' : 'organisation'} names..."
-                        class="w-full p-2 border border-gray-300 rounded-md mb-2"
-                    />
+                    <div class="relative">
+                        <input
+                            type="text"
+                            bind:value={searchTerm}
+                            placeholder="Search {filterType === 'icb' ? 'ICB' : 'organisation'} names..."
+                            class="w-full p-2 border border-gray-300 rounded-md mb-2 pr-8"
+                            on:keydown={(e) => {
+                                if (e.key === 'Escape' && searchTerm) {
+                                    e.preventDefault();
+                                    searchTerm = '';
+                                }
+                            }}
+                        />
+                        {#if searchTerm}
+                            <button
+                                class="absolute right-2 top-0 h-full flex items-center justify-center text-gray-400 hover:text-gray-600 w-5"
+                                on:click|stopPropagation={() => searchTerm = ''}
+                            >
+                                ✕
+                            </button>
+                        {/if}
+                    </div>
                     <div class="flex justify-between mb-2">
                         <button
                             on:click={deselectAll}
