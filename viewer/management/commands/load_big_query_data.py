@@ -13,6 +13,7 @@ from viewer.models import (
     Organisation,
     Dose,
     IngredientQuantity,
+    DataStatus,
 )
 import glob
 from tqdm import tqdm
@@ -32,6 +33,7 @@ class Command(BaseCommand):
         self.load_dose(data_dir)
         self.load_ingredient_quantity(data_dir)
         self.load_atc(data_dir)
+        self.load_data_status(data_dir)
 
         self.stdout.write(self.style.SUCCESS(
             "Successfully loaded all data into the database"))
@@ -384,3 +386,11 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f"Loaded {total_iq} IngredientQuantities"))
+
+    def load_data_status(self, directory):
+        data_status = self.load_csv("data_status_table", directory)
+        data_status["year_month"] = pd.to_datetime(data_status["year_month"])
+        data_status_objects = [DataStatus(year_month=row["year_month"], file_type=row["file_type"]) for _, row in data_status.iterrows()]
+        DataStatus.objects.bulk_create(data_status_objects)
+        self.stdout.write(self.style.SUCCESS(
+            f"Loaded {len(data_status_objects)} DataStatus"))
