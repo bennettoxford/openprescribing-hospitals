@@ -1,17 +1,24 @@
 import { writable } from 'svelte/store';
 
-const initialState = {
+export const resultsStore = writable({
     isAnalysisRunning: false,
-    analysisData: null,
     showResults: false,
-    quantityType: 'Dose',
-    searchType: 'vmp',
-    filteredData: []
-};
-
-export const resultsStore = writable(initialState);
+    analysisData: null,
+    filteredData: null,
+    quantityType: null,
+    searchType: null,
+    dateRange: null
+});
 
 export function clearResults() {
-    resultsStore.set(initialState);
+    resultsStore.set({
+        isAnalysisRunning: false,
+        showResults: false,
+        analysisData: null,
+        filteredData: null,
+        quantityType: null,
+        searchType: null,
+        dateRange: null
+    });
 }
 
