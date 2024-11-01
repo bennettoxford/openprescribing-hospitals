@@ -74,6 +74,15 @@
               Submission History
             </a>
           </li>
+          <li>
+            <a class="
+              relative inline-flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-2 -ml-2
+              hover:text-bn-strawberry-700
+              focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
+            " href="{% url 'viewer:contact' %}">
+              Contact
+            </a>
+          </li>
           {% if user.is_authenticated %}
             <li>
               <form method="post" action="{% url 'viewer:logout' %}">
@@ -148,31 +157,47 @@
           Submission History
         </a>
       </li>
-      {% if user.is_authenticated %}
-        <li>
-          <a class="
-            relative flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-0
-            hover:text-bn-strawberry-700
-            focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
-            before:inline before:absolute before:-top-5 before:h-1 before:left-1/2 before:-translate-x-1 before:bg-bn-strawberry-300 before:w-1 before:transition-all before:opacity-0
-            before:hover:w-full before:hover:opacity-100 before:hover:left-0 before:hover:translate-x-0
-          " href="{% url 'viewer:logout' %}">
-            Logout
+      <li class="relative group">
+        <button class="
+          relative flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-0
+          hover:text-bn-strawberry-700
+          focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
+          before:inline before:absolute before:-top-5 before:h-1 before:left-1/2 before:-translate-x-1 before:bg-bn-strawberry-300 before:w-1 before:transition-all before:opacity-0
+          before:hover:w-full before:hover:opacity-100 before:hover:left-0 before:hover:translate-x-0
+        ">
+          More
+          <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        
+        <div class="absolute right-0 top-full mt-1 py-2 w-48 bg-white rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+          <a href="{% url 'viewer:contact' %}" class="
+            block px-4 py-2 text-oxford hover:text-bn-strawberry-700 hover:bg-slate-50
+            focus:outline-none focus:text-bn-strawberry-700 focus:bg-slate-50
+          ">
+            Contact
           </a>
-        </li>
-      {% else %}
-        <li>
-          <a class="
-            relative flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-0
-            hover:text-bn-strawberry-700
-            focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
-            before:inline before:absolute before:-top-5 before:h-1 before:left-1/2 before:-translate-x-1 before:bg-bn-strawberry-300 before:w-1 before:transition-all before:opacity-0
-            before:hover:w-full before:hover:opacity-100 before:hover:left-0 before:hover:translate-x-0
-          " href="{% url 'viewer:login' %}">
-            Login
-          </a>
-        </li>
-      {% endif %}
+          {% if user.is_authenticated %}
+            <form method="post" action="{% url 'viewer:logout' %}" class="block">
+              {% csrf_token %}
+              <button type="submit" class="
+                w-full text-left px-4 py-2 text-oxford hover:text-bn-strawberry-700 hover:bg-slate-50
+                focus:outline-none focus:text-bn-strawberry-700 focus:bg-slate-50
+              ">
+                Logout
+              </button>
+            </form>
+          {% else %}
+            <a href="{% url 'viewer:login' %}" class="
+              block px-4 py-2 text-oxford hover:text-bn-strawberry-700 hover:bg-slate-50
+              focus:outline-none focus:text-bn-strawberry-700 focus:bg-slate-50
+            ">
+              Login
+            </a>
+          {% endif %}
+        </div>
+      </li>
     </ul>
   </nav>
 </header>
