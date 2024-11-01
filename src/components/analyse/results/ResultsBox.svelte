@@ -9,6 +9,7 @@
     import DataTable from './DataTable.svelte';
     import ProductList from './ProductList.svelte';
     import { resultsStore } from '../../../stores/resultsStore';
+    import { analyseOptions } from '../../../stores/analyseOptionsStore';
 
     export let isAnalysisRunning;
     export let analysisData;
@@ -45,7 +46,8 @@
             ...store,
             quantityType: newQuantityType,
             searchType,
-            isAnalysisRunning: false
+            isAnalysisRunning: false,
+            dateRange: $analyseOptions.dateRange
         }));
         
         vmps = Array.from(new Set(selectedData.map(item => {

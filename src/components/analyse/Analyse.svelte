@@ -16,6 +16,9 @@
   let showResults = false;
   let analysisData = null;
 
+  export let minDate;
+  export let maxDate;
+
   function handleAnalysisStart() {
     showResults = true;
     isAnalysisRunning.set(true);
@@ -76,6 +79,8 @@
             on:analysisError={handleAnalysisError}
             on:analysisClear={handleAnalysisClear}
             on:organisationDropdownToggle={handleOrganisationDropdownToggle}
+            {minDate}
+            {maxDate}
           ></analyse-box>
         </div>
       </div>
