@@ -228,7 +228,7 @@
         </select>
     </div>
 
-    <div class="mb-4 flex-grow overflow-visible">
+    <div class="mb-4 flex-grow overflow-visible relative">
         <div class="flex flex-col mb-2">
             <div class="flex items-center mb-2">
                 <h3 class="text-lg font-semibold text-oxford mr-2">Select Trusts</h3>
@@ -249,7 +249,7 @@
                 </div>
             </div>
         </div>
-        <div class="relative h-full">
+        <div class="relative h-full" style="z-index: 1;">
             <OrganisationSearch 
                 items={$analyseOptions.odsNames} 
                 on:selectionChange={handleODSSelection} 
@@ -264,9 +264,7 @@
         </div>
     {/if}
     
-    <div class="mt-auto flex-shrink-0 space-y-2">
-        
-
+    <div class="mt-auto flex-shrink-0 space-y-2 relative" style="z-index: 2;">
         <button
             on:click={runAnalysis}
             disabled={isAnalysisRunning}

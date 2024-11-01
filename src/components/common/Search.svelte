@@ -89,7 +89,11 @@
         const selectedItem = type === 'atc' ? item.name : item;
         if (!selectedItems.includes(selectedItem)) {
             selectedItems = [...selectedItems, selectedItem];
-            searchTerm = '';
+            dispatch('selectionChange', { items: selectedItems, type });
+            fetchVmpCount();
+        } else {
+            // Remove item if already selected
+            selectedItems = selectedItems.filter(i => i !== selectedItem);
             dispatch('selectionChange', { items: selectedItems, type });
             fetchVmpCount();
         }
@@ -130,21 +134,41 @@
         <button class="px-2 py-1 rounded {type === 'ingredient' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('ingredient')}>Ingredient</button>
         <button class="px-2 py-1 rounded {type === 'atc' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('atc')}>ATC</button>
     </div>
-    <input
-        type="text"
-        {placeholder}
-        bind:value={searchTerm}
-        on:input={handleInput}
-        class="w-full mb-2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-oxford-500"
-    />
+    <div class="relative">
+        <input
+            type="text"
+            {placeholder}
+            bind:value={searchTerm}
+            on:input={handleInput}
+            on:keydown={(e) => {
+                if (e.key === 'Escape' && searchTerm) {
+                    e.preventDefault();
+                    searchTerm = '';
+                }
+            }}
+            class="w-full mb-2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-oxford-500 pr-8"
+        />
+        {#if searchTerm}
+            <button
+                class="absolute right-2 top-0 h-full flex items-center justify-center text-gray-400 hover:text-gray-600 w-5"
+                on:click|stopPropagation={() => searchTerm = ''}
+            >
+                ✕
+            </button>
+        {/if}
+    </div>
     {#if filteredItems.length > 0 && searchTerm.length > 0}
         <ul class="mt-2 border border-gray-300 rounded-md max-h-40 overflow-y-auto">
             {#each filteredItems as item}
                 <li 
-                    class="p-2 hover:bg-gray-100 cursor-pointer"
+                    class="p-2 hover:bg-gray-100 cursor-pointer flex items-center justify-between"
+                    class:bg-oxford-100={selectedItems.includes(type === 'atc' ? item.name : item)}
                     on:click={() => handleSelect(item)}
                 >
-                    {type === 'atc' ? item.name : item}
+                    <span>{type === 'atc' ? item.name : item}</span>
+                    {#if selectedItems.includes(type === 'atc' ? item.name : item)}
+                        <span class="text-sm font-medium text-oxford-500">Selected</span>
+                    {/if}
                 </li>
             {/each}
         </ul>
