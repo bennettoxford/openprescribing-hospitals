@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}FAQ{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <h1 class="text-4xl font-bold mb-8 text-oxford-900 text-center">Frequently Asked Questions</h1>
+
+    <div class="space-y-8">
+        <div class="bg-white rounded-xl shadow-md p-8 border border-slate-200 hover:shadow-lg transition-shadow duration-300">
+            <h2 class="text-2xl font-semibold mb-6 text-oxford-900 flex items-center">
+                About OpenPrescribing Hospitals
+            </h2>
+            <div class="space-y-6">
+                <div class="group">
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg group-hover:text-blue-600 transition-colors duration-200">What is OpenPrescribing Hospitals?</h3>
+                    <p class="text-slate-600 leading-relaxed">
+                        OpenPrescribing Hospitals is a platform that provides open access to NHS hospital medicines data, allowing healthcare professionals and researchers to explore stock control data across different hospital trusts.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-md p-8 border border-slate-200 hover:shadow-lg transition-shadow duration-300">
+            <h2 id="product-selection-types" class="text-2xl font-semibold mb-6 text-oxford-900 flex items-center">
+                Product Selection Types
+            </h2>
+            <div class="space-y-6">
+                <div class="group">
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg group-hover:text-blue-600 transition-colors duration-200">What is a VMP (Virtual Medicinal Product)?</h3>
+                    <p class="text-slate-600 leading-relaxed">
+                        A VMP represents a single formulation (e.g., apixaban 5mg tablets). Different formulations of the same product will have different VMPs, but the same formulation made by different manufacturers will be grouped together. This is the right choice when searching for a specific formulation.
+                    </p>
+                </div>
+                <div class="group">
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg group-hover:text-blue-600 transition-colors duration-200">What is a VTM (Virtual Therapeutic Moiety)?</h3>
+                    <p class="text-slate-600 leading-relaxed">
+                        A VTM is a group containing all the formulations of a specific drug or combination (e.g., ivacaftor + tezacaftor + elexacaftor). The group will contain all the VMPs with the same exact ingredients. This is the right choice when searching for a specific treatment but need to group all formulations.
+                    </p>
+                </div>
+                <div class="group">
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg group-hover:text-blue-600 transition-colors duration-200">What is an Ingredient search?</h3>
+                    <p class="text-slate-600 leading-relaxed">
+                        Searching by ingredient groups all products containing the active ingredient, including combination products. This is useful when you want to find all medicines containing a particular substance, regardless of formulation or combinations.
+                    </p>
+                </div>
+                <div class="group">
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg group-hover:text-blue-600 transition-colors duration-200">What is an ATC search?</h3>
+                    <p class="text-slate-600 leading-relaxed">
+                        Similar to VTM but allows treatment to be seen in a hierarchical context. The ATC (Anatomical Therapeutic Chemical) classification will group all products using the ATC name together but also allows distinction by area of use (e.g., fluticasone for nasal decongestion, asthma, or topical steroid for skin conditions).
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-md p-8 border border-slate-200 hover:shadow-lg transition-shadow duration-300">
+            <h2 id="quantity-type" class="text-2xl font-semibold mb-6 text-oxford-900 flex items-center">
+                Quantity Types
+            </h2>
+            <div class="space-y-6">
+                <div class="group">
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg group-hover:text-blue-600 transition-colors duration-200">What is Dose quantity?</h3>
+                    <p class="text-slate-600 leading-relaxed">
+                        Dose quantity represents the number of standard doses of a medicine. For tablets and capsules, this is typically the number of individual units. For liquids, it's usually measured in millilitres, and for inhalers, it's the number of doses or actuations.
+                    </p>
+                </div>
+                <div class="group">
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg group-hover:text-blue-600 transition-colors duration-200">What is Ingredient Quantity?</h3>
+                    <p class="text-slate-600 leading-relaxed">
+                        Ingredient quantity measures the amount of active ingredient in the medicine, typically in milligrams or grams. This is useful when comparing different formulations of the same medicine or when analysing total ingredient usage across various products.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-md p-8 border border-slate-200 hover:shadow-lg transition-shadow duration-300">
+            <h2 id="trusts-included" class="text-2xl font-semibold mb-6 text-oxford-900 flex items-center">
+                Trust Selection
+            </h2>
+            <div class="space-y-6">
+                <div class="group">
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg group-hover:text-blue-600 transition-colors duration-200">Which trusts are included in the data?</h3>
+                    <p class="text-slate-600 leading-relaxed">
+                        The platform includes data from all NHS hospital trusts in England that submit data to the NHS Business Services Authority (NHSBSA). This includes acute trusts, mental health trusts, and specialist trusts.
+                    </p>
+                </div>
+        
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-blue-50 to-slate-50 rounded-xl shadow-md p-8 border border-slate-200">
+            <h2 class="text-2xl font-semibold mb-4 text-oxford-900 flex items-center">
+                Need More Help?
+            </h2>
+            <p class="text-slate-600 mb-4 leading-relaxed">
+                If you can't find the answer to your question here, please visit our 
+                <a href="{% url 'viewer:contact' %}" class="text-blue-600 hover:text-blue-800 hover:underline font-medium">
+                    contact page
+                </a> 
+                to get in touch with our team.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
