@@ -128,7 +128,7 @@
             class="mr-2 w-4 h-4"
         />
         <label for="showOrganisationSelection" class="text-sm font-medium text-gray-700">
-            Filter by specific {filterType === 'icb' ? 'ICBs' : 'organisations'}
+            Filter by specific {filterType === 'icb' ? 'ICBs' : 'NHS Trusts'}
         </label>
     </div>
 
@@ -137,7 +137,7 @@
             on:click={toggleDropdown}
             class="w-full p-2 border border-gray-300 rounded-md bg-white flex justify-between items-center flex-shrink-0"
         >
-            <span>{selectedItems.length} {filterType === 'icb' ? 'ICB' : 'organisation'} name(s) selected</span>
+            <span>{selectedItems.length} {filterType === 'icb' ? 'ICB' : 'NHS Trust'} name(s) selected</span>
             <span class="ml-2">▼</span>
         </button>
 
@@ -149,7 +149,7 @@
                         <input
                             type="text"
                             bind:value={searchTerm}
-                            placeholder="Search {filterType === 'icb' ? 'ICB' : 'organisation'} names..."
+                            placeholder="Search {filterType === 'icb' ? 'ICB' : 'NHS Trust'} names..."
                             class="w-full p-2 border border-gray-300 rounded-md mb-2 pr-8"
                             on:keydown={(e) => {
                                 if (e.key === 'Escape' && searchTerm) {
@@ -210,7 +210,7 @@
                     class="p-2 bg-gray-100 border-t border-gray-200 flex items-center justify-center hover:bg-oxford-50 active:bg-oxford-100 cursor-pointer transition-colors duration-150 gap-2"
                 >
                     <span class="text-sm font-medium text-gray-700">
-                        {selectedItems.length} items selected • Click to scroll to top
+                        {selectedItems.length} Trusts selected • Click to scroll to top
                     </span>
                     <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />

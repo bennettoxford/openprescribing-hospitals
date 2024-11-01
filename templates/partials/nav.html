@@ -83,6 +83,15 @@
               Contact
             </a>
           </li>
+          <li>
+            <a class="
+              relative inline-flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-2 -ml-2
+              hover:text-bn-strawberry-700
+              focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
+            " href="{% url 'viewer:faq' %}">
+              FAQ
+            </a>
+          </li>
           {% if user.is_authenticated %}
             <li>
               <form method="post" action="{% url 'viewer:logout' %}">
@@ -177,6 +186,12 @@
             focus:outline-none focus:text-bn-strawberry-700 focus:bg-slate-50
           ">
             Contact
+          </a>
+          <a href="{% url 'viewer:faq' %}" class="
+            block px-4 py-2 text-oxford hover:text-bn-strawberry-700 hover:bg-slate-50
+            focus:outline-none focus:text-bn-strawberry-700 focus:bg-slate-50
+          ">
+            FAQ
           </a>
           {% if user.is_authenticated %}
             <form method="post" action="{% url 'viewer:logout' %}" class="block">

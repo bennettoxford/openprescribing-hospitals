@@ -135,7 +135,7 @@
         {placeholder}
         bind:value={searchTerm}
         on:input={handleInput}
-        class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-oxford-500"
+        class="w-full mb-2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-oxford-500"
     />
     {#if filteredItems.length > 0 && searchTerm.length > 0}
         <ul class="mt-2 border border-gray-300 rounded-md max-h-40 overflow-y-auto">
@@ -151,7 +151,7 @@
     {/if}
     {#if selectedItems.length > 0}
         <div>
-            <h3 class="font-semibold mb-2 text-md text-gray-700">Selected {type.toUpperCase()} Names:</h3>
+            <h3 class="font-semibold mb-2 text-md text-gray-700">Selected {type.toUpperCase()} names:</h3>
             <ul class="border border-gray-200 rounded-md">
                 {#each selectedItems as item}
                     <li class="flex items-center justify-between px-2 py-1">

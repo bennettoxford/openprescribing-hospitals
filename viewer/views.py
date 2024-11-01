@@ -496,3 +496,11 @@ def get_search_items(request):
         'atcNames': formatted_atc
     }, safe=False)
 
+@method_decorator(login_required, name='dispatch')
+class FAQView(TemplateView):
+    template_name = "faq.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
+
