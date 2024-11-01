@@ -21,9 +21,20 @@
     let initialized = false;
     let previousFilterType = filterType;
 
-    $: filteredItems = items.filter(item => 
-        item && typeof item === 'string' && item.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    $: filteredItems = items
+        .filter(item => 
+            item && 
+            typeof item === 'string' && 
+            item.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .sort((a, b) => {
+            // If both items are selected or both unselected, maintain original order
+            if (isItemSelected(a) === isItemSelected(b)) {
+                return 0;
+            }
+            // Selected items go first
+            return isItemSelected(a) ? -1 : 1;
+        });
 
     // Initialize selectedItems with all items on component creation
     $: if (items.length > 0 && !initialized) {
@@ -171,6 +182,7 @@
                             class="p-2 cursor-pointer transition duration-150 ease-in-out relative {maxSelected && !isItemSelected(item) ? 'bg-gray-300 cursor-not-allowed' : ''}"
                             class:bg-oxford-100={isItemSelected(item)}
                             class:text-oxford-500={isItemSelected(item)}
+                            class:hover:bg-oxford-200={isItemSelected(item)}
                             class:hover:bg-gray-100={!isItemSelected(item) && !maxSelected}
                             on:click={() => { if (!maxSelected || isItemSelected(item)) toggleItem(item); }}
                         >
@@ -188,6 +200,22 @@
                         </li>
                     {/each}
                 </ul>
+                <button
+                    on:click={() => {
+                        const listContainer = document.querySelector('.dropdown .overflow-y-auto');
+                        if (listContainer) {
+                            listContainer.scrollTo({ top: 0 });
+                        }
+                    }}
+                    class="p-2 bg-gray-100 border-t border-gray-200 flex items-center justify-center hover:bg-oxford-50 active:bg-oxford-100 cursor-pointer transition-colors duration-150 gap-2"
+                >
+                    <span class="text-sm font-medium text-gray-700">
+                        {selectedItems.length} items selected • Click to scroll to top
+                    </span>
+                    <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                    </svg>
+                </button>
             </div>
         {/if}
     {/if}
