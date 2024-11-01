@@ -58,19 +58,28 @@
     </button>
     {#if isOpen}
         <div class="px-4 sm:px-6 py-2 sm:py-3 bg-gray-50">
+            <p class="text-sm text-gray-600 mb-3">
+                All products below are included in the denominator of this measure. A subset of these products are included in the numerator. This results in a proportion between 0 and 1.
+            </p>
             <div class="max-h-60 sm:max-h-96 overflow-y-auto pr-2">
                 <ul class="space-y-1.5">
                     {#each sortedItems as item}
                         {@const inNumerator = isInNumerator(item)}
                         <li class="flex flex-col sm:flex-row sm:items-center justify-between px-3 sm:px-4 py-1.5 sm:py-2 bg-white rounded-lg shadow-sm transition duration-150 ease-in-out"
-                            class:bg-oxford-100={inNumerator}
-                            class:text-oxford-700={inNumerator}>
+                            class:bg-oxford-100={inNumerator}>
                             <span class="font-medium text-sm">{item.name}</span>
                             <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-0.5 sm:space-y-0 sm:space-x-2">
                                 <span class="text-xs text-gray-500">VMP: {item.code}</span>
-                                {#if inNumerator}
-                                    <span class="text-xs font-semibold uppercase tracking-wide bg-oxford-200 text-oxford-800 px-1.5 py-0.5 rounded-full">Numerator</span>
-                                {/if}
+                                <div class="flex flex-col space-y-1">
+                                    {#if inNumerator}
+                                        <span class="text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-oxford-200 text-oxford-800">
+                                            Numerator
+                                        </span>
+                                    {/if}
+                                    <span class="text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-800">
+                                        Denominator
+                                    </span>
+                                </div>
                             </div>
                         </li>
                     {/each}
