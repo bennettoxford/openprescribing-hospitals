@@ -2,7 +2,8 @@
     tag: 'org-submission',
     shadow: 'none',
     props: {
-        orgdata: { type: 'String' }
+        orgdata: { type: 'String' },
+        latestDates: { type: 'String' }
     }
   }} />
 
@@ -12,6 +13,7 @@
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
 
     export let orgData = '{}';
+    export let latestDates = '{}';
 
     let organisations = [];
     let months = [];
@@ -158,17 +160,19 @@
         return [...new Set(allOrgNames)];
     }
 
+    let parsedLatestDates = {};
+
     onMount(() => {
         try {
             const unescapedData = unescapeUnicode(orgData);
             parsedOrgData = JSON.parse(unescapedData);
+            parsedLatestDates = JSON.parse(unescapeUnicode(latestDates));
             organisations = parsedOrgData;
             filteredOrganisations = organisations;
             
             if (organisations.length > 0) {
                 months = Object.keys(organisations[0].data).sort();
             }
-
 
             setTimeout(createChart, 0);
         } catch (e) {
@@ -185,9 +189,9 @@
         const flatOrgs = flattenOrganisations(filteredOrganisations);
 
         chartWidth = chartContainer.clientWidth;
-        chartHeight = flatOrgs.length * 30 + 80;
-
-        const margin = { top: 40, right: 50, bottom: 40, left: 350 };
+        const margin = { top: 70, right: 70, bottom: 40, left: 350 };
+        
+        chartHeight = flatOrgs.length * 30 + margin.top + margin.bottom;
 
         const width = chartWidth - margin.left - margin.right;
         const height = chartHeight - margin.top - margin.bottom;
@@ -310,6 +314,58 @@
             .append("div")
             .attr("class", "absolute pointer-events-none opacity-0 bg-gray-800 text-white p-2 rounded shadow-lg text-sm z-10")
             .style("transition", "opacity 0.2s");
+
+        const dateLineGroup = svg.append('g')
+            .attr('class', 'date-lines');
+
+        function parseDate(dateStr) {
+            if (!dateStr) return null;
+            const [month, year] = dateStr.split(' ');
+            return new Date(`${month} 1, ${year}`);
+        }
+
+        // Add vertical lines for each date type
+        const dateTypes = {
+            final: { color: '#117733', label: 'finalised' },
+            wip: { color: '#332288', label: 'WIP' },
+        };
+
+        Object.entries(parsedLatestDates).forEach(([type, dateStr], index) => {
+            if (!dateStr) return;
+            
+            const date = parseDate(dateStr);
+            if (!date) return;
+
+            const xPos = x(date);
+            const style = dateTypes[type];
+            const labelOffset = -25 - (index * 30);
+
+            dateLineGroup.append('line')
+                .attr('x1', xPos)
+                .attr('y1', labelOffset + 25)
+                .attr('x2', xPos)
+                .attr('y2', height)
+                .attr('stroke', style.color)
+                .attr('stroke-width', 2.5)
+                .attr('stroke-dasharray', '4,4');
+
+            const label = dateLineGroup.append('text')
+                .attr('x', xPos)
+                .attr('y', labelOffset)
+                .attr('text-anchor', 'middle')
+                .attr('fill', style.color)
+                .attr('font-size', '14px')
+                .style('width', '80px');
+
+            label.append('tspan')
+                .attr('x', xPos)
+                .text('Latest');
+
+            label.append('tspan')
+                .attr('x', xPos)
+                .attr('dy', '1.2em')
+                .text(`${style.label} data`);
+        });
 
     }
 

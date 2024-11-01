@@ -17,9 +17,13 @@
             <p class="text-gray-700 mb-4">This chart visualises the data submission history for organisations within the SCMD. It offers a quick overview of submission patterns, helping to identify gaps and organisational changes over time.</p>
             <p class="text-gray-700 mb-4">Each square represents a monthly submission, with <span class="text-blue-600 font-bold">blue</span> indicating a successful submission and <span class="text-red-600 font-bold">red</span> indicating a missing submission.</p>
             <p class="text-gray-700 mb-4">The chart shows data from <strong>{{ earliest_date }}</strong> to <strong>{{ latest_date }}</strong>.</p>
+            <p class="text-gray-700 mb-4">The data within the SCMD is initially made available as provisional data, which is subject to change. The provisional data moves to WIP before being finalised. The latest dates for WIP and finalised data are also shown below. See <a href="/faq/#data-status" class="underline font-semibold" target="_blank">the FAQs</a> for more details.</p>
         </div>
 
-        <org-submission orgData="{{ org_data_json|escapejs }}"></org-submission>
+        <org-submission 
+            orgData="{{ org_data_json|escapejs }}"
+            latestDates="{{ latest_dates|escapejs }}"
+        ></org-submission>
     </div>
 </div>
 

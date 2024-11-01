@@ -247,3 +247,7 @@ class PrecomputedPercentile(models.Model):
 
     def __str__(self):
         return f"{self.measure.name} - {self.month} - {self.percentile}th percentile"
+
+class DataStatus(models.Model):
+    year_month = models.DateField()
+    file_type = models.CharField(max_length=255)

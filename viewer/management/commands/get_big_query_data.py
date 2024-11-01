@@ -60,6 +60,7 @@ class Command(BaseCommand):
         self.get_and_save_table(client, "atc_mapping", self.atc_vmp_table_sql)
         self.get_and_save_table(client, "vmp_form", self.vmp_form_sql)
         self.get_and_save_table(client, "vmp_ontform", self.vmp_ontform_sql)
+        self.get_and_save_table(client, "data_status", self.data_status_table_sql)
     def get_and_save_table(self, client, table_name, sql_query):
         print(f"Getting {table_name} table")
         df = execute_query(client, sql_query)
@@ -173,5 +174,10 @@ class Command(BaseCommand):
 FROM `ebmdatalab.dmd.vmp_full` v
         LEFT JOIN `ebmdatalab.dmd.ont` o ON o.vmp = v.id
         LEFT JOIN `ebmdatalab.dmd.ontformroute` f ON f.cd = o.form
+    """
+
+    data_status_table_sql = """
+        SELECT DISTINCT year_month, file_type
+        FROM `ebmdatalab.scmd.data_status`
     """
 
