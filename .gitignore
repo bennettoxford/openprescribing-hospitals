@@ -9,3 +9,4 @@ bq-service-account.json
 .cursorrules
 data
 ca-certificate.crt
+logs/*

@@ -8,6 +8,8 @@
   import AnalyseBox from './analyse/AnalyseBox.svelte';
   import ResultsBox from './results/ResultsBox.svelte';
   import { writable } from 'svelte/store';
+  import { analyseOptions } from '../../stores/analyseOptionsStore';
+  import { get } from 'svelte/store';
 
   let isAnalysisRunning = writable(false);
   let isOrganisationDropdownOpen = false;
@@ -71,6 +73,11 @@
       </div>
     </div>
     <div class="flex-grow">
-      <results-box class="bg-white rounded-lg shadow-md h-full" {isAnalysisRunning} {analysisData} {showResults}></results-box>
+      <results-box 
+        class="bg-white rounded-lg shadow-md h-full" 
+        isAnalysisRunning={$isAnalysisRunning} 
+        analysisData={analysisData} 
+        {showResults}
+      ></results-box>
     </div>
   </div>

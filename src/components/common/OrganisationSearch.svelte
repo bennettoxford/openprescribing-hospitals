@@ -6,6 +6,7 @@
 <script>
     import { onMount, createEventDispatcher } from 'svelte';
     import '../../styles/styles.css';
+    import { analyseOptions } from '../../stores/analyseOptionsStore';
 
     const dispatch = createEventDispatcher();
 
@@ -45,6 +46,8 @@
         dispatchSelectionChange();
         previousFilterType = filterType;
     }
+
+    $: items = $analyseOptions.odsNames;
 
     function toggleDropdown() {
         if (showOrganisationSelection) {

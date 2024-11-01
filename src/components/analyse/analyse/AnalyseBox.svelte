@@ -10,22 +10,21 @@
     import OrganisationSearch from '../../common/OrganisationSearch.svelte';
     import { createEventDispatcher } from 'svelte';
     import { getCookie } from '../../../utils/utils';
+    import { analyseOptions } from '../../../stores/analyseOptionsStore';
     const dispatch = createEventDispatcher();
 
     let isAnalysisRunning = false;
-    let vmpNames = [];
-    let odsNames = [];
-    let selectedVMPs = [];
-    let selectedODS = [];
-    let filteredData = [];
-    let quantityType = '--';
-    let searchType = 'vmp';
-
     let errorMessage = '';
-    let usedOrganisationSelection = false;
     let isOrganisationDropdownOpen = false;
+    let filteredData = [];
 
-    
+    $: selectedVMPs = $analyseOptions.selectedVMPs;
+    $: selectedODS = $analyseOptions.selectedODS;
+    $: quantityType = $analyseOptions.quantityType;
+    $: searchType = $analyseOptions.searchType;
+    $: usedOrganisationSelection = $analyseOptions.usedOrganisationSelection;
+    $: odsNames = $analyseOptions.odsNames;
+
     const csrftoken = getCookie('csrftoken');
     // Define quantityOptions
     const quantityOptions = ['--', 'Dose', 'Ingredient Quantity'];
@@ -115,19 +114,28 @@
     }
 
     function handleVMPSelection(event) {
-        selectedVMPs = event.detail.items;
-        searchType = event.detail.type;
-        console.log("Selected VMPs:", selectedVMPs, "Search Type:", searchType);
+        analyseOptions.update(options => ({
+            ...options,
+            selectedVMPs: event.detail.items,
+            searchType: event.detail.type
+        }));
+        console.log("Selected Items:", $analyseOptions.selectedVMPs, "Search Type:", $analyseOptions.searchType);
     }
 
     function handleODSSelection(event) {
-        selectedODS = event.detail.selectedItems;
-        usedOrganisationSelection = event.detail.usedOrganisationSelection;
+        analyseOptions.update(options => ({
+            ...options,
+            selectedODS: event.detail.selectedItems,
+            usedOrganisationSelection: event.detail.usedOrganisationSelection
+        }));
     }
 
     function handleQuantityTypeChange(event) {
-        quantityType = event.target.value;
-        console.log('Quantity type changed:', quantityType);
+        analyseOptions.update(options => ({
+            ...options,
+            quantityType: event.target.value
+        }));
+        console.log('Quantity type changed:', $analyseOptions.quantityType);
     }
 
     function handleOrganisationDropdownToggle(event) {
@@ -135,8 +143,21 @@
     }
 
     onMount(async () => {
-        await fetchVMPNames();
-        await fetchODSNames();
+        try {
+            const response = await fetch('/api/get-search-items/');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+
+            analyseOptions.update(store => ({
+                ...store,
+                ...data
+            }));
+        } catch (error) {
+            console.error("Error fetching analysis options:", error);
+            errorMessage = "An error occurred while fetching analysis options. Please try again.";
+        }
     });
 </script>
 
@@ -145,13 +166,13 @@
     
     <div class="mb-4 flex-shrink-0">
         <h3 class="text-lg font-semibold mb-2 text-oxford">Product selection</h3>
-        <Search items={vmpNames} on:selectionChange={handleVMPSelection} />
+        <Search on:selectionChange={handleVMPSelection} />
     </div>
     
     <div class="mb-4 flex-shrink-0">
         <h3 class="text-lg font-semibold mb-2 text-oxford">Select quantity type</h3>
         <select 
-            bind:value={quantityType}
+            bind:value={$analyseOptions.quantityType}
             on:change={handleQuantityTypeChange}
             class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-oxford-500"
         >
@@ -165,7 +186,7 @@
         <h3 class="text-lg font-semibold mb-2 text-oxford">Select organisations</h3>
         <div class="relative h-full">
             <OrganisationSearch 
-                items={odsNames} 
+                items={$analyseOptions.odsNames} 
                 on:selectionChange={handleODSSelection} 
                 on:dropdownToggle={handleOrganisationDropdownToggle}
             />
@@ -190,4 +211,3 @@
         </button>
     </div>
 </div>
-
