@@ -32,6 +32,7 @@ from .models import (
     PrecomputedMeasureAggregated,
     PrecomputedPercentile,
     OrgSubmissionCache,
+    DataStatus,
 )
 
 
@@ -383,9 +384,25 @@ class OrgsSubmittingDataView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
+        # Get latest dates for each file type
+        latest_dates = {}
+        for file_type in ['final', 'wip']:
+            latest = DataStatus.objects.filter(
+                file_type=file_type
+            ).aggregate(
+                latest_date=Max('year_month')
+            )['latest_date']
+            if latest:
+                latest_dates[file_type] = latest.strftime("%B %Y")
+            else:
+                latest_dates[file_type] = None
+        
+        context['latest_dates'] = json.dumps(latest_dates)
+
         # Step 1: Collect data
         org_data = defaultdict(lambda: {'successor': None, 'submissions': {}, 'predecessors': []})
         all_dates = set()
+        
         for cache in OrgSubmissionCache.objects.select_related('organisation', 'successor').order_by('organisation__ods_name', 'month'):
             org_name = cache.organisation.ods_name
             org_data[org_name]['successor'] = cache.successor.ods_name if cache.successor else None
