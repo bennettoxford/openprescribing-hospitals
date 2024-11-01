@@ -10,7 +10,7 @@
     import OrganisationSearch from '../../common/OrganisationSearch.svelte';
     import { createEventDispatcher } from 'svelte';
     import { getCookie } from '../../../utils/utils';
-    import { analyseOptions } from '../../../stores/analyseOptionsStore';
+    import { analyseOptions, clearAnalysisOptions } from '../../../stores/analyseOptionsStore';
     const dispatch = createEventDispatcher();
 
     let isAnalysisRunning = false;
@@ -142,6 +142,12 @@
         isOrganisationDropdownOpen = event.detail.isOpen;
     }
 
+    function handleClearAnalysis() {
+        clearAnalysisOptions();
+        errorMessage = '';
+        dispatch('analysisClear');
+    }
+
     onMount(async () => {
         try {
             const response = await fetch('/api/get-search-items/');
@@ -162,7 +168,9 @@
 </script>
 
 <div class="p-4 bg-white rounded-lg w-full h-full flex flex-col">
-    <h2 class="text-2xl font-bold mb-4 text-oxford">Analysis Builder</h2>
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold text-oxford">Analysis Builder</h2>
+    </div>
     
     <div class="mb-4 flex-shrink-0">
         <h3 class="text-lg font-semibold mb-2 text-oxford">Product selection</h3>
@@ -199,7 +207,9 @@
         </div>
     {/if}
     
-    <div class="mt-auto flex-shrink-0">
+    <div class="mt-auto flex-shrink-0 space-y-2">
+        
+
         <button
             on:click={runAnalysis}
             disabled={isAnalysisRunning}
@@ -208,6 +218,13 @@
                disabled:bg-oxford-300 disabled:cursor-not-allowed"
         >
             {isAnalysisRunning ? 'Running Analysis...' : 'Run Analysis'}
+        </button>
+        <button
+            on:click={handleClearAnalysis}
+            class="w-full bg-gray-100 text-gray-700 font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors duration-200
+               hover:bg-gray-200"
+        >
+            Clear Analysis
         </button>
     </div>
 </div>
