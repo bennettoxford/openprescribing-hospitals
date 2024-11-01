@@ -511,4 +511,11 @@ def filtered_vmp_count(request):
     return Response({"vmp_count": vmp_count})
 
 
+@method_decorator(login_required, name='dispatch')
+class ContactView(TemplateView):
+    template_name = "contact.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
 

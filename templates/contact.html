@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Contact Us{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-8 px-4">
+    <h1 class="text-3xl font-bold mb-6 text-oxford-900">Contact Us</h1>
+
+    <div class="space-y-6">
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-slate-200">
+            <h2 class="text-xl font-semibold mb-4 text-oxford-900">Get in Touch</h2>
+            <p class="text-slate-600 mb-4">
+                If you have any questions or feedback about OpenPrescribing Hospitals, we'd love to hear from you. Please email us at:
+            </p>
+            <a href="mailto:bennett@phc.ox.ac.uk" 
+               class="inline-flex items-center text-blue-600 hover:text-blue-800 hover:underline">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                bennett@phc.ox.ac.uk
+            </a>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-slate-200">
+            <h2 class="text-xl font-semibold mb-4 text-oxford-900">Follow Us</h2>
+            <p class="text-slate-600 mb-4">
+                Stay updated with our latest news and updates:
+            </p>
+            <div class="flex items-start space-x-12 px-4">
+                <a href="https://x.com/BennettOxford" 
+                   class="text-slate-600 hover:text-blue-500 transition-colors pt-1">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                </a>
+                <a href="https://www.bennett.ox.ac.uk/blog/series/openprescribing-hospitals/" 
+                   class="flex flex-col items-center text-slate-600 hover:text-blue-500 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2 2 0 00-2-2h-2"/>
+                    </svg>
+                    <span class="mt-2 text-sm">Blog</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

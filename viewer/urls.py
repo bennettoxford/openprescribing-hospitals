@@ -15,6 +15,7 @@ from .views import (
     MeasureItemView,
     OrgsSubmittingDataView,
     LoginView,
+    ContactView,
 )
 
 
@@ -44,4 +45,5 @@ urlpatterns = [
     path("submission-history/", OrgsSubmittingDataView.as_view(), name="submission_history"),
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('contact/', ContactView.as_view(), name='contact'),
 ]
