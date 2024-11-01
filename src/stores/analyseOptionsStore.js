@@ -11,7 +11,13 @@ export const analyseOptions = writable({
   odsNames: [],
   vtmNames: [],
   atcNames: [],
-  ingredientNames: []
+  ingredientNames: [],
+  dateRange: {
+    startDate: null,
+    endDate: null
+  },
+  minDate: null,
+  maxDate: null
 });
 
 export function clearAnalysisOptions() {
@@ -22,6 +28,10 @@ export function clearAnalysisOptions() {
         quantityType: '--',
         searchType: 'vmp',
         usedOrganisationSelection: false,
+        dateRange: {
+          startDate: store.minDate,
+          endDate: store.maxDate
+      }
     }));
     clearResults();
 }

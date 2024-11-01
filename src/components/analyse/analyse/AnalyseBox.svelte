@@ -11,6 +11,7 @@
     import { createEventDispatcher } from 'svelte';
     import { getCookie } from '../../../utils/utils';
     import { analyseOptions, clearAnalysisOptions } from '../../../stores/analyseOptionsStore';
+    import RangeSlider from 'svelte-range-slider-pips';
     const dispatch = createEventDispatcher();
 
     let isAnalysisRunning = false;
@@ -24,6 +25,91 @@
     $: searchType = $analyseOptions.searchType;
     $: usedOrganisationSelection = $analyseOptions.usedOrganisationSelection;
     $: odsNames = $analyseOptions.odsNames;
+
+    export let minDate = null;
+    export let maxDate = null;
+    
+    let dateValues = [null, null];
+    let dates = [];
+    let formatOptions = { year: 'numeric', month: 'short' };
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        return new Date(dateStr).toLocaleDateString('en-GB', formatOptions);
+    }
+
+    $: if ($analyseOptions && $analyseOptions.dateRange) {
+        if (dates.length > 0) {
+            const startIndex = dates.indexOf($analyseOptions.dateRange.startDate);
+            const endIndex = dates.indexOf($analyseOptions.dateRange.endDate);
+            if (startIndex !== -1 && endIndex !== -1) {
+                dateValues = [startIndex, endIndex];
+            }
+        }
+    }
+
+    function handleDateRangeChange(event) {
+
+        const values = event.detail.values;
+        
+        if (!Array.isArray(values) || values.length !== 2) {
+            console.error('Unexpected values format:', values);
+            return;
+        }
+
+        const [startIndex, endIndex] = values;
+
+        // Ensure we have valid indices
+        if (typeof startIndex !== 'number' || typeof endIndex !== 'number') {
+            console.error('Invalid indices:', { startIndex, endIndex });
+            return;
+        }
+
+        // Update the store with the new dates
+        analyseOptions.update(store => ({
+            ...store,
+            dateRange: {
+                startDate: dates[startIndex],
+                endDate: dates[endIndex]
+            }
+        }));
+
+        // Update local values for the slider
+        dateValues = [startIndex, endIndex];
+
+    }
+
+    onMount(async () => {
+        try {
+            if (minDate && maxDate) {
+                // Generate array of all dates between min and max
+                const start = new Date(minDate);
+                const end = new Date(maxDate);
+                const dateArray = [];
+                let current = new Date(start);
+
+                while (current <= end) {
+                    dateArray.push(current.toISOString().split('T')[0]);
+                    current.setMonth(current.getMonth() + 1);
+                }
+                dates = dateArray;
+                
+                // Initialize date range in store with first and last dates
+                analyseOptions.update(store => ({
+                    ...store,
+                    dateRange: {
+                        startDate: dates[0],
+                        endDate: dates[dates.length - 1]
+                    }
+                }));
+
+                // Set initial slider values
+                dateValues = [0, dates.length - 1];
+            }
+        } catch (error) {
+            console.error('Error initializing date range:', error);
+        }
+    });
 
     const csrftoken = getCookie('csrftoken');
     // Define quantityOptions
@@ -76,7 +162,9 @@
                 body: JSON.stringify({
                     names: selectedVMPs,
                     ods_names: selectedODS,
-                    search_type: searchType
+                    search_type: searchType,
+                    start_date: $analyseOptions.dateRange.startDate,
+                    end_date: $analyseOptions.dateRange.endDate
                 })
             });
 
@@ -145,6 +233,8 @@
     function handleClearAnalysis() {
         clearAnalysisOptions();
         errorMessage = '';
+        // Reset slider to min/max values
+        dateValues = [0, dates.length - 1];
         dispatch('analysisClear');
     }
 
@@ -156,10 +246,34 @@
             }
             const data = await response.json();
 
-            analyseOptions.update(store => ({
-                ...store,
-                ...data
-            }));
+            if (minDate && maxDate) {
+                // Generate array of all dates between min and max
+                const start = new Date(minDate);
+                const end = new Date(maxDate);
+                const dateArray = [];
+                let current = new Date(start);
+
+                while (current <= end) {
+                    dateArray.push(current.toISOString().split('T')[0]);
+                    current.setMonth(current.getMonth() + 1);
+                }
+                dates = dateArray;
+                
+                // Update store with all data including min/max dates
+                analyseOptions.update(store => ({
+                    ...store,
+                    ...data,
+                    minDate: dates[0],
+                    maxDate: dates[dates.length - 1],
+                    dateRange: {
+                        startDate: dates[0],
+                        endDate: dates[dates.length - 1]
+                    }
+                }));
+
+                // Set initial slider values
+                dateValues = [0, dates.length - 1];
+            }
         } catch (error) {
             console.error("Error fetching analysis options:", error);
             errorMessage = "An error occurred while fetching analysis options. Please try again.";
@@ -258,6 +372,39 @@
         </div>
     </div>
     
+    <div class="mb-8 flex-shrink-0">
+        <div class="flex items-center mb-2">
+            <h3 class="text-lg font-semibold text-oxford mr-2">Date Range</h3>
+        </div>
+
+        {#if dates.length > 0}
+            <div class="px-4 py-2">
+                <div class="flex justify-between mb-2 text-sm text-gray-600">
+                    <span>{formatDate(dates[0])}</span>
+                    <span>{formatDate(dates[dates.length - 1])}</span>
+                </div>
+                <RangeSlider
+                    min={0}
+                    max={dates.length - 1}
+                    step={1}
+                    values={dateValues}
+                    on:change={handleDateRangeChange}
+                    float
+                    all="hide"
+                    first="pip"
+                    last="pip"
+                    pipstep={6}
+                    formatter={index => formatDate(dates[index])}
+                    handleFormatter={index => formatDate(dates[index])}
+                    springValues={{ stiffness: 0.3, damping: 0.8 }}
+                />
+                <div class="mt-2 text-center text-sm text-gray-600">
+                    Selected range: {formatDate(dates[dateValues[0]])} - {formatDate(dates[dateValues[1]])}
+                </div>
+            </div>
+        {/if}
+    </div>
+    
     {#if errorMessage}
         <div class="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded flex-shrink-0">
             {errorMessage}
@@ -283,3 +430,27 @@
         </button>
     </div>
 </div>
+
+<style>
+
+    :root {
+        --range-slider:            hsl(220, 13%, 91%);
+        --range-handle-inactive:   hsl(212.1, 100%, 50.6%);
+        --range-handle:            hsl(212.1, 100%, 50.6%);
+        --range-handle-focus:      hsl(212, 99.2%, 50.4%);
+        --range-handle-border:     hsl(212.1, 100%, 50.6%);
+        --range-range-inactive:    hsl(212.1, 100%, 50.6%);
+        --range-range:             hsl(212.1, 100%, 50.6%);
+        --range-float-inactive:    hsl(212.2, 97.6%, 49.4%);
+        --range-float:             hsl(212, 99.2%, 50.4%);
+        --range-float-text:        hsl(220, 13%, 91%);
+        --range-pip:               hsl(220, 13%, 91%);
+        --range-pip-text:          hsl(220, 13%, 91%);
+        --range-pip-active:        hsl(220, 13%, 91%);
+        --range-pip-active-text:   hsl(220, 13%, 91%);
+        --range-pip-hover:         hsl(220, 13%, 91%);
+        --range-pip-hover-text:    hsl(220, 13%, 91%);
+        --range-pip-in-range:      hsl(220, 13%, 91%);
+        --range-pip-in-range-text: hsl(220, 13%, 91%);
+    }
+</style>

@@ -10,6 +10,9 @@
 
 {% block content %}
 <div class="pt-1">
-    <layout-component></layout-component>
+    <layout-component 
+        minDate="{{ date_range.min_date }}"
+        maxDate="{{ date_range.max_date }}"
+    ></layout-component>
 </div>
 {% endblock %}
