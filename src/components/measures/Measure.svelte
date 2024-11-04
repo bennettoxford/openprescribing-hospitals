@@ -11,11 +11,20 @@
 
 <script>
     import { onMount } from 'svelte';
-    import { selectedMode, orgdata as orgStore, regiondata as regionStore, icbdata as icbStore, percentiledata as percentileStore, selectedItems, resetSelectedItems } from '../../stores/measureChartStore.js';
+    import { 
+        selectedMode, 
+        orgdata as orgStore, 
+        regiondata as regionStore, 
+        icbdata as icbStore, 
+        percentiledata as percentileStore, 
+        selectedItems as selectedItemsStore,
+        resetSelectedItems 
+    } from '../../stores/measureChartStore.js';
     import MeasureChart from './MeasureChart.svelte';
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
     import ModeSelector from './ModeSelector.svelte';
     import ChartLegend from './ChartLegend.svelte';
+    import { organisationSearchStore } from '../../stores/organisationSearchStore';
 
     export let orgdata = '[]';
     export let regiondata = '[]';
@@ -30,6 +39,16 @@
     $: filterType = $selectedMode === 'icb' ? 'icb' : 'trust';
     $: showLegend = $selectedMode === 'percentiles' || $selectedMode === 'region';
 
+    $: {
+        if ($selectedMode === 'icb') {
+            organisationSearchStore.setItems(icbs);
+            organisationSearchStore.setFilterType('icb');
+        } else if ($selectedMode === 'trust' || $selectedMode === 'percentiles') {
+            organisationSearchStore.setItems(trusts);
+            organisationSearchStore.setFilterType('trust');
+        }
+    }
+
     onMount(() => {
         const parsedOrgData = JSON.parse(orgdata);
         orgStore.set(parsedOrgData);
@@ -39,18 +58,25 @@
         icbStore.set(parsedIcbData);
         icbs = parsedIcbData.map(icb => icb.name);
         
+        organisationSearchStore.setItems(trusts);
+        organisationSearchStore.setFilterType('trust');
+        
         regionStore.set(JSON.parse(regiondata));
         percentileStore.set(JSON.parse(percentiledata));
-        selectedMode.set('national'); // Set default mode to 'national'
+        selectedMode.set('national');
     });
 
     function handleSelectionChange(event) {
-        selectedItems.set(event.detail.selectedItems);
+        const { selectedItems, usedOrganisationSelection } = event.detail;
+        selectedItemsStore.set(selectedItems);
     }
 
     function handleModeChange(event) {
         const newMode = event.target.value;
         selectedMode.set(newMode);
+        
+        organisationSearchStore.reset();
+        selectedItemsStore.set([]);
     }
 </script>
 
@@ -59,10 +85,9 @@
         {#if showFilter}
             <div class="relative z-10 flex-grow mr-4">
                 <OrganisationSearch 
-                    items={filterItems}
-                    on:selectionChange={handleSelectionChange}
-                    {filterType}
+                    source={organisationSearchStore}
                     overlayMode={true}
+                    on:selectionChange={handleSelectionChange}
                 />
             </div>
         {:else}

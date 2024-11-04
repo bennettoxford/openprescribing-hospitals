@@ -11,11 +11,14 @@
     import { onMount, afterUpdate, onDestroy } from 'svelte';
     import * as d3 from 'd3';
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
+    import { organisationSearchStore } from '../../stores/organisationSearchStore';
 
     export let orgData = '{}';
     export let latestDates = '{}';
 
     let organisations = [];
+    let searchableOrgs = [];
+
     let months = [];
     let error = null;
     let chartContainer;
@@ -75,46 +78,7 @@
     
     function toggleSort() {
         sortBySubmission = !sortBySubmission;
-        organisations = flattenOrganisations(parsedOrgData);
         createChart();
-    }
-
-    function sortOrganisations(orgs) {
-        if (!sortBySubmission) {
-            return orgs;
-        }
-
-        return [...orgs].sort((a, b) => {
-            // First compare by latest submission (non-submitting first)
-            const aSubmission = a.latest_submission;
-            const bSubmission = b.latest_submission;
-            
-            if (aSubmission !== bSubmission) {
-                return aSubmission ? 1 : -1;
-            }
-            // Then alphabetically
-            return a.name.localeCompare(b.name);
-        });
-    }
-
-    function flattenOrganisations(orgs, level = 0, parentSubmission = null) {
-        let flattened = [];
-        // Only sort at top level
-        const sortedOrgs = level === 0 ? sortOrganisations(orgs) : orgs;
-        
-        sortedOrgs.forEach(org => {
-            // Use parent's submission status for predecessors when sorting
-            const submissionStatus = level === 0 ? org.latest_submission : parentSubmission;
-            flattened.push({ ...org, level, effective_submission: submissionStatus });
-            
-            if (org.predecessors && org.predecessors.length > 0 && expandedOrgs.has(org.name)) {
-               
-                flattened = flattened.concat(
-                    flattenOrganisations(org.predecessors, level + 1, submissionStatus)
-                );
-            }
-        });
-        return flattened;
     }
 
     let searchTerm = '';
@@ -123,41 +87,43 @@
     function filterOrganisations(orgs, searchTerms) {
         if (!searchTerms || searchTerms.length === 0) return orgs;
         
+        // Only filter at the top level
         return orgs.filter(org => {
-            // Check if org name matches any of the selected terms
             const matchesOrg = searchTerms.some(term => 
                 org.name.toLowerCase().includes(term.toLowerCase())
             );
             
-            // Check predecessors
-            const matchesPredecessor = org.predecessors && org.predecessors.length > 0 && 
-                org.predecessors.some(pred => 
-                    searchTerms.some(term => 
-                        pred.name.toLowerCase().includes(term.toLowerCase())
-                    )
-                );
+            const matchesPredecessor = org.predecessors?.some(pred => 
+                searchTerms.some(term => 
+                    pred.name.toLowerCase().includes(term.toLowerCase())
+                )
+            );
             
             return matchesOrg || matchesPredecessor;
         });
     }
 
+    $: {
+        if (parsedOrgData.length > 0) {
+            searchableOrgs = prepareOrganisationsForSearch(parsedOrgData);
+            organisationSearchStore.setItems(searchableOrgs);
+        }
+    }
+
     function prepareOrganisationsForSearch(orgs) {
-    
-        let successorMap = new Map();
+        let allOrgs = [];
         
         function collectOrgs(org) {
-            let allOrgs = [org.name];
+            allOrgs.push(org.name);
             if (org.predecessors) {
                 org.predecessors.forEach(pred => {
-                    allOrgs = allOrgs.concat(collectOrgs(pred));
-                    successorMap.set(pred.name, org.name);
+                    collectOrgs(pred);
                 });
             }
-            return allOrgs;
         }
         
-        const allOrgNames = orgs.flatMap(org => collectOrgs(org));
-        return [...new Set(allOrgNames)];
+        orgs.forEach(org => collectOrgs(org));
+        return [...new Set(allOrgs)]; // Remove duplicates
     }
 
     let parsedLatestDates = {};
@@ -180,6 +146,40 @@
             console.error(error);
         }
     });
+
+    function flattenOrganisations(orgs, level = 0) {
+        let flattened = [];
+        
+        // Only sort the top-level organisations
+        let organisationsToProcess = [...orgs];
+        if (level === 0) {
+            organisationsToProcess.sort((a, b) => {
+                if (sortBySubmission) {
+                    // Compare by submission status
+                    if (a.latest_submission !== b.latest_submission) {
+                        return a.latest_submission ? 1 : -1;
+                    }
+                }
+                // Alphabetical sort as fallback
+                return a.name.localeCompare(b.name);
+            });
+        }
+        
+        // Process each organisation and its predecessors
+        for (const org of organisationsToProcess) {
+            // Add the current organisation
+            flattened.push({ ...org, level });
+            
+            // If expanded, immediately add predecessors without sorting
+            if (expandedOrgs.has(org.name) && org.predecessors?.length > 0) {
+                org.predecessors.forEach(pred => {
+                    flattened.push({ ...pred, level: level + 1 });
+                });
+            }
+        }
+        
+        return flattened;
+    }
 
     function createChart() {
         if (!chartContainer) return;
@@ -423,11 +423,17 @@
     }
 
     function handleSearchSelect(event) {
-        const selectedItems = event.detail.selectedItems;
+        const { selectedItems, usedOrganisationSelection } = event.detail;
+        organisationSearchStore.updateSelection(selectedItems, usedOrganisationSelection);
+        
+        if (!usedOrganisationSelection) {
+            filteredOrganisations = organisations;
+            return;
+        }
+        
         if (selectedItems.length === 0) {
             filteredOrganisations = organisations;
         } else {
-            // Find all relevant organisations based on selection
             filteredOrganisations = organisations.filter(org => {
                 // Check if this org is directly selected
                 if (selectedItems.includes(org.name)) {
@@ -440,8 +446,7 @@
                 );
                 
                 if (hasPredecessorSelected) {
-                    // If a predecessor is selected, we want to show the successor
-                    expandedOrgs.add(org.name); // Auto-expand to show the selected predecessor
+                    expandedOrgs.add(org.name);
                     return true;
                 }
                 
@@ -453,6 +458,12 @@
 
     $: {
         filteredOrganisations = filterOrganisations(organisations, searchTerm);
+    }
+
+    let isOrganisationDropdownOpen = false;
+
+    function handleOrganisationDropdownToggle(event) {
+        isOrganisationDropdownOpen = event.detail.isOpen;
     }
 
     onMount(() => {
@@ -471,15 +482,13 @@
 
 <div class="flex flex-col w-full">
     <div class="w-96 relative z-50 mb-4">
-        {#if organisations && organisations.length > 0}
-            {#key organisations}
-                <OrganisationSearch
-                    items={prepareOrganisationsForSearch(organisations)}
-                    overlayMode={true}
-                    filterType="organisation"
-                    on:selectionChange={handleSearchSelect}
-                />
-            {/key}
+        {#if searchableOrgs.length > 0}
+            <OrganisationSearch 
+                source={organisationSearchStore}
+                overlayMode={true}
+                on:selectionChange={handleSearchSelect}
+                on:dropdownToggle={handleOrganisationDropdownToggle}
+            />
         {:else}
             <div class="text-sm text-gray-500">Loading organisations...</div>
         {/if}
@@ -505,7 +514,7 @@
     {:else if organisations.length === 0}
         <p class="text-gray-600">No data available</p>
     {:else}
-        <div bind:this={chartContainer} class="relative w-full"></div>
+        <div bind:this={chartContainer} class="relative w-full min-h-[300px]"></div>
     {/if}
 </div>
 
