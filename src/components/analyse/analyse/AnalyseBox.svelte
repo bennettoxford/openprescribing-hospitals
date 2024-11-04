@@ -12,6 +12,7 @@
     import { getCookie } from '../../../utils/utils';
     import { analyseOptions, clearAnalysisOptions } from '../../../stores/analyseOptionsStore';
     import RangeSlider from 'svelte-range-slider-pips';
+    import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     const dispatch = createEventDispatcher();
 
     let isAnalysisRunning = false;
@@ -20,10 +21,8 @@
     let filteredData = [];
 
     $: selectedVMPs = $analyseOptions.selectedVMPs;
-    $: selectedODS = $analyseOptions.selectedODS;
     $: quantityType = $analyseOptions.quantityType;
     $: searchType = $analyseOptions.searchType;
-    $: usedOrganisationSelection = $analyseOptions.usedOrganisationSelection;
     $: odsNames = $analyseOptions.odsNames;
 
     export let minDate = null;
@@ -141,14 +140,14 @@
             return;
         }
 
-        // Updated check for ODS selection
-        if (selectedODS && selectedODS.length === 0 && usedOrganisationSelection) {
+        if ($organisationSearchStore.selectedItems.length === 0 && 
+            $organisationSearchStore.usedOrganisationSelection) {
             errorMessage = "You've selected to filter by organisations, but haven't chosen any. Please select at least one organisation or clear the organisation filter.";
             return;
         }
 
         isAnalysisRunning = true;
-        dispatch('analysisStart'); // Dispatch event to parent when analysis starts
+        dispatch('analysisStart');
         
         let endpoint = quantityType === 'Dose' ? '/api/filtered-doses/' : '/api/filtered-ingredient-quantities/';
         
@@ -161,7 +160,7 @@
                 },
                 body: JSON.stringify({
                     names: selectedVMPs,
-                    ods_names: selectedODS,
+                    ods_names: $organisationSearchStore.selectedItems,
                     search_type: searchType,
                     start_date: $analyseOptions.dateRange.startDate,
                     end_date: $analyseOptions.dateRange.endDate
@@ -211,11 +210,8 @@
     }
 
     function handleODSSelection(event) {
-        analyseOptions.update(options => ({
-            ...options,
-            selectedODS: event.detail.selectedItems,
-            usedOrganisationSelection: event.detail.usedOrganisationSelection
-        }));
+        const { selectedItems, usedOrganisationSelection } = event.detail;
+        organisationSearchStore.updateSelection(selectedItems, usedOrganisationSelection);
     }
 
     function handleQuantityTypeChange(event) {
@@ -270,6 +266,10 @@
                         endDate: dates[dates.length - 1]
                     }
                 }));
+
+                if (data.odsNames) {
+                    organisationSearchStore.setItems(data.odsNames);
+                }
 
                 // Set initial slider values
                 dateValues = [0, dates.length - 1];
@@ -352,7 +352,7 @@
                             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                         </svg>
                     </button>
-                    <div class="absolute z-[100] scale-0 transition-all duration-100 origin-top transform 
+                    <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
                                 group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
                                 ring-1 ring-black ring-opacity-5 p-4">
                         <p class="text-sm text-gray-500">
@@ -363,16 +363,19 @@
                 </div>
             </div>
         </div>
-        <div class="relative h-full" style="z-index: 1;">
-            <OrganisationSearch 
-                items={$analyseOptions.odsNames} 
-                on:selectionChange={handleODSSelection} 
-                on:dropdownToggle={handleOrganisationDropdownToggle}
-            />
+        <div class="relative overflow-visible z-[100] {$organisationSearchStore.usedOrganisationSelection ? (isOrganisationDropdownOpen ? 'mb-[400px]' : 'mb-2') : 'mb-2'}">
+            {#if $analyseOptions}
+                <OrganisationSearch 
+                    source={organisationSearchStore}
+                    overlayMode={true}
+                    on:selectionChange={handleODSSelection}
+                    on:dropdownToggle={handleOrganisationDropdownToggle}
+                />
+            {/if}
         </div>
     </div>
     
-    <div class="mb-8 flex-shrink-0">
+    <div class="flex-shrink-0 relative z-[40]">
         <div class="flex items-center mb-2">
             <h3 class="text-lg font-semibold text-oxford mr-2">Date Range</h3>
         </div>
@@ -406,12 +409,12 @@
     </div>
     
     {#if errorMessage}
-        <div class="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded flex-shrink-0">
+        <div class="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded flex-shrink-0 relative z-[30]">
             {errorMessage}
         </div>
     {/if}
     
-    <div class="mt-auto flex-shrink-0 space-y-2 relative" style="z-index: 2;">
+    <div class="mt-auto flex-shrink-0 space-y-2 relative z-[20]">
         <button
             on:click={runAnalysis}
             disabled={isAnalysisRunning}

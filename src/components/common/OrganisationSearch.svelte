@@ -6,20 +6,19 @@
 <script>
     import { onMount, createEventDispatcher } from 'svelte';
     import '../../styles/styles.css';
-    import { analyseOptions } from '../../stores/analyseOptionsStore';
 
     const dispatch = createEventDispatcher();
 
-    export let items = [];
+    export let source;
     export let overlayMode = false;
-    export let filterType = 'organisation';
 
     let isOpen = false;
     let searchTerm = '';
-    let selectedItems = [];
-    let showOrganisationSelection = false;
-    let initialized = false;
-    let previousFilterType = filterType;
+
+    $: items = $source.items || [];
+    $: selectedItems = $source.selectedItems || [];
+    $: showOrganisationSelection = $source.usedOrganisationSelection;
+    $: filterType = $source.filterType;
 
     $: filteredItems = items
         .filter(item => 
@@ -28,79 +27,52 @@
             item.toLowerCase().includes(searchTerm.toLowerCase())
         )
         .sort((a, b) => {
-            // If both items are selected or both unselected, maintain original order
             if (isItemSelected(a) === isItemSelected(b)) {
                 return 0;
             }
-            // Selected items go first
             return isItemSelected(a) ? -1 : 1;
         });
 
-    // Initialize selectedItems with all items on component creation
-    $: if (items.length > 0 && !initialized) {
-        selectedItems = showOrganisationSelection ? [...items] : [];
-        initialized = true;
-        dispatchSelectionChange();
-    }
-
-    $: if (!showOrganisationSelection) {
-        selectedItems = [];
-        dispatchSelectionChange();
-    }
-
     $: maxSelected = selectedItems.length >= 10;
 
-    // Reset selected items when filterType changes
-    $: if (filterType !== previousFilterType) {
-        selectedItems = [];
-        showOrganisationSelection = false;
-        dispatchSelectionChange();
-        previousFilterType = filterType;
-    }
-
-    $: items = $analyseOptions.odsNames;
-
-    $: {
-        if (!$analyseOptions.usedOrganisationSelection && showOrganisationSelection) {
-            showOrganisationSelection = false;
-            selectedItems = [];
-            searchTerm = '';
-        }
-    }
-
     function toggleDropdown() {
-        if (showOrganisationSelection) {
-            isOpen = !isOpen;
-            dispatch('dropdownToggle', { isOpen });
-        }
+        isOpen = !isOpen;
+        dispatch('dropdownToggle', { isOpen });
     }
 
-    function toggleItem(item) {
-        if (selectedItems.includes(item)) {
-            selectedItems = selectedItems.filter(i => i !== item);
-        } else if (selectedItems.length < 10) {
-            selectedItems = [...selectedItems, item];
+    function toggleOrganisationSelection() {
+        source.toggleSelection();
+        if (!showOrganisationSelection) {
+            isOpen = true;
         }
-        dispatchSelectionChange();
+        dispatch('dropdownToggle', { isOpen });
     }
 
     $: isItemSelected = (item) => selectedItems.includes(item);
 
-    function deselectAll() {
-        selectedItems = [];
-        dispatchSelectionChange();
-    }
-
-    function dispatchSelectionChange() {
+    function toggleItem(item) {
+        let newSelectedItems;
+        if (selectedItems.includes(item)) {
+            newSelectedItems = selectedItems.filter(i => i !== item);
+        } else if (selectedItems.length < 10) {
+            newSelectedItems = [...selectedItems, item];
+        } else {
+            return;
+        }
+        
+        source.updateSelection(newSelectedItems, showOrganisationSelection);
         dispatch('selectionChange', {
-            selectedItems: selectedItems,
+            selectedItems: newSelectedItems,
             usedOrganisationSelection: showOrganisationSelection
         });
     }
 
-    function toggleOrganisationSelection() {
-        showOrganisationSelection = !showOrganisationSelection;
-        dispatchSelectionChange();
+    function deselectAll() {
+        source.updateSelection([], showOrganisationSelection);
+        dispatch('selectionChange', {
+            selectedItems: [],
+            usedOrganisationSelection: showOrganisationSelection
+        });
     }
 
     onMount(() => {
@@ -119,15 +91,18 @@
 </script>
 
 <div class="dropdown relative w-full h-full flex flex-col">
-    <div class="flex items-center mb-2 flex-shrink-0">
+    <div class="flex items-center h-8 flex-shrink-0">
         <input
             type="checkbox"
             id="showOrganisationSelection"
             checked={showOrganisationSelection}
-            on:change={() => toggleOrganisationSelection()}
-            class="mr-2 w-4 h-4"
+            on:change={toggleOrganisationSelection}
+            class="mr-2 w-4 h-4 cursor-pointer"
         />
-        <label for="showOrganisationSelection" class="text-sm font-medium text-gray-700">
+        <label 
+            for="showOrganisationSelection" 
+            class="text-sm font-medium text-gray-700 cursor-pointer"
+        >
             Filter by specific {filterType === 'icb' ? 'ICBs' : 'NHS Trusts'}
         </label>
     </div>
@@ -135,15 +110,15 @@
     {#if showOrganisationSelection}
         <button
             on:click={toggleDropdown}
-            class="w-full p-2 border border-gray-300 rounded-md bg-white flex justify-between items-center flex-shrink-0"
+            class="w-full p-2 border border-gray-300 rounded-md bg-white flex justify-between items-center flex-shrink-0 mt-1"
         >
             <span>{selectedItems.length} {filterType === 'icb' ? 'ICB' : 'NHS Trust'} name(s) selected</span>
-            <span class="ml-2">▼</span>
+            <span class="ml-2">{isOpen ? '▼' : '▲'}</span>
         </button>
 
         {#if isOpen}
-            <div class="mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 flex-grow overflow-hidden flex flex-col max-h-96"
-                 class:absolute={overlayMode} class:top-full={overlayMode} class:left-0={overlayMode} class:right-0={overlayMode}>
+            <div class="absolute top-[calc(100%_+_0px)] left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-50 flex flex-col max-h-96"
+                 class:absolute={overlayMode}>
                 <div class="p-2 flex-shrink-0">
                     <div class="relative">
                         <input
@@ -151,12 +126,6 @@
                             bind:value={searchTerm}
                             placeholder="Search {filterType === 'icb' ? 'ICB' : 'NHS Trust'} names..."
                             class="w-full p-2 border border-gray-300 rounded-md mb-2 pr-8"
-                            on:keydown={(e) => {
-                                if (e.key === 'Escape' && searchTerm) {
-                                    e.preventDefault();
-                                    searchTerm = '';
-                                }
-                            }}
                         />
                         {#if searchTerm}
                             <button
