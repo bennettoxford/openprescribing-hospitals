@@ -322,7 +322,7 @@
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                     </svg>
                 </button>
-                <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
+                <div class="absolute z-[200] scale-0 transition-all duration-100 origin-top transform 
                             group-hover:scale-100 w-[200px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
                             ring-1 ring-black ring-opacity-5 p-4">
                     <p class="text-sm text-gray-500">
@@ -353,7 +353,7 @@
                             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                         </svg>
                     </button>
-                    <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
+                    <div class="absolute z-[200] scale-0 transition-all duration-100 origin-top transform 
                                 group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
                                 ring-1 ring-black ring-opacity-5 p-4">
                         <p class="text-sm text-gray-500">
