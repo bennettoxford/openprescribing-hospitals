@@ -164,11 +164,20 @@
             const chartData = prepareChartData(data, viewMode);
             visibleDatasets = chartData.datasets.map((_, i) => i);
             
-            isSmallScreen = window.innerWidth < 768; // Adjust this breakpoint as needed
+            isSmallScreen = window.innerWidth < 768;
+            const dateRange = d3.extent(chartData.labels, d => new Date(d));
+            const yearDiff = (dateRange[1] - dateRange[0]) / (1000 * 60 * 60 * 24 * 365);
 
             const showLegend = viewMode !== 'Total' && viewMode !== 'Organisation' && !isSmallScreen;
-            const legendWidth = showLegend ? 150 : 0; // Adjust this value as needed
-            const margin = { top: 20, right: 20 + legendWidth, bottom: 50, left: 60 };
+            const legendWidth = showLegend ? 150 : 0;
+
+            const margin = { 
+                top: 20, 
+                right: 20 + (showLegend ? 150 : 0), 
+                bottom: yearDiff < 2 ? 120 : 50, // Increased bottom margin for monthly ticks
+                left: 60 
+            };
+
             const width = chartContainer.clientWidth - margin.left - margin.right;
             const height = Math.min(400, window.innerHeight * 0.6) - margin.top - margin.bottom;
 
@@ -182,19 +191,24 @@
                 .attr('transform', `translate(${margin.left},${margin.top})`);
 
             const x = d3.scaleTime()
-                .domain(d3.extent(chartData.labels, d => new Date(d)))
+                .domain(dateRange)
                 .range([0, width]);
 
             const y = d3.scaleLinear()
                 .domain([0, d3.max(chartData.datasets, d => d3.max(d.data))]).nice()
                 .range([height, 0]);
 
-            // Add grid lines
+            // Modify x-axis ticks based on date range
+            const xAxis = d3.axisBottom(x)
+                .ticks(yearDiff < 2 ? d3.timeMonth.every(1) : d3.timeYear.every(1))
+                .tickFormat(yearDiff < 2 ? d3.timeFormat('%b %Y') : d3.timeFormat('%Y'));
+
+            // Create grid lines
             svg.append('g')
                 .attr('class', 'grid')
                 .attr('transform', `translate(0,${height})`)
                 .call(d3.axisBottom(x)
-                    .ticks(d3.timeYear.every(1))
+                    .ticks(yearDiff < 2 ? d3.timeMonth.every(1) : d3.timeYear.every(1))
                     .tickSize(-height)
                     .tickFormat(''))
                 .selectAll('line')
@@ -202,46 +216,37 @@
                 .attr('stroke-dasharray', '2,2');
 
             svg.append('g')
-                .attr('class', 'grid')
-                .call(d3.axisLeft(y)
-                    .tickSize(-width)
-                    .tickFormat(''))
-                .selectAll('line')
-                .attr('stroke', 'lightgrey')
-                .attr('stroke-dasharray', '2,2');
-
-            svg.selectAll('.grid path')
-                .style('display', 'none');
-
-            // Add axes
-            svg.append('g')
+                .attr('class', 'x-axis')
                 .attr('transform', `translate(0,${height})`)
-                .call(d3.axisBottom(x)
-                    .ticks(d3.timeYear.every(1))
-                    .tickFormat(d3.timeFormat('%Y')))
+                .call(xAxis)
                 .selectAll('text')
-                .style('font-size', '12px');
+                .style('font-size', '12px')
+                .style('text-anchor', yearDiff < 2 ? 'end' : 'middle')
+                .attr('transform', yearDiff < 2 ? 'rotate(-45)' : null)
+                .attr('dx', yearDiff < 2 ? '-0.8em' : null)
+                .attr('dy', yearDiff < 2 ? '0.5em' : '0.7em');
 
-            svg.append('g')
-                .call(d3.axisLeft(y)
-                    .ticks(5) // Limit the number of ticks
-                    .tickFormat(d3.format('.2s'))) // Use SI-prefix notation
-                .selectAll('text')
-                .style('font-size', '12px');
-
-            // Add axis labels
             svg.append('text')
-                .attr('transform', `translate(${width / 2},${height + margin.bottom - 10})`)
+                .attr('transform', `translate(${width / 2},${height + (yearDiff < 2 ? 90 : 40)})`)
                 .style('text-anchor', 'middle')
                 .text('Date');
 
+            // Add y-axis label
             svg.append('text')
                 .attr('transform', 'rotate(-90)')
-                .attr('y', 0 - margin.left)
-                .attr('x', 0 - (height / 2))
-                .attr('dy', '1em')
+                .attr('y', -margin.left + 20)
+                .attr('x', -(height / 2))
                 .style('text-anchor', 'middle')
                 .text(quantityType);
+
+            // Add y-axis
+            svg.append('g')
+                .attr('class', 'y-axis')
+                .call(d3.axisLeft(y)
+                    .ticks(5)
+                    .tickFormat(d3.format('.2s')))
+                .selectAll('text')
+                .style('font-size', '12px');
 
             // Add lines
             const line = d3.line()
