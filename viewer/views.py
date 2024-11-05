@@ -314,6 +314,8 @@ def filtered_ingredient_quantities(request):
     start_date = request.data.get("start_date")
     end_date = request.data.get("end_date")
 
+    search_items = [item.split("|")[0].strip() for item in search_items]
+
     base_filters = {}
     
     if start_date:
@@ -333,7 +335,7 @@ def filtered_ingredient_quantities(request):
     elif search_type == "vtm":
         queryset = queryset.filter(vmp__vtm__vtm__in=search_items)
     elif search_type == "ingredient":
-        queryset = queryset.filter(ingredient__name__in=search_items)
+        queryset = queryset.filter(ingredient__code__in=search_items)
     elif search_type == "atc":
         all_atc_codes = get_all_child_atc_codes(search_items)
         queryset = queryset.filter(vmp__atcs__code__in=all_atc_codes)
