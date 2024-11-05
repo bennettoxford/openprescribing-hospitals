@@ -1,4 +1,5 @@
 import json
+import math
 from collections import defaultdict
 from datetime import date, datetime
 from markdown2 import Markdown
@@ -216,20 +217,17 @@ def get_all_child_atc_codes(atc_codes):
     
     return list(all_codes)
 
-
-
-
-
 @login_required
 @csrf_protect
 @api_view(["POST"])
-def filtered_doses(request):
+def filtered_quantities(request):
     search_items = request.data.get("names", [])
     ods_names = request.data.get("ods_names", [])
     search_type = request.data.get("search_type", "vmp")
     start_date = request.data.get("start_date")
     end_date = request.data.get("end_date")
-
+    quantity_type = request.data.get("quantity_type", "dose")
+        
     search_items = [item.split("|")[0].strip() for item in search_items]
 
     base_filters = {}
@@ -242,100 +240,19 @@ def filtered_doses(request):
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
         base_filters['year_month__lte'] = end_date
 
-    queryset = Dose.objects.filter(**base_filters)
+    Model = IngredientQuantity if quantity_type == "Ingredient Quantity" else Dose
+
+    queryset = Model.objects.filter(**base_filters)
 
     if search_type == "vmp":
         queryset = queryset.filter(vmp__code__in=search_items)
     elif search_type == "vtm":
         queryset = queryset.filter(vmp__vtm__vtm__in=search_items)
     elif search_type == "ingredient":
-        queryset = queryset.filter(vmp__ingredients__code__in=search_items)
-    elif search_type == "atc":
-        all_atc_codes = get_all_child_atc_codes(search_items)
-        queryset = queryset.filter(vmp__atcs__code__in=all_atc_codes)
-    
-    # Add organisation filters
-    if ods_names:
-        ods_names = [item.split("|")[0].strip() for item in ods_names]
-        queryset = queryset.filter(organisation__ods_code__in=ods_names)
-
-    queryset = (
-        queryset.select_related("vmp", "organisation", "vmp__vtm")
-        .prefetch_related(
-            Prefetch(
-                "vmp__ingredients",
-                queryset=Ingredient.objects.only("name"),
-                to_attr="prefetched_ingredients",
-            ),
-            "vmp__atcs"
-        )
-        .order_by("year_month", "vmp__name", "organisation__ods_name")
-    )
-
-    data = list(
-        queryset.values(
-            "id",
-            "year_month",
-            "quantity",
-            "unit",
-            vmp_code=F("vmp__code"),
-            vmp_name=F("vmp__name"),
-            ods_code=F("organisation__ods_code"),
-            ods_name=F("organisation__ods_name"),
-            vtm_name=Coalesce("vmp__vtm__name", Value("")),
-        )
-    )
-
-    # Add ingredient names and ATC information to the data
-    vmp_ingredient_map = {
-        dose.id: [ing.name for ing in dose.vmp.prefetched_ingredients]
-        for dose in queryset
-    }
-    vmp_atc_map = {
-        dose.id: [{'code': atc.code, 'name': atc.name} for atc in dose.vmp.atcs.all()]
-        for dose in queryset
-    }
-    for item in data:
-        item["ingredient_names"] = vmp_ingredient_map[item["id"]]
-        atc_info = vmp_atc_map[item["id"]]
-        item["atc_code"] = atc_info[0]['code'] if atc_info else ""
-        item["atc_name"] = atc_info[0]['name'] if atc_info else "Unknown ATC"
-
-    return Response(data)
-
-
-@login_required
-@csrf_protect
-@api_view(["POST"])
-def filtered_ingredient_quantities(request):
-    search_items = request.data.get("names", [])
-    ods_names = request.data.get("ods_names", [])
-    search_type = request.data.get("search_type", "")
-    start_date = request.data.get("start_date")
-    end_date = request.data.get("end_date")
-
-    search_items = [item.split("|")[0].strip() for item in search_items]
-
-    base_filters = {}
-    
-    if start_date:
-        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-        base_filters['year_month__gte'] = start_date
-        
-    if end_date:
-        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-        base_filters['year_month__lte'] = end_date
-
-    queryset = IngredientQuantity.objects.filter(**base_filters)
-
-    search_items = [item.split("|")[0].strip() for item in search_items]
-
-    if search_type == "vmp":
-        queryset = queryset.filter(vmp__code__in=search_items)
-    elif search_type == "vtm":
-        queryset = queryset.filter(vmp__vtm__vtm__in=search_items)
-    elif search_type == "ingredient":
-        queryset = queryset.filter(ingredient__code__in=search_items)
+        if quantity_type == "ingredient":
+            queryset = queryset.filter(ingredient__code__in=search_items)
+        else:
+            queryset = queryset.filter(vmp__ingredients__code__in=search_items)
     elif search_type == "atc":
         all_atc_codes = get_all_child_atc_codes(search_items)
         queryset = queryset.filter(vmp__atcs__code__in=all_atc_codes)
@@ -344,38 +261,61 @@ def filtered_ingredient_quantities(request):
         ods_names = [item.split("|")[0].strip() for item in ods_names]
         queryset = queryset.filter(organisation__ods_code__in=ods_names)
 
-    queryset = (
-        queryset.select_related("vmp", "organisation", "vmp__vtm", "ingredient")
-        .prefetch_related("vmp__atcs")
-        .order_by("year_month", "vmp__name", "organisation__ods_name", "ingredient__name")
-    )
-
-    data = list(
-        queryset.values(
-            "id",
-            "year_month",
-            "quantity",
-            "unit",
-            ingredient_code=F("ingredient__code"),
-            ingredient_name=F("ingredient__name"),
-            vmp_code=F("vmp__code"),
-            vmp_name=F("vmp__name"),
-            ods_code=F("organisation__ods_code"),
-            ods_name=F("organisation__ods_name"),
-            vtm_name=Coalesce("vmp__vtm__name", Value("")),
-        )
-    )
-
-    # Add ATC information to the data
+    
     vmp_atc_map = {
         iq.id: [{'code': atc.code, 'name': atc.name} for atc in iq.vmp.atcs.all()]
-        for iq in queryset
+        for iq in queryset.select_related('vmp').prefetch_related('vmp__atcs')
     }
-    for item in data:
-        atc_info = vmp_atc_map[item["id"]]
-        item["atc_code"] = atc_info[0]['code'] if atc_info else ""
-        item["atc_name"] = atc_info[0]['name'] if atc_info else "Unknown ATC"
 
+    value_fields = [
+        "id",
+        "year_month",
+        "quantity",
+        "unit",
+        "vmp__code",
+        "vmp__name",
+        "organisation__ods_code",
+        "organisation__ods_name",
+        "vmp__vtm__name",
+    ]
+
+    if quantity_type == "Ingredient Quantity":
+        value_fields.extend([
+            "ingredient__code",
+            "ingredient__name"
+        ])
+
+    raw_data = list(
+        queryset.values(*value_fields)
+        .order_by("year_month", "vmp__name", "organisation__ods_name")
+    )
+  
+    data = []
+    for item in raw_data:
+        print(item)
+        try:
+            atc_info = vmp_atc_map[item["id"]]
+            processed_item = {
+                "id": item["id"],
+                "year_month": item["year_month"].strftime("%Y-%m-%d"),
+                "quantity": round(item["quantity"], 6) if item["quantity"] is not None and not math.isnan(item["quantity"]) else None,
+                "unit": item["unit"],
+                "vmp_code": item["vmp__code"],
+                "vmp_name": item["vmp__name"],
+                "ods_code": item["organisation__ods_code"],
+                "ods_name": item["organisation__ods_name"],
+                "vtm_name": item["vmp__vtm__name"] or "",
+                "atc_code": atc_info[0]['code'] if atc_info else "",
+                "atc_name": atc_info[0]['name'] if atc_info else "Unknown ATC",
+                "ingredient_code": item.get("ingredient__code"),
+                "ingredient_name": item.get("ingredient__name")
+            }
+
+            data.append(processed_item)
+        except Exception as e:
+            print(f"Error processing item: {e}")
+            continue
+    
     return Response(data)
 
 
