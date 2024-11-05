@@ -149,7 +149,7 @@
         isAnalysisRunning = true;
         dispatch('analysisStart');
         
-        let endpoint = quantityType === 'Dose' ? '/api/filtered-doses/' : '/api/filtered-ingredient-quantities/';
+        let endpoint = '/api/filtered-quantities/';
         
         try {
             const response = await fetch(endpoint, {
@@ -159,6 +159,7 @@
                     'X-CSRFToken': csrftoken
                 },
                 body: JSON.stringify({
+                    quantity_type: quantityType,
                     names: selectedVMPs,
                     ods_names: $organisationSearchStore.selectedItems,
                     search_type: searchType,
