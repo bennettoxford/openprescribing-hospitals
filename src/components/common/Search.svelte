@@ -64,6 +64,7 @@
         }
 
         isCalculating = true;
+
         try {
             const response = await fetch('/api/filtered-vmp-count/', {
                 method: 'POST',
@@ -72,7 +73,7 @@
                     'X-CSRFToken': csrftoken,
                 },
                 body: JSON.stringify({
-                    names: type === 'atc' ? selectedItems.map(i => i.code) : selectedItems,
+                    names: selectedItems,
                     search_type: type,
                 }),
             });
@@ -163,10 +164,14 @@
                 <li 
                     class="p-2 hover:bg-gray-100 cursor-pointer flex items-center justify-between"
                     class:bg-oxford-100={selectedItems.includes(type === 'atc' ? item.name : item)}
+                    class:text-gray-400={type === 'atc' && !item.has_vmps}
+                    class:pointer-events-none={type === 'atc' && !item.has_vmps}
                     on:click={() => handleSelect(item)}
                 >
                     <span>{type === 'atc' ? item.name : item}</span>
-                    {#if selectedItems.includes(type === 'atc' ? item.name : item)}
+                    {#if type === 'atc' && !item.has_vmps}
+                        <span class="text-sm text-gray-400">(No products)</span>
+                    {:else if selectedItems.includes(type === 'atc' ? item.name : item)}
                         <span class="text-sm font-medium text-oxford-500">Selected</span>
                     {/if}
                 </li>
