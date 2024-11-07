@@ -27,7 +27,7 @@
       .range([0, chartWidth]);
 
     const y = d3.scaleLinear()
-      .domain([0, 1])
+      .domain([0, 100])
       .range([chartHeight, 0]);
 
     // Add grid
@@ -74,7 +74,7 @@
       .attr('dy', '1em')
       .style('text-anchor', 'middle')
       .style('font-size', '16px')
-      .text('Proportion');
+      .text('%');
 
     const line = d3.line()
       .x((d, i) => x(new Date($filteredData.labels[i])))
@@ -172,7 +172,7 @@
 
       tooltip
         .html(`<strong>${displayName || 'Unknown'}</strong>${displayCode ? `<br>ODS Code: ${displayCode.trim()}` : ''}<br>Date: ${
-        d3.timeFormat('%b %Y')(date)}<br>Proportion: ${value?.toFixed(2) || 'N/A'}${
+        d3.timeFormat('%b %Y')(date)}<br>Percentage: ${value?.toFixed(2) || 'N/A'}${
         numerator !== null && denominator !== null ? `<br>Numerator: ${numerator.toFixed(2)}<br>Denominator: ${denominator.toFixed(2)}` : ''}${
         d.org_count ? `<br>Organisations included: ${d.org_count}` : ''
         }`)
@@ -208,7 +208,7 @@
 
       tooltip
         .html(`<strong>${displayName || 'Unknown'}</strong>${displayCode ? `<br>ODS Code: ${displayCode.trim()}` : ''}<br>Date: ${
-        d3.timeFormat('%b %Y')(nearestDate)}<br>Proportion: ${nearestValue?.toFixed(2) || 'N/A'}${
+        d3.timeFormat('%b %Y')(nearestDate)}<br>Percentage: ${(nearestValue * 100)?.toFixed(1) || 'N/A'}%${
         numerator !== null && denominator !== null ? `<br>Numerator: ${numerator.toFixed(2)}<br>Denominator: ${denominator.toFixed(2)}` : ''}${
         d.org_count ? `<br>Organisations included: ${d.org_count}` : ''
         }`)
@@ -286,12 +286,7 @@
     pointer-events: all;
     stroke-opacity: 0;
   }
-  .organisation-line {
-    /* Remove the stroke-width declaration */
-  }
-  .trust-line {
-    /* Remove the stroke-width declaration */
-  }
+
 </style>
 
 <div bind:this={chartDiv} use:resizeAction class="w-full h-[400px]"></div>
