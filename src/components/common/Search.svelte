@@ -147,7 +147,7 @@
                     searchTerm = '';
                 }
             }}
-            class="w-full mb-2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-oxford-500 pr-8"
+            class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-oxford-500 pr-8"
         />
         {#if searchTerm}
             <button
@@ -159,28 +159,46 @@
         {/if}
     </div>
     {#if filteredItems.length > 0 && searchTerm.length > 0}
-        <ul class="mt-2 border border-gray-300 rounded-md max-h-40 overflow-y-auto">
-            {#each filteredItems as item}
-                <li 
-                    class="p-2 hover:bg-gray-100 cursor-pointer flex items-center justify-between"
-                    class:bg-oxford-100={selectedItems.includes(type === 'atc' ? item.name : item)}
-                    class:text-gray-400={type === 'atc' && !item.has_vmps}
-                    class:pointer-events-none={type === 'atc' && !item.has_vmps}
-                    on:click={() => handleSelect(item)}
-                >
-                    <span>{type === 'atc' ? item.name : item}</span>
-                    {#if type === 'atc' && !item.has_vmps}
-                        <span class="text-sm text-gray-400">(No products)</span>
-                    {:else if selectedItems.includes(type === 'atc' ? item.name : item)}
-                        <span class="text-sm font-medium text-oxford-500">Selected</span>
-                    {/if}
-                </li>
-            {/each}
-        </ul>
+        <div class="relative">
+            <ul class="border border-gray-300 rounded-md max-h-96 overflow-y-auto">
+                {#each filteredItems as item}
+                    <li 
+                        class="p-2 hover:bg-gray-100 cursor-pointer flex items-center justify-between"
+                        class:bg-oxford-100={selectedItems.includes(type === 'atc' ? item.name : item)}
+                        class:text-gray-400={type === 'atc' && !item.has_vmps}
+                        class:pointer-events-none={type === 'atc' && !item.has_vmps}
+                        on:click={() => handleSelect(item)}
+                    >
+                        <span>{type === 'atc' ? item.name : item}</span>
+                        {#if type === 'atc' && !item.has_vmps}
+                            <span class="text-sm text-gray-400">(No products)</span>
+                        {:else if selectedItems.includes(type === 'atc' ? item.name : item)}
+                            <span class="text-sm font-medium text-oxford-500">Selected</span>
+                        {/if}
+                    </li>
+                {/each}
+            </ul>
+            <button
+                on:click={() => {
+                    const listContainer = document.querySelector('ul.overflow-y-auto');
+                    if (listContainer) {
+                        listContainer.scrollTo({ top: 0 });
+                    }
+                }}
+                class="w-full p-2 bg-gray-100 border-t border-gray-200 flex items-center justify-center hover:bg-oxford-50 active:bg-oxford-100 cursor-pointer transition-colors duration-150 gap-2"
+            >
+                <span class="text-sm font-medium text-gray-700">
+                    {selectedItems.length} {type.toUpperCase()}s selected • Click to scroll to top
+                </span>
+                <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                </svg>
+            </button>
+        </div>
     {/if}
     {#if selectedItems.length > 0}
         <div>
-            <h3 class="font-semibold mb-2 text-md text-gray-700">Selected {type.toUpperCase()} names:</h3>
+            <h3 class="font-semibold my-2 text-md text-gray-700">Selected {type.toUpperCase()} names:</h3>
             <ul class="border border-gray-200 rounded-md">
                 {#each selectedItems as item}
                     <li class="flex items-center justify-between px-2 py-1">
