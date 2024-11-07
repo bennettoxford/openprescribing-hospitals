@@ -9,7 +9,7 @@
     import { analyseOptions } from '../../stores/analyseOptionsStore';
     const dispatch = createEventDispatcher();
 
-    export let placeholder = "Search...";
+    export let placeholder = "Search by code or description...";
     export let type = "vmp";
 
     let searchTerm = '';
