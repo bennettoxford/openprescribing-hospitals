@@ -160,20 +160,33 @@
     </div>
     {#if filteredItems.length > 0 && searchTerm.length > 0}
         <div class="relative">
-            <ul class="border border-gray-300 rounded-md max-h-96 overflow-y-auto">
+            <ul class="border border-gray-300 rounded-md max-h-96 overflow-y-auto divide-y divide-gray-200">
                 {#each filteredItems as item}
                     <li 
-                        class="p-2 hover:bg-gray-100 cursor-pointer flex items-center justify-between"
+                        class="p-1 hover:bg-gray-100 cursor-pointer flex items-center justify-between relative"
                         class:bg-oxford-100={selectedItems.includes(type === 'atc' ? item.name : item)}
                         class:text-gray-400={type === 'atc' && !item.has_vmps}
                         class:pointer-events-none={type === 'atc' && !item.has_vmps}
                         on:click={() => handleSelect(item)}
                     >
-                        <span>{type === 'atc' ? item.name : item}</span>
+                        <span class="mt-4">
+                            {#if type === 'atc'}
+                                {item.name.split('|')[1].trim()}
+                            {:else}
+                                {item.split('|')[1].trim()}
+                            {/if}
+                        </span>
+                        <span class="absolute top-0 right-0 text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-bl">
+                            {#if type === 'atc'}
+                                ATC code: {item.name.split('|')[0].trim()}
+                            {:else}
+                                {type.toUpperCase()} code: {item.split('|')[0].trim()}
+                            {/if}
+                        </span>
                         {#if type === 'atc' && !item.has_vmps}
                             <span class="text-sm text-gray-400">(No products)</span>
                         {:else if selectedItems.includes(type === 'atc' ? item.name : item)}
-                            <span class="text-sm font-medium text-oxford-500">Selected</span>
+                            <span class="text-sm font-medium text-oxford-500 mt-4">Selected</span>
                         {/if}
                     </li>
                 {/each}
