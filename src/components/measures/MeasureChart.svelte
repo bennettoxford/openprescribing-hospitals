@@ -172,7 +172,7 @@
 
       tooltip
         .html(`<strong>${displayName || 'Unknown'}</strong>${displayCode ? `<br>ODS Code: ${displayCode.trim()}` : ''}<br>Date: ${
-        d3.timeFormat('%b %Y')(date)}<br>Percentage: ${value?.toFixed(2) || 'N/A'}${
+        d3.timeFormat('%b %Y')(date)}<br>Percentage: ${value ? (value * 100).toFixed(2) : 'N/A'}${
         numerator !== null && denominator !== null ? `<br>Numerator: ${numerator.toFixed(2)}<br>Denominator: ${denominator.toFixed(2)}` : ''}${
         d.org_count ? `<br>Organisations included: ${d.org_count}` : ''
         }`)
@@ -208,7 +208,7 @@
 
       tooltip
         .html(`<strong>${displayName || 'Unknown'}</strong>${displayCode ? `<br>ODS Code: ${displayCode.trim()}` : ''}<br>Date: ${
-        d3.timeFormat('%b %Y')(nearestDate)}<br>Percentage: ${nearestValue?.toFixed(1) || 'N/A'}%${
+        d3.timeFormat('%b %Y')(nearestDate)}<br>Percentage: ${nearestValue ? (nearestValue * 100).toFixed(1) : 'N/A'}%${
         numerator !== null && denominator !== null ? `<br>Numerator: ${numerator.toFixed(2)}<br>Denominator: ${denominator.toFixed(2)}` : ''}${
         d.org_count ? `<br>Organisations included: ${d.org_count}` : ''
         }`)
