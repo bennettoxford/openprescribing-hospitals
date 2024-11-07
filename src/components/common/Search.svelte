@@ -9,7 +9,7 @@
     import { analyseOptions } from '../../stores/analyseOptionsStore';
     const dispatch = createEventDispatcher();
 
-    export let placeholder = "Search...";
+    export let placeholder = "Search by code or description...";
     export let type = "vmp";
 
     let searchTerm = '';
@@ -128,7 +128,7 @@
     });
 </script>
 
-<div class="w-full">
+<div class="w-full search-box">
     <div class="flex space-x-2 mb-2">
         <button class="px-2 py-1 rounded {type === 'vmp' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('vmp')}>VMP</button>
         <button class="px-2 py-1 rounded {type === 'vtm' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('vtm')}>VTM</button>
@@ -147,7 +147,8 @@
                     searchTerm = '';
                 }
             }}
-            class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-oxford-500 pr-8"
+            class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500 pr-8
+                   {filteredItems.length > 0 && searchTerm.length > 0 ? 'rounded-b-none' : ''}"
         />
         {#if searchTerm}
             <button
@@ -160,32 +161,49 @@
     </div>
     {#if filteredItems.length > 0 && searchTerm.length > 0}
         <div class="relative">
-            <ul class="border border-gray-300 rounded-md max-h-96 overflow-y-auto">
+            <ul class="border border-gray-300 rounded-none border-t-0 max-h-96 overflow-y-auto divide-y divide-gray-200">
                 {#each filteredItems as item}
                     <li 
-                        class="p-2 hover:bg-gray-100 cursor-pointer flex items-center justify-between"
+                        class="group pt-4 pb-1 px-2 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out"
                         class:bg-oxford-100={selectedItems.includes(type === 'atc' ? item.name : item)}
                         class:text-gray-400={type === 'atc' && !item.has_vmps}
                         class:pointer-events-none={type === 'atc' && !item.has_vmps}
+                        class:hover:bg-gray-100={true}
                         on:click={() => handleSelect(item)}
                     >
-                        <span>{type === 'atc' ? item.name : item}</span>
+                        <span class="mt-1">
+                            {#if type === 'atc'}
+                                {item.name.split('|')[1].trim()}
+                            {:else}
+                                {item.split('|')[1].trim()}
+                            {/if}
+                        </span>
+                        <span class="absolute top-0 right-0 text-xs px-2 py-1 rounded-bl transition-colors duration-150 ease-in-out
+                                 {selectedItems.includes(type === 'atc' ? item.name : item) 
+                                    ? 'bg-oxford-100 text-oxford-700 group-hover:bg-gray-100' 
+                                    : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200'}">
+                            {#if type === 'atc'}
+                                ATC code: {item.name.split('|')[0].trim()}
+                            {:else}
+                                {type.toUpperCase()} code: {item.split('|')[0].trim()}
+                            {/if}
+                        </span>
                         {#if type === 'atc' && !item.has_vmps}
                             <span class="text-sm text-gray-400">(No products)</span>
                         {:else if selectedItems.includes(type === 'atc' ? item.name : item)}
-                            <span class="text-sm font-medium text-oxford-500">Selected</span>
+                            <span class="text-sm font-medium text-oxford-500 mt-2">Selected</span>
                         {/if}
                     </li>
                 {/each}
             </ul>
             <button
                 on:click={() => {
-                    const listContainer = document.querySelector('ul.overflow-y-auto');
+                    const listContainer = document.querySelector('.search-box .overflow-y-auto');
                     if (listContainer) {
                         listContainer.scrollTo({ top: 0 });
                     }
                 }}
-                class="w-full p-2 bg-gray-100 border-t border-gray-200 flex items-center justify-center hover:bg-oxford-50 active:bg-oxford-100 cursor-pointer transition-colors duration-150 gap-2"
+                class="w-full p-2 bg-gray-100 border-t border-gray-200 flex items-center justify-center hover:bg-oxford-50 active:bg-oxford-100 cursor-pointer transition-colors duration-150 gap-2 rounded-b-md"
             >
                 <span class="text-sm font-medium text-gray-700">
                     {selectedItems.length} {type.toUpperCase()}s selected • Click to scroll to top
