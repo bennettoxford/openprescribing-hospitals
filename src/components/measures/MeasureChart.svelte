@@ -78,13 +78,13 @@
 
     const line = d3.line()
       .x((d, i) => x(new Date($filteredData.labels[i])))
-      .y(d => d !== null ? y(d) : null)
+      .y(d => d !== null ? y(d * 100) : null)
       .defined(d => d !== null);
 
     const area = d3.area()
       .x((d, i) => x(new Date($filteredData.labels[i])))
-      .y0(d => d.lower !== null ? y(d.lower) : y(0))
-      .y1(d => d.upper !== null ? y(d.upper) : y(0))
+      .y0(d => d.lower !== null ? y(d.lower * 100) : y(0))
+      .y1(d => d.upper !== null ? y(d.upper * 100) : y(0))
       .defined(d => d.lower !== null && d.upper !== null);
 
     // Draw shaded areas for percentiles
@@ -208,7 +208,7 @@
 
       tooltip
         .html(`<strong>${displayName || 'Unknown'}</strong>${displayCode ? `<br>ODS Code: ${displayCode.trim()}` : ''}<br>Date: ${
-        d3.timeFormat('%b %Y')(nearestDate)}<br>Percentage: ${(nearestValue * 100)?.toFixed(1) || 'N/A'}%${
+        d3.timeFormat('%b %Y')(nearestDate)}<br>Percentage: ${nearestValue?.toFixed(1) || 'N/A'}%${
         numerator !== null && denominator !== null ? `<br>Numerator: ${numerator.toFixed(2)}<br>Denominator: ${denominator.toFixed(2)}` : ''}${
         d.org_count ? `<br>Organisations included: ${d.org_count}` : ''
         }`)
