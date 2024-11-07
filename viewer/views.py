@@ -34,6 +34,7 @@ from .models import (
     PrecomputedPercentile,
     OrgSubmissionCache,
     DataStatus,
+    MeasureReason,
 )
 
 
@@ -71,12 +72,18 @@ class MeasuresListView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         measures = Measure.objects.select_related('reason').filter(draft=False)
+        measure_reasons = MeasureReason.objects.all()
         
         markdowner = Markdown()
         for measure in measures:
             measure.why_it_matters = markdowner.convert(measure.why_it_matters)
         
+        for reason in measure_reasons:
+            if reason.description:
+                reason.description = markdowner.convert(reason.description)
+        
         context["measures"] = measures
+        context["measure_reasons"] = measure_reasons
         return context
 
 
