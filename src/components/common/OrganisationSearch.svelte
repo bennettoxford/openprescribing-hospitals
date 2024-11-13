@@ -77,7 +77,12 @@
 
     onMount(() => {
         const handleClickOutside = (event) => {
-            if (isOpen && !event.target.closest('.dropdown')) {
+            const searchInput = document.querySelector('.dropdown input[type="text"]');
+            const isSearchInputActive = searchInput === document.activeElement;
+            
+            if (isOpen && 
+                !event.target.closest('.dropdown') && 
+                !isSearchInputActive) {
                 isOpen = false;
             }
         };
