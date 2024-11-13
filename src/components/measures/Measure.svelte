@@ -64,7 +64,7 @@
         
         regionStore.set(JSON.parse(regiondata));
         percentileStore.set(JSON.parse(percentiledata));
-        selectedMode.set('national');
+        selectedMode.set('percentiles');
         
         if ($selectedMode === 'icb') {
             organisationSearchStore.updateSelection($selectedICBs);
