@@ -6,7 +6,19 @@ export const regiondata = writable([]);
 export const icbdata = writable([]);
 export const percentiledata = writable([]);
 export const selectedMode = writable('national');
-export const selectedItems = writable([]);
+export const selectedTrusts = writable([]);
+export const selectedICBs = writable([]);
+export const selectedItems = derived(
+    [selectedMode, selectedTrusts, selectedICBs],
+    ([$selectedMode, $selectedTrusts, $selectedICBs]) => {
+        if ($selectedMode === 'icb') {
+            return $selectedICBs;
+        } else if ($selectedMode === 'trust' || $selectedMode === 'percentiles') {
+            return $selectedTrusts;
+        }
+        return [];
+    }
+);
 export const usedOrganisationSelection = writable(false);
 
 const organisationColors = [
@@ -246,7 +258,3 @@ function groupBy(array, key) {
     return result;
   }, {});
 }
-
-export const resetSelectedItems = derived(selectedMode, ($selectedMode) => {
-  selectedItems.set([]);
-});

@@ -17,8 +17,9 @@
         regiondata as regionStore, 
         icbdata as icbStore, 
         percentiledata as percentileStore, 
-        selectedItems as selectedItemsStore,
-        resetSelectedItems 
+        selectedTrusts,
+        selectedICBs,
+        selectedItems
     } from '../../stores/measureChartStore.js';
     import MeasureChart from './MeasureChart.svelte';
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
@@ -63,27 +64,46 @@
         
         regionStore.set(JSON.parse(regiondata));
         percentileStore.set(JSON.parse(percentiledata));
-        selectedMode.set('national');
+        selectedMode.set('percentiles');
+        
+        if ($selectedMode === 'icb') {
+            organisationSearchStore.updateSelection($selectedICBs);
+        } else if ($selectedMode === 'trust' || $selectedMode === 'percentiles') {
+            organisationSearchStore.updateSelection($selectedTrusts);
+        }
     });
 
     function handleSelectionChange(event) {
-        const { selectedItems, usedOrganisationSelection } = event.detail;
-        selectedItemsStore.set(selectedItems);
+        const { selectedItems: newSelectedItems } = event.detail;
+        if ($selectedMode === 'icb') {
+            selectedICBs.set(newSelectedItems);
+        } else if ($selectedMode === 'trust' || $selectedMode === 'percentiles') {
+            selectedTrusts.set(newSelectedItems);
+        }
     }
 
     function handleModeChange(event) {
         const newMode = event.target.value;
         selectedMode.set(newMode);
         
-        organisationSearchStore.reset();
-        selectedItemsStore.set([]);
+        if (newMode === 'icb') {
+            organisationSearchStore.setItems(icbs);
+            organisationSearchStore.setFilterType('icb');
+            organisationSearchStore.updateSelection($selectedICBs);
+        } else if (newMode === 'trust' || newMode === 'percentiles') {
+            organisationSearchStore.setItems(trusts);
+            organisationSearchStore.setFilterType('trust');
+            organisationSearchStore.updateSelection($selectedTrusts);
+        } else {
+            organisationSearchStore.reset();
+        }
     }
 </script>
 
 <div class="flex flex-col">
-    <div class="mb-4 flex justify-between items-end">
+    <div class="mb-4 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
         {#if showFilter}
-            <div class="relative z-10 flex-grow mr-4">
+            <div class="relative z-10 flex-grow mx-2 sm:mr-4 sm:ml-4">
                 <OrganisationSearch 
                     source={organisationSearchStore}
                     overlayMode={true}
@@ -91,9 +111,9 @@
                 />
             </div>
         {:else}
-            <div class="flex-grow mr-4"></div>
+            <div class="flex-grow mx-2 sm:mx-4"></div>
         {/if}
-        <div class="flex-shrink-0">
+        <div class="flex-shrink-0 mx-2 sm:mx-0">
             <ModeSelector {handleModeChange} />
         </div>
     </div>
