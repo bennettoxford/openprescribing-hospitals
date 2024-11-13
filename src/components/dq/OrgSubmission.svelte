@@ -423,13 +423,8 @@
     }
 
     function handleSearchSelect(event) {
-        const { selectedItems, usedOrganisationSelection } = event.detail;
-        organisationSearchStore.updateSelection(selectedItems, usedOrganisationSelection);
-        
-        if (!usedOrganisationSelection) {
-            filteredOrganisations = organisations;
-            return;
-        }
+        const { selectedItems } = event.detail;
+        organisationSearchStore.updateSelection(selectedItems);
         
         if (selectedItems.length === 0) {
             filteredOrganisations = organisations;

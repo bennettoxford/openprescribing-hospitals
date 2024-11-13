@@ -67,7 +67,7 @@
     });
 
     function handleSelectionChange(event) {
-        const { selectedItems, usedOrganisationSelection } = event.detail;
+        const { selectedItems } = event.detail;
         selectedItemsStore.set(selectedItems);
     }
 

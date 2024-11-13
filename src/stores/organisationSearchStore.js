@@ -4,7 +4,6 @@ function createOrganisationSearchStore() {
     const { subscribe, set, update } = writable({
         items: [],
         selectedItems: [],
-        usedOrganisationSelection: false,
         filterType: 'trust'
     });
 
@@ -13,24 +12,20 @@ function createOrganisationSearchStore() {
         setItems: (items) => {
             update(store => ({ ...store, items }));
         },
-        updateSelection: (selectedItems, usedOrganisationSelection) => {
-            update(store => ({ ...store, selectedItems, usedOrganisationSelection }));
+        updateSelection: (selectedItems) => {
+            update(store => ({ ...store, selectedItems }));
         },
         setFilterType: (filterType) => {
             update(store => ({ ...store, filterType }));
         },
-        toggleSelection: () => {
-            update(store => ({
-                ...store,
-                usedOrganisationSelection: !store.usedOrganisationSelection,
-                selectedItems: []
-            }));
+        isFiltering() {
+            return this.selectedItems.length > 0;
         },
-        reset: () => {
+        reset() {
             update(store => ({
                 ...store,
                 selectedItems: [],
-                usedOrganisationSelection: false
+                items: []
             }));
         }
     };
