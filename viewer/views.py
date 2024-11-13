@@ -35,6 +35,8 @@ from .models import (
     OrgSubmissionCache,
     DataStatus,
     MeasureReason,
+    SCMDQuantity,
+    
 )
 
 
@@ -247,7 +249,12 @@ def filtered_quantities(request):
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
         base_filters['year_month__lte'] = end_date
 
-    Model = IngredientQuantity if quantity_type == "Ingredient Quantity" else Dose
+    if quantity_type == "Ingredient Quantity":
+        Model = IngredientQuantity
+    elif quantity_type == "VMP Quantity":
+        Model = SCMDQuantity
+    else:
+        Model = Dose
 
     queryset = Model.objects.filter(**base_filters)
 
@@ -256,7 +263,7 @@ def filtered_quantities(request):
     elif search_type == "vtm":
         queryset = queryset.filter(vmp__vtm__vtm__in=search_items)
     elif search_type == "ingredient":
-        if quantity_type == "ingredient":
+        if quantity_type == "Ingredient Quantity":
             queryset = queryset.filter(ingredient__code__in=search_items)
         else:
             queryset = queryset.filter(vmp__ingredients__code__in=search_items)
@@ -268,7 +275,6 @@ def filtered_quantities(request):
         ods_names = [item.split("|")[0].strip() for item in ods_names]
         queryset = queryset.filter(organisation__ods_code__in=ods_names)
 
-    
     vmp_atc_map = {
         iq.id: [{'code': atc.code, 'name': atc.name} for atc in iq.vmp.atcs.all()]
         for iq in queryset.select_related('vmp').prefetch_related('vmp__atcs')
@@ -299,7 +305,6 @@ def filtered_quantities(request):
   
     data = []
     for item in raw_data:
-        print(item)
         try:
             atc_info = vmp_atc_map[item["id"]]
             processed_item = {
@@ -314,9 +319,13 @@ def filtered_quantities(request):
                 "vtm_name": item["vmp__vtm__name"] or "",
                 "atc_code": atc_info[0]['code'] if atc_info else "",
                 "atc_name": atc_info[0]['name'] if atc_info else "Unknown ATC",
-                "ingredient_code": item.get("ingredient__code"),
-                "ingredient_name": item.get("ingredient__name")
             }
+
+            if quantity_type == "Ingredient Quantity":
+                processed_item.update({
+                    "ingredient_code": item.get("ingredient__code"),
+                    "ingredient_name": item.get("ingredient__name")
+                })
 
             data.append(processed_item)
         except Exception as e:
