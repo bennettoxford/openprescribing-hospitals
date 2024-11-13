@@ -150,7 +150,7 @@
                         bind:value={searchTerm}
                         on:focus={() => isOpen = true}
                         placeholder="Search and select up to 10 {filterType === 'icb' ? 'ICBs' : 'NHS Trusts'}..."
-                        class="w-full p-2 border border-gray-300 rounded-l-md pr-8 {isOpen ? 'rounded-b-none' : ''}"
+                        class="w-full p-2 border border-gray-300 rounded-l-md pr-8 {isOpen ? 'rounded-bl-none' : ''}"
                     />
                     <button
                         class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
@@ -162,7 +162,7 @@
                     </button>
                 </div>
 
-                <div class="flex items-center gap-2 bg-gray-50 px-3 border border-l-0 border-gray-300 rounded-r-md">
+                <div class="flex items-center gap-2 bg-gray-50 px-3 border border-l-0 border-gray-300 {isOpen ? 'rounded-tr-md' : 'rounded-r-md'}">
                     {#if selectedItems.length > 0}
                         <button
                             on:click={deselectAll}
@@ -179,7 +179,7 @@
             </div>
 
             {#if isOpen}
-                <div class="absolute top-[calc(100%_-_1px)] left-0 right-0 bg-white border border-gray-300 rounded-md rounded-t-none shadow-lg z-50 flex flex-col max-h-96"
+                <div class="absolute top-[calc(100%_-_1px)] left-0 right-0 bg-white border border-gray-300 rounded-md rounded-t-none shadow-lg z-50 flex flex-col max-h-72"
                      class:absolute={overlayMode}>
                     <ul 
                         class="flex-grow overflow-y-auto divide-y divide-gray-200"
