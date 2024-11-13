@@ -65,6 +65,23 @@ class Organisation(models.Model):
             models.Index(fields=["ods_name"]),
         ]
 
+class SCMDQuantity(models.Model):
+    year_month = models.DateField()
+    vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name="scmd_quantities")
+    quantity = models.FloatField(null=True)
+    unit = models.CharField(max_length=50, null=True)
+    organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name="scmd_quantities")
+
+    def __str__(self):
+        return f"{self.vmp.name} - {self.organisation.ods_name} - {self.year_month}"
+    
+    class Meta:
+        ordering = ["year_month", "vmp__name", "organisation__ods_name"]
+        indexes = [
+            models.Index(fields=["vmp"]),
+            models.Index(fields=["organisation"]),
+            models.Index(fields=["year_month"]),
+        ]
 
 class Dose(models.Model):
     year_month = models.DateField()

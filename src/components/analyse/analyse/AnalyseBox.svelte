@@ -112,7 +112,7 @@
 
     const csrftoken = getCookie('csrftoken');
     // Define quantityOptions
-    const quantityOptions = ['--', 'Dose', 'Ingredient Quantity'];
+    const quantityOptions = ['--', 'VMP Quantity', 'Dose', 'Ingredient Quantity'];
 
     async function fetchVMPNames() {
         const response = await fetch('/api/unique-vmp-names/');
