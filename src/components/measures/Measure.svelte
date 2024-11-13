@@ -17,8 +17,9 @@
         regiondata as regionStore, 
         icbdata as icbStore, 
         percentiledata as percentileStore, 
-        selectedItems as selectedItemsStore,
-        resetSelectedItems 
+        selectedTrusts,
+        selectedICBs,
+        selectedItems
     } from '../../stores/measureChartStore.js';
     import MeasureChart from './MeasureChart.svelte';
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
@@ -64,19 +65,38 @@
         regionStore.set(JSON.parse(regiondata));
         percentileStore.set(JSON.parse(percentiledata));
         selectedMode.set('national');
+        
+        if ($selectedMode === 'icb') {
+            organisationSearchStore.updateSelection($selectedICBs);
+        } else if ($selectedMode === 'trust' || $selectedMode === 'percentiles') {
+            organisationSearchStore.updateSelection($selectedTrusts);
+        }
     });
 
     function handleSelectionChange(event) {
-        const { selectedItems } = event.detail;
-        selectedItemsStore.set(selectedItems);
+        const { selectedItems: newSelectedItems } = event.detail;
+        if ($selectedMode === 'icb') {
+            selectedICBs.set(newSelectedItems);
+        } else if ($selectedMode === 'trust' || $selectedMode === 'percentiles') {
+            selectedTrusts.set(newSelectedItems);
+        }
     }
 
     function handleModeChange(event) {
         const newMode = event.target.value;
         selectedMode.set(newMode);
         
-        organisationSearchStore.reset();
-        selectedItemsStore.set([]);
+        if (newMode === 'icb') {
+            organisationSearchStore.setItems(icbs);
+            organisationSearchStore.setFilterType('icb');
+            organisationSearchStore.updateSelection($selectedICBs);
+        } else if (newMode === 'trust' || newMode === 'percentiles') {
+            organisationSearchStore.setItems(trusts);
+            organisationSearchStore.setFilterType('trust');
+            organisationSearchStore.updateSelection($selectedTrusts);
+        } else {
+            organisationSearchStore.reset();
+        }
     }
 </script>
 
