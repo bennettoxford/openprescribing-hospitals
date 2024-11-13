@@ -29,79 +29,73 @@
         </nav>
 
         <div class="overflow-hidden bg-white rounded-lg shadow-md p-8 space-y-8">
-         
-                <h1 class="text-2xl font-extrabold text-gray-900 sm:text-4xl mb-4">{{ measure_name }}</h1>
-                {% if error %}
-                    <div class="mt-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded" role="alert">
-                        <p class="font-bold">Error</p>
-                        <p>{{ error }}</p>
-                    </div>
-                {% else %}
+            <div class="flex items-start justify-between mb-4">
+                <h1 class="text-2xl font-extrabold text-gray-900 sm:text-4xl">{{ measure_name }}</h1>
                 {% if reason %}
-                <div class="flex items-center">
-                    <span class="text-2xl inline-block font-semibold mr-2 px-4 py-2 rounded-lg" style="background-color: {{ reason_colour }}; color: {% if reason_colour == '#FFEB3B' %}#000000{% else %}#FFFFFF{% endif %};">
+                <div class="flex items-center pt-2">
+                    <span class="text-lg inline-block font-semibold px-3 py-1.5 rounded-lg" style="background-color: {{ reason_colour }}; color: {% if reason_colour == '#FFEB3B' %}#000000{% else %}#FFFFFF{% endif %};">
                         {{ reason }}
                     </span>
                 </div>
                 {% endif %}
-                
-                <div class="space-y-6">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4">What is this measure?</h2>
-                    <div class="[&_p]:text-lg [&_p]:text-gray-900 [&_p]:mb-8 [&_a]:underline [&_a]:font-semibold">
-                        {{ measure_description|safe }}
-                    </div>
-                    
-                    <div class="mt-4">
-                        <collapsible-section 
-                            title="Products included in this measure" 
-                            items="{{ denominator_vmps}}"
-                            numeratorItems="{{ numerator_vmps }}"
-                        ></collapsible-section>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <div class="flex flex-col sm:flex-row sm:items-center">
-                            <p class="mb-2 sm:mb-0 sm:mr-2">Included Trusts: {{ trusts_included.included }}/{{ trusts_included.total }}</p>
-                            <div class="relative inline-block group">
-                                <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center">
-                                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>
-                                <div class="absolute z-10 w-72 scale-0 transition-all duration-100 origin-top-left transform 
-                                            group-hover:scale-100 left-0 top-6 mt-1 rounded-md shadow-lg bg-white 
-                                            ring-1 ring-black ring-opacity-5 p-4">
-                                    <p class="text-sm text-gray-500">
-                                        Trusts are only included in this measure if they have issued products in the denominator in at least 1 month.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            </div>
+            {% if error %}
+                <div class="mt-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded" role="alert">
+                    <p class="font-bold">Error</p>
+                    <p>{{ error }}</p>
                 </div>
-                <span class="block w-full h-px bg-gray-300 my-8"></span>
-                <div >
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Why does it matter?</h2>
-                    <div class="[&_p]:text-lg [&_p]:text-gray-900 [&_p]:mb-8 [&_a]:underline [&_a]:font-semibold">
-                        {{ why_it_matters|safe }}
-                    </div>
+            {% else %}
+            
+            <div class="space-y-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">What is this measure?</h2>
+                <div class="[&_p]:text-lg [&_p]:text-gray-900 [&_p]:mb-8 [&_a]:underline [&_a]:font-semibold">
+                    {{ measure_description|safe }}
                 </div>
-                
-                <span class="block w-full h-px bg-gray-300 my-8"></span>
-                <div>
+            </div>
+            <div >
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Why does it matter?</h2>
+                <div class="[&_p]:text-lg [&_p]:text-gray-900 [&_p]:mb-8 [&_a]:underline [&_a]:font-semibold">
+                    {{ why_it_matters|safe }}
+                </div>
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">How is it calculated?</h2>
+                <div class="[&_p]:text-lg [&_p]:text-gray-900 [&_p]:mb-8 [&_a]:underline [&_a]:font-semibold">
+                    {{ how_is_it_calculated|safe }}
+                </div>
+                <div class="mt-4">
+                    <collapsible-section 
+                        title="Products included in this measure" 
+                        description="All products below are included in the denominator of this measure. A subset of these products are included in the numerator."
+                        items="{{ denominator_vmps}}"
+                        numeratorItems="{{ numerator_vmps }}"
+                        previewCount="1"
+                    ></collapsible-section>
+                </div>
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Which Trusts are included?</h2>
+                <div class="[&_p]:text-lg [&_p]:text-gray-900 [&_p]:mb-8 [&_a]:underline [&_a]:font-semibold">
+                    <p>Trusts are only included in this measure if they have issued any products included in the denominator for this measure.</p>
+                    <p>For this measure, {{ trusts_included.included }}/{{ trusts_included.total }} Trusts are included. A full list of Trusts included is available on the <a href="{% url 'viewer:submission_history' %}" target="_blank" class="underline font-semibold">Submission History</a> page.</p>
+                </div>
+            </div>
+            
+            <span class="block w-full h-px bg-gray-300 my-8"></span>
+            <div>
     
-                    <div>
-                        <div id="measure-chart">
-                            <measure-component 
-                                orgdata="{{ org_data }}"
-                                regiondata="{{ region_data }}"
-                                icbdata="{{ icb_data }}"
-                                percentiledata="{{ percentile_data }}"
-                            ></measure-component>
-                        </div>
+                <div>
+                    <div id="measure-chart">
+                        <measure-component 
+                            orgdata="{{ org_data }}"
+                            regiondata="{{ region_data }}"
+                            icbdata="{{ icb_data }}"
+                            percentiledata="{{ percentile_data }}"
+                        ></measure-component>
                     </div>
                 </div>
-                {% endif %}
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

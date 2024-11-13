@@ -152,16 +152,23 @@ class MeasureReason(models.Model):
         return f"{self.reason}"
 
 class Measure(models.Model):
+    QUANTITY_TYPES = [
+        ('dose', 'Dose'),
+        ('ingredient', 'Ingredient Quantity'),
+    ]
+    
     name = models.CharField(max_length=255, unique=True)
     short_name = models.CharField(max_length=255, null=True)
     slug = models.SlugField(unique=True, null=True)
     description = models.TextField(null=True)
     why_it_matters = models.TextField()
+    how_is_it_calculated = models.TextField(null=True)
     sql_file = models.CharField(max_length=255)
     reason = models.ForeignKey(MeasureReason, on_delete=models.CASCADE, related_name="measures", null=True)
     draft = models.BooleanField(default=True)
     numerator_vmps = models.ManyToManyField(VMP, related_name="measures_numerator")
     denominator_vmps = models.ManyToManyField(VMP, related_name="measures_denominator")
+    quantity_type = models.CharField(max_length=20, choices=QUANTITY_TYPES, default='dose')
 
     def save(self, *args, **kwargs):
         if not self.slug and self.short_name:

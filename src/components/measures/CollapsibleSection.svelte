@@ -2,18 +2,22 @@
     tag: 'collapsible-section',
     props: {
         title: { type: 'String' },
+        description: { type: 'String' },
         items: { type: 'String' },
-        numeratorItems: { type: 'String' }
+        numeratorItems: { type: 'String' },
+        previewCount: { type: 'Number' }
     },
     shadow: 'none'
 }} />
 
 <script>
     export let title = '';
+    export let description = '';
     export let items = '[]';
     export let numeratorItems = '[]';
+    export let previewCount = 1;
 
-    let isOpen = false;
+    let isExpanded = false;
     let parsedItems = [];
     let parsedNumeratorItems = [];
     let sortedItems = [];
@@ -23,14 +27,12 @@
             parsedItems = JSON.parse(items);
             parsedNumeratorItems = JSON.parse(numeratorItems);
             
-            // Sort items alphabetically
             const sortedNumeratorItems = parsedNumeratorItems
                 .sort((a, b) => a.name.localeCompare(b.name));
             const sortedNonNumeratorItems = parsedItems
                 .filter(item => !isInNumerator(item))
                 .sort((a, b) => a.name.localeCompare(b.name));
             
-            // Combine sorted numerator and non-numerator items
             sortedItems = [...sortedNumeratorItems, ...sortedNonNumeratorItems];
         } catch (error) {
             console.error('Failed to parse items:', error);
@@ -40,51 +42,80 @@
         }
     }
 
-    function toggleOpen() {
-        isOpen = !isOpen;
+    function toggleExpanded() {
+        isExpanded = !isExpanded;
     }
 
     function isInNumerator(item) {
         return parsedNumeratorItems.some(numItem => numItem.code === item.code);
     }
+
+    $: displayedItems = isExpanded ? sortedItems : sortedItems.slice(0, previewCount);
+    $: remainingCount = sortedItems.length - previewCount;
 </script>
 
 <div class="border border-gray-200 rounded-lg shadow-sm my-4 overflow-hidden">
-    <button on:click={toggleOpen} class="flex justify-between items-center w-full px-4 sm:px-6 py-3 bg-white hover:bg-gray-50 transition-colors duration-200">
-        <h3 class="text-base sm:text-lg font-semibold text-gray-800">{title}</h3>
-        <svg class:rotate-180={isOpen} class="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 transition-transform duration-200" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
-        </svg>
-    </button>
-    {#if isOpen}
-        <div class="px-4 sm:px-6 py-2 sm:py-3 bg-gray-50">
-            <p class="text-sm text-gray-600 mb-3">
-                All products below are included in the denominator of this measure. A subset of these products are included in the numerator. This results in a proportion between 0 and 1.
-            </p>
-            <div class="max-h-60 sm:max-h-96 overflow-y-auto pr-2">
-                <ul class="space-y-1.5">
-                    {#each sortedItems as item}
-                        {@const inNumerator = isInNumerator(item)}
-                        <li class="flex flex-col sm:flex-row sm:items-center justify-between px-3 sm:px-4 py-1.5 sm:py-2 bg-white rounded-lg shadow-sm transition duration-150 ease-in-out"
-                            class:bg-oxford-100={inNumerator}>
-                            <span class="font-medium text-sm">{item.name}</span>
-                            <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-0.5 sm:space-y-0 sm:space-x-2">
-                                <span class="text-xs text-gray-500">VMP: {item.code}</span>
-                                <div class="flex flex-col space-y-1">
-                                    {#if inNumerator}
-                                        <span class="text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-oxford-200 text-oxford-800">
-                                            Numerator
+    <div class="px-4 py-3 bg-white">
+        <div class="flex justify-between items-center mb-2">
+            <h3 class="text-lg font-semibold text-gray-800">{title}</h3>
+            
+            <button 
+                on:click={toggleExpanded}
+                class="text-sm text-oxford-600 hover:text-oxford-800 font-medium flex items-center gap-1"
+            >
+                {isExpanded ? 'Show less' : `Show all (${sortedItems.length})`}
+                <svg class:rotate-180={isExpanded} class="w-4 h-4 text-current transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+        </div>
+
+        {#if description}
+            <p class="text-sm text-gray-600 mb-4">{description}</p>
+        {/if}
+
+        <div class="overflow-x-auto">
+            <div class={`overflow-y-auto transition-all duration-200 ease-in-out ${isExpanded ? 'max-h-[24rem]' : 'max-h-[20rem]'}`}>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50 sticky top-0 z-10">
+                        <tr>
+                            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Product Name</th>
+                            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">VMP Code</th>
+                            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Unit of measure</th>
+                            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Measure component</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {#each displayedItems as item}
+                            {@const inNumerator = isInNumerator(item)}
+                            <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out"
+                                class:bg-oxford-50={inNumerator}>
+                                <td class="px-3 py-2 text-sm font-medium text-gray-900">{item.name}</td>
+                                <td class="px-3 py-2 text-sm text-gray-500">{item.code}</td>
+                                <td class="px-3 py-2 text-sm text-gray-500">{item.unit || '-'}</td>
+                                <td class="px-3 py-2">
+                                    <div class="flex flex-col gap-1">
+                                        {#if inNumerator}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-oxford-100 text-oxford-800">
+                                                Numerator
+                                            </span>
+                                        {/if}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                            Denominator
                                         </span>
-                                    {/if}
-                                    <span class="text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-800">
-                                        Denominator
-                                    </span>
-                                </div>
-                            </div>
-                        </li>
-                    {/each}
-                </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                        {/each}
+                    </tbody>
+                </table>
             </div>
         </div>
-    {/if}
+
+        {#if !isExpanded && remainingCount > 0}
+            <div class="mt-2 text-sm text-gray-500 text-center">
+                and {remainingCount} more items...
+            </div>
+        {/if}
+    </div>
 </div>

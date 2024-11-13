@@ -111,15 +111,40 @@ class MeasureItemView(TemplateView):
 
     def get_measure_context(self, measure):
         markdowner = Markdown()
+        
+        if measure.quantity_type == 'dose':
+            Model = Dose
+        else:
+            Model = IngredientQuantity
+        
+        denominator_vmps = []
+        for vmp in measure.denominator_vmps.all():
+            unit = Model.objects.filter(vmp=vmp).values('unit').first()
+            denominator_vmps.append({
+                'name': vmp.name,
+                'code': vmp.code,
+                'unit': unit['unit'] if unit else None
+            })
+        
+        numerator_vmps = []
+        for vmp in measure.numerator_vmps.all():
+            unit = Model.objects.filter(vmp=vmp).values('unit').first()
+            numerator_vmps.append({
+                'name': vmp.name,
+                'code': vmp.code,
+                'unit': unit['unit'] if unit else None
+            })
+        
         return {
             "measure_name": measure.name,
             "measure_name_short": measure.short_name,
             "why_it_matters": markdowner.convert(measure.why_it_matters),
+            "how_is_it_calculated": markdowner.convert(measure.how_is_it_calculated),
             "measure_description": markdowner.convert(measure.description),
             "reason": measure.reason.reason if measure.reason else None,
             "reason_colour": measure.reason.colour if measure.reason else None,
-            "denominator_vmps": json.dumps(list(measure.denominator_vmps.values('name', 'code')), cls=DjangoJSONEncoder),
-            "numerator_vmps": json.dumps(list(measure.numerator_vmps.values('name', 'code')), cls=DjangoJSONEncoder),
+            "denominator_vmps": json.dumps(denominator_vmps, cls=DjangoJSONEncoder),
+            "numerator_vmps": json.dumps(numerator_vmps, cls=DjangoJSONEncoder),
         }
 
     def get_precomputed_data(self, measure):
