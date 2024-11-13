@@ -14,6 +14,7 @@ from viewer.models import (
     Dose,
     IngredientQuantity,
     DataStatus,
+    SCMDQuantity,
 )
 import glob
 from tqdm import tqdm
@@ -30,6 +31,7 @@ class Command(BaseCommand):
         self.load_ingredient(data_dir)
         self.load_vmp(data_dir)
         self.load_organisation(data_dir)
+        self.load_scmd_quantity(data_dir)
         self.load_dose(data_dir)
         self.load_ingredient_quantity(data_dir)
         self.load_atc(data_dir)
@@ -394,3 +396,62 @@ class Command(BaseCommand):
         DataStatus.objects.bulk_create(data_status_objects)
         self.stdout.write(self.style.SUCCESS(
             f"Loaded {len(data_status_objects)} DataStatus"))
+        
+    def load_scmd_quantity(self, directory):
+        doses = self.load_monthly_csv(
+            os.path.join(
+                directory,
+                "dose_quantity"),
+            "*.csv")
+        doses["vmp_code"] = doses["vmp_code"].astype(int).astype(str)
+
+        organisations = {
+            org.ods_code: org for org in Organisation.objects.all()}
+        vmps = {vmp.code: vmp for vmp in VMP.objects.all()}
+
+        # Filter out rows with missing org or vmp
+        valid_doses = doses[doses["ods_code"].isin(
+            organisations) & doses["vmp_code"].isin(vmps)]
+
+        batch_size = 1000
+        total_scmd_quantities = 0
+
+        with tqdm(total=len(valid_doses), desc="Processing SCMDQuantity") as pbar:
+            for batch in self.batch_iterator(
+                valid_doses.itertuples(index=False), batch_size
+            ):
+                scmd_quantity_objects = []
+
+                for row in batch:
+                    year_month = datetime.strptime(
+                        row.year_month, "%Y-%m-%d").date()
+                    vmp = vmps[row.vmp_code]
+                    org = organisations[row.ods_code]
+
+                    scmd_quantity_objects.append(
+                        SCMDQuantity(
+                            year_month=year_month,
+                            vmp=vmp,
+                            quantity=(
+                                float(row.SCMD_quantity)
+                                if pd.notnull(row.SCMD_quantity)
+                                else None
+                            ),
+                            unit=row.SCMD_quantity_basis,
+                            organisation=org,
+                        )
+                    )
+
+                with transaction.atomic():
+                    try:
+                        SCMDQuantity.objects.bulk_create(scmd_quantity_objects)
+                        total_scmd_quantities += len(scmd_quantity_objects)
+                    except Exception as e:
+                        self.stdout.write(
+                            self.style.ERROR(f"Error creating batch: {str(e)}")
+                        )
+
+                pbar.update(len(batch))
+
+        self.stdout.write(self.style.SUCCESS(
+            f"Loaded {total_scmd_quantities} SCMDQuantities"))
