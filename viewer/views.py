@@ -115,6 +115,7 @@ class MeasureItemView(TemplateView):
             "measure_name": measure.name,
             "measure_name_short": measure.short_name,
             "why_it_matters": markdowner.convert(measure.why_it_matters),
+            "how_is_it_calculated": markdowner.convert(measure.how_is_it_calculated),
             "measure_description": markdowner.convert(measure.description),
             "reason": measure.reason.reason if measure.reason else None,
             "reason_colour": measure.reason.colour if measure.reason else None,
