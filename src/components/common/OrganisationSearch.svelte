@@ -172,8 +172,9 @@
                         </button>
                         <div class="w-[1px] h-4 bg-gray-300"></div>
                     {/if}
-                    <div class="text-sm text-gray-500">
-                        {selectedItems.length}/10
+                    <div class="flex flex-col items-center text-xs text-gray-500 py-1">
+                        <span class="font-medium">{selectedItems.length}/10</span>
+                        <span>{filterType === 'icb' ? 'ICBs' : 'Trusts'}</span>
                     </div>
                 </div>
             </div>
