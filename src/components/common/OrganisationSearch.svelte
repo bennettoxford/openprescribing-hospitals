@@ -14,6 +14,8 @@
 
     let isOpen = false;
     let searchTerm = '';
+    let listContainer;
+    let showScrollTop = false;
 
     $: items = $source.items || [];
     $: selectedItems = $source.selectedItems || [];
@@ -75,6 +77,18 @@
         });
     }
 
+    function updateScrollButtonVisibility() {
+        if (listContainer) {
+            console.log({
+                scrollHeight: listContainer.scrollHeight,
+                clientHeight: listContainer.clientHeight,
+                scrollTop: listContainer.scrollTop
+            });
+            
+            showScrollTop = listContainer.scrollHeight > listContainer.clientHeight && listContainer.scrollTop > 0;
+        }
+    }
+
     onMount(() => {
         const handleClickOutside = (event) => {
             const searchInput = document.querySelector('.dropdown input[type="text"]');
@@ -89,10 +103,25 @@
 
         document.addEventListener('click', handleClickOutside);
 
+        setTimeout(() => {
+            listContainer = document.querySelector('.dropdown .overflow-y-auto');
+            if (listContainer) {
+                listContainer.addEventListener('scroll', updateScrollButtonVisibility);
+                updateScrollButtonVisibility();
+            }
+        }, 100);
+
         return () => {
             document.removeEventListener('click', handleClickOutside);
+            if (listContainer) {
+                listContainer.removeEventListener('scroll', updateScrollButtonVisibility);
+            }
         };
     });
+
+    $: if (filteredItems && listContainer) {
+        setTimeout(updateScrollButtonVisibility, 50);
+    }
 </script>
 
 <div class="dropdown relative w-full h-full flex flex-col">
@@ -120,7 +149,7 @@
                         type="text"
                         bind:value={searchTerm}
                         on:focus={() => isOpen = true}
-                        placeholder="Search and select up to 10{filterType === 'icb' ? 'ICBs' : 'NHS Trusts'}..."
+                        placeholder="Search and select up to 10 {filterType === 'icb' ? 'ICBs' : 'NHS Trusts'}..."
                         class="w-full p-2 border border-gray-300 rounded-l-md pr-8 {isOpen ? 'rounded-b-none' : ''}"
                     />
                     <button
@@ -152,7 +181,11 @@
             {#if isOpen}
                 <div class="absolute top-[calc(100%_-_1px)] left-0 right-0 bg-white border border-gray-300 rounded-md rounded-t-none shadow-lg z-50 flex flex-col max-h-96"
                      class:absolute={overlayMode}>
-                    <ul class="flex-grow overflow-y-auto divide-y divide-gray-200">
+                    <ul 
+                        class="flex-grow overflow-y-auto divide-y divide-gray-200"
+                        bind:this={listContainer}
+                        on:scroll={updateScrollButtonVisibility}
+                    >
                         {#each filteredItems as item (item)}
                             <li 
                                 class="p-2 cursor-pointer transition duration-150 ease-in-out relative {maxSelected && !isItemSelected(item) ? 'bg-gray-300 cursor-not-allowed' : ''}"
@@ -176,22 +209,23 @@
                             </li>
                         {/each}
                     </ul>
-                    <button
-                        on:click={() => {
-                            const listContainer = document.querySelector('.dropdown .overflow-y-auto');
-                            if (listContainer) {
-                                listContainer.scrollTo({ top: 0 });
-                            }
-                        }}
-                        class="p-2 bg-gray-100 border-t border-gray-200 flex items-center justify-center hover:bg-oxford-50 active:bg-oxford-100 cursor-pointer transition-colors duration-150 gap-2"
-                    >
-                        <span class="text-sm font-medium text-gray-700">
-                            Click to scroll to top
-                        </span>
-                        <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                        </svg>
-                    </button>
+                    {#if showScrollTop}
+                        <button
+                            on:click={() => {
+                                if (listContainer) {
+                                    listContainer.scrollTo({ top: 0 });
+                                }
+                            }}
+                            class="p-2 bg-gray-100 border-t border-gray-200 flex items-center justify-center hover:bg-oxford-50 active:bg-oxford-100 cursor-pointer transition-colors duration-150 gap-2"
+                        >
+                            <span class="text-sm font-medium text-gray-700">
+                                Click to scroll to top
+                            </span>
+                            <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                            </svg>
+                        </button>
+                    {/if}
                 </div>
             {/if}
         </div>
