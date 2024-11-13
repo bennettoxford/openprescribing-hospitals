@@ -476,7 +476,7 @@
 </script>
 
 <div class="flex flex-col w-full">
-    <div class="w-96 relative z-50 mb-4">
+    <div class="w-full max-w-[600px] relative z-50 mb-4">
         {#if searchableOrgs.length > 0}
             <OrganisationSearch 
                 source={organisationSearchStore}
