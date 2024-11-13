@@ -2,6 +2,7 @@
     tag: 'collapsible-section',
     props: {
         title: { type: 'String' },
+        description: { type: 'String' },
         items: { type: 'String' },
         numeratorItems: { type: 'String' },
         previewCount: { type: 'Number' }
@@ -11,6 +12,7 @@
 
 <script>
     export let title = '';
+    export let description = '';
     export let items = '[]';
     export let numeratorItems = '[]';
     export let previewCount = 1;
@@ -54,8 +56,9 @@
 
 <div class="border border-gray-200 rounded-lg shadow-sm my-4 overflow-hidden">
     <div class="px-4 py-3 bg-white">
-        <div class="flex justify-between items-center mb-4">
+        <div class="flex justify-between items-center mb-2">
             <h3 class="text-lg font-semibold text-gray-800">{title}</h3>
+            
             <button 
                 on:click={toggleExpanded}
                 class="text-sm text-oxford-600 hover:text-oxford-800 font-medium flex items-center gap-1"
@@ -66,6 +69,10 @@
                 </svg>
             </button>
         </div>
+
+        {#if description}
+            <p class="text-sm text-gray-600 mb-4">{description}</p>
+        {/if}
 
         <div class="overflow-x-auto">
             <div class={`overflow-y-auto transition-all duration-200 ease-in-out ${isExpanded ? 'max-h-[24rem]' : 'max-h-[20rem]'}`}>
