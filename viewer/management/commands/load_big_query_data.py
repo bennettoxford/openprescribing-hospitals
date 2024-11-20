@@ -151,6 +151,11 @@ class Command(BaseCommand):
     def load_organisation(self, directory):
         organisations = self.load_csv("organisation_table", directory)
 
+        # Fix apostrophe capitalisation in organisation names. E.g. King'S -> King's
+        organisations['ods_name'] = organisations['ods_name'].apply(
+            lambda x: x.replace("'S ", "'s ").replace("'S,", "'s,") if isinstance(x, str) else x
+        )
+
         # First pass: Create all organisations without setting successors
         org_objects = [
             Organisation(

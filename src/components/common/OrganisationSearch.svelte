@@ -23,11 +23,19 @@
     $: showOrganisationSelection = $source.usedOrganisationSelection;
     $: filterType = $source.filterType;
 
+    function normalizeString(str) {
+        return str
+            .toLowerCase()
+            .replace(/['".,\/#!$%\^&\*;:{}=\-_`~()]/g, '') // Remove punctuation
+            .replace(/\s+/g, ' ') // Normalize whitespace
+            .trim();
+    }
+
     $: filteredItems = items
         .filter(item => 
             item && 
             typeof item === 'string' && 
-            item.toLowerCase().includes(searchTerm.toLowerCase())
+            normalizeString(item).includes(normalizeString(searchTerm))
         )
         .sort((a, b) => {
             if (isItemSelected(a) === isItemSelected(b)) {
