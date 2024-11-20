@@ -352,8 +352,8 @@ def filtered_quantities(request):
                 "vtm_name": item["vmp__vtm__name"] or "",
                 "atc_code": atc_info[0]['code'] if atc_info else "",
                 "atc_name": atc_info[0]['name'] if atc_info else "Unknown ATC",
-                "route_code": route_info[0]['code'] if route_info else "",
-                "route_name": route_info[0]['name'] if route_info else "Unknown Route",
+                "route_codes": [r['code'] for r in route_info] if route_info else [],
+                "route_names": [r['name'] for r in route_info] if route_info else ["Unknown Route"],
             }
 
             if quantity_type == "Ingredient Quantity":

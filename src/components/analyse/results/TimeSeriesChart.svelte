@@ -46,7 +46,9 @@
                 ))];
             }
             vtms = [...new Set(data.map(item => item.vtm_name || 'Unknown'))];
-            routes = [...new Set(data.filter(item => item.route_name).map(item => item.route_name))];
+            routes = [...new Set(data.flatMap(item => 
+                item.route_names || ['Unknown Route']
+            ))];
             if (chartDiv) {
                 updateChart();
             }
@@ -99,7 +101,7 @@
             case 'ATC':
                 return `${item.atc_code} | ${item.atc_name}` || 'Unknown ATC';
             case 'Route':
-                return item.route_name || 'Unknown Route';
+                return item.route_names ? item.route_names.join(', ') : 'Unknown Route';
             default:
                 return 'Total';
         }
@@ -116,16 +118,19 @@
             if (!acc[key]) {
                 acc[key] = {};
             }
-            const breakdownKey = getBreakdownKey(item, viewMode);
             
             if (viewMode === 'Route') {
-                if (item.route_name) {
-                    if (!acc[key][breakdownKey]) {
-                        acc[key][breakdownKey] = 0;
+                const routes = item.route_names || ['Unknown Route'];
+                const quantityPerRoute = parseFloat(item.quantity) / routes.length;
+                
+                routes.forEach(route => {
+                    if (!acc[key][route]) {
+                        acc[key][route] = 0;
                     }
-                    acc[key][breakdownKey] += parseFloat(item.quantity);
-                }
+                    acc[key][route] += quantityPerRoute;
+                });
             } else {
+                const breakdownKey = getBreakdownKey(item, viewMode);
                 if (!acc[key][breakdownKey]) {
                     acc[key][breakdownKey] = 0;
                 }
@@ -135,7 +140,10 @@
         }, {});
 
         const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
-        const breakdownKeys = [...new Set(data.map(item => getBreakdownKey(item, viewMode)))];
+        
+        const breakdownKeys = viewMode === 'Route' 
+            ? [...new Set(data.flatMap(item => item.route_names || ['Unknown Route']))]
+            : [...new Set(data.map(item => getBreakdownKey(item, viewMode)))];
 
         if (viewMode === 'Total') {
             return {

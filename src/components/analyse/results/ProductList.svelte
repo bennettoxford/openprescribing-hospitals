@@ -24,6 +24,8 @@
 
     $: {
         if (vmps.length > 0) {
+            console.log('VMPs data in ProductList:', vmps);
+            console.log('First VMP complete object:', vmps[0]);
             initializeCheckedVMPs();
         }
     }
@@ -98,15 +100,31 @@
                 return false;
             }
         });
-        console.log('Filtered VMPs:', selectedVMPs);
+
+        const vmpRouteMap = {};
+        $resultsStore.analysisData.data.forEach(item => {
+            if (item.vmp_name && item.route_names) {
+                vmpRouteMap[item.vmp_name] = item.route_names;
+            }
+        });
+
+        vmps = vmps.map(vmp => ({
+            ...vmp,
+            route_names: vmpRouteMap[vmp.vmp] || []
+        }));
+
         dispatch('dataFiltered', selectedVMPs);
 
-        resultsStore.update(store => ({
-            ...store,
-            filteredData: $resultsStore.analysisData.data.filter(item => 
-                selectedVMPs.some(vmp => vmp.vmp === item.vmp_name) && item.unit !== 'nan'
-            )
-        }));
+        resultsStore.update(store => {
+            const filteredData = $resultsStore.analysisData.data.filter(item => {
+                const isSelectedVMP = selectedVMPs.some(vmp => vmp.vmp === item.vmp_name);
+                return isSelectedVMP && item.unit !== 'nan';
+            });
+            return {
+                ...store,
+                filteredData
+            };
+        });
     }
 
     // Initial dispatch
@@ -119,7 +137,7 @@
     $: missingVMPs = vmps.filter(vmp => vmp.unit === 'nan').map(vmp => vmp.vmp);
     $: hasMissingVMPs = missingVMPs.length > 0;
 
-    $: hasMultipleRoutes = vmps.some(vmp => vmp.routes && vmp.routes.length > 1);
+    $: hasMultipleRoutes = vmps.some(vmp => vmp.route_names && vmp.route_names.length > 1);
     
     $: hasWarnings = showUnitWarning || showUnitIngredientWarning || hasMissingVMPs || hasMultipleRoutes;
 
@@ -154,6 +172,9 @@
                         <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('unit')}>
                             Unit <span class="text-gray-400">{getSortIndicator('unit')}</span>
                         </th>
+                        <th class="py-3 px-6 text-left">
+                            Routes
+                        </th>
                         {#if currentSearchType !== 'vmp'}
                             <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('vmp')}>
                                 VMP <span class="text-gray-400">{getSortIndicator('vmp')}</span>
@@ -180,6 +201,13 @@
                                 {/if}
                             </td>
                             <td class="py-3 px-6 text-left">{vmp.unit === 'nan' ? '-' : vmp.unit}</td>
+                            <td class="py-3 px-6 text-left">
+                                {#if vmp.route_names && vmp.route_names.length > 0}
+                                    {vmp.route_names.join(', ')}
+                                {:else}
+                                    <span class="text-gray-400">-</span>
+                                {/if}
+                            </td>
                             {#if currentSearchType !== 'vmp'}
                                 <td class="py-3 px-6 text-left">{vmp.vmp}</td>
                             {/if}
@@ -238,10 +266,10 @@
                         {/if}
                         {#if hasMultipleRoutes}
                             <li class="text-yellow-700">
-                                Some products have multiple routes of administration. These will not be included in breakdowns by route of administration:
+                                Some products have multiple routes of administration. Breakdowns by route will show the quantity split equally between each route of administration for these products:
                                 <ul class="list-disc list-inside ml-4 mt-1">
-                                    {#each vmps.filter(vmp => vmp.routes && vmp.routes.length > 1) as vmp}
-                                        <li>{vmp.vmp}: {vmp.routes.map(route => route.name).join(', ')}</li>
+                                    {#each vmps.filter(vmp => vmp.route_names && vmp.route_names.length > 1) as vmp}
+                                        <li>{vmp.vmp}: {vmp.route_names.join(', ')}</li>
                                     {/each}
                                 </ul>
                             </li>
