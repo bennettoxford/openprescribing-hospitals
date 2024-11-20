@@ -9,6 +9,17 @@ class VTM(models.Model):
     def __str__(self):
         return self.name
 
+class Route(models.Model):
+    code = models.CharField(max_length=30, primary_key=True)
+    name = models.CharField(max_length=255, unique=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug and self.name:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
 
 class VMP(models.Model):
     code = models.CharField(max_length=20, primary_key=True)
@@ -21,6 +32,7 @@ class VMP(models.Model):
         "Ingredient", related_name="vmps", null=True)
     atcs = models.ManyToManyField("ATC", related_name="vmps", null=True)
     ont_form_routes = models.ManyToManyField("OntFormRoute", related_name="vmps", null=True)
+    routes = models.ManyToManyField("Route", related_name="vmps", null=True)
 
     def __str__(self):
         return f"{self.name} ({self.code})"
@@ -275,3 +287,13 @@ class PrecomputedPercentile(models.Model):
 class DataStatus(models.Model):
     year_month = models.DateField()
     file_type = models.CharField(max_length=255)
+
+class DDD(models.Model):
+    atc_code = models.ForeignKey(ATC, on_delete=models.CASCADE, related_name="ddds")
+    ddd = models.FloatField()
+    unit = models.CharField(max_length=50)
+    route = models.ForeignKey(Route, on_delete=models.CASCADE, related_name="ddds")
+
+    def __str__(self):
+        return f"{self.atc_code.name} - {self.ddd} {self.unit}"
+

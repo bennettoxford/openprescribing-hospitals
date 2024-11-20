@@ -323,15 +323,23 @@ def filtered_quantities(request):
             "ingredient__name"
         ])
 
+    queryset = queryset.prefetch_related('vmp__routes')
+
     raw_data = list(
         queryset.values(*value_fields)
         .order_by("year_month", "vmp__name", "organisation__ods_name")
     )
-  
+    
+    vmp_route_map = {
+        iq.id: [{'code': route.code, 'name': route.name} for route in iq.vmp.routes.all()]
+        for iq in queryset.select_related('vmp').prefetch_related('vmp__routes')
+    }
+
     data = []
     for item in raw_data:
         try:
             atc_info = vmp_atc_map[item["id"]]
+            route_info = vmp_route_map[item["id"]]
             processed_item = {
                 "id": item["id"],
                 "year_month": item["year_month"].strftime("%Y-%m-%d"),
@@ -344,6 +352,8 @@ def filtered_quantities(request):
                 "vtm_name": item["vmp__vtm__name"] or "",
                 "atc_code": atc_info[0]['code'] if atc_info else "",
                 "atc_name": atc_info[0]['name'] if atc_info else "Unknown ATC",
+                "route_codes": [r['code'] for r in route_info] if route_info else [],
+                "route_names": [r['name'] for r in route_info] if route_info else ["Unknown Route"],
             }
 
             if quantity_type == "Ingredient Quantity":

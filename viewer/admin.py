@@ -9,6 +9,7 @@ from .models import (
     Measure,
     MeasureReason,
     ATC,
+    Route,
 )
 
 # Register your models here.
@@ -75,5 +76,11 @@ class MeasureReasonAdmin(admin.ModelAdmin):
 
 @admin.register(ATC)
 class ATCAdmin(admin.ModelAdmin):
+    list_display = ("code", "name")
+    search_fields = ("code", "name")
+
+
+@admin.register(Route)
+class RouteAdmin(admin.ModelAdmin):
     list_display = ("code", "name")
     search_fields = ("code", "name")

@@ -15,6 +15,7 @@
     let units = [];
     let ingredientUnitPairs = [];
     let vtms = [];
+    let routes = [];
     let tooltip;
     let resizeTimer;
     let visibleDatasets = [];
@@ -45,6 +46,9 @@
                 ))];
             }
             vtms = [...new Set(data.map(item => item.vtm_name || 'Unknown'))];
+            routes = [...new Set(data.flatMap(item => 
+                item.route_names || ['Unknown Route']
+            ))];
             if (chartDiv) {
                 updateChart();
             }
@@ -71,6 +75,7 @@
                 availableViewModes.push('ATC');
             }
         }
+        availableViewModes.push('Route');
     }
 
     function getIngredientName(item) {
@@ -95,6 +100,8 @@
                 return item.vtm_name || 'Unknown';
             case 'ATC':
                 return `${item.atc_code} | ${item.atc_name}` || 'Unknown ATC';
+            case 'Route':
+                return item.route_names ? item.route_names.join(', ') : 'Unknown Route';
             default:
                 return 'Total';
         }
@@ -111,16 +118,32 @@
             if (!acc[key]) {
                 acc[key] = {};
             }
-            const breakdownKey = getBreakdownKey(item, viewMode);
-            if (!acc[key][breakdownKey]) {
-                acc[key][breakdownKey] = 0;
+            
+            if (viewMode === 'Route') {
+                const routes = item.route_names || ['Unknown Route'];
+                const quantityPerRoute = parseFloat(item.quantity) / routes.length;
+                
+                routes.forEach(route => {
+                    if (!acc[key][route]) {
+                        acc[key][route] = 0;
+                    }
+                    acc[key][route] += quantityPerRoute;
+                });
+            } else {
+                const breakdownKey = getBreakdownKey(item, viewMode);
+                if (!acc[key][breakdownKey]) {
+                    acc[key][breakdownKey] = 0;
+                }
+                acc[key][breakdownKey] += parseFloat(item.quantity);
             }
-            acc[key][breakdownKey] += parseFloat(item.quantity);
             return acc;
         }, {});
 
         const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
-        const breakdownKeys = [...new Set(data.map(item => getBreakdownKey(item, viewMode)))];
+        
+        const breakdownKeys = viewMode === 'Route' 
+            ? [...new Set(data.flatMap(item => item.route_names || ['Unknown Route']))]
+            : [...new Set(data.map(item => getBreakdownKey(item, viewMode)))];
 
         if (viewMode === 'Total') {
             return {

@@ -61,6 +61,8 @@ class Command(BaseCommand):
         self.get_and_save_table(client, "vmp_form", self.vmp_form_sql)
         self.get_and_save_table(client, "vmp_ontform", self.vmp_ontform_sql)
         self.get_and_save_table(client, "data_status", self.data_status_table_sql)
+        self.get_and_save_table(client, "route", self.route_table_sql)
+
     def get_and_save_table(self, client, table_name, sql_query):
         print(f"Getting {table_name} table")
         df = execute_query(client, sql_query)
@@ -147,11 +149,16 @@ class Command(BaseCommand):
 
     ddd_table_sql = """
         SELECT DISTINCT
-            atc_code,
-            ddd,
-            unit_type,
-            adm_code
-        FROM `ebmdatalab.scmd.ddd`
+            d.atc_code,
+            CASE
+                WHEN uc.conversion_factor IS NOT NULL THEN d.ddd * uc.conversion_factor
+                ELSE d.ddd
+            END AS ddd,
+            COALESCE(uc.basis, d.unit_type) AS unit_type,
+            d.adm_code
+        FROM `ebmdatalab.scmd.ddd` d
+        LEFT JOIN `ebmdatalab.scmd.unit_conversion` uc
+            ON LOWER(d.unit_type) = uc.unit
     """
 
     atc_vmp_table_sql = """
@@ -181,3 +188,10 @@ FROM `ebmdatalab.dmd.vmp_full` v
         FROM `ebmdatalab.scmd.data_status`
     """
 
+    route_table_sql = """
+        SELECT DISTINCT
+            vmp_code,
+            route_cd,
+            route_descr
+        FROM `ebmdatalab.scmd.scmd_dmd_route`
+    """
