@@ -10,7 +10,7 @@ class VTM(models.Model):
         return self.name
 
 class Route(models.Model):
-    code = models.CharField(max_length=20, primary_key=True)
+    code = models.CharField(max_length=30, primary_key=True)
     name = models.CharField(max_length=255, unique=True)
 
     def save(self, *args, **kwargs):
@@ -287,7 +287,7 @@ class PrecomputedPercentile(models.Model):
 class DataStatus(models.Model):
     year_month = models.DateField()
     file_type = models.CharField(max_length=255)
-    
+
 class DDD(models.Model):
     atc_code = models.ForeignKey(ATC, on_delete=models.CASCADE, related_name="ddds")
     ddd = models.FloatField()
