@@ -65,7 +65,14 @@ class Command(BaseCommand):
                             for month, data in months.items():
                                 numerator = data['numerator']
                                 denominator = data['denominator']
-                                quantity = numerator / denominator if denominator and denominator != 0 else None
+
+                                if denominator and denominator != 0:
+                                    quantity = numerator / denominator
+                                elif denominator and denominator == 0:
+                                    quantity = 0
+                                else:
+                                    quantity = None
+                                    
                                 precomputed_measure = PrecomputedMeasure(
                                     measure=measure,
                                     organisation=organisation,
