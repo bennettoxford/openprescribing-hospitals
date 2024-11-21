@@ -118,6 +118,12 @@
         }, 0);
     }
 
+    function calculateMissingMonths(org) {
+        return months.reduce((count, month) => {
+            return count + (org.data[month]?.has_submitted ? 0 : 1);
+        }, 0);
+    }
+
     let parsedOrgData = [];
     
     function toggleSort() {
@@ -198,6 +204,14 @@
         if (level === 0) {
             organisationsToProcess.sort((a, b) => {
                 switch (sortType) {
+                    case 'missing_months':
+                        const aMissing = calculateMissingMonths(a);
+                        const bMissing = calculateMissingMonths(b);
+                        if (aMissing !== bMissing) {
+                            return bMissing - aMissing; // More missing months first
+                        }
+                        break;
+                        
                     case 'missing_latest':
                         const latestMonth = months[months.length - 1];
                         const aSubmitted = a.data[latestMonth]?.has_submitted;
@@ -585,9 +599,10 @@
                    transition-all duration-200 h-[38px]"
             on:change={() => createChart()}
         >
-            <option value="missing_latest">Sort by Missing Latest Data</option>
-            <option value="missing_proportion">Sort by Missing Data Proportion</option>
-            <option value="alphabetical">Sort Alphabetically</option>
+            <option value="missing_latest">Sort by submission status in latest month</option>
+            <option value="missing_months">Sort by number of months with no data submission</option>
+            <option value="missing_proportion">Sort by proportion of missing data</option>
+            <option value="alphabetical">Sort alphabetically</option>
         </select>
     </div>
     
