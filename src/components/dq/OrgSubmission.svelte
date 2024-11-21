@@ -264,7 +264,14 @@
         chartWidth = chartContainer.clientWidth;
         const margin = { top: 70, right: 70, bottom: 40, left: 350 };
         
-        chartHeight = flatOrgs.length * 30 + margin.top + margin.bottom;
+        // Calculate row height based on number of organisations
+        const baseRowHeight = 35;
+        const maxMultiplier = 5;
+        const numOrgs = flatOrgs.length;
+        const rowHeightMultiplier = Math.max(1, maxMultiplier - (0.44 * (Math.min(numOrgs, 10) - 1)));
+        const rowHeight = baseRowHeight * rowHeightMultiplier;
+        
+        chartHeight = flatOrgs.length * rowHeight + margin.top + margin.bottom;
 
         const width = chartWidth - margin.left - margin.right;
         const height = chartHeight - margin.top - margin.bottom;
