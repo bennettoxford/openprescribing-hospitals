@@ -155,9 +155,14 @@
         if (level === 0) {
             organisationsToProcess.sort((a, b) => {
                 if (sortBySubmission) {
-                    // Compare by submission status
-                    if (a.latest_submission !== b.latest_submission) {
-                        return a.latest_submission ? 1 : -1;
+                    // Get the latest month's submission status
+                    const latestMonth = months[months.length - 1];
+                    const aSubmitted = a.data[latestMonth]?.has_submitted;
+                    const bSubmitted = b.data[latestMonth]?.has_submitted;
+                    
+                    // Sort missing submissions first (false before true)
+                    if (aSubmitted !== bSubmitted) {
+                        return aSubmitted ? 1 : -1;
                     }
                 }
                 // Alphabetical sort as fallback
@@ -370,24 +375,53 @@
     }
 
     function drawOrgData(svg, org, x, y, width) {
+        // Calculate the maximum VMP count for this org
+        const maxVmpCount = Math.max(...Object.values(org.data).map(d => d.vmp_count));
+        
+        // Create a scale for the bar heights
+        const heightScale = d3.scaleLinear()
+            .domain([0, maxVmpCount])
+            .range([0, y.bandwidth()]);
+
         const orgData = months.map(month => ({
             date: new Date(month),
-            hasData: org.data[month]
+            hasData: org.data[month].has_submitted,
+            vmpCount: org.data[month].vmp_count
         }));
 
         const sanitizedOrgName = sanitizeClassName(org.name);
 
-        svg.selectAll(`.org-${sanitizedOrgName}`)
+        // First, create the visible data rectangles
+        svg.selectAll(`.org-${sanitizedOrgName}-visible`)
             .data(orgData)
             .enter()
             .append('rect')
-            .attr('class', `org-${sanitizedOrgName}`)
+            .attr('class', `org-${sanitizedOrgName}-visible`)
             .attr('x', d => x(d.date))
-            .attr('y', y(org.name))
+            .attr('y', d => d.hasData 
+                ? y(org.name) + y.bandwidth() - heightScale(d.vmpCount)
+                : y(org.name)
+            )
+            .attr('width', width / (months.length))
+            .attr('height', d => d.hasData 
+                ? heightScale(d.vmpCount)
+                : y.bandwidth()
+            )
+            .attr('fill', d => d.hasData ? DATA_SUBMITTED_COLOR : DATA_NOT_SUBMITTED_COLOR)
+            .attr('opacity', org.level === 0 ? 1 : 0.7);
+
+        // Then, create invisible rectangles for better hover detection
+        svg.selectAll(`.org-${sanitizedOrgName}-hover`)
+            .data(orgData)
+            .enter()
+            .append('rect')
+            .attr('class', `org-${sanitizedOrgName}-hover`)
+            .attr('x', d => x(d.date))
+            .attr('y', d => y(org.name))
             .attr('width', width / (months.length))
             .attr('height', y.bandwidth())
-            .attr('fill', d => d.hasData ? DATA_SUBMITTED_COLOR : DATA_NOT_SUBMITTED_COLOR)
-            .attr('opacity', org.level === 0 ? 1 : 0.7)  // Slightly reduce opacity for predecessors
+            .attr('fill', 'transparent')
+            .attr('pointer-events', 'all')
             .on("mouseover", function(event, d) {
                 tooltip.style("opacity", 1);
                 updateTooltipContent(event, d, org);
@@ -407,7 +441,7 @@
         tooltipContent = `
             <strong>Organisation:</strong> ${org.name}<br>
             <strong>Date:</strong> ${formatDate(d.date)}<br>
-            <strong>Submitted:</strong> ${d.hasData ? 'Yes' : 'No'}<br>
+            <strong>Number of products:</strong> ${d.vmpCount}<br>
             ${org.level > 0 ? '<strong>Predecessor Organisation</strong>' : ''}
             ${org.predecessors && org.predecessors.length > 0 ? '<strong>Has Predecessors</strong>' : ''}
         `;
