@@ -321,24 +321,22 @@ class Command(BaseCommand):
                 dose_objects = []
 
                 for row in batch:
-                    year_month = datetime.strptime(
-                        row.year_month, "%Y-%m-%d").date()
-                    vmp = vmps[row.vmp_code]
-                    org = organisations[row.ods_code]
+                    # Only create dose object if both quantity and unit are not null
+                    if pd.notnull(row.dose_quantity) and pd.notnull(row.dose_unit):
+                        year_month = datetime.strptime(
+                            row.year_month, "%Y-%m-%d").date()
+                        vmp = vmps[row.vmp_code]
+                        org = organisations[row.ods_code]
 
-                    dose_objects.append(
-                        Dose(
-                            year_month=year_month,
-                            vmp=vmp,
-                            quantity=(
-                                float(row.dose_quantity)
-                                if pd.notnull(row.dose_quantity)
-                                else None
-                            ),
-                            unit=row.dose_unit,
-                            organisation=org,
+                        dose_objects.append(
+                            Dose(
+                                year_month=year_month,
+                                vmp=vmp,
+                                quantity=float(row.dose_quantity),
+                                unit=row.dose_unit,
+                                organisation=org,
+                            )
                         )
-                    )
 
                 with transaction.atomic():
                     try:
@@ -395,23 +393,20 @@ class Command(BaseCommand):
                 iq_objects = []
 
                 for row in batch:
-                    iq_objects.append(
-                        IngredientQuantity(
-                            year_month=datetime.strptime(
-                                row.year_month, "%Y-%m-%d"
-                            ).date(),
-                            ingredient=ingredients[row.ingredient_code],
-                            vmp=vmps[row.vmp_code],
-                            quantity=(
-                                float(row.ingredient_quantity)
-                                if row.ingredient_quantity
-                                and str(row.ingredient_quantity).strip()
-                                else None
-                            ),
-                            unit=row.ingredient_unit,
-                            organisation=organisations[row.ods_code],
+                    # Only create object if both quantity and unit are not null
+                    if pd.notnull(row.ingredient_quantity) and pd.notnull(row.ingredient_unit) and pd.notnull(row.ingredient_code):
+                        iq_objects.append(
+                            IngredientQuantity(
+                                year_month=datetime.strptime(
+                                    row.year_month, "%Y-%m-%d"
+                                ).date(),
+                                ingredient=ingredients[row.ingredient_code],
+                                vmp=vmps[row.vmp_code],
+                                quantity=float(row.ingredient_quantity),
+                                unit=row.ingredient_unit,
+                                organisation=organisations[row.ods_code],
+                            )
                         )
-                    )
 
                 with transaction.atomic():
                     try:

@@ -22,29 +22,32 @@ measure_data AS (
         COALESCE(org_successor.region, org.region) AS region,
         to_char(dose.year_month, 'YYYY-MM') AS month,
         SUM(CASE WHEN dose.unit IN ('ampoule', 'vial') THEN dose.quantity ELSE 0 END) AS numerator,
-        SUM(dose.quantity) AS denominator
+        SUM(CASE 
+            WHEN EXISTS (
+                SELECT 1 
+                FROM viewer_route r 
+                JOIN viewer_vmp_routes vr ON r.code = vr.route_id 
+                WHERE vr.vmp_id = vmp.code 
+                AND LOWER(r.name) != 'oral'
+            )
+            THEN dose.quantity 
+            ELSE 0 
+        END) AS denominator
     FROM 
         viewer_dose dose
     JOIN viewer_vmp vmp ON dose.vmp_id = vmp.code
     JOIN viewer_vtm vtm ON vmp.vtm_id = vtm.vtm
     JOIN viewer_organisation org ON dose.organisation_id = org.ods_code
     LEFT JOIN viewer_organisation org_successor ON org.successor_id = org_successor.ods_code
-    WHERE vmp.code IN (
-        '36018411000001105',
-        '36018311000001103',
-        '36018511000001109',
-        '36018611000001108',
-        '36018711000001104',
-        '36018811000001107',
-        '36019111000001107',
-        '36019311000001109',
-        '36019411000001102',
-        '36019511000001103',
-        '36019611000001104',
-        '36019711000001108',
-        '4898111000001106',
-        '36019911000001105'
-        )
+    WHERE LOWER(vtm.name) LIKE '%potassium chloride%'
+    AND LOWER(vmp.name) NOT LIKE '%ringers%'
+    AND EXISTS (
+        SELECT 1
+        FROM viewer_dose dose2
+        WHERE dose2.vmp_id = vmp.code
+    )
+    AND dose.unit IS NOT NULL 
+    AND dose.unit != 'nan'
     GROUP BY
         COALESCE(org_successor.ods_name, org.ods_name), 
         COALESCE(org_successor.region, org.region),
@@ -76,28 +79,31 @@ org_submission_check AS (
 ),
 vmp_lists AS (
     SELECT 
-        array_agg(DISTINCT vmp.code) FILTER (WHERE dose.unit IN ('ampoule', 'vial')) AS numerator_vmps,
-        array_agg(DISTINCT vmp.code) AS denominator_vmps
+        array_agg(DISTINCT vmp.code) FILTER (
+            WHERE dose.unit IN ('ampoule', 'vial')
+            AND EXISTS (
+                SELECT 1 
+                FROM viewer_route r 
+                JOIN viewer_vmp_routes vr ON r.code = vr.route_id 
+                WHERE vr.vmp_id = vmp.code 
+                AND LOWER(r.name) != 'oral'
+            )
+        ) AS numerator_vmps,
+        array_agg(DISTINCT vmp.code) FILTER (
+            WHERE EXISTS (
+                SELECT 1 
+                FROM viewer_route r 
+                JOIN viewer_vmp_routes vr ON r.code = vr.route_id 
+                WHERE vr.vmp_id = vmp.code 
+                AND LOWER(r.name) != 'oral'
+            )
+        ) AS denominator_vmps
     FROM 
         viewer_dose dose
     JOIN viewer_vmp vmp ON dose.vmp_id = vmp.code
     JOIN viewer_vtm vtm ON vmp.vtm_id = vtm.vtm
-    WHERE vmp.code IN (
-        '36018411000001105',
-        '36018311000001103',
-        '36018511000001109',
-        '36018611000001108',
-        '36018711000001104',
-        '36018811000001107',
-        '36019111000001107',
-        '36019311000001109',
-        '36019411000001102',
-        '36019511000001103',
-        '36019611000001104',
-        '36019711000001108',
-        '4898111000001106',
-        '36019911000001105'
-        )
+    WHERE LOWER(vtm.name) LIKE '%potassium chloride%'
+    AND LOWER(vmp.name) NOT LIKE '%ringers%'
 )
 SELECT 
     'parenteral_potassium_chloride_proportion' AS name,

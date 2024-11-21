@@ -171,11 +171,13 @@ class MeasureItemView(TemplateView):
 
     def get_org_data(self, org_measures):
         all_orgs = set(org_measures.values_list('organisation__ods_name', flat=True).distinct())
+        
         non_zero_orgs = set(org_measures.values('organisation__ods_code')
-                            .annotate(non_zero_count=Count('id', filter=Q(quantity__isnull=False) & ~Q(quantity=0)))
-                            .filter(non_zero_count__gt=0)
-                            .values_list('organisation__ods_code', flat=True))
-
+                        .annotate(non_zero_count=Count('id', 
+                            filter=Q(denominator__isnull=False) & ~Q(denominator=0)))
+                        .filter(non_zero_count__gt=0)
+                        .values_list('organisation__ods_code', flat=True))
+        
         org_measures_dict = {}
         for measure in org_measures.filter(organisation__ods_code__in=non_zero_orgs).values(
             'organisation__ods_code', 'organisation__ods_name', 'month', 'quantity', 'numerator', 'denominator'
