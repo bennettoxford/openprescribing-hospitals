@@ -213,6 +213,8 @@ class OrgSubmissionCache(models.Model):
     successor = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name='successors', null=True, blank=True)
     month = models.DateField()
     has_submitted = models.BooleanField()
+    vmp_count = models.IntegerField(null=True)
+    quantity_count = models.IntegerField(null=True)
 
     class Meta:
         unique_together = ('organisation', 'month')
