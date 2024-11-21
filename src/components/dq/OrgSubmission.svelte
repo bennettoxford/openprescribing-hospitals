@@ -73,11 +73,55 @@
         }, 0);
     }
 
-    let sortBySubmission = true;
+    let sortType = 'missing_latest'; // Default sort
+
+    
+    function calculateMissingDataProportion(org) {
+        // Get all months' VMP counts, including predecessors, but only for submitted months
+        const monthlyTotals = months.map(month => {
+            let total = 0;
+            let hasSubmitted = org.data[month]?.has_submitted;
+            
+            if (hasSubmitted) {
+                total = org.data[month]?.vmp_count || 0;
+                
+                // Add predecessor VMP counts if they exist
+                if (org.predecessors) {
+                    org.predecessors.forEach(pred => {
+                        if (pred.data[month]?.has_submitted) {
+                            total += pred.data[month]?.vmp_count || 0;
+                        }
+                    });
+                }
+            }
+            return { total, hasSubmitted };
+        });
+        
+        // Filter to only submitted months for median calculation
+        const submittedTotals = monthlyTotals
+            .filter(m => m.hasSubmitted)
+            .map(m => m.total);
+        
+        // If no submissions, return 0 or a very high number depending on sorting preference
+        if (submittedTotals.length === 0) {
+            return Number.MAX_SAFE_INTEGER; // This will put orgs with no submissions at the top
+        }
+        
+        // Calculate median from the submitted monthly totals
+        const sortedTotals = [...submittedTotals].sort((a, b) => a - b);
+        const median = sortedTotals[Math.floor(sortedTotals.length / 2)];
+        
+        // Calculate total missing proportion across all months
+        return monthlyTotals.reduce((sum, { total, hasSubmitted }) => {
+            // Only count missing data if the month should have had a submission
+            return sum + (hasSubmitted ? Math.max(0, median - total) : 0);
+        }, 0);
+    }
+
     let parsedOrgData = [];
     
     function toggleSort() {
-        sortBySubmission = !sortBySubmission;
+        sortType = sortType === 'missing_latest' ? 'missing_proportion' : sortType === 'missing_proportion' ? 'alphabetical' : 'missing_latest';
         createChart();
     }
 
@@ -150,22 +194,31 @@
     function flattenOrganisations(orgs, level = 0) {
         let flattened = [];
         
-        // Only sort the top-level organisations
         let organisationsToProcess = [...orgs];
         if (level === 0) {
             organisationsToProcess.sort((a, b) => {
-                if (sortBySubmission) {
-                    // Get the latest month's submission status
-                    const latestMonth = months[months.length - 1];
-                    const aSubmitted = a.data[latestMonth]?.has_submitted;
-                    const bSubmitted = b.data[latestMonth]?.has_submitted;
-                    
-                    // Sort missing submissions first (false before true)
-                    if (aSubmitted !== bSubmitted) {
-                        return aSubmitted ? 1 : -1;
-                    }
+                switch (sortType) {
+                    case 'missing_latest':
+                        const latestMonth = months[months.length - 1];
+                        const aSubmitted = a.data[latestMonth]?.has_submitted;
+                        const bSubmitted = b.data[latestMonth]?.has_submitted;
+                        if (aSubmitted !== bSubmitted) {
+                            return aSubmitted ? 1 : -1;
+                        }
+                        break;
+                        
+                    case 'missing_proportion':
+                        const aProportion = calculateMissingDataProportion(a);
+                        const bProportion = calculateMissingDataProportion(b);
+                        if (aProportion !== bProportion) {
+                            return bProportion - aProportion; // Larger proportions first
+                        }
+                        break;
+                        
+                    case 'alphabetical':
+                        return a.name.localeCompare(b.name);
                 }
-                // Alphabetical sort as fallback
+                // Default to alphabetical as fallback
                 return a.name.localeCompare(b.name);
             });
         }
@@ -524,18 +577,18 @@
     </div>
 
     <div class="flex items-center mb-2 mr-8 justify-end">
-        <button 
+        <select 
+            bind:value={sortType}
             class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium 
                    bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 
                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 
                    transition-all duration-200 h-[38px]"
-            on:click={toggleSort}
+            on:change={() => createChart()}
         >
-            <svg class="mr-2 h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-            </svg>
-            <span>{sortBySubmission ? 'Sort Alphabetically' : 'Sort by Latest Submission'}</span>
-        </button>
+            <option value="missing_latest">Sort by Missing Latest Data</option>
+            <option value="missing_proportion">Sort by Missing Data Proportion</option>
+            <option value="alphabetical">Sort Alphabetically</option>
+        </select>
     </div>
     
     {#if error}
