@@ -97,25 +97,26 @@
             return { total, hasSubmitted };
         });
         
-        // Filter to only submitted months for median calculation
-        const submittedTotals = monthlyTotals
-            .filter(m => m.hasSubmitted)
-            .map(m => m.total);
+        // Filter to only submitted months
+        const submittedData = monthlyTotals.filter(m => m.hasSubmitted);
         
-        // If no submissions, return 0 or a very high number depending on sorting preference
-        if (submittedTotals.length === 0) {
-            return Number.MAX_SAFE_INTEGER; // This will put orgs with no submissions at the top
-        }
+        // Find max VMP count from submitted months for scaling
+        const maxVmpCount = Math.max(...submittedData.map(m => m.total));
         
-        // Calculate median from the submitted monthly totals
-        const sortedTotals = [...submittedTotals].sort((a, b) => a - b);
-        const median = sortedTotals[Math.floor(sortedTotals.length / 2)];
+        // Scale the submitted totals between 0 and 1
+        const scaledTotals = submittedData.map(m => ({
+            ...m,
+            scaledTotal: maxVmpCount > 0 ? m.total / maxVmpCount : 0
+        }));
         
-        // Calculate total missing proportion across all months
-        return monthlyTotals.reduce((sum, { total, hasSubmitted }) => {
-            // Only count missing data if the month should have had a submission
-            return sum + (hasSubmitted ? Math.max(0, median - total) : 0);
-        }, 0);
+        // Calculate median from scaled totals
+        const sortedScaledTotals = [...scaledTotals].sort((a, b) => a.scaledTotal - b.scaledTotal);
+        const medianScaled = sortedScaledTotals[Math.floor(sortedScaledTotals.length / 2)].scaledTotal;
+        
+        // Calculate average absolute deviation from the median
+        return scaledTotals.reduce((sum, { scaledTotal }) => {
+            return sum + Math.abs(scaledTotal - medianScaled);
+        }, 0) / scaledTotals.length;
     }
 
     function calculateMissingMonths(org) {
@@ -601,7 +602,7 @@
         >
             <option value="missing_latest">Sort by submission status in latest month</option>
             <option value="missing_months">Sort by number of months with no data submission</option>
-            <option value="missing_proportion">Sort by proportion of missing data</option>
+            <option value="missing_proportion">Sort by deviation from the median number of products</option>
             <option value="alphabetical">Sort alphabetically</option>
         </select>
     </div>
