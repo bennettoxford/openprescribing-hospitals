@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from viewer.models import OrgSubmissionCache, Dose, Organisation
+from django.db.models import Count, Sum
+from viewer.models import OrgSubmissionCache, SCMDQuantity, Organisation
 from tqdm import tqdm
 
 def update_org_submission_cache():
@@ -9,10 +10,8 @@ def update_org_submission_cache():
         OrgSubmissionCache.objects.all().delete()
 
         # Get unique months and date range
-        unique_months = Dose.objects.dates('year_month', 'month').order_by('year_month')
-        min_date = unique_months.first()
-        max_date = unique_months.last()
-
+        unique_months = SCMDQuantity.objects.dates('year_month', 'month').order_by('year_month')
+        
         # Get all organisations with their successors
         organisations = list(Organisation.objects.select_related('successor').all())
 
@@ -21,18 +20,34 @@ def update_org_submission_cache():
 
         print("Creating cache objects...")
         for month in tqdm(unique_months, desc="Processing months"):
-            # Get organisations with doses for this month
-            orgs_with_doses = set(Dose.objects.filter(year_month__month=month.month, 
-                                                      year_month__year=month.year)
-                                   .values_list('organisation__ods_code', flat=True))
+            # Get monthly stats for each organisation
+            org_stats = SCMDQuantity.objects.filter(
+                year_month__month=month.month,
+                year_month__year=month.year
+            ).values('organisation').annotate(
+                vmp_count=Count('vmp', distinct=True),
+                quantity_sum=Sum('quantity')
+            )
+            
+            org_stats_dict = {
+                stat['organisation']: {
+                    'vmp_count': stat['vmp_count'],
+                    'quantity_sum': stat['quantity_sum']
+                } 
+                for stat in org_stats
+            }
 
             for org in organisations:
-                has_submitted = org.ods_code in orgs_with_doses
+                stats = org_stats_dict.get(org.ods_code, {})
+                has_submitted = stats.get('vmp_count', 0) > 0
+                
                 cache_objects.append(OrgSubmissionCache(
                     organisation=org,
-                    successor=org.successor,  # Add the successor information
+                    successor=org.successor,
                     month=month,
-                    has_submitted=has_submitted
+                    has_submitted=has_submitted,
+                    vmp_count=stats.get('vmp_count', 0),
+                    quantity_count=stats.get('quantity_sum', 0)
                 ))
 
         # Bulk create all cache objects
