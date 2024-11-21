@@ -254,6 +254,33 @@
         return flattened;
     }
 
+    function parseDate(dateStr) {
+        if (!dateStr) return null;
+        const [month, year] = dateStr.split(' ');
+        return new Date(`${month} 1, ${year}`);
+    }
+
+    function updateTooltipContent(event, d, org) {
+        const xPos = event.offsetX + 10;
+        const yPos = event.offsetY - 10;
+
+        const finalDate = parseDate(parsedLatestDates.final);
+        const isProvisional = finalDate && d.date >= finalDate;
+
+        tooltipContent = `
+            ${isProvisional ? '<strong class="text-amber-600">Warning: Provisional</strong><br><br>' : ''}
+            <strong>Organisation:</strong> ${org.name}<br>
+            <strong>Date:</strong> ${formatDate(d.date)}<br>
+            <strong>Number of products:</strong> ${d.vmpCount}<br>
+            ${org.level > 0 ? '<strong>Predecessor Organisation</strong>' : ''}
+        `;
+
+        tooltip.html(tooltipContent)
+            .style("left", `${xPos}px`)
+            .style("top", `${yPos}px`)
+            .style("transform", "translate(-50%, -100%)");
+    }
+
     function createChart() {
         if (!chartContainer) return;
 
@@ -398,12 +425,6 @@
         const dateLineGroup = svg.append('g')
             .attr('class', 'date-lines');
 
-        function parseDate(dateStr) {
-            if (!dateStr) return null;
-            const [month, year] = dateStr.split(' ');
-            return new Date(`${month} 1, ${year}`);
-        }
-
         // Add vertical lines for each date type
         const dateTypes = {
             final: { color: '#117733', label: 'finalised' },
@@ -446,6 +467,23 @@
                 .attr('dy', '1.2em')
                 .text(`${style.label} data`);
         });
+
+        const finalDate = parseDate(parsedLatestDates.final);
+        if (finalDate) {
+            const lastMonth = new Date(months[months.length - 1]);
+            const endOfLastMonth = new Date(lastMonth);
+            endOfLastMonth.setMonth(endOfLastMonth.getMonth() + 1);
+
+            // Add a semi-transparent overlay from final date to end of chart
+            svg.append('rect')
+                .attr('x', x(finalDate))
+                .attr('y', 0)
+                .attr('width', x(endOfLastMonth) - x(finalDate))
+                .attr('height', height)
+                .attr('fill', '#f8f9fa')
+                .attr('opacity', 0.5)
+                .attr('pointer-events', 'none');
+        }
 
     }
 
@@ -507,24 +545,6 @@
             .on("mouseout", function() {
                 tooltip.style("opacity", 0);
             });
-    }
-
-    function updateTooltipContent(event, d, org) {
-        const xPos = event.offsetX + 10;
-        const yPos = event.offsetY - 10;
-
-        tooltipContent = `
-            <strong>Organisation:</strong> ${org.name}<br>
-            <strong>Date:</strong> ${formatDate(d.date)}<br>
-            <strong>Number of products:</strong> ${d.vmpCount}<br>
-            ${org.level > 0 ? '<strong>Predecessor Organisation</strong>' : ''}
-            ${org.predecessors && org.predecessors.length > 0 ? '<strong>Has Predecessors</strong>' : ''}
-        `;
-
-        tooltip.html(tooltipContent)
-            .style("left", `${xPos}px`)
-            .style("top", `${yPos}px`)
-            .style("transform", "translate(-50%, -100%)");
     }
 
     function formatDate(date) {

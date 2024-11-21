@@ -381,7 +381,7 @@ class OrgsSubmittingDataView(TemplateView):
         
         # Get latest dates for each file type
         latest_dates = {}
-        for file_type in ['final', 'wip']:
+        for file_type in ['final']:
             latest = DataStatus.objects.filter(
                 file_type=file_type
             ).aggregate(
