@@ -20,6 +20,7 @@ export const selectedItems = derived(
     }
 );
 export const usedOrganisationSelection = writable(false);
+export const visibleRegions = writable(new Set());
 
 const organisationColors = [
   '#332288', '#117733', '#44AA99', '#88CCEE', 
@@ -40,8 +41,8 @@ export function getTrustColor(index) {
 }
 
 export const filteredData = derived(
-  [selectedMode, orgdata, regiondata, icbdata, percentiledata, selectedItems],
-  ([$selectedMode, $orgdata, $regiondata, $icbdata, $percentiledata, $selectedItems]) => {
+  [selectedMode, orgdata, regiondata, icbdata, percentiledata, selectedItems, visibleRegions],
+  ([$selectedMode, $orgdata, $regiondata, $icbdata, $percentiledata, $selectedItems, $visibleRegions]) => {
     let labels = [];
     let datasets = [];
 
@@ -78,16 +79,18 @@ export const filteredData = derived(
       case 'region':
         labels = $regiondata.length > 0 ? 
           $regiondata[0].data.map(d => d.month).sort(sortDates) : [];
-        datasets = $regiondata.map((region, index) => {
-          const sortedData = region.data.sort((a, b) => sortDates(a.month, b.month));
-          return {
-            label: region.name,
-            data: sortedData.map(d => d.quantity),
-            numerator: sortedData.map(d => d.numerator),
-            denominator: sortedData.map(d => d.denominator),
-            color: regionColors[region.name] || getOrganisationColor(index)
-          };
-        });
+        datasets = $regiondata
+          .filter(region => $visibleRegions.size === 0 || $visibleRegions.has(region.name))
+          .map((region, index) => {
+            const sortedData = region.data.sort((a, b) => sortDates(a.month, b.month));
+            return {
+              label: region.name,
+              data: sortedData.map(d => d.quantity),
+              numerator: sortedData.map(d => d.numerator),
+              denominator: sortedData.map(d => d.denominator),
+              color: regionColors[region.name] || getOrganisationColor(index)
+            };
+          });
         break;
       case 'icb':
         labels = $icbdata.length > 0 ? 

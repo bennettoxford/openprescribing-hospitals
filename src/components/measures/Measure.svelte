@@ -117,16 +117,20 @@
             <ModeSelector {handleModeChange} />
         </div>
     </div>
-    <div class="flex-grow relative" style="min-height: 400px;">
-        <div class="chart-container absolute inset-0">
-            {#if orgdata.length === 0}
-                <p class="text-center text-gray-500 pt-8">No data available.</p>
-            {:else}
-                <MeasureChart />
-            {/if}
+    <div class="flex flex-col lg:flex-row gap-4">
+        <div class="flex-grow relative" style="min-height: 400px;">
+            <div class="chart-container absolute inset-0">
+                {#if orgdata.length === 0}
+                    <p class="text-center text-gray-500 pt-8">No data available.</p>
+                {:else}
+                    <MeasureChart />
+                {/if}
+            </div>
         </div>
+        {#if showLegend}
+            <div class="lg:w-48 flex-shrink-0">
+                <ChartLegend />
+            </div>
+        {/if}
     </div>
-    {#if showLegend}
-        <ChartLegend />
-    {/if}
 </div>

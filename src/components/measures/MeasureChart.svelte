@@ -9,7 +9,7 @@
   function createChart() {
     d3.select(chartDiv).selectAll('*').remove();
 
-    const margin = { top: 20, right: 20, bottom: 40, left: 70 };
+    const margin = { top: 20, right: 40, bottom: 40, left: 70 };
     const width = chartDiv.clientWidth;
     const height = 400;
     const chartWidth = width - margin.left - margin.right;
