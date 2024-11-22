@@ -19,7 +19,9 @@
         percentiledata as percentileStore, 
         selectedTrusts,
         selectedICBs,
-        selectedItems
+        visibleRegions,
+        visibleTrusts,
+        visibleICBs
     } from '../../stores/measureChartStore.js';
     import MeasureChart from './MeasureChart.svelte';
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
@@ -38,7 +40,10 @@
     $: showFilter = $selectedMode === 'trust' || $selectedMode === 'percentiles' || $selectedMode === 'icb';
     $: filterItems = $selectedMode === 'icb' ? icbs : trusts;
     $: filterType = $selectedMode === 'icb' ? 'icb' : 'trust';
-    $: showLegend = $selectedMode === 'percentiles' || $selectedMode === 'region';
+    $: showLegend = $selectedMode === 'percentiles' || 
+                    $selectedMode === 'region' || 
+                    $selectedMode === 'trust' || 
+                    $selectedMode === 'icb';
 
     $: {
         if ($selectedMode === 'icb') {
@@ -86,6 +91,10 @@
         const newMode = event.target.value;
         selectedMode.set(newMode);
         
+        visibleRegions.set(new Set());
+        visibleTrusts.set(new Set());
+        visibleICBs.set(new Set());
+        
         if (newMode === 'icb') {
             organisationSearchStore.setItems(icbs);
             organisationSearchStore.setFilterType('icb');
@@ -128,7 +137,7 @@
             </div>
         </div>
         {#if showLegend}
-            <div class="lg:w-48 flex-shrink-0">
+            <div class="h-[200px] lg:h-[400px] lg:w-48 flex-shrink-0">
                 <ChartLegend />
             </div>
         {/if}

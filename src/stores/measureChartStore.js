@@ -8,19 +8,10 @@ export const percentiledata = writable([]);
 export const selectedMode = writable('national');
 export const selectedTrusts = writable([]);
 export const selectedICBs = writable([]);
-export const selectedItems = derived(
-    [selectedMode, selectedTrusts, selectedICBs],
-    ([$selectedMode, $selectedTrusts, $selectedICBs]) => {
-        if ($selectedMode === 'icb') {
-            return $selectedICBs;
-        } else if ($selectedMode === 'trust' || $selectedMode === 'percentiles') {
-            return $selectedTrusts;
-        }
-        return [];
-    }
-);
 export const usedOrganisationSelection = writable(false);
 export const visibleRegions = writable(new Set());
+export const visibleTrusts = writable(new Set());
+export const visibleICBs = writable(new Set());
 
 const organisationColors = [
   '#332288', '#117733', '#44AA99', '#88CCEE', 
@@ -41,8 +32,8 @@ export function getTrustColor(index) {
 }
 
 export const filteredData = derived(
-  [selectedMode, orgdata, regiondata, icbdata, percentiledata, selectedItems, visibleRegions],
-  ([$selectedMode, $orgdata, $regiondata, $icbdata, $percentiledata, $selectedItems, $visibleRegions]) => {
+  [selectedMode, orgdata, regiondata, icbdata, percentiledata, visibleTrusts, visibleICBs, visibleRegions],
+  ([$selectedMode, $orgdata, $regiondata, $icbdata, $percentiledata, $visibleTrusts, $visibleICBs, $visibleRegions]) => {
     let labels = [];
     let datasets = [];
 
@@ -61,19 +52,20 @@ export const filteredData = derived(
         if (typeof $orgdata === 'object' && !Array.isArray($orgdata)) {
           const allDates = [...new Set(Object.values($orgdata).flatMap(org => org.map(d => d.month)))].sort(sortDates);
           labels = allDates;
-          let orgsToShow = $selectedItems.length > 0 ? $selectedItems : Object.keys($orgdata);
-          datasets = orgsToShow.map((org, index) => {
-            const orgData = $orgdata[org];
-            if (!orgData) return null;
-            return {
-              label: org,
-              data: createDataArrayWithNulls(orgData, allDates, 'quantity'),
-              numerator: createDataArrayWithNulls(orgData, allDates, 'numerator'),
-              denominator: createDataArrayWithNulls(orgData, allDates, 'denominator'),
-              color: getOrganisationColor(index),
-              spanGaps: true
-            };
-          }).filter(Boolean);
+          const trustNames = Object.keys($orgdata);
+          datasets = trustNames
+            .filter(trust => $visibleTrusts.size === 0 || $visibleTrusts.has(trust))
+            .map((trust, index) => {
+              const trustData = $orgdata[trust];
+              return {
+                label: trust,
+                data: createDataArrayWithNulls(trustData, allDates, 'quantity'),
+                numerator: createDataArrayWithNulls(trustData, allDates, 'numerator'),
+                denominator: createDataArrayWithNulls(trustData, allDates, 'denominator'),
+                color: getOrganisationColor(index),
+                spanGaps: true
+              };
+            });
         }
         break;
       case 'region':
@@ -95,9 +87,8 @@ export const filteredData = derived(
       case 'icb':
         labels = $icbdata.length > 0 ? 
           $icbdata[0].data.map(d => d.month).sort(sortDates) : [];
-        let icbsToShow = $selectedItems.length > 0 ? $selectedItems : $icbdata.map(icb => icb.name);
         datasets = $icbdata
-          .filter(icb => icbsToShow.includes(icb.name))
+          .filter(icb => $visibleICBs.size === 0 || $visibleICBs.has(icb.name))
           .map((icb, index) => {
             const sortedData = icb.data.sort((a, b) => sortDates(a.month, b.month));
             return {
@@ -171,8 +162,8 @@ export const filteredData = derived(
         ];
 
         // Add selected organisations
-        if ($selectedItems.length > 0) {
-          $selectedItems.forEach((org, index) => {
+        if ($visibleTrusts.size > 0) {
+          Array.from($visibleTrusts).forEach((org, index) => {
             if ($orgdata[org]) {
               datasets.push({
                 label: org,
@@ -225,7 +216,7 @@ export const filteredData = derived(
           const allDates = [...new Set(Object.values($orgdata).flatMap(trust => trust.map(d => d.month)))].sort(sortDates);
           labels = allDates;
           
-          let trustsToShow = $selectedItems.length > 0 ? $selectedItems : Object.keys($orgdata);
+          let trustsToShow = $visibleTrusts.size > 0 ? Array.from($visibleTrusts) : Object.keys($orgdata);
           datasets = trustsToShow.map((trust, index) => {
             const trustData = $orgdata[trust];
             if (!trustData) return null;
