@@ -11,7 +11,7 @@
 
     export let source;
     export let overlayMode = false;
-    export let placeholderText = `Search and select up to 10 ${filterType === 'icb' ? 'ICBs' : 'NHS Trusts'}...`;
+    $: placeholderText = `Search and select up to 10 ${filterType === 'icb' ? 'Integrated Care Boards' : 'NHS Trusts'}...`;
 
     let isOpen = false;
     let searchTerm = '';
