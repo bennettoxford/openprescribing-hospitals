@@ -2,9 +2,12 @@
   import { onMount, onDestroy } from 'svelte';
   import * as d3 from 'd3';
   import { filteredData, getOrganisationColor, selectedMode } from '../../stores/measureChartStore.js';
+  import { regionColors } from '../../utils/chartConfig.js';
 
   let chartDiv;
   let tooltip;
+
+  $: isPercentileMode = $selectedMode === 'percentiles';
 
   function createChart() {
     d3.select(chartDiv).selectAll('*').remove();
@@ -115,7 +118,7 @@
       .attr('class', d => `line ${d.isPercentileLine ? 'percentile-line' : ''} ${d.isTrust ? 'trust-line' : ''}`)
       .attr('d', d => line(d.data))
       .attr('fill', 'none')
-      .attr('stroke', (d, i) => d.color || getTrustColor(i, isPercentileMode))
+      .attr('stroke', (d, i) => d.color || getOrganisationColor(i, isPercentileMode))
       .attr('stroke-width', 2.5)
       .attr('stroke-opacity', d => {
         if (d.isPercentileLine && d.label !== 'Median (50th Percentile)') {

@@ -6,7 +6,8 @@
     visibleICBs,
     orgdata,
     icbdata,
-    getOrganisationColor 
+    getOrganisationColor,
+    getOrganisationIndex 
   } from '../../stores/measureChartStore.js';
   import { regionColors, percentilesLegend } from '../../utils/chartConfig.js';
   import { get } from 'svelte/store';
@@ -25,9 +26,9 @@
     } else if ($selectedMode === 'percentiles') {
       legendItems = [];
     } else if ($selectedMode === 'trust' && $orgdata) {
-      legendItems = Object.keys($orgdata).map((trust, index) => ({
+      legendItems = Object.keys($orgdata).map((trust) => ({
         label: trust,
-        color: getOrganisationColor(index),
+        color: getOrganisationColor(getOrganisationIndex(trust, $orgdata)),
         visible: $visibleTrusts.size === 0 || $visibleTrusts.has(trust)
       }));
     } else if ($selectedMode === 'icb' && $icbdata) {
@@ -122,9 +123,9 @@
         <li 
           class="flex items-start gap-2 p-1 rounded transition-colors min-w-0"
           class:opacity-50={!item.visible}
-          class:cursor-pointer={isInteractive}
-          class:hover:bg-gray-50={isInteractive}
-          on:click={() => isInteractive && toggleItem(item)}
+          class:cursor-pointer={!isPercentileLegend}
+          class:hover:bg-gray-50={!isPercentileLegend}
+          on:click={() => !isPercentileLegend && toggleItem(item)}
         >
           <div 
             class="w-4 h-4 rounded-sm flex-shrink-0 mt-1" 

@@ -31,6 +31,12 @@ export function getTrustColor(index) {
   return trustColors[index % trustColors.length];
 }
 
+export function getOrganisationIndex(orgName, allOrgs) {
+    return Array.isArray(allOrgs) ? 
+        allOrgs.indexOf(orgName) : 
+        Object.keys(allOrgs).indexOf(orgName);
+}
+
 export const filteredData = derived(
   [selectedMode, orgdata, regiondata, icbdata, percentiledata, visibleTrusts, visibleICBs, visibleRegions],
   ([$selectedMode, $orgdata, $regiondata, $icbdata, $percentiledata, $visibleTrusts, $visibleICBs, $visibleRegions]) => {
@@ -55,14 +61,14 @@ export const filteredData = derived(
           const trustNames = Object.keys($orgdata);
           datasets = trustNames
             .filter(trust => $visibleTrusts.size === 0 || $visibleTrusts.has(trust))
-            .map((trust, index) => {
+            .map((trust) => {
               const trustData = $orgdata[trust];
               return {
                 label: trust,
                 data: createDataArrayWithNulls(trustData, allDates, 'quantity'),
                 numerator: createDataArrayWithNulls(trustData, allDates, 'numerator'),
                 denominator: createDataArrayWithNulls(trustData, allDates, 'denominator'),
-                color: getOrganisationColor(index),
+                color: getOrganisationColor(getOrganisationIndex(trust, $orgdata)),
                 spanGaps: true
               };
             });
@@ -87,16 +93,19 @@ export const filteredData = derived(
       case 'icb':
         labels = $icbdata.length > 0 ? 
           $icbdata[0].data.map(d => d.month).sort(sortDates) : [];
+        
+        const icbIndices = new Map($icbdata.map((icb, index) => [icb.name, index]));
+        
         datasets = $icbdata
           .filter(icb => $visibleICBs.size === 0 || $visibleICBs.has(icb.name))
-          .map((icb, index) => {
+          .map((icb) => {
             const sortedData = icb.data.sort((a, b) => sortDates(a.month, b.month));
             return {
               label: icb.name,
               data: sortedData.map(d => d.quantity),
               numerator: sortedData.map(d => d.numerator),
               denominator: sortedData.map(d => d.denominator),
-              color: getOrganisationColor(index)
+              color: getOrganisationColor(icbIndices.get(icb.name))
             };
           });
         break;
