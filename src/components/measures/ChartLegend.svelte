@@ -12,8 +12,10 @@
   import { get } from 'svelte/store';
 
   let legendItems = [];
+  let isPercentileLegend = false;
 
   $: {
+    isPercentileLegend = $selectedMode === 'percentiles';
     if ($selectedMode === 'region') {
       legendItems = Object.entries(regionColors).map(([region, color]) => ({
         label: region,
@@ -21,7 +23,7 @@
         visible: $visibleRegions.size === 0 || $visibleRegions.has(region)
       }));
     } else if ($selectedMode === 'percentiles') {
-      legendItems = percentilesLegend;
+      legendItems = [];
     } else if ($selectedMode === 'trust' && $orgdata) {
       legendItems = Object.keys($orgdata).map((trust, index) => ({
         label: trust,
@@ -75,29 +77,64 @@
   }[$selectedMode] || '';
 
   $: isInteractive = ['region', 'trust', 'icb'].includes($selectedMode);
+
+  const percentileRanges = [
+    { range: [5, 95], opacity: 0.1 },
+    { range: [15, 85], opacity: 0.2 },
+    { range: [25, 75], opacity: 0.4 },
+    { range: [35, 65], opacity: 0.6 },
+    { range: [45, 55], opacity: 0.8 }
+  ];
 </script>
 
-<div class="bg-white rounded-lg shadow-md p-4 h-full flex flex-col">
+<div class="h-full flex flex-col overflow-hidden">
   {#if title}
     <h3 class="font-semibold mb-3 text-gray-700">{title}</h3>
   {/if}
-  <ul class="space-y-3 overflow-y-auto flex-grow">
-    {#each legendItems as item}
-      <li 
-        class="flex items-start gap-2 p-1 rounded transition-colors min-w-0"
-        class:opacity-50={!item.visible}
-        class:cursor-pointer={isInteractive}
-        class:hover:bg-gray-50={isInteractive}
-        on:click={() => isInteractive && toggleItem(item)}
-      >
-        <div 
-          class="w-4 h-4 rounded-sm flex-shrink-0 mt-1" 
-          style="background-color: {item.color};"
-        ></div>
-        <span class="text-sm break-words leading-tight min-w-0 flex-shrink">{item.label}</span>
-      </li>
-    {/each}
-  </ul>
+
+  {#if isPercentileLegend}
+    <div class="space-y-6 flex-shrink-0">
+      <!-- Median line -->
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-0.5 bg-[#DC3220]"></div>
+        <span class="text-sm">Median (50th Percentile)</span>
+      </div>
+      
+      <!-- Percentile ranges -->
+      <div>
+        <div class="text-sm font-medium mb-2">Percentiles</div>
+        <div class="space-y-2 lg:w-full w-64 mx-auto">
+          {#each percentileRanges as { range, opacity }}
+            <div class="flex items-center gap-2">
+              <div class="w-12 text-xs text-right">{range[0]}-{range[1]}</div>
+              <div 
+                class="h-4 flex-1" 
+                style="background-color: rgb(0, 90, 181, {opacity});"
+              ></div>
+            </div>
+          {/each}
+        </div>
+      </div>
+    </div>
+  {:else}
+    <ul class="space-y-3 overflow-y-auto flex-grow">
+      {#each legendItems as item}
+        <li 
+          class="flex items-start gap-2 p-1 rounded transition-colors min-w-0"
+          class:opacity-50={!item.visible}
+          class:cursor-pointer={isInteractive}
+          class:hover:bg-gray-50={isInteractive}
+          on:click={() => isInteractive && toggleItem(item)}
+        >
+          <div 
+            class="w-4 h-4 rounded-sm flex-shrink-0 mt-1" 
+            style="background-color: {item.color};"
+          ></div>
+          <span class="text-sm break-words leading-tight min-w-0 flex-shrink">{item.label}</span>
+        </li>
+      {/each}
+    </ul>
+  {/if}
 </div>
 
 <style>
