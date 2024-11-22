@@ -36,10 +36,18 @@
    
     let trusts = [];
     let icbs = [];
+    let regions = [];
 
-    $: showFilter = $selectedMode === 'trust' || $selectedMode === 'percentiles' || $selectedMode === 'icb';
-    $: filterItems = $selectedMode === 'icb' ? icbs : trusts;
-    $: filterType = $selectedMode === 'icb' ? 'icb' : 'trust';
+    $: showFilter = $selectedMode === 'trust' || 
+                    $selectedMode === 'percentiles' || 
+                    $selectedMode === 'icb' ||
+                    $selectedMode === 'region';
+    $: filterItems = $selectedMode === 'icb' ? icbs : 
+                    $selectedMode === 'region' ? regions :
+                    trusts;
+    $: filterType = $selectedMode === 'icb' ? 'icb' : 
+                    $selectedMode === 'region' ? 'region' :
+                    'trust';
     $: showLegend = $selectedMode === 'percentiles' || 
                     $selectedMode === 'region' || 
                     $selectedMode === 'trust' || 
@@ -52,6 +60,11 @@
         } else if ($selectedMode === 'trust' || $selectedMode === 'percentiles') {
             organisationSearchStore.setItems(trusts);
             organisationSearchStore.setFilterType('trust');
+        } else if ($selectedMode === 'region') {
+            console.log('setting regions');
+            console.log(regions);
+            organisationSearchStore.setItems(regions);
+            organisationSearchStore.setFilterType('region');
         }
     }
 
@@ -67,7 +80,10 @@
         organisationSearchStore.setItems(trusts);
         organisationSearchStore.setFilterType('trust');
         
-        regionStore.set(JSON.parse(regiondata));
+        const parsedRegionData = JSON.parse(regiondata);
+        regionStore.set(parsedRegionData);
+        regions = parsedRegionData.map(region => region.name);
+        
         percentileStore.set(JSON.parse(percentiledata));
         selectedMode.set('percentiles');
         
@@ -75,6 +91,8 @@
             organisationSearchStore.updateSelection($selectedICBs);
         } else if ($selectedMode === 'trust' || $selectedMode === 'percentiles') {
             organisationSearchStore.updateSelection($selectedTrusts);
+        } else if ($selectedMode === 'region') {
+            organisationSearchStore.updateSelection($visibleRegions);
         }
     });
 
@@ -83,6 +101,8 @@
         
         if ($selectedMode === 'icb') {
             visibleICBs.set(new Set(selectedItems));
+        } else if ($selectedMode === 'region') {
+            visibleRegions.set(new Set(selectedItems));
         } else if ($selectedMode === 'trust' || $selectedMode === 'percentiles') {
             visibleTrusts.set(new Set(selectedItems));
         }
@@ -99,19 +119,21 @@
         if (newMode === 'icb') {
             organisationSearchStore.setItems(icbs);
             organisationSearchStore.setFilterType('icb');
-            organisationSearchStore.updateSelection([]);
+        } else if (newMode === 'region') {
+            organisationSearchStore.setItems(regions);
+            organisationSearchStore.setFilterType('region');
         } else if (newMode === 'trust' || newMode === 'percentiles') {
             organisationSearchStore.setItems(trusts);
             organisationSearchStore.setFilterType('trust');
-            organisationSearchStore.updateSelection([]);
-        } else {
-            organisationSearchStore.reset();
         }
+        organisationSearchStore.updateSelection([]);
     }
 
     $: {
         if ($selectedMode === 'icb') {
             organisationSearchStore.updateSelection(Array.from($visibleICBs));
+        } else if ($selectedMode === 'region') {
+            organisationSearchStore.updateSelection(Array.from($visibleRegions));
         } else if ($selectedMode === 'trust' || $selectedMode === 'percentiles') {
             organisationSearchStore.updateSelection(Array.from($visibleTrusts));
         }
