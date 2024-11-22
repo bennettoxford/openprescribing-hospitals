@@ -73,11 +73,49 @@
         }, 0);
     }
 
-    let sortBySubmission = true;
+    let sortType = 'missing_latest'; // Default sort
+
+    
+    function calculateMissingDataProportion(org) {
+        // Get all months' VMP counts - no need to handle predecessors as it's pre-calculated
+        const monthlyTotals = months.map(month => {
+            let hasSubmitted = org.data[month]?.has_submitted;
+            let total = hasSubmitted ? (org.data[month]?.vmp_count || 0) : 0;
+            return { total, hasSubmitted };
+        });
+        
+        // Filter to only submitted months
+        const submittedData = monthlyTotals.filter(m => m.hasSubmitted);
+        
+        // Find max VMP count from submitted months for scaling
+        const maxVmpCount = Math.max(...submittedData.map(m => m.total));
+        
+        // Scale the submitted totals between 0 and 1
+        const scaledTotals = submittedData.map(m => ({
+            ...m,
+            scaledTotal: maxVmpCount > 0 ? m.total / maxVmpCount : 0
+        }));
+        
+        // Calculate median from scaled totals
+        const sortedScaledTotals = [...scaledTotals].sort((a, b) => a.scaledTotal - b.scaledTotal);
+        const medianScaled = sortedScaledTotals[Math.floor(sortedScaledTotals.length / 2)].scaledTotal;
+        
+        // Calculate average absolute deviation from the median
+        return scaledTotals.reduce((sum, { scaledTotal }) => {
+            return sum + Math.abs(scaledTotal - medianScaled);
+        }, 0) / scaledTotals.length;
+    }
+
+    function calculateMissingMonths(org) {
+        return months.reduce((count, month) => {
+            return count + (org.data[month]?.has_submitted ? 0 : 1);
+        }, 0);
+    }
+
     let parsedOrgData = [];
     
     function toggleSort() {
-        sortBySubmission = !sortBySubmission;
+        sortType = sortType === 'missing_latest' ? 'missing_proportion' : sortType === 'missing_proportion' ? 'alphabetical' : 'missing_latest';
         createChart();
     }
 
@@ -150,17 +188,39 @@
     function flattenOrganisations(orgs, level = 0) {
         let flattened = [];
         
-        // Only sort the top-level organisations
         let organisationsToProcess = [...orgs];
         if (level === 0) {
             organisationsToProcess.sort((a, b) => {
-                if (sortBySubmission) {
-                    // Compare by submission status
-                    if (a.latest_submission !== b.latest_submission) {
-                        return a.latest_submission ? 1 : -1;
-                    }
+                switch (sortType) {
+                    case 'missing_months':
+                        const aMissing = calculateMissingMonths(a);
+                        const bMissing = calculateMissingMonths(b);
+                        if (aMissing !== bMissing) {
+                            return bMissing - aMissing; // More missing months first
+                        }
+                        break;
+                        
+                    case 'missing_latest':
+                        const latestMonth = months[months.length - 1];
+                        const aSubmitted = a.data[latestMonth]?.has_submitted;
+                        const bSubmitted = b.data[latestMonth]?.has_submitted;
+                        if (aSubmitted !== bSubmitted) {
+                            return aSubmitted ? 1 : -1;
+                        }
+                        break;
+                        
+                    case 'missing_proportion':
+                        const aProportion = calculateMissingDataProportion(a);
+                        const bProportion = calculateMissingDataProportion(b);
+                        if (aProportion !== bProportion) {
+                            return bProportion - aProportion; // Larger proportions first
+                        }
+                        break;
+                        
+                    case 'alphabetical':
+                        return a.name.localeCompare(b.name);
                 }
-                // Alphabetical sort as fallback
+                // Default to alphabetical as fallback
                 return a.name.localeCompare(b.name);
             });
         }
@@ -181,6 +241,33 @@
         return flattened;
     }
 
+    function parseDate(dateStr) {
+        if (!dateStr) return null;
+        const [month, year] = dateStr.split(' ');
+        return new Date(`${month} 1, ${year}`);
+    }
+
+    function updateTooltipContent(event, d, org) {
+        const xPos = event.offsetX + 10;
+        const yPos = event.offsetY - 10;
+
+        const finalDate = parseDate(parsedLatestDates.final);
+        const isProvisional = finalDate && d.date >= finalDate;
+
+        tooltipContent = `
+            ${isProvisional ? '<strong class="text-amber-600">Warning: Provisional</strong><br><br>' : ''}
+            <strong>Organisation:</strong> ${org.name}<br>
+            <strong>Date:</strong> ${formatDate(d.date)}<br>
+            <strong>Number of unique products:</strong> ${d.vmpCount}<br>
+            ${org.level > 0 ? '<strong>Predecessor Organisation</strong>' : ''}
+        `;
+
+        tooltip.html(tooltipContent)
+            .style("left", `${xPos}px`)
+            .style("top", `${yPos}px`)
+            .style("transform", "translate(-50%, -100%)");
+    }
+
     function createChart() {
         if (!chartContainer) return;
 
@@ -191,7 +278,14 @@
         chartWidth = chartContainer.clientWidth;
         const margin = { top: 70, right: 70, bottom: 40, left: 350 };
         
-        chartHeight = flatOrgs.length * 30 + margin.top + margin.bottom;
+        // Calculate row height based on number of organisations
+        const baseRowHeight = 35;
+        const maxMultiplier = 5;
+        const numOrgs = flatOrgs.length;
+        const rowHeightMultiplier = Math.max(1, maxMultiplier - (0.44 * (Math.min(numOrgs, 10) - 1)));
+        const rowHeight = baseRowHeight * rowHeightMultiplier;
+        
+        chartHeight = flatOrgs.length * rowHeight + margin.top + margin.bottom;
 
         const width = chartWidth - margin.left - margin.right;
         const height = chartHeight - margin.top - margin.bottom;
@@ -318,12 +412,6 @@
         const dateLineGroup = svg.append('g')
             .attr('class', 'date-lines');
 
-        function parseDate(dateStr) {
-            if (!dateStr) return null;
-            const [month, year] = dateStr.split(' ');
-            return new Date(`${month} 1, ${year}`);
-        }
-
         // Add vertical lines for each date type
         const dateTypes = {
             final: { color: '#117733', label: 'finalised' },
@@ -367,27 +455,73 @@
                 .text(`${style.label} data`);
         });
 
+        const finalDate = parseDate(parsedLatestDates.final);
+        if (finalDate) {
+            const lastMonth = new Date(months[months.length - 1]);
+            const endOfLastMonth = new Date(lastMonth);
+            endOfLastMonth.setMonth(endOfLastMonth.getMonth() + 1);
+
+            // Add a semi-transparent overlay from final date to end of chart
+            svg.append('rect')
+                .attr('x', x(finalDate))
+                .attr('y', 0)
+                .attr('width', x(endOfLastMonth) - x(finalDate))
+                .attr('height', height)
+                .attr('fill', '#f8f9fa')
+                .attr('opacity', 0.5)
+                .attr('pointer-events', 'none');
+        }
+
     }
 
     function drawOrgData(svg, org, x, y, width) {
+        // Calculate the maximum VMP count for this org
+        const maxVmpCount = Math.max(...Object.values(org.data).map(d => d.vmp_count));
+        
+        // Create a scale for the bar heights
+        const heightScale = d3.scaleLinear()
+            .domain([0, maxVmpCount])
+            .range([0, y.bandwidth()]);
+
         const orgData = months.map(month => ({
             date: new Date(month),
-            hasData: org.data[month]
+            hasData: org.data[month].has_submitted,
+            vmpCount: org.data[month].vmp_count
         }));
 
         const sanitizedOrgName = sanitizeClassName(org.name);
 
-        svg.selectAll(`.org-${sanitizedOrgName}`)
+        // First, create the visible data rectangles
+        svg.selectAll(`.org-${sanitizedOrgName}-visible`)
             .data(orgData)
             .enter()
             .append('rect')
-            .attr('class', `org-${sanitizedOrgName}`)
+            .attr('class', `org-${sanitizedOrgName}-visible`)
             .attr('x', d => x(d.date))
-            .attr('y', y(org.name))
+            .attr('y', d => d.hasData 
+                ? y(org.name) + y.bandwidth() - heightScale(d.vmpCount)
+                : y(org.name)
+            )
+            .attr('width', width / (months.length))
+            .attr('height', d => d.hasData 
+                ? heightScale(d.vmpCount)
+                : y.bandwidth()
+            )
+            .attr('fill', d => d.hasData ? DATA_SUBMITTED_COLOR : DATA_NOT_SUBMITTED_COLOR)
+            .attr('opacity', org.level === 0 ? 1 : 0.7);
+
+        // Then, create invisible rectangles for better hover detection
+        svg.selectAll(`.org-${sanitizedOrgName}-hover`)
+            .data(orgData)
+            .enter()
+            .append('rect')
+            .attr('class', `org-${sanitizedOrgName}-hover`)
+            .attr('x', d => x(d.date))
+            .attr('y', d => y(org.name))
             .attr('width', width / (months.length))
             .attr('height', y.bandwidth())
-            .attr('fill', d => d.hasData ? DATA_SUBMITTED_COLOR : DATA_NOT_SUBMITTED_COLOR)
-            .attr('opacity', org.level === 0 ? 1 : 0.7)  // Slightly reduce opacity for predecessors
+            .attr('fill', 'transparent')
+            .attr('pointer-events', 'all')
             .on("mouseover", function(event, d) {
                 tooltip.style("opacity", 1);
                 updateTooltipContent(event, d, org);
@@ -398,24 +532,6 @@
             .on("mouseout", function() {
                 tooltip.style("opacity", 0);
             });
-    }
-
-    function updateTooltipContent(event, d, org) {
-        const xPos = event.offsetX + 10;
-        const yPos = event.offsetY - 10;
-
-        tooltipContent = `
-            <strong>Organisation:</strong> ${org.name}<br>
-            <strong>Date:</strong> ${formatDate(d.date)}<br>
-            <strong>Submitted:</strong> ${d.hasData ? 'Yes' : 'No'}<br>
-            ${org.level > 0 ? '<strong>Predecessor Organisation</strong>' : ''}
-            ${org.predecessors && org.predecessors.length > 0 ? '<strong>Has Predecessors</strong>' : ''}
-        `;
-
-        tooltip.html(tooltipContent)
-            .style("left", `${xPos}px`)
-            .style("top", `${yPos}px`)
-            .style("transform", "translate(-50%, -100%)");
     }
 
     function formatDate(date) {
@@ -490,18 +606,19 @@
     </div>
 
     <div class="flex items-center mb-2 mr-8 justify-end">
-        <button 
+        <select 
+            bind:value={sortType}
             class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium 
                    bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 
                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 
                    transition-all duration-200 h-[38px]"
-            on:click={toggleSort}
+            on:change={() => createChart()}
         >
-            <svg class="mr-2 h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-            </svg>
-            <span>{sortBySubmission ? 'Sort Alphabetically' : 'Sort by Latest Submission'}</span>
-        </button>
+            <option value="missing_latest">Sort by submission status in latest month</option>
+            <option value="missing_months">Sort by number of months with no data submission</option>
+            <option value="missing_proportion">Sort by variation in the number of unique products issued</option>
+            <option value="alphabetical">Sort alphabetically</option>
+        </select>
     </div>
     
     {#if error}
@@ -509,7 +626,9 @@
     {:else if organisations.length === 0}
         <p class="text-gray-600">No data available</p>
     {:else}
-        <div bind:this={chartContainer} class="relative w-full min-h-[300px]"></div>
+        <div class="overflow-y-auto overflow-x-hidden max-h-[800px]">
+            <div bind:this={chartContainer} class="relative w-full min-h-[300px]"></div>
+        </div>
     {/if}
 </div>
 

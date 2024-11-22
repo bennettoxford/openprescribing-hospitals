@@ -381,7 +381,7 @@ class OrgsSubmittingDataView(TemplateView):
         
         # Get latest dates for each file type
         latest_dates = {}
-        for file_type in ['final', 'wip']:
+        for file_type in ['final']:
             latest = DataStatus.objects.filter(
                 file_type=file_type
             ).aggregate(
@@ -402,7 +402,10 @@ class OrgsSubmittingDataView(TemplateView):
             org_name = cache.organisation.ods_name
             org_data[org_name]['successor'] = cache.successor.ods_name if cache.successor else None
             month_str = cache.month.isoformat() if isinstance(cache.month, date) else str(cache.month)
-            org_data[org_name]['submissions'][month_str] = cache.has_submitted
+            org_data[org_name]['submissions'][month_str] = {
+                'has_submitted': cache.has_submitted,
+                'vmp_count': cache.vmp_count or 0
+            }
             all_dates.add(month_str)
 
         # Step 2: Build predecessor relationships
