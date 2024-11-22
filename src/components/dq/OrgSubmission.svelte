@@ -77,23 +77,10 @@
 
     
     function calculateMissingDataProportion(org) {
-        // Get all months' VMP counts, including predecessors, but only for submitted months
+        // Get all months' VMP counts - no need to handle predecessors as it's pre-calculated
         const monthlyTotals = months.map(month => {
-            let total = 0;
             let hasSubmitted = org.data[month]?.has_submitted;
-            
-            if (hasSubmitted) {
-                total = org.data[month]?.vmp_count || 0;
-                
-                // Add predecessor VMP counts if they exist
-                if (org.predecessors) {
-                    org.predecessors.forEach(pred => {
-                        if (pred.data[month]?.has_submitted) {
-                            total += pred.data[month]?.vmp_count || 0;
-                        }
-                    });
-                }
-            }
+            let total = hasSubmitted ? (org.data[month]?.vmp_count || 0) : 0;
             return { total, hasSubmitted };
         });
         
@@ -271,7 +258,7 @@
             ${isProvisional ? '<strong class="text-amber-600">Warning: Provisional</strong><br><br>' : ''}
             <strong>Organisation:</strong> ${org.name}<br>
             <strong>Date:</strong> ${formatDate(d.date)}<br>
-            <strong>Number of products:</strong> ${d.vmpCount}<br>
+            <strong>Number of unique products:</strong> ${d.vmpCount}<br>
             ${org.level > 0 ? '<strong>Predecessor Organisation</strong>' : ''}
         `;
 
@@ -629,7 +616,7 @@
         >
             <option value="missing_latest">Sort by submission status in latest month</option>
             <option value="missing_months">Sort by number of months with no data submission</option>
-            <option value="missing_proportion">Sort by deviation from the median number of products</option>
+            <option value="missing_proportion">Sort by variation in the number of unique products issued</option>
             <option value="alphabetical">Sort alphabetically</option>
         </select>
     </div>

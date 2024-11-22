@@ -77,6 +77,18 @@ class Organisation(models.Model):
             models.Index(fields=["ods_name"]),
         ]
 
+    def get_all_predecessor_codes(self):
+        """Returns a list of ods_codes for all predecessors of this organisation"""
+        return list(self.predecessors.all().values_list('ods_code', flat=True))
+
+    def get_combined_vmp_count(self, year_month):
+        """Returns the combined unique VMP count for this org and its predecessors for a given month"""
+        org_codes = [self.ods_code] + self.get_all_predecessor_codes()
+        return SCMDQuantity.objects.filter(
+            organisation__ods_code__in=org_codes,
+            year_month=year_month
+        ).values('vmp').distinct().count()
+
 class SCMDQuantity(models.Model):
     year_month = models.DateField()
     vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name="scmd_quantities")

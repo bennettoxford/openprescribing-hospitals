@@ -18,9 +18,11 @@
             
             <p class="text-gray-700 mb-4">Each square represents a monthly submission:</p>
             <ul class="list-disc ml-8 mb-4 text-gray-700">
-                <li><span class="text-blue-600 font-bold">Blue bars</span> indicate a successful submission, with the height showing the number of products submitted that month</li>
+                <li><span class="text-blue-600 font-bold">Blue bars</span> indicate a successful submission, with the height showing the number of unique products submitted that month</li>
                 <li><span class="text-red-600 font-bold">Red bars</span> indicate a missing submission</li>
             </ul>
+
+            <p class="text-gray-700 mb-4">Where an organisation has multiple predecessors, the number of unique products submitted is the sum of the unique products submitted by the organisation and its predecessors.</p>
 
             <p class="text-gray-700 mb-4">The chart shows data from <strong>{{ earliest_date }}</strong> to <strong>{{ latest_date }}</strong>.</p>
             
@@ -28,7 +30,7 @@
             <ul class="list-disc ml-8 mb-4 text-gray-700">
                 <li><strong>Submission status in latest month</strong> - Shows organisations missing the most recent submission first.</li>
                 <li><strong>Number of months with no data submission</strong> - Shows organisations with the most months with no submissions first.</li>
-                <li><strong>Deviation from the median number of products</strong> - Orders by the extent to which the number of products an organisation submits each month varies from the median number of products submitted for that organisation across all months. Months with no submissions are excluded from this calculation.</li>
+                <li><strong>Deviation from the median number of products</strong> - Orders by the extent to which the number of unique products an organisation submits each month varies from the median number of unique products submitted for that organisation across all months. Months with no submissions are excluded from this calculation.</li>
                 <li><strong>Alphabetically</strong> - Orders organisations by name.</li>
             </ul>
 
