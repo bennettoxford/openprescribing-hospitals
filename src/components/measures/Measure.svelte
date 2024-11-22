@@ -79,11 +79,12 @@
     });
 
     function handleSelectionChange(event) {
-        const { selectedItems: newSelectedItems } = event.detail;
+        const { selectedItems } = event.detail;
+        
         if ($selectedMode === 'icb') {
-            selectedICBs.set(newSelectedItems);
+            visibleICBs.set(new Set(selectedItems));
         } else if ($selectedMode === 'trust' || $selectedMode === 'percentiles') {
-            selectedTrusts.set(newSelectedItems);
+            visibleTrusts.set(new Set(selectedItems));
         }
     }
 
@@ -98,13 +99,21 @@
         if (newMode === 'icb') {
             organisationSearchStore.setItems(icbs);
             organisationSearchStore.setFilterType('icb');
-            organisationSearchStore.updateSelection($selectedICBs);
+            organisationSearchStore.updateSelection([]);
         } else if (newMode === 'trust' || newMode === 'percentiles') {
             organisationSearchStore.setItems(trusts);
             organisationSearchStore.setFilterType('trust');
-            organisationSearchStore.updateSelection($selectedTrusts);
+            organisationSearchStore.updateSelection([]);
         } else {
             organisationSearchStore.reset();
+        }
+    }
+
+    $: {
+        if ($selectedMode === 'icb') {
+            organisationSearchStore.updateSelection(Array.from($visibleICBs));
+        } else if ($selectedMode === 'trust' || $selectedMode === 'percentiles') {
+            organisationSearchStore.updateSelection(Array.from($visibleTrusts));
         }
     }
 </script>
