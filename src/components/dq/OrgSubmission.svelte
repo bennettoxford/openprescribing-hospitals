@@ -626,9 +626,7 @@
     {:else if organisations.length === 0}
         <p class="text-gray-600">No data available</p>
     {:else}
-        <div class="overflow-y-auto overflow-x-hidden max-h-[800px]">
-            <div bind:this={chartContainer} class="relative w-full min-h-[300px]"></div>
-        </div>
+        <div bind:this={chartContainer} class="relative w-full min-h-[300px]"></div>
     {/if}
 </div>
 
