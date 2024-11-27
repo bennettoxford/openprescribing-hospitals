@@ -500,26 +500,37 @@ class ContactView(TemplateView):
 @login_required
 @api_view(["GET"])
 def search_items(request):
-    search_type = request.GET.get('type', 'vmp')
+    search_type = request.GET.get('type', 'product')
     search_term = request.GET.get('term', '').lower()
     
-    if search_type == 'vmp':
-        items = VMP.objects.filter(
-            Q(name__icontains=search_term) | 
-            Q(code__icontains=search_term)
-        ).values('name', 'code').distinct().order_by('name')[:50]
-        return JsonResponse({
-            'results': [f"{item['code']} | {item['name']}" for item in items]
-        })
-    
-    elif search_type == 'vtm':
-        items = VTM.objects.filter(
+    if search_type == 'product':
+        # First get matching VTMs
+        vtms = VTM.objects.filter(
             Q(name__icontains=search_term) | 
             Q(vtm__icontains=search_term)
-        ).values('vtm', 'name').distinct().order_by('name')[:50]
-        return JsonResponse({
-            'results': [f"{item['vtm']} | {item['name']}" for item in items]
-        })
+        )
+
+        vtms_results = [{
+            'code': vtm.vtm,
+            'name': vtm.name,
+            'type': 'vtm'
+        } for vtm in vtms]
+        
+        # Then get matching VMPs that aren't already included via VTM
+        vmps = VMP.objects.filter(
+            Q(name__icontains=search_term) | 
+            Q(code__icontains=search_term)
+        )
+
+        vmps_results = [{
+            'code': vmp.code,
+            'name': vmp.name,
+            'type': 'vmp'
+        } for vmp in vmps]
+    
+        results = vtms_results + vmps_results
+
+        return JsonResponse({'results': results})
     
     elif search_type == 'ingredient':
         items = Ingredient.objects.filter(
@@ -527,7 +538,11 @@ def search_items(request):
             Q(code__icontains=search_term)
         ).values('name', 'code').distinct().order_by('name')[:50]
         return JsonResponse({
-            'results': [f"{item['code']} | {item['name']}" for item in items]
+            'results': [{
+                'code': item['code'],
+                'name': item['name'],
+                'type': 'ingredient'
+            } for item in items]
         })
     
     elif search_type == 'atc':

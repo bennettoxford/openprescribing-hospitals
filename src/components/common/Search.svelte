@@ -9,8 +9,8 @@
     import { analyseOptions } from '../../stores/analyseOptionsStore';
     const dispatch = createEventDispatcher();
 
-    export let placeholder = "Search by code or description...";
-    export let type = "vmp";
+    export let placeholder = "Search by product name or code...";
+    export let type = "product";
     export let isAdvancedMode = false;
 
     let searchTerm = '';
@@ -27,10 +27,8 @@
     let searchBoxRef;
 
     $: {
-        if (type === 'vmp') {
-            filteredItems = filterItems($analyseOptions.vmpNames, searchTerm);
-        } else if (type === 'vtm') {
-            filteredItems = filterItems($analyseOptions.vtmNames, searchTerm);
+        if (type === 'product') {
+            filteredItems = filterItems($analyseOptions.productNames, searchTerm);
         } else if (type === 'ingredient') {
             filteredItems = filterItems($analyseOptions.ingredientNames, searchTerm);
         } else if (type === 'atc') {
@@ -56,6 +54,7 @@
         if (!searchTerm || searchTerm.length < 1) {
             filteredItems = [];
             lastSearchResults = [];
+            isLoading = false;
             return;
         }
         
@@ -67,6 +66,7 @@
                 const data = await response.json();
                 
                 filteredItems = data.results;
+                console.log(filteredItems);
                 lastSearchResults = data.results;
             } catch (error) {
                 console.error('Error fetching search results:', error);
@@ -152,8 +152,7 @@
 >
     {#if isAdvancedMode}
         <div class="flex space-x-2 mb-2 pointer-events-auto">
-            <button class="px-2 py-1 rounded {type === 'vmp' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('vmp')}>VMP</button>
-            <button class="px-2 py-1 rounded {type === 'vtm' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('vtm')}>VTM</button>
+            <button class="px-2 py-1 rounded {type === 'product' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('product')}>Product</button>
             <button class="px-2 py-1 rounded {type === 'ingredient' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('ingredient')}>Ingredient</button>
             <button class="px-2 py-1 rounded {type === 'atc' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('atc')}>ATC</button>
         </div>
@@ -211,7 +210,7 @@
                             {#if type === 'atc'}
                                 {item.name.split('|')[1].trim()}
                             {:else}
-                                {item.split('|')[1].trim()}
+                                {item.name}
                             {/if}
                         </span>
                         <span class="absolute top-0 right-0 text-xs px-2 py-1 rounded-bl transition-colors duration-150 ease-in-out
@@ -221,7 +220,14 @@
                             {#if type === 'atc'}
                                 ATC code: {item.name.split('|')[0].trim()}
                             {:else}
-                                {type.toUpperCase()} code: {item.split('|')[0].trim()}
+                                {#if item.type === 'vtm'}
+                                    VTM code: {item.code}
+                                {:else if item.type === 'vmp'}
+                                    VMP code: {item.code}
+                                {:else}
+                                    Ingredient code: {item.code}
+                                {/if}
+                           
                             {/if}
                         </span>
                         {#if type === 'atc' && !item.has_vmps}
@@ -242,7 +248,7 @@
                 class="w-full p-2 bg-gray-100 border-t border-gray-200 flex items-center justify-center hover:bg-oxford-50 active:bg-oxford-100 cursor-pointer transition-colors duration-150 gap-2 rounded-b-md"
             >
                 <span class="text-sm font-medium text-gray-700">
-                    {selectedItems.length} {type.toUpperCase()}s selected • Click to scroll to top
+                    {selectedItems.length} {type === 'product' ? type : type.toUpperCase()}s selected • Click to scroll to top
                 </span>
                 <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
@@ -252,7 +258,7 @@
     {/if}
     {#if selectedItems.length > 0}
         <div>
-            <h3 class="font-semibold my-2 text-md text-gray-700">Selected {type.toUpperCase()} names:</h3>
+            <h3 class="font-semibold my-2 text-md text-gray-700">Selected {type === 'product' ? type : type.toUpperCase()} names:</h3>
             <ul class="border border-gray-200 rounded-md">
                 {#each selectedItems as item}
                     <li class="flex items-center justify-between px-2 py-1">

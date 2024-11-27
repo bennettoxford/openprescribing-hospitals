@@ -285,9 +285,9 @@
                         group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
                         ring-1 ring-black ring-opacity-5 p-4">
               <p class="text-sm text-gray-500">
-                Search for and select products to include in the analysis. You can select individual products
-                (VMP) or groups of products by ingredient, therapeutic moiety (VTM), or 
-                therapeutic target (ATC). See <a href="/faq/#product-selection-types" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+                Search for and select products to include in the analysis. You can search by product name
+                (including VMP and VTM), ingredient, or therapeutic target (ATC). 
+                See <a href="/faq/#product-selection-types" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
               </p>
             </div>
           </div>

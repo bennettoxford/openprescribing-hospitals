@@ -52,6 +52,15 @@
     isAdvancedMode = event.detail;
   }
 
+  function handleVMPSelection(event) {
+    analyseOptions.update(options => ({
+        ...options,
+        selectedProducts: event.detail.items,
+        searchType: event.detail.type
+    }));
+    console.log("Selected Items:", $analyseOptions.selectedProducts, "Search Type:", $analyseOptions.searchType);
+  }
+
   onMount(() => {
     const analyseBox = document.querySelector('analyse-box');
     const resultsBox = document.querySelector('results-box');
@@ -100,6 +109,7 @@
             on:analysisClear={handleAnalysisClear}
             on:organisationDropdownToggle={handleOrganisationDropdownToggle}
             on:advancedModeChange={handleAdvancedModeChange}
+            on:vmpSelection={handleVMPSelection}
           ></analyse-box>
         </div>
       </div>
