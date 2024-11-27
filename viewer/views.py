@@ -65,6 +65,10 @@ class AnalyseView(TemplateView):
             'min_date': date_range['min_date'].isoformat() if date_range['min_date'] else None,
             'max_date': date_range['max_date'].isoformat() if date_range['max_date'] else None
         }
+
+        ods_data = Organisation.objects.values('ods_name', 'ods_code').distinct().order_by('ods_name')
+        ods_data = [f"{org['ods_code']} | {org['ods_name']}" for org in ods_data]
+        context['ods_data'] = json.dumps(ods_data, default=str)
         return context
 
 @method_decorator(login_required, name='dispatch')
@@ -495,55 +499,55 @@ class ContactView(TemplateView):
     
 @login_required
 @api_view(["GET"])
-def get_search_items(request):
-    vmp_data = VMP.objects.values('name', 'code').distinct().order_by('name')
-    ods_data = Organisation.objects.values('ods_name', 'ods_code').distinct().order_by('ods_name')
-    vtm_data = VTM.objects.values('vtm', 'name').distinct().order_by('name')
-    ingredient_data = Ingredient.objects.values('name', 'code').distinct().order_by('name')
-
-    vmp_exists = VMP.objects.filter(atcs__code=OuterRef('code')).values('code')
-    atc_data = ATC.objects.annotate(
-        has_vmps=Exists(vmp_exists)
-    ).values('code', 'name', 'has_vmps').distinct().order_by('code')
+def search_items(request):
+    search_type = request.GET.get('type', 'vmp')
+    search_term = request.GET.get('term', '').lower()
     
-    atc_hierarchy = {}
+    if search_type == 'vmp':
+        items = VMP.objects.filter(
+            Q(name__icontains=search_term) | 
+            Q(code__icontains=search_term)
+        ).values('name', 'code').distinct().order_by('name')[:50]
+        return JsonResponse({
+            'results': [f"{item['code']} | {item['name']}" for item in items]
+        })
     
-    for item in atc_data:
-        code = item['code']
-        name = item['name']
-        has_vmps = item['has_vmps']
-        formatted_item = f"{code} | {name}"
+    elif search_type == 'vtm':
+        items = VTM.objects.filter(
+            Q(name__icontains=search_term) | 
+            Q(vtm__icontains=search_term)
+        ).values('vtm', 'name').distinct().order_by('name')[:50]
+        return JsonResponse({
+            'results': [f"{item['vtm']} | {item['name']}" for item in items]
+        })
+    
+    elif search_type == 'ingredient':
+        items = Ingredient.objects.filter(
+            Q(name__icontains=search_term) | 
+            Q(code__icontains=search_term)
+        ).values('name', 'code').distinct().order_by('name')[:50]
+        return JsonResponse({
+            'results': [f"{item['code']} | {item['name']}" for item in items]
+        })
+    
+    elif search_type == 'atc':
+        vmp_exists = VMP.objects.filter(atcs__code=OuterRef('code')).values('code')
+        items = ATC.objects.filter(
+            Q(name__icontains=search_term) | 
+            Q(code__icontains=search_term)
+        ).annotate(
+            has_vmps=Exists(vmp_exists)
+        ).values('code', 'name', 'has_vmps').distinct().order_by('code')[:50]
         
-        atc_hierarchy[code] = {
-            'name': formatted_item,
-            'children': [],
-            'has_vmps': has_vmps
-        }
-     
-        for i in range(1, len(code)):
-            parent_code = code[:i]
-            if parent_code in atc_hierarchy:
-                atc_hierarchy[parent_code]['children'].append(code)
-                if has_vmps:
-                    atc_hierarchy[parent_code]['has_vmps'] = True
- 
-    formatted_atc = [
-        {
-            'code': code,
-            'name': data['name'],
-            'children': data['children'],
-            'has_vmps': data['has_vmps']
-        }
-        for code, data in atc_hierarchy.items()
-    ]
-
-    return JsonResponse({
-        'vmpNames': [f"{item['code']} | {item['name']}" for item in vmp_data],
-        'odsNames': [f"{item['ods_code']} | {item['ods_name']}" for item in ods_data],
-        'vtmNames': [f"{item['vtm']} | {item['name']}" for item in vtm_data],
-        'ingredientNames': [f"{item['code']} | {item['name']}" for item in ingredient_data],
-        'atcNames': formatted_atc
-    }, safe=False)
+        return JsonResponse({
+            'results': [{
+                'code': item['code'],
+                'name': f"{item['code']} | {item['name']}",
+                'has_vmps': item['has_vmps']
+            } for item in items]
+        })
+    
+    return JsonResponse({'results': []})
 
 @method_decorator(login_required, name='dispatch')
 class FAQView(TemplateView):

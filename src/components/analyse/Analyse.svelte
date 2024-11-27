@@ -10,6 +10,7 @@
   import { writable } from 'svelte/store';
   import { analyseOptions } from '../../stores/analyseOptionsStore';
   import { get } from 'svelte/store';
+  import { organisationSearchStore } from '../../stores/organisationSearchStore';
 
   let isAnalysisRunning = writable(false);
   let isOrganisationDropdownOpen = false;
@@ -19,6 +20,7 @@
 
   export let minDate;
   export let maxDate;
+  export let odsData;
 
   function handleAnalysisStart() {
     showResults = true;
@@ -67,6 +69,15 @@
       analyseBox.addEventListener('organisationDropdownToggle', handleOrganisationDropdownToggle);
       analyseBox.addEventListener('analysisClear', handleAnalysisClear);
     }
+
+    if (odsData) {
+      try {
+        const parsedData = typeof odsData === 'string' ? JSON.parse(odsData) : odsData;
+        organisationSearchStore.setItems(parsedData);
+      } catch (error) {
+        console.error('Error parsing ODS data:', error);
+      }
+    }
   });
 </script>
 
@@ -80,14 +91,15 @@
         <div class="flex-grow overflow-y-auto overflow-x-visible">
           <analyse-box 
             {isAdvancedMode}
+            {minDate}
+            {maxDate}
+            {odsData}
             on:analysisStart={handleAnalysisStart}
             on:analysisComplete={handleAnalysisComplete}
             on:analysisError={handleAnalysisError}
             on:analysisClear={handleAnalysisClear}
             on:organisationDropdownToggle={handleOrganisationDropdownToggle}
             on:advancedModeChange={handleAdvancedModeChange}
-            {minDate}
-            {maxDate}
           ></analyse-box>
         </div>
       </div>

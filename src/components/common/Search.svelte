@@ -21,6 +21,11 @@
 
     const csrftoken = getCookie('csrftoken');
 
+    let searchTimeout;
+    let isLoading = false;
+    let lastSearchResults = [];
+    let searchBoxRef;
+
     $: {
         if (type === 'vmp') {
             filteredItems = filterItems($analyseOptions.vmpNames, searchTerm);
@@ -45,17 +50,32 @@
         );
     }
 
-    function handleInput() {
-        // Update filtered items based on search term
-        if (type === 'vmp') {
-            filteredItems = filterItems($analyseOptions.vmpNames, searchTerm);
-        } else if (type === 'vtm') {
-            filteredItems = filterItems($analyseOptions.vtmNames, searchTerm);
-        } else if (type === 'ingredient') {
-            filteredItems = filterItems($analyseOptions.ingredientNames, searchTerm);
-        } else if (type === 'atc') {
-            filteredItems = filterItems($analyseOptions.atcNames, searchTerm);
+    async function handleInput() {
+        clearTimeout(searchTimeout);
+        
+        if (!searchTerm || searchTerm.length < 1) {
+            filteredItems = [];
+            lastSearchResults = [];
+            return;
         }
+        
+        isLoading = true;
+        
+        searchTimeout = setTimeout(async () => {
+            try {
+                const response = await fetch(`/api/search/?type=${type}&term=${encodeURIComponent(searchTerm)}`);
+                const data = await response.json();
+                
+                filteredItems = data.results;
+                lastSearchResults = data.results;
+            } catch (error) {
+                console.error('Error fetching search results:', error);
+                filteredItems = [];
+                lastSearchResults = [];
+            } finally {
+                isLoading = false;
+            }
+        }, 300);
     }
 
     async function fetchVmpCount() {
@@ -94,11 +114,11 @@
             dispatch('selectionChange', { items: selectedItems, type });
             fetchVmpCount();
         } else {
-            // Remove item if already selected
             selectedItems = selectedItems.filter(i => i !== selectedItem);
             dispatch('selectionChange', { items: selectedItems, type });
             fetchVmpCount();
         }
+        filteredItems = lastSearchResults;
     }
 
     function handleRemove(item) {
@@ -111,6 +131,7 @@
         type = newType;
         selectedItems = [];
         searchTerm = '';
+        filteredItems = []; // Clear filtered items when changing type
         dispatch('selectionChange', { items: selectedItems, type });
         vmpCount = 0;
     }
@@ -120,39 +141,50 @@
             selectedItems = [];
             searchTerm = '';
             vmpCount = 0;
+            filteredItems = []; // Only clear filtered items when resetting everything
         }
     }
-
-    onMount(() => {
-        // Initial filtering of items
-        handleInput();
-    });
 </script>
 
-<div class="w-full search-box">
+<div 
+    class="w-full search-box relative"
+    bind:this={searchBoxRef}
+>
     {#if isAdvancedMode}
-        <div class="flex space-x-2 mb-2">
+        <div class="flex space-x-2 mb-2 pointer-events-auto">
             <button class="px-2 py-1 rounded {type === 'vmp' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('vmp')}>VMP</button>
             <button class="px-2 py-1 rounded {type === 'vtm' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('vtm')}>VTM</button>
             <button class="px-2 py-1 rounded {type === 'ingredient' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('ingredient')}>Ingredient</button>
             <button class="px-2 py-1 rounded {type === 'atc' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('atc')}>ATC</button>
         </div>
     {/if}
-    <div class="relative">
+    <div class="relative pointer-events-auto">
         <input
             type="text"
             {placeholder}
             bind:value={searchTerm}
             on:input={handleInput}
+            on:focus={() => {
+                if (searchTerm && lastSearchResults.length > 0) {
+                    filteredItems = lastSearchResults;
+                }
+            }}
             on:keydown={(e) => {
                 if (e.key === 'Escape' && searchTerm) {
                     e.preventDefault();
                     searchTerm = '';
+                    filteredItems = [];
+                    lastSearchResults = [];
                 }
             }}
             class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500 pr-8
-                   {filteredItems.length > 0 && searchTerm.length > 0 ? 'rounded-b-none' : ''}"
+                   {filteredItems.length > 0 ? 'rounded-b-none' : ''}"
         />
+        {#if isLoading}
+            <div class="absolute right-8 top-0 h-full flex items-center">
+                <div class="animate-spin h-4 w-4 border-2 border-oxford-500 rounded-full border-t-transparent"></div>
+            </div>
+        {/if}
         {#if searchTerm}
             <button
                 class="absolute right-2 top-0 h-full flex items-center justify-center text-gray-400 hover:text-gray-600 w-5"
@@ -162,8 +194,9 @@
             </button>
         {/if}
     </div>
-    {#if filteredItems.length > 0 && searchTerm.length > 0}
-        <div class="relative">
+    {#if filteredItems.length > 0 || isLoading}
+        <div class="fixed inset-0 bg-transparent" on:click={() => filteredItems = []}></div>
+        <div class="relative z-10">
             <ul class="border border-gray-300 rounded-none border-t-0 max-h-96 overflow-y-auto divide-y divide-gray-200">
                 {#each filteredItems as item}
                     <li 

@@ -9,24 +9,24 @@
     import Search from '../../common/Search.svelte';
     import OrganisationSearch from '../../common/OrganisationSearch.svelte';
     import { createEventDispatcher } from 'svelte';
-    import { getCookie } from '../../../utils/utils';
-    import { analyseOptions, clearAnalysisOptions } from '../../../stores/analyseOptionsStore';
     import RangeSlider from 'svelte-range-slider-pips';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
+    import { analyseOptions } from '../../../stores/analyseOptionsStore';
+    import { getCookie } from '../../../utils/utils';
+    
     const dispatch = createEventDispatcher();
 
     let isAnalysisRunning = false;
     let errorMessage = '';
     let isOrganisationDropdownOpen = false;
-    let filteredData = [];
 
     $: selectedVMPs = $analyseOptions.selectedVMPs;
     $: quantityType = $analyseOptions.quantityType;
     $: searchType = $analyseOptions.searchType;
-    $: odsNames = $analyseOptions.odsNames;
 
     export let minDate = null;
     export let maxDate = null;
+    export let odsData = null;
     
     let dateValues = [null, null];
     let dates = [];
@@ -48,7 +48,6 @@
     }
 
     function handleDateRangeChange(event) {
-
         const values = event.detail.values;
         
         if (!Array.isArray(values) || values.length !== 2) {
@@ -58,13 +57,11 @@
 
         const [startIndex, endIndex] = values;
 
-        // Ensure we have valid indices
         if (typeof startIndex !== 'number' || typeof endIndex !== 'number') {
             console.error('Invalid indices:', { startIndex, endIndex });
             return;
         }
 
-        // Update the store with the new dates
         analyseOptions.update(store => ({
             ...store,
             dateRange: {
@@ -73,15 +70,12 @@
             }
         }));
 
-        // Update local values for the slider
         dateValues = [startIndex, endIndex];
-
     }
 
     onMount(async () => {
         try {
             if (minDate && maxDate) {
-                // Generate array of all dates between min and max
                 const start = new Date(minDate);
                 const end = new Date(maxDate);
                 const dateArray = [];
@@ -92,40 +86,39 @@
                     current.setMonth(current.getMonth() + 1);
                 }
                 dates = dateArray;
+
                 
-                // Initialize date range in store with first and last dates
                 analyseOptions.update(store => ({
                     ...store,
+                    minDate: dates[0],
+                    maxDate: dates[dates.length - 1],
                     dateRange: {
                         startDate: dates[0],
                         endDate: dates[dates.length - 1]
                     }
                 }));
 
-                // Set initial slider values
                 dateValues = [0, dates.length - 1];
             }
+            
+            if (odsData) {
+                try {
+                    const parsedData = typeof odsData === 'string' ? JSON.parse(odsData) : odsData;
+                    organisationSearchStore.setItems(parsedData);
+                } catch (error) {
+                    console.error('Error parsing ODS data:', error);
+                }
+            }
         } catch (error) {
-            console.error('Error initializing date range:', error);
+            console.error('Error in onMount:', error);
         }
     });
 
     const csrftoken = getCookie('csrftoken');
-    // Define quantityOptions
     const quantityOptions = ['--', 'VMP Quantity', 'Dose', 'Ingredient Quantity'];
 
-    async function fetchVMPNames() {
-        const response = await fetch('/api/unique-vmp-names/');
-        vmpNames = await response.json();
-    }
-
-    async function fetchODSNames() {
-        const response = await fetch('/api/unique-ods-names/');
-        odsNames = await response.json();
-    }
-
     async function runAnalysis() {
-        if (isAnalysisRunning) return; // Prevent multiple clicks
+        if (isAnalysisRunning) return;
 
         console.log("Run Analysis button clicked");
         errorMessage = '';
@@ -137,7 +130,6 @@
             return;
         }
 
-        // In simple mode, always use "VMP Quantity"
         if (!isAdvancedMode) {
             quantityType = "VMP Quantity";
         } else if (quantityType === '--') {
@@ -171,21 +163,15 @@
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            filteredData = await response.json();
-            console.log("Filtered data:", filteredData);
-
-            if (!Array.isArray(filteredData)) {
-                filteredData = [filteredData];
-            }
-
+            const data = await response.json();
+            
             dispatch('analysisComplete', { 
-                data: filteredData, 
+                data: Array.isArray(data) ? data : [data], 
                 quantityType: quantityType, 
                 searchType: searchType 
             });
         } catch (error) {
             console.error("Error fetching filtered data:", error);
-            filteredData = [];
             errorMessage = "An error occurred while fetching data. Please try again.";
             dispatch('analysisError', { error: errorMessage });
         } finally {
@@ -210,8 +196,8 @@
     }
 
     function handleODSSelection(event) {
-        const { selectedItems } = event.detail;
-        organisationSearchStore.updateSelection(selectedItems);
+        const { selectedItems, usedOrganisationSelection } = event.detail;
+        organisationSearchStore.updateSelection(selectedItems, usedOrganisationSelection);
     }
 
     function handleQuantityTypeChange(event) {
@@ -229,56 +215,40 @@
     function handleClearAnalysis() {
         clearAnalysisOptions();
         errorMessage = '';
-        // Reset slider to min/max values
         dateValues = [0, dates.length - 1];
         dispatch('analysisClear');
     }
 
     onMount(async () => {
-        try {
-            const response = await fetch('/api/get-search-items/');
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+    try {
+        if (minDate && maxDate) {
+            const start = new Date(minDate);
+            const end = new Date(maxDate);
+            const dateArray = [];
+            let current = new Date(start);
+
+            while (current <= end) {
+                dateArray.push(current.toISOString().split('T')[0]);
+                current.setMonth(current.getMonth() + 1);
             }
-            const data = await response.json();
-
-            if (minDate && maxDate) {
-                // Generate array of all dates between min and max
-                const start = new Date(minDate);
-                const end = new Date(maxDate);
-                const dateArray = [];
-                let current = new Date(start);
-
-                while (current <= end) {
-                    dateArray.push(current.toISOString().split('T')[0]);
-                    current.setMonth(current.getMonth() + 1);
+            dates = dateArray;
+            
+            analyseOptions.update(store => ({
+                ...store,
+                minDate: dates[0],
+                maxDate: dates[dates.length - 1],
+                dateRange: {
+                    startDate: dates[0],
+                    endDate: dates[dates.length - 1]
                 }
-                dates = dateArray;
-                
-                // Update store with all data including min/max dates
-                analyseOptions.update(store => ({
-                    ...store,
-                    ...data,
-                    minDate: dates[0],
-                    maxDate: dates[dates.length - 1],
-                    dateRange: {
-                        startDate: dates[0],
-                        endDate: dates[dates.length - 1]
-                    }
-                }));
+            }));
 
-                if (data.odsNames) {
-                    organisationSearchStore.setItems(data.odsNames);
-                }
-
-                // Set initial slider values
-                dateValues = [0, dates.length - 1];
-            }
-        } catch (error) {
-            console.error("Error fetching analysis options:", error);
-            errorMessage = "An error occurred while fetching analysis options. Please try again.";
+            dateValues = [0, dates.length - 1];
         }
-    });
+    } catch (error) {
+        console.error('Error initializing date range:', error);
+    }
+});
 
     export let isAdvancedMode = false;
 
@@ -399,15 +369,12 @@
         </div>
       </div>
       <div class="relative">
-        {#if $analyseOptions}
-          <OrganisationSearch 
+        <OrganisationSearch 
             source={organisationSearchStore}
             overlayMode={false}
-            placeholderText="Search and select Trusts..."
             on:selectionChange={handleODSSelection}
             on:dropdownToggle={handleOrganisationDropdownToggle}
-          />
-        {/if}
+        />
       </div>
     </div>
     
