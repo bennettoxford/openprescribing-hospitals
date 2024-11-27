@@ -15,6 +15,7 @@
   let isOrganisationDropdownOpen = false;
   let showResults = false;
   let analysisData = null;
+  let isAdvancedMode = false;
 
   export let minDate;
   export let maxDate;
@@ -43,6 +44,10 @@
     showResults = false;
     analysisData = null;
     isAnalysisRunning.set(false);
+  }
+
+  function handleAdvancedModeChange(event) {
+    isAdvancedMode = event.detail;
   }
 
   onMount(() => {
@@ -74,11 +79,13 @@
         </div>
         <div class="flex-grow overflow-y-auto overflow-x-visible">
           <analyse-box 
+            {isAdvancedMode}
             on:analysisStart={handleAnalysisStart}
             on:analysisComplete={handleAnalysisComplete}
             on:analysisError={handleAnalysisError}
             on:analysisClear={handleAnalysisClear}
             on:organisationDropdownToggle={handleOrganisationDropdownToggle}
+            on:advancedModeChange={handleAdvancedModeChange}
             {minDate}
             {maxDate}
           ></analyse-box>

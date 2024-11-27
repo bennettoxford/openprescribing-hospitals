@@ -262,7 +262,7 @@ def filtered_quantities(request):
     search_type = request.data.get("search_type", "vmp")
     start_date = request.data.get("start_date")
     end_date = request.data.get("end_date")
-    quantity_type = request.data.get("quantity_type", "dose")
+    quantity_type = request.data.get("quantity_type", "VMP Quantity")
         
     search_items = [item.split("|")[0].strip() for item in search_items]
 
