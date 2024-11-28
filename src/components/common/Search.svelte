@@ -268,7 +268,7 @@
                             {#if item.type === 'vtm'}
                                 <li class="group">
                                     <div 
-                                        class="pt-3 pb-2 px-3 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
+                                        class="pt-2 pb-1 px-3 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
                                         class:bg-oxford-50={selectedItems.includes(item.code)}
                                         on:click={() => handleSelect(item)}
                                     >
@@ -276,11 +276,11 @@
                                             <div class="flex items-center gap-2">
                                                 {#if item.vmps?.length > 0}
                                                     <button 
-                                                        class="p-1 hover:bg-gray-200 rounded transition-colors"
+                                                        class="p-0.5 hover:bg-gray-200 rounded transition-colors"
                                                         on:click|stopPropagation={(event) => toggleExpand(item, event)}
                                                     >
                                                         <svg 
-                                                            class="w-4 h-4 transition-transform duration-200"
+                                                            class="w-3 h-3 transition-transform duration-200"
                                                             class:rotate-90={item.isExpanded}
                                                             fill="none" 
                                                             stroke="currentColor" 
@@ -290,9 +290,9 @@
                                                         </svg>
                                                     </button>
                                                 {/if}
-                                                <span class="font-medium">{item.name}</span>
+                                                <span class="font-medium text-sm">{item.name}</span>
                                             </div>
-                                            <div class="flex items-center gap-2 mt-1">
+                                            <div class="flex items-center gap-2 mt-0.5">
                                                 {#if isAdvancedMode && type === 'product'}
                                                     <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
                                                         {#if item.type === 'vtm'}
@@ -314,7 +314,7 @@
                                             </div>
                                         </div>
                                         {#if selectedItems.includes(item.code)}
-                                            <span class="text-sm font-medium text-oxford-600 ml-2">Selected (all products)</span>
+                                            <span class="text-xs font-medium text-oxford-600 ml-2">Selected (all products)</span>
                                         {/if}
                                     </div>
                                     
@@ -322,15 +322,15 @@
                                         <ul class="border-t border-gray-200">
                                             {#each item.vmps as vmp}
                                                 <li 
-                                                    class="py-2 px-3 pl-10 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
+                                                    class="py-1.5 px-3 pl-8 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
                                                     class:bg-oxford-50={selectedItems.includes(vmp.code)}
                                                     class:opacity-50={selectedItems.includes(item.code)}
                                                     class:pointer-events-none={selectedItems.includes(item.code)}
                                                     on:click={() => handleSelect(vmp)}
                                                 >
                                                     <div>
-                                                        <span>{vmp.name}</span>
-                                                        <div class="mt-1">
+                                                        <span class="text-sm">{vmp.name}</span>
+                                                        <div class="mt-0.5">
                                                             {#if isAdvancedMode && type === 'product'}
                                                                 <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
                                                                     VMP: {vmp.code}
@@ -343,7 +343,7 @@
                                                         </div>
                                                     </div>
                                                     {#if selectedItems.includes(vmp.code) && !selectedItems.includes(item.code)}
-                                                        <span class="text-sm font-medium text-oxford-600 ml-2">Selected</span>
+                                                        <span class="text-xs font-medium text-oxford-600 ml-2">Selected</span>
                                                     {/if}
                                                 </li>
                                             {/each}
@@ -352,13 +352,13 @@
                                 </li>
                             {:else}
                                 <li 
-                                    class="py-3 px-3 cursor-pointer relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
+                                    class="py-1.5 px-3 cursor-pointer relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
                                     class:bg-oxford-50={selectedItems.includes(item.code)}
                                     on:click={() => handleSelect(item)}
                                 >
                                     <div>
-                                        <span>{item.name}</span>
-                                        <div class="flex items-center gap-2 mt-1">
+                                        <span class="text-sm">{item.name}</span>
+                                        <div class="flex items-center gap-2 mt-0.5">
                                             {#if isAdvancedMode && type === 'product'}
                                                 <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
                                                     VMP: {item.code}
@@ -376,7 +376,7 @@
                                         </div>
                                     </div>
                                     {#if selectedItems.includes(item.code)}
-                                        <span class="text-sm font-medium text-oxford-600 mt-1 block">Selected</span>
+                                        <span class="text-xs font-medium text-oxford-600 mt-0.5 block">Selected</span>
                                     {/if}
                                 </li>
                             {/if}
