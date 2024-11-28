@@ -26,6 +26,11 @@
     let lastSearchResults = [];
     let searchBoxRef;
 
+    let selectedDisplayNames = {};
+
+    let listContainer;
+    let showScrollTop = false;
+
     $: {
         if (type === 'product') {
             filteredItems = filterItems($analyseOptions.productNames, searchTerm);
@@ -51,7 +56,7 @@
     async function handleInput() {
         clearTimeout(searchTimeout);
         
-        if (!searchTerm || searchTerm.length < 1) {
+        if (!searchTerm || searchTerm.length < 3) {
             filteredItems = [];
             lastSearchResults = [];
             isLoading = false;
@@ -65,9 +70,11 @@
                 const response = await fetch(`/api/search/?type=${type}&term=${encodeURIComponent(searchTerm)}`);
                 const data = await response.json();
                 
-                filteredItems = data.results;
-                console.log(filteredItems);
-                lastSearchResults = data.results;
+                filteredItems = data.results.map(item => ({
+                    ...item,
+                    isExpanded: item.type === 'vtm' ? true : false
+                }));
+                lastSearchResults = filteredItems;
             } catch (error) {
                 console.error('Error fetching search results:', error);
                 filteredItems = [];
@@ -100,6 +107,9 @@
             });
             const data = await response.json();
             vmpCount = data.vmp_count;
+            if (data.display_names) {
+                selectedDisplayNames = data.display_names;
+            }
         } catch (error) {
             console.error('Error fetching VMP count:', error);
         } finally {
@@ -108,16 +118,29 @@
     }
 
     function handleSelect(item) {
-        const selectedItem = type === 'atc' ? item.name : item;
-        if (!selectedItems.includes(selectedItem)) {
-            selectedItems = [...selectedItems, selectedItem];
-            dispatch('selectionChange', { items: selectedItems, type });
-            fetchVmpCount();
+        if (item.type === 'vtm') {
+            if (!selectedItems.includes(item.code)) {
+                const vmpCodes = item.vmps.map(vmp => vmp.code);
+                selectedItems = selectedItems.filter(i => !vmpCodes.includes(i));
+                selectedItems = [...selectedItems, item.code];
+            } else {
+                selectedItems = selectedItems.filter(i => i !== item.code);
+            }
         } else {
-            selectedItems = selectedItems.filter(i => i !== selectedItem);
-            dispatch('selectionChange', { items: selectedItems, type });
-            fetchVmpCount();
+            const parentVtm = filteredItems.find(vtm => 
+                vtm.type === 'vtm' && vtm.vmps?.some(vmp => vmp.code === item.code)
+            );
+            if (!parentVtm || !selectedItems.includes(parentVtm.code)) {
+                if (!selectedItems.includes(item.code)) {
+                    selectedItems = [...selectedItems, item.code];
+                } else {
+                    selectedItems = selectedItems.filter(i => i !== item.code);
+                }
+            }
         }
+        
+        dispatch('selectionChange', { items: selectedItems, type });
+        fetchVmpCount();
         filteredItems = lastSearchResults;
     }
 
@@ -131,7 +154,7 @@
         type = newType;
         selectedItems = [];
         searchTerm = '';
-        filteredItems = []; // Clear filtered items when changing type
+        filteredItems = [];
         dispatch('selectionChange', { items: selectedItems, type });
         vmpCount = 0;
     }
@@ -141,8 +164,41 @@
             selectedItems = [];
             searchTerm = '';
             vmpCount = 0;
-            filteredItems = []; // Only clear filtered items when resetting everything
+            filteredItems = [];
         }
+    }
+
+    function toggleExpand(item, event) {
+        event.preventDefault();
+        event.stopPropagation();
+        item.isExpanded = !item.isExpanded;
+        filteredItems = [...filteredItems];
+    }
+
+    function updateScrollButtonVisibility() {
+        if (listContainer) {
+            showScrollTop = listContainer.scrollHeight > listContainer.clientHeight && listContainer.scrollTop > 0;
+        }
+    }
+
+    onMount(() => {
+        setTimeout(() => {
+            listContainer = document.querySelector('.search-box .overflow-y-auto');
+            if (listContainer) {
+                listContainer.addEventListener('scroll', updateScrollButtonVisibility);
+                updateScrollButtonVisibility();
+            }
+        }, 100);
+
+        return () => {
+            if (listContainer) {
+                listContainer.removeEventListener('scroll', updateScrollButtonVisibility);
+            }
+        };
+    });
+
+    $: if (filteredItems && listContainer) {
+        setTimeout(updateScrollButtonVisibility, 50);
     }
 </script>
 
@@ -196,78 +252,149 @@
     {#if filteredItems.length > 0 || isLoading}
         <div class="fixed inset-0 bg-transparent" on:click={() => filteredItems = []}></div>
         <div class="relative z-10">
-            <ul class="border border-gray-300 rounded-none border-t-0 max-h-96 overflow-y-auto divide-y divide-gray-200">
+            <ul class="border border-gray-300 rounded-none border-t-0 max-h-96 overflow-y-auto divide-y divide-gray-200 {!showScrollTop ? 'rounded-b-md' : ''}"
+                bind:this={listContainer}
+                on:scroll={updateScrollButtonVisibility}>
                 {#each filteredItems as item}
-                    <li 
-                        class="group pt-4 pb-1 px-2 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out"
-                        class:bg-oxford-100={selectedItems.includes(type === 'atc' ? item.name : item)}
-                        class:text-gray-400={type === 'atc' && !item.has_vmps}
-                        class:pointer-events-none={type === 'atc' && !item.has_vmps}
-                        class:hover:bg-gray-100={true}
-                        on:click={() => handleSelect(item)}
-                    >
-                        <span class="mt-1">
-                            {#if type === 'atc'}
-                                {item.name.split('|')[1].trim()}
-                            {:else}
-                                {item.name}
-                            {/if}
-                        </span>
-                        <span class="absolute top-0 right-0 text-xs px-2 py-1 rounded-bl transition-colors duration-150 ease-in-out
-                                 {selectedItems.includes(type === 'atc' ? item.name : item) 
-                                    ? 'bg-oxford-100 text-oxford-700 group-hover:bg-gray-100' 
-                                    : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200'}">
-                            {#if type === 'atc'}
-                                ATC code: {item.name.split('|')[0].trim()}
-                            {:else}
-                                {#if item.type === 'vtm'}
-                                    VTM code: {item.code}
-                                {:else if item.type === 'vmp'}
-                                    VMP code: {item.code}
-                                {:else}
-                                    Ingredient code: {item.code}
+                    {#if item.type === 'vtm'}
+                        <li class="group">
+                            <div 
+                                class="pt-3 pb-2 px-3 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
+                                class:bg-oxford-50={selectedItems.includes(item.code)}
+                                on:click={() => handleSelect(item)}
+                            >
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        {#if item.vmps?.length > 0}
+                                            <button 
+                                                class="p-1 hover:bg-gray-200 rounded transition-colors"
+                                                on:click|stopPropagation={(event) => toggleExpand(item, event)}
+                                            >
+                                                <svg 
+                                                    class="w-4 h-4 transition-transform duration-200"
+                                                    class:rotate-90={item.isExpanded}
+                                                    fill="none" 
+                                                    stroke="currentColor" 
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </button>
+                                        {/if}
+                                        <span class="font-medium">{item.name}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        {#if isAdvancedMode}
+                                            <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
+                                                VMP: {item.code}
+                                            </span>
+                                        {/if}
+                                        {#if item.vmps?.length}
+                                            <span class="text-xs text-gray-500">
+                                                {item.vmps.length} product{item.vmps.length !== 1 ? 's' : ''}
+                                            </span>
+                                        {/if}
+                                    </div>
+                                </div>
+                                {#if selectedItems.includes(item.code)}
+                                    <span class="text-sm font-medium text-oxford-600 ml-2">Selected (all products)</span>
                                 {/if}
-                           
+                            </div>
+                            
+                            {#if item.vmps && item.isExpanded}
+                                <ul class="border-t border-gray-200">
+                                    {#each item.vmps as vmp}
+                                        <li 
+                                            class="py-2 px-3 pl-10 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
+                                            class:bg-oxford-50={selectedItems.includes(vmp.code)}
+                                            class:opacity-50={selectedItems.includes(item.code)}
+                                            class:pointer-events-none={selectedItems.includes(item.code)}
+                                            on:click={() => handleSelect(vmp)}
+                                        >
+                                            <div>
+                                                <span>{vmp.name}</span>
+                                                <div class="mt-1">
+                                                    {#if isAdvancedMode}
+                                                        <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
+                                                            VMP: {vmp.code}
+                                                        </span>
+                                                    {/if}
+                                                </div>
+                                            </div>
+                                            {#if selectedItems.includes(vmp.code) && !selectedItems.includes(item.code)}
+                                                <span class="text-sm font-medium text-oxford-600 ml-2">Selected</span>
+                                            {/if}
+                                        </li>
+                                    {/each}
+                                </ul>
                             {/if}
-                        </span>
-                        {#if type === 'atc' && !item.has_vmps}
-                            <span class="text-sm text-gray-400">(No products)</span>
-                        {:else if selectedItems.includes(type === 'atc' ? item.name : item)}
-                            <span class="text-sm font-medium text-oxford-500 mt-2">Selected</span>
-                        {/if}
-                    </li>
+                        </li>
+                    {:else}
+                        <li 
+                            class="py-3 px-3 cursor-pointer relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
+                            class:bg-oxford-50={selectedItems.includes(item.code)}
+                            on:click={() => handleSelect(item)}
+                        >
+                            <div>
+                                <span>{item.name}</span>
+                                <div class="flex items-center gap-2 mt-1">
+                                    {#if isAdvancedMode}
+                                        <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
+                                            VMP: {item.code}
+                                        </span>
+                                    {/if}
+                                </div>
+                            </div>
+                            {#if selectedItems.includes(item.code)}
+                                <span class="text-sm font-medium text-oxford-600 mt-1 block">Selected</span>
+                            {/if}
+                        </li>
+                    {/if}
                 {/each}
             </ul>
-            <button
-                on:click={() => {
-                    const listContainer = document.querySelector('.search-box .overflow-y-auto');
-                    if (listContainer) {
-                        listContainer.scrollTo({ top: 0 });
-                    }
-                }}
-                class="w-full p-2 bg-gray-100 border-t border-gray-200 flex items-center justify-center hover:bg-oxford-50 active:bg-oxford-100 cursor-pointer transition-colors duration-150 gap-2 rounded-b-md"
-            >
-                <span class="text-sm font-medium text-gray-700">
-                    {selectedItems.length} {type === 'product' ? type : type.toUpperCase()}s selected • Click to scroll to top
-                </span>
-                <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                </svg>
-            </button>
+            {#if showScrollTop}
+                <button
+                    on:click={() => {
+                        if (listContainer) {
+                            listContainer.scrollTo({ top: 0 });
+                        }
+                    }}
+                    class="w-full p-2 bg-gray-100 border-t border-gray-200 flex items-center justify-center hover:bg-oxford-50 active:bg-oxford-100 cursor-pointer transition-colors duration-150 gap-2 rounded-b-md"
+                >
+                    <span class="text-sm font-medium text-gray-700">
+                        Click to scroll to top
+                    </span>
+                    <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                    </svg>
+                </button>
+            {/if}
         </div>
     {/if}
     {#if selectedItems.length > 0}
         <div>
-            <h3 class="font-semibold my-2 text-md text-gray-700">Selected {type === 'product' ? type : type.toUpperCase()} names:</h3>
+            <h3 class="font-semibold my-2 text-md text-gray-700">
+                Selected {isAdvancedMode ? (type === 'product' ? type : type.toUpperCase()) : ''} names:
+            </h3>
             <ul class="border border-gray-200 rounded-md">
                 {#each selectedItems as item}
                     <li class="flex items-center justify-between px-2 py-1">
                         <span class="text-gray-800">
-                            {typeof item === 'string' ? item : `${item.code} | ${item.name}`}
+                            {#if isAdvancedMode}
+                                {selectedDisplayNames[item] || 
+                                 filteredItems.find(i => i.code === item)?.display_name || 
+                                 lastSearchResults.find(i => i.code === item)?.display_name || 
+                                 item}
+                            {:else}
+                                {(selectedDisplayNames[item] || 
+                                  filteredItems.find(i => i.code === item)?.display_name || 
+                                  lastSearchResults.find(i => i.code === item)?.display_name || 
+                                  item).replace(/\([^)]*\)/g, '').trim()}
+                            {/if}
                         </span>
                         <button 
                             on:click={() => handleRemove(item)}
-                            class="btn-red-sm"
+                            class="px-2 py-1 text-sm text-white bg-red-600 hover:bg-red-700 rounded-md"
                         >
                             Remove
                         </button>
@@ -278,7 +405,7 @@
                 {#if isCalculating}
                     Calculating number of individual products analysed...
                 {:else if vmpCount > 0}
-                    This selection will analyse {vmpCount} unique VMP{vmpCount !== 1 ? 's' : ''}.
+                    This selection will analyse {vmpCount} unique product{vmpCount !== 1 ? 's' : ''}.
                     {#if vmpCount > 100}
                         <span class="text-amber-600 font-semibold">
                             Warning: This is a large number of products. The analysis may take a long time. 

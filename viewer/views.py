@@ -475,7 +475,40 @@ def filtered_vmp_count(request):
 
     search_items = [item.split("|")[0].strip() for item in search_items]
     
-    if search_type == "vmp":
+    if search_type == "product":
+        # Handle both VMP and VTM codes
+        vtm_codes = []
+        vmp_codes = []
+        for code in search_items:
+            if VTM.objects.filter(vtm=code).exists():
+                vtm_codes.append(code)
+            else:
+                vmp_codes.append(code)
+        
+        # Get VMPs directly selected and VMPs under selected VTMs
+        queryset = VMP.objects.filter(
+            Q(code__in=vmp_codes) |
+            Q(vtm__vtm__in=vtm_codes)
+        )
+
+        # Get display names for both VTMs and VMPs
+        vtms = VTM.objects.filter(vtm__in=vtm_codes).values('vtm', 'name')
+        vmps = VMP.objects.filter(code__in=vmp_codes).values('code', 'name')
+        
+        display_names = {}
+        # Add VTM display names
+        for vtm in vtms:
+            display_names[vtm['vtm']] = f"{vtm['name']} ({vtm['vtm']})"
+        # Add VMP display names
+        for vmp in vmps:
+            display_names[vmp['code']] = f"{vmp['name']} ({vmp['code']})"
+        
+        return Response({
+            "vmp_count": queryset.distinct().count(),
+            "display_names": display_names
+        })
+    
+    elif search_type == "vmp":
         queryset = VMP.objects.filter(code__in=search_items)
     elif search_type == "vtm":
         queryset = VMP.objects.filter(vtm__vtm__in=search_items)
@@ -484,6 +517,8 @@ def filtered_vmp_count(request):
     elif search_type == "atc":
         all_atc_codes = get_all_child_atc_codes(search_items)
         queryset = VMP.objects.filter(atcs__code__in=all_atc_codes)
+    else:
+        return Response({"vmp_count": 0})
     
     vmp_count = queryset.distinct().count()
     return Response({"vmp_count": vmp_count})
@@ -504,31 +539,78 @@ def search_items(request):
     search_term = request.GET.get('term', '').lower()
     
     if search_type == 'product':
-        # First get matching VTMs
-        vtms = VTM.objects.filter(
-            Q(name__icontains=search_term) | 
-            Q(vtm__icontains=search_term)
-        )
-
-        vtms_results = [{
-            'code': vtm.vtm,
-            'name': vtm.name,
-            'type': 'vtm'
-        } for vtm in vtms]
-        
-        # Then get matching VMPs that aren't already included via VTM
-        vmps = VMP.objects.filter(
+        # First get matching VMPs (both with and without VTMs)
+        matching_vmps = VMP.objects.filter(
             Q(name__icontains=search_term) | 
             Q(code__icontains=search_term)
-        )
+        ).select_related('vtm')
 
-        vmps_results = [{
+        # Organize VMPs by VTM
+        vmp_by_vtm = {}
+        standalone_vmps = []
+        
+        for vmp in matching_vmps:
+            if vmp.vtm:
+                vtm_key = vmp.vtm.vtm  # Using VTM code as key
+                if vtm_key not in vmp_by_vtm:
+                    vmp_by_vtm[vtm_key] = {
+                        'vtm': vmp.vtm,
+                        'vmps': []
+                    }
+                vmp_by_vtm[vtm_key]['vmps'].append(vmp)
+            else:
+                standalone_vmps.append(vmp)
+
+        # Get additional VTMs that match the search term
+        additional_vtms = VTM.objects.filter(
+            Q(name__icontains=search_term) | 
+            Q(vtm__icontains=search_term)
+        ).exclude(vtm__in=vmp_by_vtm.keys())
+
+        # Build results
+        results = []
+        
+        # Add VTMs with their VMPs
+        for vtm_data in vmp_by_vtm.values():
+            vtm = vtm_data['vtm']
+            results.append({
+                'code': vtm.vtm,
+                'name': vtm.name,
+                'type': 'vtm',
+                'isExpanded': False,
+                'display_name': f"{vtm.name} ({vtm.vtm})",
+                'vmps': [{
+                    'code': vmp.code,
+                    'name': vmp.name,
+                    'type': 'vmp',
+                    'display_name': f"{vmp.name} ({vmp.code})"
+                } for vmp in vtm_data['vmps']]
+            })
+
+        # Add additional VTMs with their VMPs
+        for vtm in additional_vtms:
+            vmps = vtm.vmps.all()
+            results.append({
+                'code': vtm.vtm,
+                'name': vtm.name,
+                'type': 'vtm',
+                'isExpanded': False,
+                'display_name': f"{vtm.name} ({vtm.vtm})",
+                'vmps': [{
+                    'code': vmp.code,
+                    'name': vmp.name,
+                    'type': 'vmp',
+                    'display_name': f"{vmp.name} ({vmp.code})"
+                } for vmp in vmps]
+            })
+
+        # Add standalone VMPs
+        results.extend([{
             'code': vmp.code,
             'name': vmp.name,
-            'type': 'vmp'
-        } for vmp in vmps]
-    
-        results = vtms_results + vmps_results
+            'type': 'vmp',
+            'display_name': f"{vmp.name} ({vmp.code})"
+        } for vmp in standalone_vmps])
 
         return JsonResponse({'results': results})
     
