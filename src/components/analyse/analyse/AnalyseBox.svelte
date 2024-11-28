@@ -327,79 +327,134 @@
       </div>
     </div>
 
-    <!-- Controls Grid -->
+    <!-- Second Selection Grid (for Quantity Type and Date Range) -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Date Range -->
-      <div class="grid gap-4">
-        <div>
+      {#if isAdvancedMode}
+        <!-- Quantity Type Selection (Only in Advanced Mode) -->
+        <div class="grid gap-4 lg:self-start">
           <div class="flex items-center">
-            <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Date Range</h3>
+            <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Quantity type selection</h3>
           </div>
-          {#if dates.length > 0}
-            <div class="px-2">
-              <div class="flex justify-between mb-2 text-sm text-gray-600">
-                <span>{formatDate(dates[0])}</span>
-                <span>{formatDate(dates[dates.length - 1])}</span>
-              </div>
-              <RangeSlider
-                min={0}
-                max={dates.length - 1}
-                step={1}
-                values={dateValues}
-                on:change={handleDateRangeChange}
-                float
-                all="hide"
-                first="pip"
-                last="pip"
-                pipstep={6}
-                formatter={index => formatDate(dates[index])}
-                handleFormatter={index => formatDate(dates[index])}
-                springValues={{ stiffness: 0.3, damping: 0.8 }}
-              />
-              <div class="mt-2 text-center text-sm text-gray-600">
-                Selected range: {formatDate(dates[dateValues[0]])} - {formatDate(dates[dateValues[1]])}
-              </div>
-            </div>
-          {/if}
+          <div class="relative">
+            <select 
+              id="quantityType"
+              bind:value={$analyseOptions.quantityType}
+              on:change={handleQuantityTypeChange}
+              class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-oxford-500"
+            >
+              {#each quantityOptions as option}
+                <option value={option}>{option}</option>
+              {/each}
+            </select>
+          </div>
         </div>
-      </div>
 
-      <!-- Analysis Controls -->
-      <div class="grid gap-4 bg-gray-50 rounded-lg p-4 sm:p-6">
+        <!-- Date Range (Moved inside the same grid) -->
+        <div class="grid gap-4">
+          <div>
+            <div class="flex items-center">
+              <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Date Range</h3>
+            </div>
+            {#if dates.length > 0}
+              <div class="px-2">
+                <div class="flex justify-between mb-2 text-sm text-gray-600">
+                  <span>{formatDate(dates[0])}</span>
+                  <span>{formatDate(dates[dates.length - 1])}</span>
+                </div>
+                <RangeSlider
+                  min={0}
+                  max={dates.length - 1}
+                  step={1}
+                  values={dateValues}
+                  on:change={handleDateRangeChange}
+                  float
+                  all="hide"
+                  first="pip"
+                  last="pip"
+                  pipstep={6}
+                  formatter={index => formatDate(dates[index])}
+                  handleFormatter={index => formatDate(dates[index])}
+                  springValues={{ stiffness: 0.3, damping: 0.8 }}
+                />
+                <div class="mt-2 text-center text-sm text-gray-600">
+                  Selected range: {formatDate(dates[dateValues[0]])} - {formatDate(dates[dateValues[1]])}
+                </div>
+              </div>
+            {/if}
+          </div>
+        </div>
+      {:else}
+        <!-- Date Range (When not in advanced mode, takes single column) -->
+        <div class="grid gap-4">
+          <div>
+            <div class="flex items-center">
+              <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Date Range</h3>
+            </div>
+            {#if dates.length > 0}
+              <div class="px-2">
+                <div class="flex justify-between mb-2 text-sm text-gray-600">
+                  <span>{formatDate(dates[0])}</span>
+                  <span>{formatDate(dates[dates.length - 1])}</span>
+                </div>
+                <RangeSlider
+                  min={0}
+                  max={dates.length - 1}
+                  step={1}
+                  values={dateValues}
+                  on:change={handleDateRangeChange}
+                  float
+                  all="hide"
+                  first="pip"
+                  last="pip"
+                  pipstep={6}
+                  formatter={index => formatDate(dates[index])}
+                  handleFormatter={index => formatDate(dates[index])}
+                  springValues={{ stiffness: 0.3, damping: 0.8 }}
+                />
+                <div class="mt-2 text-center text-sm text-gray-600">
+                  Selected range: {formatDate(dates[dateValues[0]])} - {formatDate(dates[dateValues[1]])}
+                </div>
+              </div>
+            {/if}
+          </div>
+        </div>
+      {/if}
+    </div>
+
+    <!-- Analysis Controls - Full width but more compact -->
+    <div class="mt-8 bg-gray-50 rounded-lg p-4 sm:p-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <!-- Mode Switch -->
+        <button 
+          class="text-sm text-oxford-600 hover:text-oxford-800 flex items-center gap-2"
+          on:click={toggleAdvancedMode}
+        >
+          <span class="underline">Switch to {isAdvancedMode ? 'basic' : 'advanced'} mode</span>
+        </button>
+
+        <!-- Error Message -->
         {#if errorMessage}
-          <div class="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          <div class="p-3 bg-red-100 border border-red-400 text-red-700 rounded flex-grow">
             {errorMessage}
           </div>
         {/if}
-        
-        <div class="grid gap-4 sm:gap-6">
-          <!-- Mode Switch -->
-          <div class="flex items-center">
-            <button 
-              class="text-sm text-oxford-600 hover:text-oxford-800 flex items-center gap-2"
-              on:click={toggleAdvancedMode}
-            >
-              <span class="underline">Switch to {isAdvancedMode ? 'basic' : 'advanced'} mode</span>
-            </button>
-          </div>
 
-          <!-- Action Buttons -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <button
-              on:click={handleClearAnalysis}
-              class="px-4 sm:px-6 py-2 sm:py-2.5 bg-white text-gray-700 font-medium rounded-md hover:bg-gray-100 transition-colors duration-200 border border-gray-200"
-            >
-              Clear Analysis
-            </button>
-            <button
-              on:click={runAnalysis}
-              disabled={isAnalysisRunning}
-              class="px-4 sm:px-6 py-2 sm:py-2.5 bg-oxford-500 text-white font-medium rounded-md hover:bg-oxford-600 transition-colors duration-200
-                   disabled:bg-oxford-300 disabled:cursor-not-allowed"
-            >
-              {isAnalysisRunning ? 'Running Analysis...' : 'Run Analysis'}
-            </button>
-          </div>
+        <!-- Action Buttons -->
+        <div class="flex gap-2 sm:min-w-[300px] justify-end">
+          <button
+            on:click={handleClearAnalysis}
+            class="px-4 sm:px-6 py-2 sm:py-2.5 bg-white text-gray-700 font-medium rounded-md hover:bg-gray-100 transition-colors duration-200 border border-gray-200"
+          >
+            Clear Analysis
+          </button>
+          <button
+            on:click={runAnalysis}
+            disabled={isAnalysisRunning}
+            class="px-4 sm:px-6 py-2 sm:py-2.5 bg-oxford-500 text-white font-medium rounded-md hover:bg-oxford-600 transition-colors duration-200
+                 disabled:bg-oxford-300 disabled:cursor-not-allowed"
+          >
+            {isAnalysisRunning ? 'Running Analysis...' : 'Run Analysis'}
+          </button>
         </div>
       </div>
     </div>
