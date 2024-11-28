@@ -288,11 +288,8 @@ def filtered_quantities(request):
         Model = Dose
 
     queryset = Model.objects.filter(**base_filters)
-
-    if search_type == "vmp":
-        queryset = queryset.filter(vmp__code__in=search_items)
-    elif search_type == "vtm":
-        queryset = queryset.filter(vmp__vtm__vtm__in=search_items)
+    if search_type == "product":
+        queryset = queryset.filter(Q(vmp__code__in=search_items) | Q(vmp__vtm__vtm__in=search_items))
     elif search_type == "ingredient":
         if quantity_type == "Ingredient Quantity":
             queryset = queryset.filter(ingredient__code__in=search_items)

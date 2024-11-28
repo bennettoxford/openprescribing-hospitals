@@ -279,6 +279,27 @@
       <div class="grid gap-4 lg:self-start">
         <div class="flex items-center">
           <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Product selection</h3>
+          <div class="relative inline-block group">
+            <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
+                        group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
+                        ring-1 ring-black ring-opacity-5 p-4">
+              <p class="text-sm text-gray-500">
+                {#if isAdvancedMode}
+                  Search for and select products to include in the analysis. You can select individual products
+                  (VMP) or groups of products by ingredient, therapeutic moiety (VTM), or 
+                  therapeutic target (ATC). See <a href="/faq/#product-selection-types" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+                {:else}
+                  Search for and select products or groups of products to analyse. You can select individual products
+                  or entire groups of related products. See <a href="/faq/#product-selection-types" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+                {/if}
+              </p>
+            </div>
+          </div>
         </div>
         <div class="relative">
           <Search on:selectionChange={handleVMPSelection} {isAdvancedMode} />
@@ -289,6 +310,21 @@
       <div class="grid gap-4 lg:self-start">
         <div class="flex items-center">
           <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Trusts selection</h3>
+          <div class="relative inline-block group">
+            <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
+                        group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
+                        ring-1 ring-black ring-opacity-5 p-4">
+              <p class="text-sm text-gray-500">
+                By default, the analysis will include all NHS Trusts in England. You can restrict the analysis by selecting specific trusts below.
+                See <a href="/faq/#trusts-included" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+              </p>
+            </div>
+          </div>
         </div>
         <div class="relative">
           <OrganisationSearch 
@@ -330,10 +366,25 @@
     <!-- Second Selection Grid (for Quantity Type and Date Range) -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {#if isAdvancedMode}
-        <!-- Quantity Type Selection (Only in Advanced Mode) -->
+        <!-- Quantity Type Selection -->
         <div class="grid gap-4 lg:self-start">
           <div class="flex items-center">
             <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Quantity type selection</h3>
+            <div class="relative inline-block group">
+              <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
+                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+              </button>
+              <div class="absolute z-[200] scale-0 transition-all duration-100 origin-top transform 
+                          group-hover:scale-100 w-[200px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
+                          ring-1 ring-black ring-opacity-5 p-4">
+                <p class="text-sm text-gray-500">
+                  Select the quantity unit most relevant to the selected products to use for the analysis.
+                  See <a href="/faq/#quantity-type" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+                </p>
+              </div>
+            </div>
           </div>
           <div class="relative">
             <select 

@@ -69,30 +69,13 @@
   }
 
   onMount(() => {
-    const analyseBox = document.querySelector('analyse-box');
-    const resultsBox = document.querySelector('results-box');
-
-    if (analyseBox && resultsBox) {
-      analyseBox.addEventListener('runAnalysis', (event) => {
-        handleAnalysisStart();
-        handleAnalysisComplete(event);
-      });
-
-      analyseBox.addEventListener('analysisRunningChange', (event) => {
-        isAnalysisRunning.set(event.detail);
-      });
-
-      analyseBox.addEventListener('organisationDropdownToggle', handleOrganisationDropdownToggle);
-      analyseBox.addEventListener('analysisClear', handleAnalysisClear);
-    }
-
     if (odsData) {
-      try {
-        const parsedData = typeof odsData === 'string' ? JSON.parse(odsData) : odsData;
-        organisationSearchStore.setItems(parsedData);
-      } catch (error) {
-        console.error('Error parsing ODS data:', error);
-      }
+        try {
+            const parsedData = typeof odsData === 'string' ? JSON.parse(odsData) : odsData;
+            organisationSearchStore.setItems(parsedData);
+        } catch (error) {
+            console.error('Error parsing ODS data:', error);
+        }
     }
   });
 </script>
