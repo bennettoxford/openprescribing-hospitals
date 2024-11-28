@@ -252,7 +252,13 @@
                 {/if}
             </div>
 
-            {#if filteredItems.length > 0 || isLoading}
+            {#if searchTerm && searchTerm.length < 3}
+                <div class="absolute top-[calc(100%_-_1px)] left-0 right-0 bg-white border border-gray-300 rounded-b-md shadow-lg z-50 p-3">
+                    <p class="text-gray-600 text-sm">
+                        Please type at least 3 characters to start searching
+                    </p>
+                </div>
+            {:else if filteredItems.length > 0 || isLoading}
                 <div class="fixed inset-0 bg-transparent" on:click={() => filteredItems = []}></div>
                 <div class="z-10">
                     <ul class="border border-gray-300 rounded-none border-t-0 max-h-96 overflow-y-auto divide-y divide-gray-200 bg-white {!showScrollTop ? 'rounded-b-md' : ''}"
