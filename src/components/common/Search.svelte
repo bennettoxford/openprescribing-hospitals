@@ -213,207 +213,212 @@
             <button class="px-2 py-1 rounded {type === 'atc' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('atc')}>ATC</button>
         </div>
     {/if}
-    <div class="relative pointer-events-auto">
-        <input
-            type="text"
-            {placeholder}
-            bind:value={searchTerm}
-            on:input={handleInput}
-            on:focus={() => {
-                if (searchTerm && lastSearchResults.length > 0) {
-                    filteredItems = lastSearchResults;
-                }
-            }}
-            on:keydown={(e) => {
-                if (e.key === 'Escape' && searchTerm) {
-                    e.preventDefault();
-                    searchTerm = '';
-                    filteredItems = [];
-                    lastSearchResults = [];
-                }
-            }}
-            class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500 pr-8
-                   {filteredItems.length > 0 ? 'rounded-b-none' : ''}"
-        />
-        {#if isLoading}
-            <div class="absolute right-8 top-0 h-full flex items-center">
-                <div class="animate-spin h-4 w-4 border-2 border-oxford-500 rounded-full border-t-transparent"></div>
-            </div>
-        {/if}
-        {#if searchTerm}
-            <button
-                class="absolute right-2 top-0 h-full flex items-center justify-center text-gray-400 hover:text-gray-600 w-5"
-                on:click|stopPropagation={() => searchTerm = ''}
-            >
-                ✕
-            </button>
-        {/if}
-    </div>
-    {#if filteredItems.length > 0 || isLoading}
-        <div class="fixed inset-0 bg-transparent" on:click={() => filteredItems = []}></div>
-        <div class="relative z-10">
-            <ul class="border border-gray-300 rounded-none border-t-0 max-h-96 overflow-y-auto divide-y divide-gray-200 {!showScrollTop ? 'rounded-b-md' : ''}"
-                bind:this={listContainer}
-                on:scroll={updateScrollButtonVisibility}>
-                {#each filteredItems as item}
-                    {#if item.type === 'vtm'}
-                        <li class="group">
-                            <div 
-                                class="pt-3 pb-2 px-3 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
-                                class:bg-oxford-50={selectedItems.includes(item.code)}
-                                on:click={() => handleSelect(item)}
-                            >
-                                <div class="flex-1">
-                                    <div class="flex items-center gap-2">
-                                        {#if item.vmps?.length > 0}
-                                            <button 
-                                                class="p-1 hover:bg-gray-200 rounded transition-colors"
-                                                on:click|stopPropagation={(event) => toggleExpand(item, event)}
-                                            >
-                                                <svg 
-                                                    class="w-4 h-4 transition-transform duration-200"
-                                                    class:rotate-90={item.isExpanded}
-                                                    fill="none" 
-                                                    stroke="currentColor" 
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                                </svg>
-                                            </button>
-                                        {/if}
-                                        <span class="font-medium">{item.name}</span>
-                                    </div>
-                                    <div class="flex items-center gap-2 mt-1">
-                                        {#if isAdvancedMode}
-                                            <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
-                                                VMP: {item.code}
-                                            </span>
-                                        {/if}
-                                        {#if item.vmps?.length}
-                                            <span class="text-xs text-gray-500">
-                                                {item.vmps.length} product{item.vmps.length !== 1 ? 's' : ''}
-                                            </span>
-                                        {/if}
-                                    </div>
-                                </div>
-                                {#if selectedItems.includes(item.code)}
-                                    <span class="text-sm font-medium text-oxford-600 ml-2">Selected (all products)</span>
-                                {/if}
-                            </div>
-                            
-                            {#if item.vmps && item.isExpanded}
-                                <ul class="border-t border-gray-200">
-                                    {#each item.vmps as vmp}
-                                        <li 
-                                            class="py-2 px-3 pl-10 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
-                                            class:bg-oxford-50={selectedItems.includes(vmp.code)}
-                                            class:opacity-50={selectedItems.includes(item.code)}
-                                            class:pointer-events-none={selectedItems.includes(item.code)}
-                                            on:click={() => handleSelect(vmp)}
-                                        >
-                                            <div>
-                                                <span>{vmp.name}</span>
-                                                <div class="mt-1">
-                                                    {#if isAdvancedMode}
-                                                        <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
-                                                            VMP: {vmp.code}
-                                                        </span>
-                                                    {/if}
-                                                </div>
-                                            </div>
-                                            {#if selectedItems.includes(vmp.code) && !selectedItems.includes(item.code)}
-                                                <span class="text-sm font-medium text-oxford-600 ml-2">Selected</span>
-                                            {/if}
-                                        </li>
-                                    {/each}
-                                </ul>
-                            {/if}
-                        </li>
-                    {:else}
-                        <li 
-                            class="py-3 px-3 cursor-pointer relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
-                            class:bg-oxford-50={selectedItems.includes(item.code)}
-                            on:click={() => handleSelect(item)}
-                        >
-                            <div>
-                                <span>{item.name}</span>
-                                <div class="flex items-center gap-2 mt-1">
-                                    {#if isAdvancedMode}
-                                        <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
-                                            VMP: {item.code}
-                                        </span>
-                                    {/if}
-                                </div>
-                            </div>
-                            {#if selectedItems.includes(item.code)}
-                                <span class="text-sm font-medium text-oxford-600 mt-1 block">Selected</span>
-                            {/if}
-                        </li>
-                    {/if}
-                {/each}
-            </ul>
-            {#if showScrollTop}
-                <button
-                    on:click={() => {
-                        if (listContainer) {
-                            listContainer.scrollTo({ top: 0 });
+    <div class="grid gap-4">
+        <div class="relative pointer-events-auto">
+            <div class="relative">
+                <input
+                    type="text"
+                    {placeholder}
+                    bind:value={searchTerm}
+                    on:input={handleInput}
+                    on:focus={() => {
+                        if (searchTerm && lastSearchResults.length > 0) {
+                            filteredItems = lastSearchResults;
                         }
                     }}
-                    class="w-full p-2 bg-gray-100 border-t border-gray-200 flex items-center justify-center hover:bg-oxford-50 active:bg-oxford-100 cursor-pointer transition-colors duration-150 gap-2 rounded-b-md"
-                >
-                    <span class="text-sm font-medium text-gray-700">
-                        Click to scroll to top
-                    </span>
-                    <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                    </svg>
-                </button>
+                    on:keydown={(e) => {
+                        if (e.key === 'Escape' && searchTerm) {
+                            e.preventDefault();
+                            searchTerm = '';
+                            filteredItems = [];
+                            lastSearchResults = [];
+                        }
+                    }}
+                    class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500 pr-8
+                           {filteredItems.length > 0 ? 'rounded-b-none' : ''}"
+                />
+                {#if isLoading}
+                    <div class="absolute right-8 top-1/2 -translate-y-1/2 flex items-center z-20">
+                        <div class="animate-spin h-4 w-4 border-2 border-oxford-500 rounded-full border-t-transparent"></div>
+                    </div>
+                {/if}
+                {#if searchTerm}
+                    <button
+                        class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center text-gray-400 hover:text-gray-600 w-5 z-20"
+                        on:click|stopPropagation={() => searchTerm = ''}
+                    >
+                        ✕
+                    </button>
+                {/if}
+            </div>
+
+            {#if filteredItems.length > 0 || isLoading}
+                <div class="fixed inset-0 bg-transparent" on:click={() => filteredItems = []}></div>
+                <div class="z-10">
+                    <ul class="border border-gray-300 rounded-none border-t-0 max-h-96 overflow-y-auto divide-y divide-gray-200 bg-white {!showScrollTop ? 'rounded-b-md' : ''}"
+                        bind:this={listContainer}
+                        on:scroll={updateScrollButtonVisibility}>
+                        {#each filteredItems as item}
+                            {#if item.type === 'vtm'}
+                                <li class="group">
+                                    <div 
+                                        class="pt-3 pb-2 px-3 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
+                                        class:bg-oxford-50={selectedItems.includes(item.code)}
+                                        on:click={() => handleSelect(item)}
+                                    >
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-2">
+                                                {#if item.vmps?.length > 0}
+                                                    <button 
+                                                        class="p-1 hover:bg-gray-200 rounded transition-colors"
+                                                        on:click|stopPropagation={(event) => toggleExpand(item, event)}
+                                                    >
+                                                        <svg 
+                                                            class="w-4 h-4 transition-transform duration-200"
+                                                            class:rotate-90={item.isExpanded}
+                                                            fill="none" 
+                                                            stroke="currentColor" 
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                    </button>
+                                                {/if}
+                                                <span class="font-medium">{item.name}</span>
+                                            </div>
+                                            <div class="flex items-center gap-2 mt-1">
+                                                {#if isAdvancedMode}
+                                                    <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
+                                                        VMP: {item.code}
+                                                    </span>
+                                                {/if}
+                                                {#if item.vmps?.length}
+                                                    <span class="text-xs text-gray-500">
+                                                        {item.vmps.length} product{item.vmps.length !== 1 ? 's' : ''}
+                                                    </span>
+                                                {/if}
+                                            </div>
+                                        </div>
+                                        {#if selectedItems.includes(item.code)}
+                                            <span class="text-sm font-medium text-oxford-600 ml-2">Selected (all products)</span>
+                                        {/if}
+                                    </div>
+                                    
+                                    {#if item.vmps && item.isExpanded}
+                                        <ul class="border-t border-gray-200">
+                                            {#each item.vmps as vmp}
+                                                <li 
+                                                    class="py-2 px-3 pl-10 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
+                                                    class:bg-oxford-50={selectedItems.includes(vmp.code)}
+                                                    class:opacity-50={selectedItems.includes(item.code)}
+                                                    class:pointer-events-none={selectedItems.includes(item.code)}
+                                                    on:click={() => handleSelect(vmp)}
+                                                >
+                                                    <div>
+                                                        <span>{vmp.name}</span>
+                                                        <div class="mt-1">
+                                                            {#if isAdvancedMode}
+                                                                <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
+                                                                    VMP: {vmp.code}
+                                                                </span>
+                                                            {/if}
+                                                        </div>
+                                                    </div>
+                                                    {#if selectedItems.includes(vmp.code) && !selectedItems.includes(item.code)}
+                                                        <span class="text-sm font-medium text-oxford-600 ml-2">Selected</span>
+                                                    {/if}
+                                                </li>
+                                            {/each}
+                                        </ul>
+                                    {/if}
+                                </li>
+                            {:else}
+                                <li 
+                                    class="py-3 px-3 cursor-pointer relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
+                                    class:bg-oxford-50={selectedItems.includes(item.code)}
+                                    on:click={() => handleSelect(item)}
+                                >
+                                    <div>
+                                        <span>{item.name}</span>
+                                        <div class="flex items-center gap-2 mt-1">
+                                            {#if isAdvancedMode}
+                                                <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
+                                                    VMP: {item.code}
+                                                </span>
+                                            {/if}
+                                        </div>
+                                    </div>
+                                    {#if selectedItems.includes(item.code)}
+                                        <span class="text-sm font-medium text-oxford-600 mt-1 block">Selected</span>
+                                    {/if}
+                                </li>
+                            {/if}
+                        {/each}
+                    </ul>
+                    {#if showScrollTop}
+                        <button
+                            on:click={() => {
+                                if (listContainer) {
+                                    listContainer.scrollTo({ top: 0 });
+                                }
+                            }}
+                            class="w-full p-2 bg-gray-100 border-t border-gray-200 flex items-center justify-center hover:bg-oxford-50 active:bg-oxford-100 cursor-pointer transition-colors duration-150 gap-2 rounded-b-md"
+                        >
+                            <span class="text-sm font-medium text-gray-700">
+                                Click to scroll to top
+                            </span>
+                            <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                            </svg>
+                        </button>
+                    {/if}
+                </div>
             {/if}
         </div>
-    {/if}
-    {#if selectedItems.length > 0}
-        <div>
-            <h3 class="font-semibold my-2 text-md text-gray-700">
-                Selected {isAdvancedMode ? (type === 'product' ? type : type.toUpperCase()) : ''} names:
-            </h3>
-            <ul class="border border-gray-200 rounded-md">
-                {#each selectedItems as item}
-                    <li class="flex items-center justify-between px-2 py-1">
-                        <span class="text-gray-800">
-                            {#if isAdvancedMode}
-                                {selectedDisplayNames[item] || 
-                                 filteredItems.find(i => i.code === item)?.display_name || 
-                                 lastSearchResults.find(i => i.code === item)?.display_name || 
-                                 item}
-                            {:else}
-                                {(selectedDisplayNames[item] || 
-                                  filteredItems.find(i => i.code === item)?.display_name || 
-                                  lastSearchResults.find(i => i.code === item)?.display_name || 
-                                  item).replace(/\([^)]*\)/g, '').trim()}
-                            {/if}
-                        </span>
-                        <button 
-                            on:click={() => handleRemove(item)}
-                            class="px-2 py-1 text-sm text-white bg-red-600 hover:bg-red-700 rounded-md"
-                        >
-                            Remove
-                        </button>
-                    </li>
-                {/each}
-            </ul>
-            <p class="mt-2 text-sm text-gray-600">
-                {#if isCalculating}
-                    Calculating number of individual products analysed...
-                {:else if vmpCount > 0}
-                    This selection will analyse {vmpCount} unique product{vmpCount !== 1 ? 's' : ''}.
-                    {#if vmpCount > 100}
-                        <span class="text-amber-600 font-semibold">
-                            Warning: This is a large number of products. The analysis may take a long time. 
-                            Consider making your selection more specific.
-                        </span>
+        {#if selectedItems.length > 0}
+            <div>
+                <h3 class="font-semibold my-2 text-md text-gray-700">
+                    Selected {isAdvancedMode ? (type === 'product' ? type : type.toUpperCase()) : 'product'} names:
+                </h3>
+                <ul class="border border-gray-200 rounded-md">
+                    {#each selectedItems as item}
+                        <li class="flex items-center justify-between px-2 py-1">
+                            <span class="text-gray-800">
+                                {#if isAdvancedMode}
+                                    {selectedDisplayNames[item] || 
+                                     filteredItems.find(i => i.code === item)?.display_name || 
+                                     lastSearchResults.find(i => i.code === item)?.display_name || 
+                                     item}
+                                {:else}
+                                    {(selectedDisplayNames[item] || 
+                                      filteredItems.find(i => i.code === item)?.display_name || 
+                                      lastSearchResults.find(i => i.code === item)?.display_name || 
+                                      item).replace(/\([^)]*\)/g, '').trim()}
+                                {/if}
+                            </span>
+                            <button 
+                                on:click={() => handleRemove(item)}
+                                class="px-2 py-1 text-sm text-white bg-red-600 hover:bg-red-700 rounded-md"
+                            >
+                                Remove
+                            </button>
+                        </li>
+                    {/each}
+                </ul>
+                <p class="mt-2 text-sm text-gray-600">
+                    {#if isCalculating}
+                        Calculating number of individual products analysed...
+                    {:else if vmpCount > 0}
+                        This selection will analyse {vmpCount} unique product{vmpCount !== 1 ? 's' : ''}.
+                        {#if vmpCount > 100}
+                            <span class="text-amber-600 font-semibold">
+                                Warning: This is a large number of products. The analysis may take a long time. 
+                                Consider making your selection more specific.
+                            </span>
+                        {/if}
                     {/if}
-                {/if}
-            </p>
-        </div>
-    {/if}
+                </p>
+            </div>
+        {/if}
+    </div>
 </div>

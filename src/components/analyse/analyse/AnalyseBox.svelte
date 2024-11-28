@@ -258,9 +258,11 @@
     }
 </script>
 
-<div class="p-4 bg-white rounded-lg w-full flex flex-col">
-  <div class="flex flex-col">
-    <div class="flex flex-col mb-2">
+<div class="p-4 sm:p-6 bg-white rounded-lg w-full">
+  <div class="grid gap-8">
+    <!-- Header -->
+    <div>
+      <h2 class="text-xl sm:text-2xl font-bold text-oxford mb-2">Analysis builder</h2>
       <p class="text-sm text-oxford">
         {#if isAdvancedMode}
           Run a custom analysis of hospitals stock control data using the options below. You can analyse 
@@ -271,178 +273,135 @@
       </p>
     </div>
 
-    <div class="mb-2 flex-shrink-0">
-      {#if isAdvancedMode}
-        <div class="flex items-center mb-2">
-          <h3 class="text-lg font-semibold text-oxford mr-2">Product selection</h3>
-          <div class="relative inline-block group">
-            <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
-              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-              </svg>
-            </button>
-            <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
-                        group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
-                        ring-1 ring-black ring-opacity-5 p-4">
-              <p class="text-sm text-gray-500">
-                Search for and select products to include in the analysis. You can search by product name
-                (including VMP and VTM), ingredient, or therapeutic target (ATC). 
-                See <a href="/faq/#product-selection-types" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
-              </p>
-            </div>
-          </div>
+    <!-- Selection Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Product Selection -->
+      <div class="grid gap-4 lg:self-start">
+        <div class="flex items-center">
+          <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Product selection</h3>
         </div>
-        <Search on:selectionChange={handleVMPSelection} {isAdvancedMode} />
-      {:else}
-      <div class="flex items-center mb-2">
-        <h3 class="text-lg font-semibold text-oxford mr-2">Product selection</h3>
-        <div class="relative inline-block group">
-          <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
-            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-            </svg>
-          </button>
-          <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
-                      group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
-                      ring-1 ring-black ring-opacity-5 p-4">
-            <p class="text-sm text-gray-500">
-              Search for and select products to include in the analysis.
-            </p>
-          </div>
+        <div class="relative">
+          <Search on:selectionChange={handleVMPSelection} {isAdvancedMode} />
         </div>
       </div>
-        <Search on:selectionChange={handleVMPSelection} {isAdvancedMode} />
-      {/if}
-    </div>
-    
-    {#if isAdvancedMode}
-      <div class="mb-4 flex-shrink-0">
-        <div class="flex items-center mb-2">
-          <h3 class="text-lg font-semibold text-oxford mr-2">Select quantity type</h3>
-          <div class="relative inline-block group">
-            <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
-              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-              </svg>
-            </button>
-            <div class="absolute z-[200] scale-0 transition-all duration-100 origin-top transform 
-                        group-hover:scale-100 w-[200px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
-                        ring-1 ring-black ring-opacity-5 p-4">
-              <p class="text-sm text-gray-500">
-                Select the quantity unit most relevant to the selected products to use for the analysis.
-                See <a href="/faq/#quantity-type" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
-              </p>
-            </div>
-          </div>
-        </div>
-        <select 
-          bind:value={$analyseOptions.quantityType}
-          on:change={handleQuantityTypeChange}
-          class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-oxford-500"
-        >
-          {#each quantityOptions as option}
-            <option value={option}>{option}</option>
-          {/each}
-        </select>
-      </div>
-    {/if}
 
-    <div class="mb-4">
-      <div class="flex flex-col mb-2">
-        <div class="flex items-center mb-2">
-          <h3 class="text-lg font-semibold text-oxford mr-2">Select Trusts</h3>
-          <div class="relative inline-block group">
-            <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
-              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-              </svg>
-            </button>
-            <div class="absolute z-[200] scale-0 transition-all duration-100 origin-top transform 
-                        group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
-                        ring-1 ring-black ring-opacity-5 p-4">
-              <p class="text-sm text-gray-500">
-                By default, the analysis will include all NHS Trusts in England. You can restrict the analysis by selecting specific trusts below.
-                See <a href="/faq/#trusts-included" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
-              </p>
-            </div>
-          </div>
+      <!-- Trust Selection -->
+      <div class="grid gap-4 lg:self-start">
+        <div class="flex items-center">
+          <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Trusts selection</h3>
         </div>
-      </div>
-      <div class="relative">
-        <OrganisationSearch 
+        <div class="relative">
+          <OrganisationSearch 
             source={organisationSearchStore}
             overlayMode={false}
             on:selectionChange={handleODSSelection}
             on:dropdownToggle={handleOrganisationDropdownToggle}
-        />
+          />
+        </div>
+        
+        <!-- Trust Selection Box -->
+        {#if $organisationSearchStore.selectedItems.length > 0}
+          <div class="w-full">
+            <h3 class="font-semibold my-2 text-md text-gray-700">
+              Selected {$organisationSearchStore.filterType === 'icb' ? 'ICBs' : 'Trusts'}:
+            </h3>
+            <ul class="border border-gray-200 rounded-md">
+              {#each $organisationSearchStore.selectedItems as item}
+                <li class="flex items-center justify-between px-2 py-1">
+                  <span class="text-gray-800">{item}</span>
+                  <button 
+                    on:click={() => {
+                      const newSelection = $organisationSearchStore.selectedItems.filter(i => i !== item);
+                      organisationSearchStore.updateSelection(newSelection);
+                      handleODSSelection({ detail: { selectedItems: newSelection } });
+                    }}
+                    class="px-2 py-1 text-sm text-white bg-red-600 hover:bg-red-700 rounded-md"
+                  >
+                    Remove
+                  </button>
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
       </div>
     </div>
-    
-    <div class="flex-shrink-0 relative z-[40]">
-      <div class="flex items-center mb-2">
-        <h3 class="text-lg font-semibold text-oxford mr-2">Date Range</h3>
+
+    <!-- Controls Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Date Range -->
+      <div class="grid gap-4">
+        <div>
+          <div class="flex items-center">
+            <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Date Range</h3>
+          </div>
+          {#if dates.length > 0}
+            <div class="px-2">
+              <div class="flex justify-between mb-2 text-sm text-gray-600">
+                <span>{formatDate(dates[0])}</span>
+                <span>{formatDate(dates[dates.length - 1])}</span>
+              </div>
+              <RangeSlider
+                min={0}
+                max={dates.length - 1}
+                step={1}
+                values={dateValues}
+                on:change={handleDateRangeChange}
+                float
+                all="hide"
+                first="pip"
+                last="pip"
+                pipstep={6}
+                formatter={index => formatDate(dates[index])}
+                handleFormatter={index => formatDate(dates[index])}
+                springValues={{ stiffness: 0.3, damping: 0.8 }}
+              />
+              <div class="mt-2 text-center text-sm text-gray-600">
+                Selected range: {formatDate(dates[dateValues[0]])} - {formatDate(dates[dateValues[1]])}
+              </div>
+            </div>
+          {/if}
+        </div>
       </div>
 
-      {#if dates.length > 0}
-        <div class="px-4 py-2">
-          <div class="flex justify-between mb-2 text-sm text-gray-600">
-            <span>{formatDate(dates[0])}</span>
-            <span>{formatDate(dates[dates.length - 1])}</span>
+      <!-- Analysis Controls -->
+      <div class="grid gap-4 bg-gray-50 rounded-lg p-4 sm:p-6">
+        {#if errorMessage}
+          <div class="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            {errorMessage}
           </div>
-          <RangeSlider
-            min={0}
-            max={dates.length - 1}
-            step={1}
-            values={dateValues}
-            on:change={handleDateRangeChange}
-            float
-            all="hide"
-            first="pip"
-            last="pip"
-            pipstep={6}
-            formatter={index => formatDate(dates[index])}
-            handleFormatter={index => formatDate(dates[index])}
-            springValues={{ stiffness: 0.3, damping: 0.8 }}
-          />
-          <div class="mt-2 text-center text-sm text-gray-600">
-            Selected range: {formatDate(dates[dateValues[0]])} - {formatDate(dates[dateValues[1]])}
+        {/if}
+        
+        <div class="grid gap-4 sm:gap-6">
+          <!-- Mode Switch -->
+          <div class="flex items-center">
+            <button 
+              class="text-sm text-oxford-600 hover:text-oxford-800 flex items-center gap-2"
+              on:click={toggleAdvancedMode}
+            >
+              <span class="underline">Switch to {isAdvancedMode ? 'basic' : 'advanced'} mode</span>
+            </button>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              on:click={handleClearAnalysis}
+              class="px-4 sm:px-6 py-2 sm:py-2.5 bg-white text-gray-700 font-medium rounded-md hover:bg-gray-100 transition-colors duration-200 border border-gray-200"
+            >
+              Clear Analysis
+            </button>
+            <button
+              on:click={runAnalysis}
+              disabled={isAnalysisRunning}
+              class="px-4 sm:px-6 py-2 sm:py-2.5 bg-oxford-500 text-white font-medium rounded-md hover:bg-oxford-600 transition-colors duration-200
+                   disabled:bg-oxford-300 disabled:cursor-not-allowed"
+            >
+              {isAnalysisRunning ? 'Running Analysis...' : 'Run Analysis'}
+            </button>
           </div>
         </div>
-      {/if}
-    </div>
-    
-    {#if errorMessage}
-      <div class="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded flex-shrink-0 relative z-[30]">
-        {errorMessage}
       </div>
-    {/if}
-    
-    <div class="mt-auto flex-shrink-0 space-y-2 relative z-[20]">
-      <div class="flex justify-end mb-2">
-        <button 
-          class="text-xs text-gray-600 hover:text-gray-800 underline"
-          on:click={toggleAdvancedMode}
-        >
-          Switch to {isAdvancedMode ? 'basic' : 'advanced'} mode
-        </button>
-      </div>
-
-      <button
-        on:click={runAnalysis}
-        disabled={isAnalysisRunning}
-        class="w-full bg-oxford-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-oxford-500 transition-colors duration-200
-           hover:bg-oxford-600
-           disabled:bg-oxford-300 disabled:cursor-not-allowed"
-      >
-        {isAnalysisRunning ? 'Running Analysis...' : 'Run Analysis'}
-      </button>
-      <button
-        on:click={handleClearAnalysis}
-        class="w-full bg-gray-100 text-gray-700 font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors duration-200
-           hover:bg-gray-200"
-      >
-        Clear Analysis
-      </button>
     </div>
   </div>
 </div>
