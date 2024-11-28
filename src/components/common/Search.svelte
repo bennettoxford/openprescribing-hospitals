@@ -287,9 +287,17 @@
                                                 <span class="font-medium">{item.name}</span>
                                             </div>
                                             <div class="flex items-center gap-2 mt-1">
-                                                {#if isAdvancedMode}
+                                                {#if isAdvancedMode && type === 'product'}
                                                     <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
-                                                        VMP: {item.code}
+                                                        {#if item.type === 'vtm'}
+                                                            VTM: {item.code}
+                                                        {:else}
+                                                            VMP: {item.code}
+                                                        {/if}
+                                                    </span>
+                                                {:else if isAdvancedMode && type === 'ingredient'}
+                                                    <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
+                                                        Ingredient: {item.code}
                                                     </span>
                                                 {/if}
                                                 {#if item.vmps?.length}
@@ -317,9 +325,13 @@
                                                     <div>
                                                         <span>{vmp.name}</span>
                                                         <div class="mt-1">
-                                                            {#if isAdvancedMode}
+                                                            {#if isAdvancedMode && type === 'product'}
                                                                 <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
                                                                     VMP: {vmp.code}
+                                                                </span>
+                                                            {:else if isAdvancedMode && type === 'ingredient'}
+                                                                <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
+                                                                    Ingredient: {vmp.code}
                                                                 </span>
                                                             {/if}
                                                         </div>
@@ -341,9 +353,18 @@
                                     <div>
                                         <span>{item.name}</span>
                                         <div class="flex items-center gap-2 mt-1">
-                                            {#if isAdvancedMode}
+                                            {#if isAdvancedMode && type === 'product'}
                                                 <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
                                                     VMP: {item.code}
+                                                </span>
+                                            {:else if isAdvancedMode && type === 'ingredient'}
+                                                <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
+                                                    Ingredient: {item.code}
+                                                </span>
+                                            {/if}
+                                            {#if item.vmps?.length}
+                                                <span class="text-xs text-gray-500">
+                                                    {item.vmps.length} product{item.vmps.length !== 1 ? 's' : ''}
                                                 </span>
                                             {/if}
                                         </div>
@@ -384,7 +405,12 @@
                     {#each selectedItems as item}
                         <li class="flex items-center justify-between px-2 py-1">
                             <span class="text-gray-800">
-                                {#if isAdvancedMode}
+                                {#if type === 'atc' || type === 'ingredient'}
+                                    {(selectedDisplayNames[item] || 
+                                      filteredItems.find(i => i.code === item)?.name || 
+                                      lastSearchResults.find(i => i.code === item)?.name || 
+                                      item)}
+                                {:else if isAdvancedMode}
                                     {selectedDisplayNames[item] || 
                                      filteredItems.find(i => i.code === item)?.display_name || 
                                      lastSearchResults.find(i => i.code === item)?.display_name || 
