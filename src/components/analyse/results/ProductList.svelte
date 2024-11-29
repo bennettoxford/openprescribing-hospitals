@@ -63,7 +63,7 @@
     $: displayField = currentSearchType === 'vmp' ? 'vmp' : 
                       (currentSearchType === 'vtm' ? 'vtm' : 
                       (currentSearchType === 'atc' ? 'atc_name' : 
-                      (currentSearchType === 'ingredient' ? 'ingredient' : 'vmp')));
+                      (currentSearchType === 'ingredient' ? 'ingredient_name' : 'vmp')));
 
     $: sortedVMPs = [...vmps].sort((a, b) => {
         // Always keep 'nan' units at the top
@@ -95,41 +95,36 @@
         const selectedVMPs = vmps.filter(vmp => {
             if (vmp && vmp.vmp) {
                 return checkedVMPs[vmp.vmp] ?? false;
-            } else {
-                console.error('Invalid VMP object in filter:', vmp);
-                return false;
             }
+            return false;
         });
-
-        const vmpRouteMap = {};
-        $resultsStore.analysisData.data.forEach(item => {
-            if (item.vmp_name && item.route_names) {
-                vmpRouteMap[item.vmp_name] = item.route_names;
-            }
-        });
-
-        vmps = vmps.map(vmp => ({
-            ...vmp,
-            route_names: vmpRouteMap[vmp.vmp] || []
-        }));
 
         dispatch('dataFiltered', selectedVMPs);
 
         resultsStore.update(store => {
-            const filteredData = $resultsStore.analysisData.data.filter(item => {
+            const originalData = store.analysisData?.data || [];
+            
+            const filteredData = originalData.filter(item => {
                 const isSelectedVMP = selectedVMPs.some(vmp => vmp.vmp === item.vmp_name);
                 return isSelectedVMP && item.unit !== 'nan';
             });
+
+            console.log('Updating store with filtered data:', {
+                selectedVMPs,
+                filteredData,
+                originalDataLength: originalData.length
+            });
+
             return {
                 ...store,
-                filteredData
+                filteredData: filteredData
             };
         });
     }
 
-    // Initial dispatch
     $: {
-        if (Object.keys(checkedVMPs).length > 0) {
+        if (vmps.length > 0 && Object.keys(checkedVMPs).length > 0) {
+            console.log('Initial data filter with VMPs:', vmps);
             updateFilteredData();
         }
     }
@@ -195,7 +190,7 @@
                                 {#if currentSearchType === 'atc'}
                                     {vmp.atc_code ? `${vmp.atc_code} | ${vmp.atc_name}` : 'Unknown ATC'}
                                 {:else if currentSearchType === 'ingredient'}
-                                    {vmp.ingredient || 'Unknown Ingredient'}
+                                    {vmp.ingredient_name || 'Unknown Ingredient'}
                                 {:else}
                                     {vmp[displayField] || 'N/A'}
                                 {/if}

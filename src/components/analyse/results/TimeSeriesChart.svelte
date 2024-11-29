@@ -26,6 +26,7 @@
     $: data = $resultsStore.filteredData || [];
     $: quantityType = $resultsStore.quantityType;
     $: searchType = $resultsStore.searchType;
+    $: showNoDataMessage = $resultsStore.showResults && data.length === 0 && $resultsStore.analysisData?.data?.length > 0;
 
     $: {
         console.log('Data received in TimeSeriesChart:', data);
@@ -55,7 +56,31 @@
         } else {
             console.log('No data available for chart');
             if (chartDiv) {
-                d3.select(chartDiv).selectAll('*').remove();
+                clearChart();
+            }
+        }
+    }
+
+    function clearChart() {
+        if (chartDiv) {
+            d3.select(chartDiv).selectAll('*').remove();
+            
+            // Add a message when no products are selected
+            if (showNoDataMessage) {
+                const width = chartContainer.clientWidth;
+                const height = Math.min(400, window.innerHeight * 0.6);
+                
+                const svg = d3.select(chartDiv)
+                    .append('svg')
+                    .attr('width', width)
+                    .attr('height', height);
+                
+                svg.append('text')
+                    .attr('x', width / 2)
+                    .attr('y', height / 2)
+                    .attr('text-anchor', 'middle')
+                    .attr('class', 'text-gray-500')
+                    .text('No products selected - select products from the list above to view data');
             }
         }
     }
@@ -598,26 +623,41 @@
     });
 </script>
 
-<div class="flex flex-col">
-    <h3 class="text-xl font-semibold mb-2">Trends over time for {quantityType}</h3>
-    <div class="mb-4 flex items-center">
-        <label for="view-mode-select" class="mr-2">View Mode:</label>
-        <select id="view-mode-select" bind:value={viewMode} on:change={handleViewModeChange} class="p-2 border rounded mr-4">
-            {#each availableViewModes as mode}
-                <option value={mode}>{mode} Breakdown</option>
-            {/each}
-        </select>
-    </div>
-    <div class="flex">
-        <div bind:this={chartContainer} class="chart-container flex-grow" style="height: auto; min-height: 300px;">
-            {#if data.length === 0}
-                <p class="text-center text-gray-500 pt-8">No data available. Please select at least one VMP.</p>
-            {:else}
+{#if showNoDataMessage}
+    <div class="p-4">
+        <h3 class="text-xl font-semibold mb-4">Time Series Analysis</h3>
+        <div class="bg-gray-50 rounded-lg p-6">
+            <div bind:this={chartContainer}>
                 <div bind:this={chartDiv}></div>
-            {/if}
+            </div>
         </div>
     </div>
-</div>
+{:else if data.length > 0}
+    <div class="p-4">
+        <h3 class="text-xl font-semibold mb-4">Time Series Analysis</h3>
+        <div class="space-y-4">
+            <div class="flex flex-wrap gap-2">
+                {#each availableViewModes as mode}
+                    <button
+                        class="px-3 py-1 rounded-full text-sm font-medium transition-colors"
+                        class:bg-oxford-600={viewMode === mode}
+                        class:text-white={viewMode === mode}
+                        class:bg-gray-200={viewMode !== mode}
+                        class:text-gray-700={viewMode !== mode}
+                        on:click={() => viewMode = mode}
+                    >
+                        {mode}
+                    </button>
+                {/each}
+            </div>
+            <div class="bg-gray-50 rounded-lg p-6">
+                <div bind:this={chartContainer}>
+                    <div bind:this={chartDiv}></div>
+                </div>
+            </div>
+        </div>
+    </div>
+{/if}
 
 <style>
     .chart-container {

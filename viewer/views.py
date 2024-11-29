@@ -320,13 +320,17 @@ def filtered_quantities(request):
         "vmp__vtm__name",
     ]
 
-    if quantity_type == "Ingredient Quantity":
-        value_fields.extend([
-            "ingredient__code",
-            "ingredient__name"
-        ])
-
-    queryset = queryset.prefetch_related('vmp__routes')
+    if search_type == "ingredient" or quantity_type == "Ingredient Quantity":
+        if quantity_type == "Ingredient Quantity":
+            value_fields.extend([
+                "ingredient__code",
+                "ingredient__name"
+            ])
+        else:
+            value_fields.extend([
+                "vmp__ingredients__code",
+                "vmp__ingredients__name"
+            ])
 
     raw_data = list(
         queryset.values(*value_fields)
@@ -359,11 +363,17 @@ def filtered_quantities(request):
                 "route_names": [r['name'] for r in route_info] if route_info else ["Unknown Route"],
             }
 
-            if quantity_type == "Ingredient Quantity":
-                processed_item.update({
-                    "ingredient_code": item.get("ingredient__code"),
-                    "ingredient_name": item.get("ingredient__name")
-                })
+            if search_type == "ingredient" or quantity_type == "Ingredient Quantity":
+                if quantity_type == "Ingredient Quantity":
+                    processed_item.update({
+                        "ingredient_code": item.get("ingredient__code"),
+                        "ingredient_name": item.get("ingredient__name")
+                    })
+                else:
+                    processed_item.update({
+                        "ingredient_code": item.get("vmp__ingredients__code"),
+                        "ingredient_name": item.get("vmp__ingredients__name")
+                    })
 
             data.append(processed_item)
         except Exception as e:
@@ -505,15 +515,15 @@ def filtered_vmp_count(request):
             "display_names": display_names
         })
     
-    elif search_type == "vmp":
-        queryset = VMP.objects.filter(code__in=search_items)
-    elif search_type == "vtm":
-        queryset = VMP.objects.filter(vtm__vtm__in=search_items)
     elif search_type == "ingredient":
         queryset = VMP.objects.filter(ingredients__code__in=search_items)
     elif search_type == "atc":
         all_atc_codes = get_all_child_atc_codes(search_items)
         queryset = VMP.objects.filter(atcs__code__in=all_atc_codes)
+        
+        # If no VMPs found for any ATC code, return 0
+        if not queryset.exists():
+            return Response({"vmp_count": 0})
     else:
         return Response({"vmp_count": 0})
     

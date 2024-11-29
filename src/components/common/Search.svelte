@@ -72,7 +72,8 @@
                 
                 filteredItems = data.results.map(item => ({
                     ...item,
-                    isExpanded: item.type === 'vtm' ? true : false
+                    isExpanded: item.type === 'vtm' ? true : false,
+                    has_vmps: type === 'atc' ? item.has_vmps : true
                 }));
                 lastSearchResults = filteredItems;
             } catch (error) {
@@ -354,10 +355,15 @@
                                 <li 
                                     class="py-1.5 px-3 cursor-pointer relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
                                     class:bg-oxford-50={selectedItems.includes(item.code)}
-                                    on:click={() => handleSelect(item)}
+                                    class:opacity-50={!item.has_vmps}
+                                    class:pointer-events-none={!item.has_vmps}
+                                    on:click={() => item.has_vmps && handleSelect(item)}
                                 >
                                     <div>
                                         <span class="text-sm">{item.name}</span>
+                                        {#if !item.has_vmps}
+                                            <span class="text-xs text-gray-400">(No products)</span>
+                                        {/if}
                                         <div class="flex items-center gap-2 mt-0.5">
                                             {#if isAdvancedMode && type === 'product'}
                                                 <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
