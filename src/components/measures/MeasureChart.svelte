@@ -18,6 +18,18 @@
 
   let brushing = false;
 
+  let isZoomedIn = false;
+
+  function updateZoomState() {
+    const xDomain = xScale.domain();
+    const yDomain = yScale.domain();
+    const initialXDomain = d3.extent($filteredData.labels, d => new Date(d));
+    const initialYDomain = [0, 100];
+
+    isZoomedIn = xDomain[0] > initialXDomain[0] || xDomain[1] < initialXDomain[1] ||
+                 yDomain[0] > initialYDomain[0] || yDomain[1] < initialYDomain[1];
+  }
+
   function updateXAxis(selection, duration = 750) {
     // Calculate the time span in months
     const [start, end] = xScale.domain();
@@ -260,6 +272,8 @@
 
       // Clear the brush
       brushGroup.call(brush.move, null);
+
+      updateZoomState();
     }
 
     // Draw shaded areas for percentiles inside the clipped area FIRST
@@ -610,6 +624,8 @@
       .duration(750)
       .attr('cx', d => xScale(d.date))
       .attr('cy', d => yScale(d.value * 100));
+
+    updateZoomState();
   }
 </script>
 
@@ -669,10 +685,12 @@
 
 <div class="relative w-full h-[450px]">
   <div bind:this={chartDiv} use:resizeAction class="w-full h-[450px]"></div>
-  <button 
-    class="absolute top-2 right-2 px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-md shadow-sm"
-    on:click={resetZoom}
-  >
-    Reset Zoom
-  </button>
+  {#if isZoomedIn}
+    <button 
+      class="absolute top-2 right-2 px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-md shadow-sm"
+      on:click={resetZoom}
+    >
+      Reset Zoom
+    </button>
+  {/if}
 </div>
