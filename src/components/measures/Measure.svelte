@@ -168,7 +168,7 @@
             </div>
         </div>
         {#if showLegend}
-            <div class="h-[320px] lg:h-[400px] lg:w-48 flex-shrink-0">
+            <div class="h-[320px] lg:w-48 flex-shrink-0">
                 <ChartLegend />
             </div>
         {/if}
