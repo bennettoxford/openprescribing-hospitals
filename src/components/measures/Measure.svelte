@@ -140,37 +140,47 @@
     }
 </script>
 
-<div class="flex flex-col">
-    <div class="mb-4 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
-        {#if showFilter}
-            <div class="relative z-10 flex-grow mx-2 sm:mr-4 sm:ml-4">
-                <OrganisationSearch 
-                    source={organisationSearchStore}
-                    overlayMode={true}
-                    on:selectionChange={handleSelectionChange}
-                />
-            </div>
-        {:else}
-            <div class="flex-grow mx-2 sm:mx-4"></div>
-        {/if}
-        <div class="flex-shrink-0 mx-2 sm:mx-0">
-            <ModeSelector {handleModeChange} />
-        </div>
-    </div>
-    <div class="flex flex-col lg:flex-row gap-4">
-        <div class="flex-grow relative" style="min-height: 400px;">
-            <div class="chart-container absolute inset-0">
-                {#if orgdata.length === 0}
-                    <p class="text-center text-gray-500 pt-8">No data available.</p>
-                {:else}
-                    <MeasureChart />
-                {/if}
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-x-4 gap-y-2">
+    <!-- Top row - different layout for mobile vs desktop -->
+    <div class="col-span-full">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-2">
+            <!-- Organisation Search - full width on mobile, spans 3 columns on lg+ -->
+            {#if showFilter}
+                <div class="lg:col-span-3 relative z-10 flex items-end w-full">
+                    <div class="w-full">
+                        <OrganisationSearch 
+                            source={organisationSearchStore}
+                            overlayMode={true}
+                            on:selectionChange={handleSelectionChange}
+                        />
+                    </div>
+                </div>
+            {:else}
+                <div class="lg:col-span-3"></div>
+            {/if}
+            <!-- Mode Selector - full width on mobile, spans 1 column on lg+ -->
+            <div class="lg:col-span-1">
+                <ModeSelector {handleModeChange} />
             </div>
         </div>
-        {#if showLegend}
-            <div class="h-[320px] lg:w-48 flex-shrink-0">
-                <ChartLegend />
-            </div>
-        {/if}
     </div>
+
+    <!-- Bottom row -->
+    <!-- Chart - spans 3 columns on lg+ -->
+    <div class="lg:col-span-3 relative" style="min-height: 400px;">
+        <div class="chart-container absolute inset-0">
+            {#if orgdata.length === 0}
+                <p class="text-center text-gray-500 pt-8">No data available.</p>
+            {:else}
+                <MeasureChart />
+            {/if}
+        </div>
+    </div>
+
+    <!-- Legend - spans 1 column on lg+ -->
+    {#if showLegend}
+        <div class="h-[320px]">
+            <ChartLegend />
+        </div>
+    {/if}
 </div>
