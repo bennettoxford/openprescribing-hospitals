@@ -65,6 +65,10 @@ class AnalyseView(TemplateView):
             'min_date': date_range['min_date'].isoformat() if date_range['min_date'] else None,
             'max_date': date_range['max_date'].isoformat() if date_range['max_date'] else None
         }
+
+        ods_data = Organisation.objects.values('ods_name', 'ods_code').distinct().order_by('ods_name')
+        ods_data = [f"{org['ods_code']} | {org['ods_name']}" for org in ods_data]
+        context['ods_data'] = json.dumps(ods_data, default=str)
         return context
 
 @method_decorator(login_required, name='dispatch')
@@ -262,7 +266,7 @@ def filtered_quantities(request):
     search_type = request.data.get("search_type", "vmp")
     start_date = request.data.get("start_date")
     end_date = request.data.get("end_date")
-    quantity_type = request.data.get("quantity_type", "dose")
+    quantity_type = request.data.get("quantity_type", "VMP Quantity")
         
     search_items = [item.split("|")[0].strip() for item in search_items]
 
@@ -284,11 +288,8 @@ def filtered_quantities(request):
         Model = Dose
 
     queryset = Model.objects.filter(**base_filters)
-
-    if search_type == "vmp":
-        queryset = queryset.filter(vmp__code__in=search_items)
-    elif search_type == "vtm":
-        queryset = queryset.filter(vmp__vtm__vtm__in=search_items)
+    if search_type == "product":
+        queryset = queryset.filter(Q(vmp__code__in=search_items) | Q(vmp__vtm__vtm__in=search_items))
     elif search_type == "ingredient":
         if quantity_type == "Ingredient Quantity":
             queryset = queryset.filter(ingredient__code__in=search_items)
@@ -319,13 +320,17 @@ def filtered_quantities(request):
         "vmp__vtm__name",
     ]
 
-    if quantity_type == "Ingredient Quantity":
-        value_fields.extend([
-            "ingredient__code",
-            "ingredient__name"
-        ])
-
-    queryset = queryset.prefetch_related('vmp__routes')
+    if search_type == "ingredient" or quantity_type == "Ingredient Quantity":
+        if quantity_type == "Ingredient Quantity":
+            value_fields.extend([
+                "ingredient__code",
+                "ingredient__name"
+            ])
+        else:
+            value_fields.extend([
+                "vmp__ingredients__code",
+                "vmp__ingredients__name"
+            ])
 
     raw_data = list(
         queryset.values(*value_fields)
@@ -358,11 +363,17 @@ def filtered_quantities(request):
                 "route_names": [r['name'] for r in route_info] if route_info else ["Unknown Route"],
             }
 
-            if quantity_type == "Ingredient Quantity":
-                processed_item.update({
-                    "ingredient_code": item.get("ingredient__code"),
-                    "ingredient_name": item.get("ingredient__name")
-                })
+            if search_type == "ingredient" or quantity_type == "Ingredient Quantity":
+                if quantity_type == "Ingredient Quantity":
+                    processed_item.update({
+                        "ingredient_code": item.get("ingredient__code"),
+                        "ingredient_name": item.get("ingredient__name")
+                    })
+                else:
+                    processed_item.update({
+                        "ingredient_code": item.get("vmp__ingredients__code"),
+                        "ingredient_name": item.get("vmp__ingredients__name")
+                    })
 
             data.append(processed_item)
         except Exception as e:
@@ -471,15 +482,50 @@ def filtered_vmp_count(request):
 
     search_items = [item.split("|")[0].strip() for item in search_items]
     
-    if search_type == "vmp":
-        queryset = VMP.objects.filter(code__in=search_items)
-    elif search_type == "vtm":
-        queryset = VMP.objects.filter(vtm__vtm__in=search_items)
+    if search_type == "product":
+        # Handle both VMP and VTM codes
+        vtm_codes = []
+        vmp_codes = []
+        for code in search_items:
+            if VTM.objects.filter(vtm=code).exists():
+                vtm_codes.append(code)
+            else:
+                vmp_codes.append(code)
+        
+        # Get VMPs directly selected and VMPs under selected VTMs
+        queryset = VMP.objects.filter(
+            Q(code__in=vmp_codes) |
+            Q(vtm__vtm__in=vtm_codes)
+        )
+
+        # Get display names for both VTMs and VMPs
+        vtms = VTM.objects.filter(vtm__in=vtm_codes).values('vtm', 'name')
+        vmps = VMP.objects.filter(code__in=vmp_codes).values('code', 'name')
+        
+        display_names = {}
+        # Add VTM display names
+        for vtm in vtms:
+            display_names[vtm['vtm']] = f"{vtm['name']} ({vtm['vtm']})"
+        # Add VMP display names
+        for vmp in vmps:
+            display_names[vmp['code']] = f"{vmp['name']} ({vmp['code']})"
+        
+        return Response({
+            "vmp_count": queryset.distinct().count(),
+            "display_names": display_names
+        })
+    
     elif search_type == "ingredient":
         queryset = VMP.objects.filter(ingredients__code__in=search_items)
     elif search_type == "atc":
         all_atc_codes = get_all_child_atc_codes(search_items)
         queryset = VMP.objects.filter(atcs__code__in=all_atc_codes)
+        
+        # If no VMPs found for any ATC code, return 0
+        if not queryset.exists():
+            return Response({"vmp_count": 0})
+    else:
+        return Response({"vmp_count": 0})
     
     vmp_count = queryset.distinct().count()
     return Response({"vmp_count": vmp_count})
@@ -495,55 +541,117 @@ class ContactView(TemplateView):
     
 @login_required
 @api_view(["GET"])
-def get_search_items(request):
-    vmp_data = VMP.objects.values('name', 'code').distinct().order_by('name')
-    ods_data = Organisation.objects.values('ods_name', 'ods_code').distinct().order_by('ods_name')
-    vtm_data = VTM.objects.values('vtm', 'name').distinct().order_by('name')
-    ingredient_data = Ingredient.objects.values('name', 'code').distinct().order_by('name')
+def search_items(request):
+    search_type = request.GET.get('type', 'product')
+    search_term = request.GET.get('term', '').lower()
+    
+    if search_type == 'product':
+        # First get matching VMPs (both with and without VTMs)
+        matching_vmps = VMP.objects.filter(
+            Q(name__icontains=search_term) | 
+            Q(code__icontains=search_term)
+        ).select_related('vtm')
 
-    vmp_exists = VMP.objects.filter(atcs__code=OuterRef('code')).values('code')
-    atc_data = ATC.objects.annotate(
-        has_vmps=Exists(vmp_exists)
-    ).values('code', 'name', 'has_vmps').distinct().order_by('code')
-    
-    atc_hierarchy = {}
-    
-    for item in atc_data:
-        code = item['code']
-        name = item['name']
-        has_vmps = item['has_vmps']
-        formatted_item = f"{code} | {name}"
+        # Organize VMPs by VTM
+        vmp_by_vtm = {}
+        standalone_vmps = []
         
-        atc_hierarchy[code] = {
-            'name': formatted_item,
-            'children': [],
-            'has_vmps': has_vmps
-        }
-     
-        for i in range(1, len(code)):
-            parent_code = code[:i]
-            if parent_code in atc_hierarchy:
-                atc_hierarchy[parent_code]['children'].append(code)
-                if has_vmps:
-                    atc_hierarchy[parent_code]['has_vmps'] = True
- 
-    formatted_atc = [
-        {
-            'code': code,
-            'name': data['name'],
-            'children': data['children'],
-            'has_vmps': data['has_vmps']
-        }
-        for code, data in atc_hierarchy.items()
-    ]
+        for vmp in matching_vmps:
+            if vmp.vtm:
+                vtm_key = vmp.vtm.vtm  # Using VTM code as key
+                if vtm_key not in vmp_by_vtm:
+                    vmp_by_vtm[vtm_key] = {
+                        'vtm': vmp.vtm,
+                        'vmps': []
+                    }
+                vmp_by_vtm[vtm_key]['vmps'].append(vmp)
+            else:
+                standalone_vmps.append(vmp)
 
-    return JsonResponse({
-        'vmpNames': [f"{item['code']} | {item['name']}" for item in vmp_data],
-        'odsNames': [f"{item['ods_code']} | {item['ods_name']}" for item in ods_data],
-        'vtmNames': [f"{item['vtm']} | {item['name']}" for item in vtm_data],
-        'ingredientNames': [f"{item['code']} | {item['name']}" for item in ingredient_data],
-        'atcNames': formatted_atc
-    }, safe=False)
+        # Get additional VTMs that match the search term
+        additional_vtms = VTM.objects.filter(
+            Q(name__icontains=search_term) | 
+            Q(vtm__icontains=search_term)
+        ).exclude(vtm__in=vmp_by_vtm.keys())
+
+        # Build results
+        results = []
+        
+        # Add VTMs with their VMPs
+        for vtm_data in vmp_by_vtm.values():
+            vtm = vtm_data['vtm']
+            results.append({
+                'code': vtm.vtm,
+                'name': vtm.name,
+                'type': 'vtm',
+                'isExpanded': False,
+                'display_name': f"{vtm.name} ({vtm.vtm})",
+                'vmps': [{
+                    'code': vmp.code,
+                    'name': vmp.name,
+                    'type': 'vmp',
+                    'display_name': f"{vmp.name} ({vmp.code})"
+                } for vmp in vtm_data['vmps']]
+            })
+
+        # Add additional VTMs with their VMPs
+        for vtm in additional_vtms:
+            vmps = vtm.vmps.all()
+            results.append({
+                'code': vtm.vtm,
+                'name': vtm.name,
+                'type': 'vtm',
+                'isExpanded': False,
+                'display_name': f"{vtm.name} ({vtm.vtm})",
+                'vmps': [{
+                    'code': vmp.code,
+                    'name': vmp.name,
+                    'type': 'vmp',
+                    'display_name': f"{vmp.name} ({vmp.code})"
+                } for vmp in vmps]
+            })
+
+        # Add standalone VMPs
+        results.extend([{
+            'code': vmp.code,
+            'name': vmp.name,
+            'type': 'vmp',
+            'display_name': f"{vmp.name} ({vmp.code})"
+        } for vmp in standalone_vmps])
+
+        return JsonResponse({'results': results})
+    
+    elif search_type == 'ingredient':
+        items = Ingredient.objects.filter(
+            Q(name__icontains=search_term) | 
+            Q(code__icontains=search_term)
+        ).values('name', 'code').distinct().order_by('name')[:50]
+        return JsonResponse({
+            'results': [{
+                'code': item['code'],
+                'name': item['name'],
+                'type': 'ingredient'
+            } for item in items]
+        })
+    
+    elif search_type == 'atc':
+        vmp_exists = VMP.objects.filter(atcs__code=OuterRef('code')).values('code')
+        items = ATC.objects.filter(
+            Q(name__icontains=search_term) | 
+            Q(code__icontains=search_term)
+        ).annotate(
+            has_vmps=Exists(vmp_exists)
+        ).values('code', 'name', 'has_vmps').distinct().order_by('code')[:50]
+        
+        return JsonResponse({
+            'results': [{
+                'code': item['code'],
+                'name': f"{item['code']} | {item['name']}",
+                'has_vmps': item['has_vmps']
+            } for item in items]
+        })
+    
+    return JsonResponse({'results': []})
 
 @method_decorator(login_required, name='dispatch')
 class FAQView(TemplateView):

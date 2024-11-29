@@ -9,24 +9,24 @@
     import Search from '../../common/Search.svelte';
     import OrganisationSearch from '../../common/OrganisationSearch.svelte';
     import { createEventDispatcher } from 'svelte';
-    import { getCookie } from '../../../utils/utils';
-    import { analyseOptions, clearAnalysisOptions } from '../../../stores/analyseOptionsStore';
     import RangeSlider from 'svelte-range-slider-pips';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
+    import { analyseOptions } from '../../../stores/analyseOptionsStore';
+    import { getCookie } from '../../../utils/utils';
+    
     const dispatch = createEventDispatcher();
 
     let isAnalysisRunning = false;
     let errorMessage = '';
     let isOrganisationDropdownOpen = false;
-    let filteredData = [];
 
     $: selectedVMPs = $analyseOptions.selectedVMPs;
     $: quantityType = $analyseOptions.quantityType;
     $: searchType = $analyseOptions.searchType;
-    $: odsNames = $analyseOptions.odsNames;
 
     export let minDate = null;
     export let maxDate = null;
+    export let odsData = null;
     
     let dateValues = [null, null];
     let dates = [];
@@ -48,7 +48,6 @@
     }
 
     function handleDateRangeChange(event) {
-
         const values = event.detail.values;
         
         if (!Array.isArray(values) || values.length !== 2) {
@@ -58,13 +57,11 @@
 
         const [startIndex, endIndex] = values;
 
-        // Ensure we have valid indices
         if (typeof startIndex !== 'number' || typeof endIndex !== 'number') {
             console.error('Invalid indices:', { startIndex, endIndex });
             return;
         }
 
-        // Update the store with the new dates
         analyseOptions.update(store => ({
             ...store,
             dateRange: {
@@ -73,15 +70,12 @@
             }
         }));
 
-        // Update local values for the slider
         dateValues = [startIndex, endIndex];
-
     }
 
     onMount(async () => {
         try {
             if (minDate && maxDate) {
-                // Generate array of all dates between min and max
                 const start = new Date(minDate);
                 const end = new Date(maxDate);
                 const dateArray = [];
@@ -92,57 +86,54 @@
                     current.setMonth(current.getMonth() + 1);
                 }
                 dates = dateArray;
+
                 
-                // Initialize date range in store with first and last dates
                 analyseOptions.update(store => ({
                     ...store,
+                    minDate: dates[0],
+                    maxDate: dates[dates.length - 1],
                     dateRange: {
                         startDate: dates[0],
                         endDate: dates[dates.length - 1]
                     }
                 }));
 
-                // Set initial slider values
                 dateValues = [0, dates.length - 1];
             }
+            
+            if (odsData) {
+                try {
+                    const parsedData = typeof odsData === 'string' ? JSON.parse(odsData) : odsData;
+                    organisationSearchStore.setItems(parsedData);
+                } catch (error) {
+                    console.error('Error parsing ODS data:', error);
+                }
+            }
         } catch (error) {
-            console.error('Error initializing date range:', error);
+            console.error('Error in onMount:', error);
         }
     });
 
     const csrftoken = getCookie('csrftoken');
-    // Define quantityOptions
     const quantityOptions = ['--', 'VMP Quantity', 'Dose', 'Ingredient Quantity'];
 
-    async function fetchVMPNames() {
-        const response = await fetch('/api/unique-vmp-names/');
-        vmpNames = await response.json();
-    }
-
-    async function fetchODSNames() {
-        const response = await fetch('/api/unique-ods-names/');
-        odsNames = await response.json();
-    }
-
     async function runAnalysis() {
-        if (isAnalysisRunning) return; // Prevent multiple clicks
+        if (isAnalysisRunning) return;
 
         console.log("Run Analysis button clicked");
         errorMessage = '';
 
         if (!selectedVMPs || selectedVMPs.length === 0) {
-            errorMessage = "Please select at least one product (VMP, Ingredient, or VTM).";
+            errorMessage = isAdvancedMode 
+                ? "Please select at least one product (VMP, Ingredient, VTM, or ATC)."
+                : "Please select at least one product.";
             return;
         }
 
-        if (quantityType === '--') {
+        if (!isAdvancedMode) {
+            quantityType = "VMP Quantity";
+        } else if (quantityType === '--') {
             errorMessage = "Please select a quantity type before running the analysis.";
-            return;
-        }
-
-        if ($organisationSearchStore.selectedItems.length === 0 && 
-            $organisationSearchStore.usedOrganisationSelection) {
-            errorMessage = "You've selected to filter by organisations, but haven't chosen any. Please select at least one organisation or clear the organisation filter.";
             return;
         }
 
@@ -172,21 +163,15 @@
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            filteredData = await response.json();
-            console.log("Filtered data:", filteredData);
-
-            if (!Array.isArray(filteredData)) {
-                filteredData = [filteredData];
-            }
-
+            const data = await response.json();
+            
             dispatch('analysisComplete', { 
-                data: filteredData, 
+                data: Array.isArray(data) ? data : [data], 
                 quantityType: quantityType, 
                 searchType: searchType 
             });
         } catch (error) {
             console.error("Error fetching filtered data:", error);
-            filteredData = [];
             errorMessage = "An error occurred while fetching data. Please try again.";
             dispatch('analysisError', { error: errorMessage });
         } finally {
@@ -211,8 +196,8 @@
     }
 
     function handleODSSelection(event) {
-        const { selectedItems } = event.detail;
-        organisationSearchStore.updateSelection(selectedItems);
+        const { selectedItems, usedOrganisationSelection } = event.detail;
+        organisationSearchStore.updateSelection(selectedItems, usedOrganisationSelection);
     }
 
     function handleQuantityTypeChange(event) {
@@ -230,212 +215,301 @@
     function handleClearAnalysis() {
         clearAnalysisOptions();
         errorMessage = '';
-        // Reset slider to min/max values
         dateValues = [0, dates.length - 1];
         dispatch('analysisClear');
     }
 
     onMount(async () => {
-        try {
-            const response = await fetch('/api/get-search-items/');
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+    try {
+        if (minDate && maxDate) {
+            const start = new Date(minDate);
+            const end = new Date(maxDate);
+            const dateArray = [];
+            let current = new Date(start);
+
+            while (current <= end) {
+                dateArray.push(current.toISOString().split('T')[0]);
+                current.setMonth(current.getMonth() + 1);
             }
-            const data = await response.json();
-
-            if (minDate && maxDate) {
-                // Generate array of all dates between min and max
-                const start = new Date(minDate);
-                const end = new Date(maxDate);
-                const dateArray = [];
-                let current = new Date(start);
-
-                while (current <= end) {
-                    dateArray.push(current.toISOString().split('T')[0]);
-                    current.setMonth(current.getMonth() + 1);
+            dates = dateArray;
+            
+            analyseOptions.update(store => ({
+                ...store,
+                minDate: dates[0],
+                maxDate: dates[dates.length - 1],
+                dateRange: {
+                    startDate: dates[0],
+                    endDate: dates[dates.length - 1]
                 }
-                dates = dateArray;
-                
-                // Update store with all data including min/max dates
-                analyseOptions.update(store => ({
-                    ...store,
-                    ...data,
-                    minDate: dates[0],
-                    maxDate: dates[dates.length - 1],
-                    dateRange: {
-                        startDate: dates[0],
-                        endDate: dates[dates.length - 1]
-                    }
-                }));
+            }));
 
-                if (data.odsNames) {
-                    organisationSearchStore.setItems(data.odsNames);
-                }
-
-                // Set initial slider values
-                dateValues = [0, dates.length - 1];
-            }
-        } catch (error) {
-            console.error("Error fetching analysis options:", error);
-            errorMessage = "An error occurred while fetching analysis options. Please try again.";
+            dateValues = [0, dates.length - 1];
         }
-    });
+    } catch (error) {
+        console.error('Error initializing date range:', error);
+    }
+});
+
+    export let isAdvancedMode = false;
+
+    function toggleAdvancedMode() {
+        isAdvancedMode = !isAdvancedMode;
+        dispatch('advancedModeChange', isAdvancedMode);
+    }
 </script>
 
-<div class="p-4 bg-white rounded-lg w-full flex flex-col">
-    <div class="flex flex-col">
-        <div class="flex flex-col mb-2">
-            <p class="text-sm text-oxford">
-                Run a custom analysis of hospitals stock control data using the options below. You can analyse 
-                specific medicines or groups of medicines across different NHS Trusts.
-            </p>
-        </div>
-
-        <div class="mb-2 flex-shrink-0">
-            <div class="flex items-center mb-2">
-                <h3 class="text-lg font-semibold text-oxford mr-2">Product selection</h3>
-                <div class="relative inline-block group">
-                    <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
-                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
-                    <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
-                                group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
-                                ring-1 ring-black ring-opacity-5 p-4">
-                        <p class="text-sm text-gray-500">
-                            Search for and select products to include in the analysis. You can select individual products
-                            (VMP) or groups of products by ingredient, therapeutic moiety (VTM), or 
-                            therapeutic target (ATC). See <a href="/faq/#product-selection-types" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <Search on:selectionChange={handleVMPSelection} />
-        </div>
-        
-        <div class="mb-4 flex-shrink-0">
-            <div class="flex items-center mb-2">
-                <h3 class="text-lg font-semibold text-oxford mr-2">Select quantity type</h3>
-                <div class="relative inline-block group">
-                    <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
-                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
-                    <div class="absolute z-[200] scale-0 transition-all duration-100 origin-top transform 
-                                group-hover:scale-100 w-[200px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
-                                ring-1 ring-black ring-opacity-5 p-4">
-                        <p class="text-sm text-gray-500">
-                            Select the quantity unit most relevant to the selected products to use for the analysis.
-                            See <a href="/faq/#quantity-type" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <select 
-                bind:value={$analyseOptions.quantityType}
-                on:change={handleQuantityTypeChange}
-                class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-oxford-500"
-            >
-                {#each quantityOptions as option}
-                    <option value={option}>{option}</option>
-                {/each}
-            </select>
-        </div>
-
-        <div class="mb-4">
-            <div class="flex flex-col mb-2">
-                <div class="flex items-center mb-2">
-                    <h3 class="text-lg font-semibold text-oxford mr-2">Select Trusts</h3>
-                    <div class="relative inline-block group">
-                        <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
-                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                        <div class="absolute z-[200] scale-0 transition-all duration-100 origin-top transform 
-                                    group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
-                                    ring-1 ring-black ring-opacity-5 p-4">
-                            <p class="text-sm text-gray-500">
-                                By default, the analysis will include all NHS Trusts in England. You can restrict the analysis by selecting specific trusts below.
-                                See <a href="/faq/#trusts-included" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="relative">
-                {#if $analyseOptions}
-                    <OrganisationSearch 
-                        source={organisationSearchStore}
-                        overlayMode={false}
-                        placeholderText="Search and select Trusts..."
-                        on:selectionChange={handleODSSelection}
-                        on:dropdownToggle={handleOrganisationDropdownToggle}
-                    />
-                {/if}
-            </div>
-        </div>
-        
-        <div class="flex-shrink-0 relative z-[40]">
-            <div class="flex items-center mb-2">
-                <h3 class="text-lg font-semibold text-oxford mr-2">Date Range</h3>
-            </div>
-
-            {#if dates.length > 0}
-                <div class="px-4 py-2">
-                    <div class="flex justify-between mb-2 text-sm text-gray-600">
-                        <span>{formatDate(dates[0])}</span>
-                        <span>{formatDate(dates[dates.length - 1])}</span>
-                    </div>
-                    <RangeSlider
-                        min={0}
-                        max={dates.length - 1}
-                        step={1}
-                        values={dateValues}
-                        on:change={handleDateRangeChange}
-                        float
-                        all="hide"
-                        first="pip"
-                        last="pip"
-                        pipstep={6}
-                        formatter={index => formatDate(dates[index])}
-                        handleFormatter={index => formatDate(dates[index])}
-                        springValues={{ stiffness: 0.3, damping: 0.8 }}
-                    />
-                    <div class="mt-2 text-center text-sm text-gray-600">
-                        Selected range: {formatDate(dates[dateValues[0]])} - {formatDate(dates[dateValues[1]])}
-                    </div>
-                </div>
-            {/if}
-        </div>
-        
-        {#if errorMessage}
-            <div class="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded flex-shrink-0 relative z-[30]">
-                {errorMessage}
-            </div>
+<div class="p-4 sm:p-6 bg-white rounded-lg w-full">
+  <div class="grid gap-8">
+    <!-- Header -->
+    <div>
+      <h2 class="text-xl sm:text-2xl font-bold text-oxford mb-2">Analysis builder</h2>
+      <p class="text-sm text-oxford">
+        {#if isAdvancedMode}
+          Run a custom analysis of hospitals stock control data using the options below. You can analyse 
+          specific medicines or groups of medicines across different NHS Trusts.
+        {:else}
+          Search for specific medicines to analyse their stock control data across NHS Trusts.
         {/if}
-        
-        <div class="mt-auto flex-shrink-0 space-y-2 relative z-[20]">
-            <button
-                on:click={runAnalysis}
-                disabled={isAnalysisRunning}
-                class="w-full bg-oxford-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-oxford-500 transition-colors duration-200
-                   hover:bg-oxford-600
-                   disabled:bg-oxford-300 disabled:cursor-not-allowed"
-            >
-                {isAnalysisRunning ? 'Running Analysis...' : 'Run Analysis'}
-            </button>
-            <button
-                on:click={handleClearAnalysis}
-                class="w-full bg-gray-100 text-gray-700 font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors duration-200
-                   hover:bg-gray-200"
-            >
-                Clear Analysis
-            </button>
-        </div>
+      </p>
     </div>
+
+    <!-- Selection Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Product Selection -->
+      <div class="grid gap-4 lg:self-start">
+        <div class="flex items-center">
+          <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Product selection</h3>
+          <div class="relative inline-block group">
+            <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
+                        group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
+                        ring-1 ring-black ring-opacity-5 p-4">
+              <p class="text-sm text-gray-500">
+                {#if isAdvancedMode}
+                  Search for and select products to include in the analysis. You can select individual products
+                  (VMP) or groups of products by ingredient, therapeutic moiety (VTM), or 
+                  therapeutic target (ATC). See <a href="/faq/#product-selection-types" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+                {:else}
+                  Search for and select products or groups of products to analyse. You can select individual products
+                  or entire groups of related products. See <a href="/faq/#product-selection-types" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+                {/if}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="relative">
+          <Search on:selectionChange={handleVMPSelection} {isAdvancedMode} />
+        </div>
+      </div>
+
+      <!-- Trust Selection -->
+      <div class="grid gap-4 lg:self-start">
+        <div class="flex items-center">
+          <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Trusts selection</h3>
+          <div class="relative inline-block group">
+            <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
+                        group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
+                        ring-1 ring-black ring-opacity-5 p-4">
+              <p class="text-sm text-gray-500">
+                By default, the analysis will include all NHS Trusts in England. You can restrict the analysis by selecting specific trusts below.
+                See <a href="/faq/#trusts-included" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="relative">
+          <OrganisationSearch 
+            source={organisationSearchStore}
+            overlayMode={false}
+            on:selectionChange={handleODSSelection}
+            on:dropdownToggle={handleOrganisationDropdownToggle}
+          />
+        </div>
+        
+        <!-- Trust Selection Box -->
+        {#if $organisationSearchStore.selectedItems.length > 0}
+          <div class="w-full">
+            <h3 class="font-semibold my-2 text-md text-gray-700">
+              Selected {$organisationSearchStore.filterType === 'icb' ? 'ICBs' : 'Trusts'}:
+            </h3>
+            <ul class="border border-gray-200 rounded-md">
+              {#each $organisationSearchStore.selectedItems as item}
+                <li class="flex items-center justify-between px-2 py-1">
+                  <span class="text-gray-800">{item}</span>
+                  <button 
+                    on:click={() => {
+                      const newSelection = $organisationSearchStore.selectedItems.filter(i => i !== item);
+                      organisationSearchStore.updateSelection(newSelection);
+                      handleODSSelection({ detail: { selectedItems: newSelection } });
+                    }}
+                    class="px-2 py-1 text-sm text-white bg-red-600 hover:bg-red-700 rounded-md"
+                  >
+                    Remove
+                  </button>
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
+      </div>
+    </div>
+
+    <!-- Second Selection Grid (for Quantity Type and Date Range) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {#if isAdvancedMode}
+        <!-- Quantity Type Selection -->
+        <div class="grid gap-4 lg:self-start">
+          <div class="flex items-center">
+            <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Quantity type selection</h3>
+            <div class="relative inline-block group">
+              <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
+                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+              </button>
+              <div class="absolute z-[200] scale-0 transition-all duration-100 origin-top transform 
+                          group-hover:scale-100 w-[200px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
+                          ring-1 ring-black ring-opacity-5 p-4">
+                <p class="text-sm text-gray-500">
+                  Select the quantity unit most relevant to the selected products to use for the analysis.
+                  See <a href="/faq/#quantity-type" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="relative">
+            <select 
+              id="quantityType"
+              bind:value={$analyseOptions.quantityType}
+              on:change={handleQuantityTypeChange}
+              class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-oxford-500"
+            >
+              {#each quantityOptions as option}
+                <option value={option}>{option}</option>
+              {/each}
+            </select>
+          </div>
+        </div>
+
+        <!-- Date Range (Moved inside the same grid) -->
+        <div class="grid gap-4">
+          <div>
+            <div class="flex items-center">
+              <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Date Range</h3>
+            </div>
+            {#if dates.length > 0}
+              <div class="px-2">
+                <div class="flex justify-between mb-2 text-sm text-gray-600">
+                  <span>{formatDate(dates[0])}</span>
+                  <span>{formatDate(dates[dates.length - 1])}</span>
+                </div>
+                <RangeSlider
+                  min={0}
+                  max={dates.length - 1}
+                  step={1}
+                  values={dateValues}
+                  on:change={handleDateRangeChange}
+                  float
+                  all="hide"
+                  first="pip"
+                  last="pip"
+                  pipstep={6}
+                  formatter={index => formatDate(dates[index])}
+                  handleFormatter={index => formatDate(dates[index])}
+                  springValues={{ stiffness: 0.3, damping: 0.8 }}
+                />
+                <div class="mt-2 text-center text-sm text-gray-600">
+                  Selected range: {formatDate(dates[dateValues[0]])} - {formatDate(dates[dateValues[1]])}
+                </div>
+              </div>
+            {/if}
+          </div>
+        </div>
+      {:else}
+        <!-- Date Range (When not in advanced mode, takes single column) -->
+        <div class="grid gap-4">
+          <div>
+            <div class="flex items-center">
+              <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Date Range</h3>
+            </div>
+            {#if dates.length > 0}
+              <div class="px-2">
+                <div class="flex justify-between mb-2 text-sm text-gray-600">
+                  <span>{formatDate(dates[0])}</span>
+                  <span>{formatDate(dates[dates.length - 1])}</span>
+                </div>
+                <RangeSlider
+                  min={0}
+                  max={dates.length - 1}
+                  step={1}
+                  values={dateValues}
+                  on:change={handleDateRangeChange}
+                  float
+                  all="hide"
+                  first="pip"
+                  last="pip"
+                  pipstep={6}
+                  formatter={index => formatDate(dates[index])}
+                  handleFormatter={index => formatDate(dates[index])}
+                  springValues={{ stiffness: 0.3, damping: 0.8 }}
+                />
+                <div class="mt-2 text-center text-sm text-gray-600">
+                  Selected range: {formatDate(dates[dateValues[0]])} - {formatDate(dates[dateValues[1]])}
+                </div>
+              </div>
+            {/if}
+          </div>
+        </div>
+      {/if}
+    </div>
+
+    <!-- Analysis Controls - Full width but more compact -->
+    <div class="mt-8 bg-gray-50 rounded-lg p-4 sm:p-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <!-- Mode Switch -->
+        <button 
+          class="text-sm text-oxford-600 hover:text-oxford-800 flex items-center gap-2"
+          on:click={toggleAdvancedMode}
+        >
+          <span class="underline">Switch to {isAdvancedMode ? 'basic' : 'advanced'} mode</span>
+        </button>
+
+        <!-- Error Message -->
+        {#if errorMessage}
+          <div class="p-3 bg-red-100 border border-red-400 text-red-700 rounded flex-grow">
+            {errorMessage}
+          </div>
+        {/if}
+
+        <!-- Action Buttons -->
+        <div class="flex gap-2 sm:min-w-[300px] justify-end">
+          <button
+            on:click={handleClearAnalysis}
+            class="px-4 sm:px-6 py-2 sm:py-2.5 bg-white text-gray-700 font-medium rounded-md hover:bg-gray-100 transition-colors duration-200 border border-gray-200"
+          >
+            Clear Analysis
+          </button>
+          <button
+            on:click={runAnalysis}
+            disabled={isAnalysisRunning}
+            class="px-4 sm:px-6 py-2 sm:py-2.5 bg-oxford-500 text-white font-medium rounded-md hover:bg-oxford-600 transition-colors duration-200
+                 disabled:bg-oxford-300 disabled:cursor-not-allowed"
+          >
+            {isAnalysisRunning ? 'Running Analysis...' : 'Run Analysis'}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <style>
