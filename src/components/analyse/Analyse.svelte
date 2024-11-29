@@ -128,11 +128,16 @@
         </div>
     </div>
     <div class="flex-grow">
-        <results-box 
-            class="bg-white rounded-lg shadow-md h-full" 
-            isAnalysisRunning={$isAnalysisRunning} 
-            analysisData={analysisData} 
-            {showResults}
-        ></results-box>
+        <div class="bg-white rounded-lg shadow-md h-full flex flex-col">
+            <div class="bg-gradient-to-r from-oxford-600/60 via-bn-roman-600/70 to-bn-strawberry-600/60 text-white p-2 rounded-t-lg">
+                <h2 class="text-lg font-semibold">Results</h2>
+            </div>
+            <results-box 
+                class="flex-grow" 
+                isAnalysisRunning={$isAnalysisRunning} 
+                analysisData={analysisData} 
+                {showResults}
+            ></results-box>
+        </div>
     </div>
   </div>

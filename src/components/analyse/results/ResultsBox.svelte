@@ -92,7 +92,7 @@
     <div class="results-box bg-white rounded-lg shadow-md h-full flex flex-col">
         <div class="flex-grow overflow-y-auto rounded-t-lg">
             {#if $resultsStore.isAnalysisRunning}
-                <div class="flex items-center justify-center h-full p-16">
+                <div class="flex items-center justify-center h-[500px] p-16">
                     <div class="animate-spin rounded-full h-32 w-32 border-t-4 border-b-4 border-oxford-500"></div>
                 </div>
             {:else if $resultsStore.filteredData && $resultsStore.filteredData.length > 0}
@@ -110,14 +110,23 @@
                     </section>
                 </div>
             {:else}
-                <div class="flex items-center justify-center h-full">
-                    <p class="text-oxford text-lg">Analysis complete. No results to display.</p>
+                <div class="flex items-center justify-center h-[500px] p-6">
+                    <div class="text-center space-y-6">
+                        <div>
+                            <p class="text-oxford-600 text-xl font-medium mb-3">No analysis results</p>
+                        </div>
+                    </div>
                 </div>
             {/if}
         </div>
     </div>
 {:else}
-    <div class="flex items-center justify-center h-full">
-        <p class="text-oxford text-lg">No analysis results to show. Please run an analysis.</p>
+    <div class="flex items-center justify-center h-[500px] p-6">
+        <div class="text-center space-y-6">
+            <div>
+                <p class="text-oxford-600 text-xl font-medium mb-3">No analysis results to show</p>
+                <p class="text-oxford-400 text-base max-w-md">Please run an analysis to see results here.</p>
+            </div>
+        </div>
     </div>
 {/if}
