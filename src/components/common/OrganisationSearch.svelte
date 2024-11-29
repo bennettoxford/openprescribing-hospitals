@@ -11,7 +11,15 @@
 
     export let source;
     export let overlayMode = false;
-    $: placeholderText = `Search and select up to 10 ${filterType === 'icb' ? 'Integrated Care Boards' : 'NHS Trusts'}...`;
+    $: placeholderText = `Search and select up to 10 ${
+        $source.filterType === 'icb' ? 'Integrated Care Boards' : 
+        $source.filterType === 'region' ? 'regions' : 
+        'NHS Trusts'
+    }...`;
+
+    $: counterText = $source.filterType === 'icb' ? 'ICBs' :
+                     $source.filterType === 'region' ? 'regions' :
+                     'Trusts';
 
     let isOpen = false;
     let searchTerm = '';
@@ -166,7 +174,7 @@
                 {/if}
                 <div class="flex flex-col items-center text-xs text-gray-500 py-1">
                     <span class="font-medium">{selectedItems.length}/10</span>
-                    <span>{filterType === 'icb' ? 'ICBs' : 'Trusts'}</span>
+                    <span>{counterText}</span>
                 </div>
             </div>
         </div>
