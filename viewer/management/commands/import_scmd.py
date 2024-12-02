@@ -20,7 +20,8 @@ DATA_STATUS_TABLE_ID = "data_status"
 SCMD_TABLE_ID = "scmd_latest"
 
 class Command(BaseCommand):
-    help = "Imports SCMD data into BigQuery"
+    """Django management command to import SCMD data into BigQuery."""
+    help = "Imports SCMD data into BigQuery, handling both new imports and updates"
 
     def handle(self, *args, **options):
         data_status_df, urls_by_month_and_file_type = create_data_status_df()
@@ -29,6 +30,14 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Successfully imported SCMD data"))
 
 class SCMDImporter:
+    """
+    Handles the import of SCMD data into BigQuery.
+    
+    Manages two tables:
+    1. Data status table: Tracks which months have been imported and their status (final, provisional, wip)
+    2. SCMD table: Contains the actual medicines data. This is partitioned by year and month and clustered by VMP code.
+    """
+
     def __init__(self, urls_by_month_and_file_type):
         self.client = self._get_bigquery_client()
         self.data_status_table_full_id = f"{PROJECT_ID}.{DATASET_ID}.{DATA_STATUS_TABLE_ID}"
@@ -53,78 +62,15 @@ class SCMDImporter:
     def _get_bigquery_client(self) -> bigquery.Client:
         credentials = service_account.Credentials.from_service_account_file(CREDENTIALS_FILE)
         return bigquery.Client(project=PROJECT_ID, credentials=credentials)
-
-    def get_existing_data(self) -> pd.DataFrame:
-        query = f"""
-        SELECT DISTINCT year_month, file_type 
-        FROM {self.data_status_table_full_id}
-        ORDER BY year_month DESC
-        """
-        query_job = self.client.query(query)
-        query_result = query_job.result()
-
-        rows = {
-        }
-        for i in query_result:
-            rows[i.year_month] = i.file_type
-
-        rows_df = pd.DataFrame(rows.items(), columns=["year_month", "file_type"])
-        rows_df["year_month"] = pd.to_datetime(rows_df["year_month"], format="%Y-%m-%d")
-
-        return rows_df
-        # return query_job.to_dataframe()
-        # need read permissions for project
-
-    def update_tables(self, new_status_data: pd.DataFrame):
-        try:
-            existing_data = self.get_existing_data()
-            self._update_existing_tables(new_status_data, existing_data)
-        except NotFound:
-            self._create_new_tables(new_status_data)
-
-    def _update_existing_tables(self, new_status_data: pd.DataFrame, existing_data: pd.DataFrame):
-        new_months, out_of_date_months = self._get_months_to_update(new_status_data, existing_data)
-        months_to_update = new_months + out_of_date_months
-
-        print(f"Found {len(new_months)} new months:")
-        print(new_months)
-        print(f"Found {len(out_of_date_months)} out-of-date months:")
-        print(out_of_date_months)
-
-        # update the scmd data first. If there are any errors, the data status will not be updated
-        self._update_scmd_data(months_to_update)
-        self._update_data_status(new_status_data, months_to_update)
-        
-
-    def _get_months_to_update(self, new_data: pd.DataFrame, existing_data: pd.DataFrame) -> Tuple[List[pd.Timestamp], List[pd.Timestamp]]:
-        merged_data = pd.merge(new_data, existing_data, on="year_month", how="left", suffixes=("_new", "_old"))
-        
-        new_months = merged_data[merged_data["file_type_old"].isna()]["year_month"].tolist()
-        out_of_date_months = merged_data[
-            (merged_data["file_type_old"].notna()) & (merged_data["file_type_new"] != merged_data["file_type_old"])
-        ]["year_month"].tolist()
-        
-        return new_months, out_of_date_months
-
-    def _update_data_status(self, new_data: pd.DataFrame, months_to_update: List[pd.Timestamp]):
-        for month in months_to_update:
-            month_str = month.strftime("%Y%m%d")
-            row = new_data[new_data["year_month"] == month].copy()
-            row["year_month"] = row["year_month"].dt.date
-
-            job_config = bigquery.LoadJobConfig(write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE)
-            partition = f"{self.data_status_table_full_id}${month_str}"
-            job = self.client.load_table_from_dataframe(row, partition, job_config=job_config)
-            job.result()
-
-    def _create_new_tables(self, status_data: pd.DataFrame):
-        
-        self._create_scmd_table()
-        self._create_data_status_table(status_data)
-        self._update_scmd_data(status_data['year_month'].tolist())
-        
-
+    
     def _create_data_status_table(self, status_data: pd.DataFrame):
+         """
+        Creates and populates the data status tracking table.
+
+        Args:
+            status_data: DataFrame containing month and file type information
+        """
+         
         time_partitioning = gcbq.TimePartitioning(
             type_=gcbq.TimePartitioningType.DAY,
             field="year_month",
@@ -143,6 +89,9 @@ class SCMDImporter:
         job.result()
 
     def _create_scmd_table(self):
+        """
+        Creates the SCMD table.
+        """
         table = bigquery.Table(self.scmd_table_full_id, schema=self.scmd_table_schema)
         table.description = "SCMD dataset"
         table.time_partitioning = bigquery.TimePartitioning(
@@ -154,12 +103,119 @@ class SCMDImporter:
         print(f"Table {self.scmd_table_full_id} created.")
 
     def _update_scmd_data(self, months_to_update: List[pd.Timestamp]):
+        """
+        Updates the SCMD table with new data.
+        
+        Args:
+            months_to_update: List of months to update
+        """
         for month in months_to_update:
             scmd_data = self._fetch_scmd_data(month)
             converted_data = self._convert_units(scmd_data)
             self._load_scmd_data(converted_data, month)
 
+    def get_existing_data(self) -> pd.DataFrame:
+        """
+        Gets the existing data from the data status table.
+        """
+        query = f"""
+        SELECT DISTINCT year_month, file_type 
+        FROM {self.data_status_table_full_id}
+        ORDER BY year_month DESC
+        """
+        query_job = self.client.query(query)
+        query_result = query_job.result()
+
+
+        # This is a way around missing read permissions for the project.
+        # Update to return query_job.to_dataframe() when permissions are fixed.
+        rows = {
+        }
+        for i in query_result:
+            rows[i.year_month] = i.file_type
+
+        rows_df = pd.DataFrame(rows.items(), columns=["year_month", "file_type"])
+        rows_df["year_month"] = pd.to_datetime(rows_df["year_month"], format="%Y-%m-%d")
+
+        return rows_df
+
+
+    def update_tables(self, new_status_data: pd.DataFrame):
+        """
+        Creates the tables if they don't exist and updates them if they do.
+
+        Args:
+            new_status_data: DataFrame containing month and file type information
+        """
+        
+        try:
+            existing_data = self.get_existing_data()
+            self._update_existing_tables(new_status_data, existing_data)
+        except NotFound:
+            self._create_new_tables(new_status_data)
+
+    def _update_existing_tables(self, new_status_data: pd.DataFrame, existing_data: pd.DataFrame):
+        """
+        Updates the SCMD table with new data and the data status table with the new months and file types.
+
+        Args:
+            new_status_data: DataFrame containing month and file type information
+            existing_data: DataFrame containing existing data
+        """
+
+        new_months, out_of_date_months = self._get_months_to_update(new_status_data, existing_data)
+        months_to_update = new_months + out_of_date_months
+
+        print(f"Found {len(new_months)} new months:")
+        print(new_months)
+        print(f"Found {len(out_of_date_months)} out-of-date months:")
+        print(out_of_date_months)
+
+        # update the scmd data first. If there are any errors, the data status will not be updated
+        self._update_scmd_data(months_to_update)
+        self._update_data_status(new_status_data, months_to_update)
+        
+
+    def _get_months_to_update(self, new_data: pd.DataFrame, existing_data: pd.DataFrame) -> Tuple[List[pd.Timestamp], List[pd.Timestamp]]:
+        """
+        Gets the months to update based on the new data and existing data.
+        Months are only updated if the file type has changed.
+        """
+        merged_data = pd.merge(new_data, existing_data, on="year_month", how="left", suffixes=("_new", "_old"))
+        
+        new_months = merged_data[merged_data["file_type_old"].isna()]["year_month"].tolist()
+        out_of_date_months = merged_data[
+            (merged_data["file_type_old"].notna()) & (merged_data["file_type_new"] != merged_data["file_type_old"])
+        ]["year_month"].tolist()
+        
+        return new_months, out_of_date_months
+
+    def _update_data_status(self, new_data: pd.DataFrame, months_to_update: List[pd.Timestamp]):
+        """
+        Updates the data status table with the new months and file types.
+        """
+        for month in months_to_update:
+            month_str = month.strftime("%Y%m%d")
+            row = new_data[new_data["year_month"] == month].copy()
+            row["year_month"] = row["year_month"].dt.date
+
+            job_config = bigquery.LoadJobConfig(write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE)
+            partition = f"{self.data_status_table_full_id}${month_str}"
+            job = self.client.load_table_from_dataframe(row, partition, job_config=job_config)
+            job.result()
+
+    def _create_new_tables(self, status_data: pd.DataFrame):
+        """
+        Creates the SCMD table and the data status table.
+        """
+        self._create_scmd_table()
+        self._create_data_status_table(status_data)
+        self._update_scmd_data(status_data['year_month'].tolist())
+        
     def _fetch_scmd_data(self, month: pd.Timestamp) -> pd.DataFrame:
+        """
+        Fetches the SCMD data for a given month.
+        """
         month_str = month.strftime("%Y-%m-%d")
         url = self.urls_by_month_and_file_type[month_str]['url']
         
@@ -169,8 +225,6 @@ class SCMDImporter:
         csv_content = io.StringIO(response.text)
         df = pd.read_csv(csv_content)
 
-      
-        
         # Add the year_month column
         df['YEAR_MONTH'] = pd.to_datetime(month_str)
         
@@ -196,6 +250,16 @@ class SCMDImporter:
         return df
     
     def _convert_units(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Standardises units using conversion factors from reference table.
+
+        Args:
+            df (pd.DataFrame): Raw SCMD data
+
+        Returns:
+            pd.DataFrame: Data with standardised units
+        """
+
         # Fetch unit conversion data
         unit_conversion_query = """
         SELECT unit, basis, CAST(conversion_factor AS FLOAT64) AS conversion_factor, unit_id, basis_id
@@ -244,6 +308,9 @@ class SCMDImporter:
         return df
 
     def _load_scmd_data(self, scmd_data: pd.DataFrame, month: pd.Timestamp):
+        """
+        Loads the SCMD data into the SCMD table on BigQuery.
+        """
         month_str = month.strftime("%Y%m%d")
         job_config = bigquery.LoadJobConfig(
             schema=self.scmd_table_schema,
@@ -289,6 +356,9 @@ def iter_months(urls: Iterator[str]) -> Iterator[Tuple[str, str, str]]:
             raise ValueError(f"Unexpected URL format: {url}")
 
 def create_data_status_df() -> Tuple[pd.DataFrame, dict]:
+    """
+    Creates a DataFrame containing the months and file types for the SCMD data.
+    """
     urls_by_month_and_file_type = {
         f"{month[:4]}{month[4:]}-01": {"url": url, "file_type": file_type}
         for month, file_type, url in iter_months(iter_dataset_urls())
