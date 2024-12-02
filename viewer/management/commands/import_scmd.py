@@ -1,16 +1,18 @@
+import logging
 import re
 import requests
 import pandas as pd
 import io
 
 from typing import List, Tuple, Iterator
-from google.cloud import bigquery as gcbq
 from pathlib import Path
 from google.cloud import bigquery
 from google.oauth2 import service_account
 from google.api_core.exceptions import NotFound
 from django.core.management.base import BaseCommand
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.parent
 CREDENTIALS_FILE = PROJECT_ROOT / "bq-service-account.json"
@@ -18,6 +20,22 @@ PROJECT_ID = "ebmdatalab"
 DATASET_ID = "scmd"
 DATA_STATUS_TABLE_ID = "data_status"
 SCMD_TABLE_ID = "scmd_latest"
+
+DATA_STATUS_SCHEMA = [
+    bigquery.SchemaField("year_month", "DATE", description="Year and month of the data"),
+    bigquery.SchemaField("file_type", "STRING", description="Type of the file"),
+]
+
+SCMD_TABLE_SCHEMA = [
+    bigquery.SchemaField("year_month", "DATE", description="Year and month of the data"),
+    bigquery.SchemaField("ods_code", "STRING", description="ODS code"),
+    bigquery.SchemaField("vmp_snomed_code", "INTEGER", description="SNOMED code for the product"),
+    bigquery.SchemaField("vmp_product_name", "STRING", description="Product name"),
+    bigquery.SchemaField("unit_of_measure_identifier", "INTEGER", description="Identifier for the unit of measure"),
+    bigquery.SchemaField("unit_of_measure_name", "STRING", description="Name of the unit of measure"),
+    bigquery.SchemaField("total_quanity_in_vmp_unit", "FLOAT", description="Total quantity in the unit of measure"),
+    bigquery.SchemaField("indicative_cost", "FLOAT", description="Indicative cost"),
+]
 
 class Command(BaseCommand):
     """Django management command to import SCMD data into BigQuery."""
@@ -44,20 +62,8 @@ class SCMDImporter:
         self.scmd_table_full_id = f"{PROJECT_ID}.{DATASET_ID}.{SCMD_TABLE_ID}"
         self.urls_by_month_and_file_type = urls_by_month_and_file_type
 
-        self.data_status_table_schema = [
-            bigquery.SchemaField("year_month", "DATE", description="Year and month of the data"),
-            bigquery.SchemaField("file_type", "STRING", description="Type of the file"),
-        ]
-        self.scmd_table_schema = [
-            bigquery.SchemaField("year_month", "DATE", description="Year and month of the data"),
-            bigquery.SchemaField("ods_code", "STRING", description="ODS code"),
-            bigquery.SchemaField("vmp_snomed_code", "INTEGER", description="SNOMED code for the product"),
-            bigquery.SchemaField("vmp_product_name", "STRING", description="Product name"),
-            bigquery.SchemaField("unit_of_measure_identifier", "INTEGER", description="Identifier for the unit of measure"),
-            bigquery.SchemaField("unit_of_measure_name", "STRING", description="Name of the unit of measure"),
-            bigquery.SchemaField("total_quanity_in_vmp_unit", "FLOAT", description="Total quantity in the unit of measure"),
-            bigquery.SchemaField("indicative_cost", "FLOAT", description="Indicative cost"),
-        ]
+        self.data_status_table_schema = DATA_STATUS_SCHEMA
+        self.scmd_table_schema = SCMD_TABLE_SCHEMA
 
     def _get_bigquery_client(self) -> bigquery.Client:
         credentials = service_account.Credentials.from_service_account_file(CREDENTIALS_FILE)
@@ -71,8 +77,8 @@ class SCMDImporter:
             status_data: DataFrame containing month and file type information
         """
          
-        time_partitioning = gcbq.TimePartitioning(
-            type_=gcbq.TimePartitioningType.DAY,
+        time_partitioning = bigquery.TimePartitioning(
+            type_=bigquery.TimePartitioningType.DAY,
             field="year_month",
         )
         table = bigquery.Table(self.data_status_table_full_id, schema=self.data_status_table_schema)
