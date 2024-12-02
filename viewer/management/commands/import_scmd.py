@@ -37,6 +37,49 @@ SCMD_TABLE_SCHEMA = [
     bigquery.SchemaField("indicative_cost", "FLOAT", description="Indicative cost"),
 ]
 
+
+@dataclass
+class DatasetURL:
+    month: str
+    file_type: str
+    url: str
+
+class DataFetcher:
+    """Fetches SCMD data URLs from the NHS BSA API."""
+
+    @staticmethod
+    def iter_dataset_urls() -> Iterator[str]:
+        """Extract CSV file URLs via the API."""
+        dataset_name = "secondary-care-medicines-data-indicative-price"
+        dataset_url = f"https://opendata.nhsbsa.net/api/3/action/package_show?id={dataset_name}"
+
+        response = requests.get(dataset_url)
+        response.raise_for_status()
+
+        data = response.json()
+        resources = data["result"]["resources"]
+
+        pattern = r"scmd_(final|provisional|wip)_[0-9]{6}\.csv"
+
+        return (
+            resource["url"]
+            for resource in resources
+            if resource["format"].upper() == "CSV" and re.search(pattern, resource["url"].split("/")[-1])
+        )
+
+    @staticmethod
+    def iter_months(urls: Iterator[str]) -> Iterator[DatasetURL]:
+        """Extract a "month" and file type from each URL given."""
+        pattern = r"scmd_(final|provisional|wip)_([0-9]{4})([0-9]{2})\.csv"
+        for url in urls:
+            match = re.search(pattern, url.split("/")[-1])
+            if match:
+                file_type, year, month = match.groups()
+                yield DatasetURL(month=f"{year}-{month}", file_type=file_type, url=url)
+            else:
+                raise ValueError(f"Unexpected URL format: {url}")
+
+
 class Command(BaseCommand):
     """Django management command to import SCMD data into BigQuery."""
     help = "Imports SCMD data into BigQuery, handling both new imports and updates"
@@ -331,35 +374,6 @@ class SCMDImporter:
         job = self.client.load_table_from_dataframe(scmd_data, partition, job_config=job_config)
         job.result()
 
-def iter_dataset_urls() -> Iterator[str]:
-    """Extract CSV file URLs via the API"""
-    dataset_name = "secondary-care-medicines-data-indicative-price"
-    dataset_url = f"https://opendata.nhsbsa.net/api/3/action/package_show?id={dataset_name}"
-
-    response = requests.get(dataset_url)
-    response.raise_for_status()
-
-    data = response.json()
-    resources = data["result"]["resources"]
-
-    pattern = r"scmd_(final|provisional|wip)_[0-9]{6}\.csv"
-
-    return (
-        resource["url"]
-        for resource in resources
-        if resource["format"].upper() == "CSV" and re.search(pattern, resource["url"].split("/")[-1])
-    )
-
-def iter_months(urls: Iterator[str]) -> Iterator[Tuple[str, str, str]]:
-    """Extract a "month" and file type from each URL given."""
-    pattern = r"scmd_(final|provisional|wip)_([0-9]{4})([0-9]{2})\.csv"
-    for url in urls:
-        match = re.search(pattern, url.split("/")[-1])
-        if match:
-            file_type, year, month = match.groups()
-            yield f"{year}-{month}", file_type, url
-        else:
-            raise ValueError(f"Unexpected URL format: {url}")
 
 def create_data_status_df() -> Tuple[pd.DataFrame, dict]:
     """
@@ -367,7 +381,7 @@ def create_data_status_df() -> Tuple[pd.DataFrame, dict]:
     """
     urls_by_month_and_file_type = {
         f"{month[:4]}{month[4:]}-01": {"url": url, "file_type": file_type}
-        for month, file_type, url in iter_months(iter_dataset_urls())
+        for month, file_type, url in DataFetcher.iter_months(DataFetcher.iter_dataset_urls())
     }
 
     data_status_df = pd.DataFrame(
