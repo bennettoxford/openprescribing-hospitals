@@ -79,6 +79,57 @@ class DataFetcher:
             else:
                 raise ValueError(f"Unexpected URL format: {url}")
 
+class UnitConverter:
+    """Handles unit conversion for SCMD data."""
+
+    def __init__(self, client: bigquery.Client):
+        self.client = client
+
+    def fetch_conversion_factors(self) -> pd.DataFrame:
+        """Fetches unit conversion data from BigQuery."""
+        query = """
+        SELECT unit, basis, CAST(conversion_factor AS FLOAT64) AS conversion_factor, unit_id, basis_id
+        FROM `ebmdatalab.scmd.unit_conversion`
+        """
+        query_result = self.client.query(query).result()
+
+        rows = [
+            {
+                "unit": row.unit,
+                "basis": row.basis,
+                "conversion_factor": row.conversion_factor,
+                "unit_id": row.unit_id,
+                "basis_id": row.basis_id
+            }
+            for row in query_result
+        ]
+
+        return pd.DataFrame(rows)
+
+    def convert_units(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Standardises units using conversion factors from reference table."""
+        unit_conversion_df = self.fetch_conversion_factors()
+        unit_conversion_df['unit_id'] = unit_conversion_df['unit_id'].astype('int64')
+
+        if df[df['unit_of_measure_identifier'].isna()].shape[0] > 0:
+            logger.warning(f"Dropping {df[df['unit_of_measure_identifier'].isna()].shape[0]} rows where the unit of measure identifier is missing.")
+            df = df[df['unit_of_measure_identifier'].notna()]
+
+        df = pd.merge(df, unit_conversion_df, left_on='unit_of_measure_identifier', right_on='unit_id', how='left')
+        
+        df['quantity_in_basis_unit'] = df['total_quanity_in_vmp_unit'] * df['conversion_factor']
+
+        nan_count = df['quantity_in_basis_unit'].isna().sum()
+        if nan_count > 0:
+            logger.error(f"Found {nan_count} NaN values in 'quantity_in_basis_unit' column after conversion.")
+            raise ValueError(f"Found {nan_count} NaN values in 'quantity_in_basis_unit' column after conversion.")
+        
+        df['total_quanity_in_vmp_unit'] = df['quantity_in_basis_unit']
+        df['unit_of_measure_identifier'] = df['basis_id']
+        df['unit_of_measure_name'] = df['basis']
+
+        return df.drop(columns=['unit', 'basis', 'conversion_factor', 'unit_id', 'basis_id', 'quantity_in_basis_unit'])
+    
 
 class Command(BaseCommand):
     """Django management command to import SCMD data into BigQuery."""
@@ -160,7 +211,7 @@ class SCMDImporter:
         """
         for month in months_to_update:
             scmd_data = self._fetch_scmd_data(month)
-            converted_data = self._convert_units(scmd_data)
+            converted_data = UnitConverter.convert_units(scmd_data)
             self._load_scmd_data(converted_data, month)
 
     def get_existing_data(self) -> pd.DataFrame:
@@ -298,63 +349,6 @@ class SCMDImporter:
         
         return df
     
-    def _convert_units(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Standardises units using conversion factors from reference table.
-
-        Args:
-            df (pd.DataFrame): Raw SCMD data
-
-        Returns:
-            pd.DataFrame: Data with standardised units
-        """
-
-        # Fetch unit conversion data
-        unit_conversion_query = """
-        SELECT unit, basis, CAST(conversion_factor AS FLOAT64) AS conversion_factor, unit_id, basis_id
-        FROM `ebmdatalab.scmd.unit_conversion`
-        """
-        unit_conversion_df = self.client.query(unit_conversion_query)
-
-        query_result = unit_conversion_df.result()
-
-        rows = []
-        for i in query_result:
-            rows.append({
-                "unit": i.unit,
-                "basis": i.basis,
-                "conversion_factor": i.conversion_factor,
-                "unit_id": i.unit_id,
-                "basis_id": i.basis_id
-            })
-
-        unit_conversion_df = pd.DataFrame(rows)  
-        unit_conversion_df['unit_id'] = unit_conversion_df['unit_id'].astype('int64')
-
-        # there are some rows in SCMD data where the unit of measure identifier is missing. We should find out why.
-        if df[df['unit_of_measure_identifier'].isna()].shape[0] > 0:
-            print(f"Dropping {df[df['unit_of_measure_identifier'].isna()].shape[0]} rows where the unit of measure identifier is missing.")
-            df = df[df['unit_of_measure_identifier'].notna()]
-
-        df = pd.merge(df, unit_conversion_df, left_on='unit_of_measure_identifier', right_on='unit_id', how='left')
-        
-        # Perform unit conversions
-        df['quantity_in_basis_unit'] = df['total_quanity_in_vmp_unit'] * df['conversion_factor']
-
-   
-        nan_count = df['quantity_in_basis_unit'].isna().sum()
-        if nan_count > 0:
-            print(df[df['conversion_factor'].isna()]["unit_of_measure_identifier"])
-            raise ValueError(f"Found {nan_count} NaN values in 'quantity_in_basis_unit' column after conversion.")
-        
-        # now replace the total_quanity_in_vmp_unit with the quantity_in_basis_unit
-        df['total_quanity_in_vmp_unit'] = df['quantity_in_basis_unit']
-        df['unit_of_measure_identifier'] = df['basis_id']
-        df['unit_of_measure_name'] = df['basis']
-
-        df = df.drop(columns=['unit', 'basis', 'conversion_factor', 'unit_id', 'basis_id', 'quantity_in_basis_unit'])
-
-        return df
 
     def _load_scmd_data(self, scmd_data: pd.DataFrame, month: pd.Timestamp):
         """
