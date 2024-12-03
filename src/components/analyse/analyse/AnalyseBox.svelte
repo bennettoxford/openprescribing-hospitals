@@ -297,7 +297,6 @@
   <div class="grid gap-8">
     <!-- Header -->
     <div>
-      <h2 class="text-xl sm:text-2xl font-bold text-oxford mb-2">Analysis builder</h2>
       <p class="text-sm text-oxford">
         {#if isAdvancedMode}
           Run a custom analysis of hospitals stock control data using the options below. You can analyse 
