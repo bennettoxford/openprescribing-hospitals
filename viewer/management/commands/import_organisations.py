@@ -228,7 +228,10 @@ class RegionDataProcessor:
 
     @staticmethod
     def format_org_name(name: str) -> str:
-        """Format organisation name with proper capitalisation."""
+        """Format organisation name with proper capitalisation"""
+        if not name:
+            return name
+        
         acronyms = {"NHS"}
         drop_strings = {"COMMISSIONING REGION"}
 
@@ -237,7 +240,12 @@ class RegionDataProcessor:
         
         words = name.split()
         formatted_words = [word if word in acronyms else word.title() for word in words]
-        return ' '.join(formatted_words).strip()
+        formatted_name = ' '.join(formatted_words).strip()
+        
+        # Fix apostrophe capitalisation after title casing
+        formatted_name = formatted_name.replace("'S ", "'s ").replace("'S,", "'s,")
+        
+        return formatted_name
 
 
 
