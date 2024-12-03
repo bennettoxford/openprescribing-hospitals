@@ -273,10 +273,10 @@
       </p>
     </div>
 
-    <!-- Selection Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Selection Grid - Now always single column -->
+    <div class="grid gap-6">
       <!-- Product Selection -->
-      <div class="grid gap-4 lg:self-start">
+      <div class="grid gap-4">
         <div class="flex items-center">
           <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Product selection</h3>
           <div class="relative inline-block group">
@@ -307,7 +307,7 @@
       </div>
 
       <!-- Trust Selection -->
-      <div class="grid gap-4 lg:self-start">
+      <div class="grid gap-4">
         <div class="flex items-center">
           <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Trusts selection</h3>
           <div class="relative inline-block group">
@@ -363,11 +363,11 @@
       </div>
     </div>
 
-    <!-- Second Selection Grid (for Quantity Type and Date Range) -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Second Selection Grid - Now always single column -->
+    <div class="grid gap-6">
       {#if isAdvancedMode}
         <!-- Quantity Type Selection -->
-        <div class="grid gap-4 lg:self-start">
+        <div class="grid gap-4">
           <div class="flex items-center">
             <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Quantity type selection</h3>
             <div class="relative inline-block group">
@@ -399,82 +399,47 @@
             </select>
           </div>
         </div>
-
-        <!-- Date Range (Moved inside the same grid) -->
-        <div class="grid gap-4">
-          <div>
-            <div class="flex items-center">
-              <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Date Range</h3>
-            </div>
-            {#if dates.length > 0}
-              <div class="px-2">
-                <div class="flex justify-between mb-2 text-sm text-gray-600">
-                  <span>{formatDate(dates[0])}</span>
-                  <span>{formatDate(dates[dates.length - 1])}</span>
-                </div>
-                <RangeSlider
-                  min={0}
-                  max={dates.length - 1}
-                  step={1}
-                  values={dateValues}
-                  on:change={handleDateRangeChange}
-                  float
-                  all="hide"
-                  first="pip"
-                  last="pip"
-                  pipstep={6}
-                  formatter={index => formatDate(dates[index])}
-                  handleFormatter={index => formatDate(dates[index])}
-                  springValues={{ stiffness: 0.3, damping: 0.8 }}
-                />
-                <div class="mt-2 text-center text-sm text-gray-600">
-                  Selected range: {formatDate(dates[dateValues[0]])} - {formatDate(dates[dateValues[1]])}
-                </div>
-              </div>
-            {/if}
-          </div>
-        </div>
-      {:else}
-        <!-- Date Range (When not in advanced mode, takes single column) -->
-        <div class="grid gap-4">
-          <div>
-            <div class="flex items-center">
-              <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Date Range</h3>
-            </div>
-            {#if dates.length > 0}
-              <div class="px-2">
-                <div class="flex justify-between mb-2 text-sm text-gray-600">
-                  <span>{formatDate(dates[0])}</span>
-                  <span>{formatDate(dates[dates.length - 1])}</span>
-                </div>
-                <RangeSlider
-                  min={0}
-                  max={dates.length - 1}
-                  step={1}
-                  values={dateValues}
-                  on:change={handleDateRangeChange}
-                  float
-                  all="hide"
-                  first="pip"
-                  last="pip"
-                  pipstep={6}
-                  formatter={index => formatDate(dates[index])}
-                  handleFormatter={index => formatDate(dates[index])}
-                  springValues={{ stiffness: 0.3, damping: 0.8 }}
-                />
-                <div class="mt-2 text-center text-sm text-gray-600">
-                  Selected range: {formatDate(dates[dateValues[0]])} - {formatDate(dates[dateValues[1]])}
-                </div>
-              </div>
-            {/if}
-          </div>
-        </div>
       {/if}
+
+      <!-- Date Range -->
+      <div class="grid gap-4">
+        <div>
+          <div class="flex items-center">
+            <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Date Range</h3>
+          </div>
+          {#if dates.length > 0}
+            <div class="px-2">
+              <div class="flex justify-between mb-2 text-sm text-gray-600">
+                <span>{formatDate(dates[0])}</span>
+                <span>{formatDate(dates[dates.length - 1])}</span>
+              </div>
+              <RangeSlider
+                min={0}
+                max={dates.length - 1}
+                step={1}
+                values={dateValues}
+                on:change={handleDateRangeChange}
+                float
+                all="hide"
+                first="pip"
+                last="pip"
+                pipstep={6}
+                formatter={index => formatDate(dates[index])}
+                handleFormatter={index => formatDate(dates[index])}
+                springValues={{ stiffness: 0.3, damping: 0.8 }}
+              />
+              <div class="mt-2 text-center text-sm text-gray-600">
+                Selected range: {formatDate(dates[dateValues[0]])} - {formatDate(dates[dateValues[1]])}
+              </div>
+            </div>
+          {/if}
+        </div>
+      </div>
     </div>
 
-    <!-- Analysis Controls - Full width but more compact -->
+    <!-- Analysis Controls -->
     <div class="mt-8 bg-gray-50 rounded-lg p-4 sm:p-6">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="flex flex-col gap-4">
         <!-- Mode Switch -->
         <button 
           class="text-sm text-oxford-600 hover:text-oxford-800 flex items-center gap-2"
@@ -485,13 +450,13 @@
 
         <!-- Error Message -->
         {#if errorMessage}
-          <div class="p-3 bg-red-100 border border-red-400 text-red-700 rounded flex-grow">
+          <div class="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
             {errorMessage}
           </div>
         {/if}
 
         <!-- Action Buttons -->
-        <div class="flex gap-2 sm:min-w-[300px] justify-end">
+        <div class="flex gap-2 justify-end">
           <button
             on:click={handleClearAnalysis}
             class="px-4 sm:px-6 py-2 sm:py-2.5 bg-white text-gray-700 font-medium rounded-md hover:bg-gray-100 transition-colors duration-200 border border-gray-200"
