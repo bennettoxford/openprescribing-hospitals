@@ -683,8 +683,8 @@
 
 </style>
 
-<div class="relative w-full h-[450px]">
-  <div bind:this={chartDiv} use:resizeAction class="w-full h-[450px]"></div>
+<div class="relative w-full h-[400px]">
+  <div bind:this={chartDiv} use:resizeAction class="w-full h-[400px]"></div>
   {#if isZoomedIn}
     <button 
       class="absolute top-2 right-2 px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-md shadow-sm"
