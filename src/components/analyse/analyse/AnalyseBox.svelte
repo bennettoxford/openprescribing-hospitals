@@ -213,9 +213,44 @@
     }
 
     function handleClearAnalysis() {
-        clearAnalysisOptions();
+        analyseOptions.update(options => ({
+            ...options,
+            selectedVMPs: [],
+            searchType: 'vmp'
+        }));
+
+        organisationSearchStore.updateSelection([]);
+
+        if (isAdvancedMode) {
+            analyseOptions.update(options => ({
+                ...options,
+                quantityType: '--'
+            }));
+        }
+
+        if (dates.length > 0) {
+            analyseOptions.update(options => ({
+                ...options,
+                dateRange: {
+                    startDate: dates[0],
+                    endDate: dates[dates.length - 1]
+                }
+            }));
+            dateValues = [0, dates.length - 1];
+        }
+
         errorMessage = '';
-        dateValues = [0, dates.length - 1];
+
+        const searchComponent = document.querySelector('analyse-box search-component');
+        if (searchComponent) {
+            searchComponent.clearInput();
+        }
+
+        const orgSearchComponent = document.querySelector('analyse-box organisation-search');
+        if (orgSearchComponent) {
+            orgSearchComponent.clearInput();
+        }
+
         dispatch('analysisClear');
     }
 
