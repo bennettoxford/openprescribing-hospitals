@@ -325,12 +325,11 @@
                         ring-1 ring-black ring-opacity-5 p-4">
               <p class="text-sm text-gray-500">
                 {#if isAdvancedMode}
-                  Search for and select products to include in the analysis. You can select individual products
+                  Search for and select products to include to analyse. You can select individual products
                   (VMP) or groups of products by ingredient, therapeutic moiety (VTM), or 
                   therapeutic target (ATC). See <a href="/faq/#product-selection-types" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
                 {:else}
-                  Search for and select products or groups of products to analyse. You can select individual products
-                  or entire groups of related products. See <a href="/faq/#product-selection-types" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+                Search for and select individual products or groups of products to analyse. See <a href="/faq/#product-selection-types" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
                 {/if}
               </p>
             </div>
