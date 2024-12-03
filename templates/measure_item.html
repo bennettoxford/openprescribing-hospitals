@@ -52,12 +52,27 @@
                     {{ measure_description|safe }}
                 </div>
             </div>
-            <div >
+
+            <div>
                 <h2 class="text-2xl font-bold text-gray-900 mb-4">Why does it matter?</h2>
                 <div class="[&_p]:text-lg [&_p]:text-gray-900 [&_p]:mb-8 [&_a]:underline [&_a]:font-semibold">
                     {{ why_it_matters|safe }}
                 </div>
             </div>
+            <span class="block w-full h-px bg-gray-300 my-8"></span>
+            <div class="mb-8">
+                <div id="measure-chart">
+                    <measure-component 
+                        orgdata="{{ org_data }}"
+                        regiondata="{{ region_data }}"
+                        icbdata="{{ icb_data }}"
+                        percentiledata="{{ percentile_data }}"
+                    ></measure-component>
+                </div>
+            </div>
+
+            <span class="block w-full h-px bg-gray-300 my-8"></span>
+
             <div>
                 <h2 class="text-2xl font-bold text-gray-900 mb-4">How is it calculated?</h2>
                 <div class="[&_p]:text-lg [&_p]:text-gray-900 [&_p]:mb-8 [&_a]:underline [&_a]:font-semibold">
@@ -78,21 +93,6 @@
                 <div class="[&_p]:text-lg [&_p]:text-gray-900 [&_p]:mb-8 [&_a]:underline [&_a]:font-semibold">
                     <p>Trusts are only included in this measure if they have issued any products included in the denominator for this measure.</p>
                     <p>For this measure, {{ trusts_included.included }}/{{ trusts_included.total }} Trusts are included. A full list of Trusts included is available on the <a href="{% url 'viewer:submission_history' %}" target="_blank" class="underline font-semibold">Submission History</a> page.</p>
-                </div>
-            </div>
-            
-            <span class="block w-full h-px bg-gray-300 my-4"></span>
-            <div>
-    
-                <div>
-                    <div id="measure-chart">
-                        <measure-component 
-                            orgdata="{{ org_data }}"
-                            regiondata="{{ region_data }}"
-                            icbdata="{{ icb_data }}"
-                            percentiledata="{{ percentile_data }}"
-                        ></measure-component>
-                    </div>
                 </div>
             </div>
             {% endif %}

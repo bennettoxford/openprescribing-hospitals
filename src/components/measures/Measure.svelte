@@ -167,7 +167,7 @@
 
     <!-- Bottom row -->
     <!-- Chart - spans 3 columns on lg+ -->
-    <div class="lg:col-span-3 relative" style="min-height: 400px;">
+    <div class="lg:col-span-3 relative" style="min-height: 350px;">
         <div class="chart-container absolute inset-0">
             {#if orgdata.length === 0}
                 <p class="text-center text-gray-500 pt-8">No data available.</p>
@@ -179,8 +179,21 @@
 
     <!-- Legend - spans 1 column on lg+ -->
     {#if showLegend}
-        <div class="h-[320px]">
+        <div class="legend-container">
             <ChartLegend />
         </div>
     {/if}
 </div>
+
+<style>
+  .legend-container {
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  @media (max-width: 1024px) {
+    .legend-container {
+      max-height: 200px;
+    }
+  }
+</style>
