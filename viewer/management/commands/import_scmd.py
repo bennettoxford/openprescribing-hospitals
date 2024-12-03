@@ -4,7 +4,8 @@ import requests
 import pandas as pd
 import io
 
-from typing import List, Tuple, Iterator
+from typing import List, Iterator, Dict, Optional
+from dataclasses import dataclass
 from pathlib import Path
 from google.cloud import bigquery
 from google.oauth2 import service_account
@@ -22,18 +23,34 @@ DATA_STATUS_TABLE_ID = "data_status"
 SCMD_TABLE_ID = "scmd_latest"
 
 DATA_STATUS_SCHEMA = [
-    bigquery.SchemaField("year_month", "DATE", description="Year and month of the data"),
+    bigquery.SchemaField(
+        "year_month", "DATE", description="Year and month of the data"
+    ),
     bigquery.SchemaField("file_type", "STRING", description="Type of the file"),
 ]
 
 SCMD_TABLE_SCHEMA = [
-    bigquery.SchemaField("year_month", "DATE", description="Year and month of the data"),
+    bigquery.SchemaField(
+        "year_month", "DATE", description="Year and month of the data"
+    ),
     bigquery.SchemaField("ods_code", "STRING", description="ODS code"),
-    bigquery.SchemaField("vmp_snomed_code", "INTEGER", description="SNOMED code for the product"),
+    bigquery.SchemaField(
+        "vmp_snomed_code", "INTEGER", description="SNOMED code for the product"
+    ),
     bigquery.SchemaField("vmp_product_name", "STRING", description="Product name"),
-    bigquery.SchemaField("unit_of_measure_identifier", "INTEGER", description="Identifier for the unit of measure"),
-    bigquery.SchemaField("unit_of_measure_name", "STRING", description="Name of the unit of measure"),
-    bigquery.SchemaField("total_quanity_in_vmp_unit", "FLOAT", description="Total quantity in the unit of measure"),
+    bigquery.SchemaField(
+        "unit_of_measure_identifier",
+        "INTEGER",
+        description="Identifier for the unit of measure",
+    ),
+    bigquery.SchemaField(
+        "unit_of_measure_name", "STRING", description="Name of the unit of measure"
+    ),
+    bigquery.SchemaField(
+        "total_quanity_in_vmp_unit",
+        "FLOAT",
+        description="Total quantity in the unit of measure",
+    ),
     bigquery.SchemaField("indicative_cost", "FLOAT", description="Indicative cost"),
 ]
 
@@ -44,6 +61,7 @@ class DatasetURL:
     file_type: str
     url: str
 
+
 class DataFetcher:
     """Fetches SCMD data URLs from the NHS BSA API."""
 
@@ -51,7 +69,9 @@ class DataFetcher:
     def iter_dataset_urls() -> Iterator[str]:
         """Extract CSV file URLs via the API."""
         dataset_name = "secondary-care-medicines-data-indicative-price"
-        dataset_url = f"https://opendata.nhsbsa.net/api/3/action/package_show?id={dataset_name}"
+        dataset_url = (
+            f"https://opendata.nhsbsa.net/api/3/action/package_show?id={dataset_name}"
+        )
 
         response = requests.get(dataset_url)
         response.raise_for_status()
@@ -64,7 +84,8 @@ class DataFetcher:
         return (
             resource["url"]
             for resource in resources
-            if resource["format"].upper() == "CSV" and re.search(pattern, resource["url"].split("/")[-1])
+            if resource["format"].upper() == "CSV"
+            and re.search(pattern, resource["url"].split("/")[-1])
         )
 
     @staticmethod
@@ -78,6 +99,7 @@ class DataFetcher:
                 yield DatasetURL(month=f"{year}-{month}", file_type=file_type, url=url)
             else:
                 raise ValueError(f"Unexpected URL format: {url}")
+
 
 class UnitConverter:
     """Handles unit conversion for SCMD data."""
@@ -99,7 +121,7 @@ class UnitConverter:
                 "basis": row.basis,
                 "conversion_factor": row.conversion_factor,
                 "unit_id": row.unit_id,
-                "basis_id": row.basis_id
+                "basis_id": row.basis_id,
             }
             for row in query_result
         ]
@@ -109,112 +131,132 @@ class UnitConverter:
     def convert_units(self, df: pd.DataFrame) -> pd.DataFrame:
         """Standardises units using conversion factors from reference table."""
         unit_conversion_df = self.fetch_conversion_factors()
-        unit_conversion_df['unit_id'] = unit_conversion_df['unit_id'].astype('int64')
+        unit_conversion_df["unit_id"] = unit_conversion_df["unit_id"].astype("int64")
 
-        if df[df['unit_of_measure_identifier'].isna()].shape[0] > 0:
-            logger.warning(f"Dropping {df[df['unit_of_measure_identifier'].isna()].shape[0]} rows where the unit of measure identifier is missing.")
-            df = df[df['unit_of_measure_identifier'].notna()]
+        if df[df["unit_of_measure_identifier"].isna()].shape[0] > 0:
+            logger.warning(
+                f"Dropping {df[df['unit_of_measure_identifier'].isna()].shape[0]} rows where the unit of measure identifier is missing."
+            )
+            df = df[df["unit_of_measure_identifier"].notna()]
 
-        df = pd.merge(df, unit_conversion_df, left_on='unit_of_measure_identifier', right_on='unit_id', how='left')
-        
-        df['quantity_in_basis_unit'] = df['total_quanity_in_vmp_unit'] * df['conversion_factor']
+        df = pd.merge(
+            df,
+            unit_conversion_df,
+            left_on="unit_of_measure_identifier",
+            right_on="unit_id",
+            how="left",
+        )
 
-        nan_count = df['quantity_in_basis_unit'].isna().sum()
+        df["quantity_in_basis_unit"] = (
+            df["total_quanity_in_vmp_unit"] * df["conversion_factor"]
+        )
+
+        nan_count = df["quantity_in_basis_unit"].isna().sum()
         if nan_count > 0:
-            logger.error(f"Found {nan_count} NaN values in 'quantity_in_basis_unit' column after conversion.")
-            raise ValueError(f"Found {nan_count} NaN values in 'quantity_in_basis_unit' column after conversion.")
-        
-        df['total_quanity_in_vmp_unit'] = df['quantity_in_basis_unit']
-        df['unit_of_measure_identifier'] = df['basis_id']
-        df['unit_of_measure_name'] = df['basis']
+            logger.error(
+                f"Found {nan_count} NaN values in 'quantity_in_basis_unit' column after conversion."
+            )
+            raise ValueError(
+                f"Found {nan_count} NaN values in 'quantity_in_basis_unit' column after conversion."
+            )
 
-        return df.drop(columns=['unit', 'basis', 'conversion_factor', 'unit_id', 'basis_id', 'quantity_in_basis_unit'])
-    
+        df["total_quanity_in_vmp_unit"] = df["quantity_in_basis_unit"]
+        df["unit_of_measure_identifier"] = df["basis_id"]
+        df["unit_of_measure_name"] = df["basis"]
 
-class Command(BaseCommand):
-    """Django management command to import SCMD data into BigQuery."""
-    help = "Imports SCMD data into BigQuery, handling both new imports and updates"
+        return df.drop(
+            columns=[
+                "unit",
+                "basis",
+                "conversion_factor",
+                "unit_id",
+                "basis_id",
+                "quantity_in_basis_unit",
+            ]
+        )
 
-    def handle(self, *args, **options):
-        data_status_df, urls_by_month_and_file_type = create_data_status_df()
-        importer = SCMDImporter(urls_by_month_and_file_type)
-        importer.update_tables(data_status_df)
-        self.stdout.write(self.style.SUCCESS("Successfully imported SCMD data"))
+
+class BigQueryTableManager:
+    """Handles BigQuery table operations."""
+
+    def __init__(
+        self, client: bigquery.Client, table_id: str, schema: List[bigquery.SchemaField]
+    ):
+        self.client = client
+        self.table_id = table_id
+        self.schema = schema
+
+    def create_table(
+        self,
+        description: str,
+        partition_field: str,
+        clustering_fields: Optional[List[str]] = None,
+    ) -> None:
+        """Creates a new BigQuery table with the specified configuration."""
+        table = bigquery.Table(self.table_id, schema=self.schema)
+        table.description = description
+        table.time_partitioning = bigquery.TimePartitioning(
+            type_=bigquery.TimePartitioningType.DAY,
+            field=partition_field,
+        )
+        if clustering_fields:
+            table.clustering_fields = clustering_fields
+
+        self.client.create_table(table)
+        logger.info(f"Created table: {self.table_id}")
+
+    def load_dataframe(
+        self,
+        df: pd.DataFrame,
+        partition_date: Optional[str] = None,
+        write_disposition: str = "WRITE_TRUNCATE",
+    ) -> None:
+        """Loads a DataFrame into the BigQuery table."""
+        job_config = bigquery.LoadJobConfig(
+            schema=self.schema,
+            write_disposition=write_disposition,
+        )
+
+        target_table = (
+            f"{self.table_id}${partition_date}" if partition_date else self.table_id
+        )
+        job = self.client.load_table_from_dataframe(
+            df, target_table, job_config=job_config
+        )
+        job.result()
+        logger.info(f"Loaded data into: {target_table}")
+
 
 class SCMDImporter:
     """
     Handles the import of SCMD data into BigQuery.
-    
+
     Manages two tables:
     1. Data status table: Tracks which months have been imported and their status (final, provisional, wip)
     2. SCMD table: Contains the actual medicines data. This is partitioned by year and month and clustered by VMP code.
     """
 
-    def __init__(self, urls_by_month_and_file_type):
+    def __init__(self, urls_by_month: Dict[str, DatasetURL]):
+        self.urls_by_month = urls_by_month
         self.client = self._get_bigquery_client()
-        self.data_status_table_full_id = f"{PROJECT_ID}.{DATASET_ID}.{DATA_STATUS_TABLE_ID}"
-        self.scmd_table_full_id = f"{PROJECT_ID}.{DATASET_ID}.{SCMD_TABLE_ID}"
-        self.urls_by_month_and_file_type = urls_by_month_and_file_type
 
-        self.data_status_table_schema = DATA_STATUS_SCHEMA
-        self.scmd_table_schema = SCMD_TABLE_SCHEMA
+        self.data_status_manager = BigQueryTableManager(
+            self.client,
+            f"{PROJECT_ID}.{DATASET_ID}.{DATA_STATUS_TABLE_ID}",
+            DATA_STATUS_SCHEMA,
+        )
+        self.scmd_manager = BigQueryTableManager(
+            self.client, f"{PROJECT_ID}.{DATASET_ID}.{SCMD_TABLE_ID}", SCMD_TABLE_SCHEMA
+        )
+        self.unit_converter = UnitConverter(self.client)
 
     def _get_bigquery_client(self) -> bigquery.Client:
-        credentials = service_account.Credentials.from_service_account_file(CREDENTIALS_FILE)
+        credentials = service_account.Credentials.from_service_account_file(
+            CREDENTIALS_FILE
+        )
         return bigquery.Client(project=PROJECT_ID, credentials=credentials)
-    
-    def _create_data_status_table(self, status_data: pd.DataFrame):
-         """
-        Creates and populates the data status tracking table.
 
-        Args:
-            status_data: DataFrame containing month and file type information
-        """
-         
-        time_partitioning = bigquery.TimePartitioning(
-            type_=bigquery.TimePartitioningType.DAY,
-            field="year_month",
-        )
-        table = bigquery.Table(self.data_status_table_full_id, schema=self.data_status_table_schema)
-        table.description = "Data status for the SCMD dataset"
-        table.time_partitioning = time_partitioning
-        self.client.create_table(table)
-        print(f"Table {self.data_status_table_full_id} created.")
-
-        job_config = bigquery.LoadJobConfig(
-            schema=self.data_status_table_schema,
-            write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
-        )
-        job = self.client.load_table_from_dataframe(status_data, self.data_status_table_full_id, job_config=job_config)
-        job.result()
-
-    def _create_scmd_table(self):
-        """
-        Creates the SCMD table.
-        """
-        table = bigquery.Table(self.scmd_table_full_id, schema=self.scmd_table_schema)
-        table.description = "SCMD dataset"
-        table.time_partitioning = bigquery.TimePartitioning(
-            type_=bigquery.TimePartitioningType.DAY,
-            field="year_month",
-        )
-        table.clustering_fields = ["vmp_snomed_code"]
-        self.client.create_table(table)
-        print(f"Table {self.scmd_table_full_id} created.")
-
-    def _update_scmd_data(self, months_to_update: List[pd.Timestamp]):
-        """
-        Updates the SCMD table with new data.
-        
-        Args:
-            months_to_update: List of months to update
-        """
-        for month in months_to_update:
-            scmd_data = self._fetch_scmd_data(month)
-            converted_data = UnitConverter.convert_units(scmd_data)
-            self._load_scmd_data(converted_data, month)
-
-    def get_existing_data(self) -> pd.DataFrame:
+    def _get_existing_data(self) -> pd.DataFrame:
         """
         Gets the existing data from the data status table.
         """
@@ -223,166 +265,144 @@ class SCMDImporter:
         FROM {self.data_status_table_full_id}
         ORDER BY year_month DESC
         """
+        logger.debug(f"Executing query: {query}")
         query_job = self.client.query(query)
         query_result = query_job.result()
 
+        # Log the query result for debugging
+        logger.debug(
+            f"Query result: {[{'year_month': i.year_month, 'file_type': i.file_type} for i in query_result]}"
+        )
 
         # This is a way around missing read permissions for the project.
         # Update to return query_job.to_dataframe() when permissions are fixed.
-        rows = {
-        }
-        for i in query_result:
-            rows[i.year_month] = i.file_type
+        rows = {i.year_month: i.file_type for i in query_result}
 
         rows_df = pd.DataFrame(rows.items(), columns=["year_month", "file_type"])
         rows_df["year_month"] = pd.to_datetime(rows_df["year_month"], format="%Y-%m-%d")
 
         return rows_df
 
+    def _process_month_data(self, month: pd.Timestamp) -> pd.DataFrame:
+        """Processes data for a single month."""
+        month_str = month.strftime("%Y-%m-%d")
+        url = self.urls_by_month[month_str].url
 
-    def update_tables(self, new_status_data: pd.DataFrame):
-        """
-        Creates the tables if they don't exist and updates them if they do.
+        response = requests.get(url)
+        response.raise_for_status()
 
-        Args:
-            new_status_data: DataFrame containing month and file type information
-        """
-        
+        df = pd.read_csv(io.StringIO(response.text))
+        df["YEAR_MONTH"] = pd.to_datetime(month_str)
+
+        column_mapping = {
+            "YEAR_MONTH": "year_month",
+            "ODS_CODE": "ods_code",
+            "VMP_SNOMED_CODE": "vmp_snomed_code",
+            "VMP_PRODUCT_NAME": "vmp_product_name",
+            "UNIT_OF_MEASURE_IDENTIFIER": "unit_of_measure_identifier",
+            "UNIT_OF_MEASURE_NAME": "unit_of_measure_name",
+            "TOTAL_QUANITY_IN_VMP_UNIT": "total_quanity_in_vmp_unit",
+            "INDICATIVE_COST": "indicative_cost",
+        }
+        df.rename(columns=column_mapping, inplace=True)
+
+        df["unit_of_measure_name"] = df["unit_of_measure_name"].str.lower()
+        df["vmp_snomed_code"] = df["vmp_snomed_code"].astype("int64")
+        df["unit_of_measure_identifier"] = df["unit_of_measure_identifier"].astype(
+            "int64"
+        )
+        df["total_quanity_in_vmp_unit"] = df["total_quanity_in_vmp_unit"].astype(float)
+        df["indicative_cost"] = df["indicative_cost"].astype(float)
+
+        return self.unit_converter.convert_units(df)
+
+    def update_tables(self, new_status_data: pd.DataFrame) -> None:
+        """Updates or creates tables as needed."""
         try:
-            existing_data = self.get_existing_data()
+            existing_data = self._get_existing_data()
             self._update_existing_tables(new_status_data, existing_data)
         except NotFound:
             self._create_new_tables(new_status_data)
 
-    def _update_existing_tables(self, new_status_data: pd.DataFrame, existing_data: pd.DataFrame):
-        """
-        Updates the SCMD table with new data and the data status table with the new months and file types.
+    def _create_new_tables(self, status_data: pd.DataFrame) -> None:
+        """Creates new tables and imports initial data."""
+        self.scmd_manager.create_table(
+            description="SCMD dataset",
+            partition_field="year_month",
+            clustering_fields=["vmp_snomed_code"],
+        )
+        self.data_status_manager.create_table(
+            description="Data status for the SCMD dataset", partition_field="year_month"
+        )
 
-        Args:
-            new_status_data: DataFrame containing month and file type information
-            existing_data: DataFrame containing existing data
-        """
+        for month in status_data["year_month"]:
+            self._update_month_data(month)
 
-        new_months, out_of_date_months = self._get_months_to_update(new_status_data, existing_data)
+    def _update_month_data(self, month: pd.Timestamp) -> None:
+        """Updates data for a specific month."""
+        month_str = month.strftime("%Y%m%d")
+        data = self._process_month_data(month)
+        self.scmd_manager.load_dataframe(data, partition_date=month_str)
+
+    def _update_existing_tables(
+        self, new_data: pd.DataFrame, existing_data: pd.DataFrame
+    ) -> None:
+        """Updates existing tables with new data."""
+        merged_data = pd.merge(
+            new_data,
+            existing_data,
+            on="year_month",
+            how="left",
+            suffixes=("_new", "_old"),
+        )
+
+        new_months = merged_data[merged_data["file_type_old"].isna()][
+            "year_month"
+        ].tolist()
+        out_of_date_months = merged_data[
+            (merged_data["file_type_old"].notna())
+            & (merged_data["file_type_new"] != merged_data["file_type_old"])
+        ]["year_month"].tolist()
+
         months_to_update = new_months + out_of_date_months
 
-        print(f"Found {len(new_months)} new months:")
-        print(new_months)
-        print(f"Found {len(out_of_date_months)} out-of-date months:")
-        print(out_of_date_months)
+        logger.info(
+            f"Found {len(new_months)} new months and {len(out_of_date_months)} out-of-date months"
+        )
 
-        # update the scmd data first. If there are any errors, the data status will not be updated
-        self._update_scmd_data(months_to_update)
-        self._update_data_status(new_status_data, months_to_update)
-        
-
-    def _get_months_to_update(self, new_data: pd.DataFrame, existing_data: pd.DataFrame) -> Tuple[List[pd.Timestamp], List[pd.Timestamp]]:
-        """
-        Gets the months to update based on the new data and existing data.
-        Months are only updated if the file type has changed.
-        """
-        merged_data = pd.merge(new_data, existing_data, on="year_month", how="left", suffixes=("_new", "_old"))
-        
-        new_months = merged_data[merged_data["file_type_old"].isna()]["year_month"].tolist()
-        out_of_date_months = merged_data[
-            (merged_data["file_type_old"].notna()) & (merged_data["file_type_new"] != merged_data["file_type_old"])
-        ]["year_month"].tolist()
-        
-        return new_months, out_of_date_months
-
-    def _update_data_status(self, new_data: pd.DataFrame, months_to_update: List[pd.Timestamp]):
-        """
-        Updates the data status table with the new months and file types.
-        """
         for month in months_to_update:
-            month_str = month.strftime("%Y%m%d")
-            row = new_data[new_data["year_month"] == month].copy()
-            row["year_month"] = row["year_month"].dt.date
+            self._update_month_data(month)
 
-            job_config = bigquery.LoadJobConfig(write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE)
-            partition = f"{self.data_status_table_full_id}${month_str}"
-            job = self.client.load_table_from_dataframe(row, partition, job_config=job_config)
-            job.result()
 
-    def _create_new_tables(self, status_data: pd.DataFrame):
-        """
-        Creates the SCMD table and the data status table.
-        """
-        self._create_scmd_table()
-        self._create_data_status_table(status_data)
-        self._update_scmd_data(status_data['year_month'].tolist())
-        
-    def _fetch_scmd_data(self, month: pd.Timestamp) -> pd.DataFrame:
-        """
-        Fetches the SCMD data for a given month.
-        """
-        month_str = month.strftime("%Y-%m-%d")
-        url = self.urls_by_month_and_file_type[month_str]['url']
-        
-        response = requests.get(url)
-        response.raise_for_status()
-        
-        csv_content = io.StringIO(response.text)
-        df = pd.read_csv(csv_content)
+class Command(BaseCommand):
+    """Django management command to import SCMD data into BigQuery."""
 
-        # Add the year_month column
-        df['YEAR_MONTH'] = pd.to_datetime(month_str)
-        
-        # Rename columns to match the schema
-        column_mapping = {
-            'YEAR_MONTH': 'year_month',
-            'ODS_CODE': 'ods_code',
-            'VMP_SNOMED_CODE': 'vmp_snomed_code',
-            'VMP_PRODUCT_NAME': 'vmp_product_name',
-            'UNIT_OF_MEASURE_IDENTIFIER': 'unit_of_measure_identifier',
-            'UNIT_OF_MEASURE_NAME': 'unit_of_measure_name',
-            'TOTAL_QUANITY_IN_VMP_UNIT': 'total_quanity_in_vmp_unit',
-            'INDICATIVE_COST': 'indicative_cost'
+    help = "Imports SCMD data into BigQuery, handling both new imports and updates"
+
+    def handle(self, *args, **options):
+        """Main entry point for the command."""
+        logger.info("Starting SCMD data import process.")
+
+        urls_by_month_and_file_type = {
+            f"{dataset_url.month}-01": {
+                "url": dataset_url.url,
+                "file_type": dataset_url.file_type,
+            }
+            for dataset_url in DataFetcher.iter_months(DataFetcher.iter_dataset_urls())
         }
 
-        df.rename(columns=column_mapping, inplace=True)
-        df['unit_of_measure_name'] = df['unit_of_measure_name'].str.lower()
-        df['vmp_snomed_code'] = df['vmp_snomed_code'].astype('int64')
-        df['unit_of_measure_identifier'] = df['unit_of_measure_identifier'].astype('int64')
-        df['total_quanity_in_vmp_unit'] = df['total_quanity_in_vmp_unit'].astype(float)
-        df['indicative_cost'] = df['indicative_cost'].astype(float)
-        
-        return df
-    
+        data_status_df = pd.DataFrame(
+            [
+                (month, details["file_type"])
+                for month, details in urls_by_month_and_file_type.items()
+            ],
+            columns=["year_month", "file_type"],
+        ).sort_values(by="year_month")
 
-    def _load_scmd_data(self, scmd_data: pd.DataFrame, month: pd.Timestamp):
-        """
-        Loads the SCMD data into the SCMD table on BigQuery.
-        """
-        month_str = month.strftime("%Y%m%d")
-        job_config = bigquery.LoadJobConfig(
-            schema=self.scmd_table_schema,
-            write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
-            clustering_fields=["vmp_snomed_code"],
-            time_partitioning=bigquery.TimePartitioning(
-                type_=bigquery.TimePartitioningType.DAY,
-                field="year_month",
-            )
-        )
-        partition = f"{self.scmd_table_full_id}${month_str}"
-        job = self.client.load_table_from_dataframe(scmd_data, partition, job_config=job_config)
-        job.result()
+        data_status_df["year_month"] = pd.to_datetime(data_status_df["year_month"])
 
+        importer = SCMDImporter(urls_by_month_and_file_type)
+        importer.update_tables(data_status_df)
 
-def create_data_status_df() -> Tuple[pd.DataFrame, dict]:
-    """
-    Creates a DataFrame containing the months and file types for the SCMD data.
-    """
-    urls_by_month_and_file_type = {
-        f"{month[:4]}{month[4:]}-01": {"url": url, "file_type": file_type}
-        for month, file_type, url in DataFetcher.iter_months(DataFetcher.iter_dataset_urls())
-    }
-
-    data_status_df = pd.DataFrame(
-        [(month, details["file_type"]) for month, details in urls_by_month_and_file_type.items()],
-        columns=["year_month", "file_type"],
-    ).sort_values(by="year_month")
-
-    data_status_df["year_month"] = pd.to_datetime(data_status_df["year_month"])
-
-    return data_status_df, urls_by_month_and_file_type
+        self.stdout.write(self.style.SUCCESS("Successfully imported SCMD data"))
+        logger.info("SCMD data import process completed successfully.")
