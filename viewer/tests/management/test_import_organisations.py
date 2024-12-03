@@ -267,6 +267,10 @@ class TestRegionDataProcessor:
                 "GUY'S AND ST THOMAS' NHS FOUNDATION TRUST",
                 "Guy's And St Thomas' NHS Foundation Trust"
             ),
+            (
+                "NHS NORTH CENTRAL LONDON INTEGRATED CARE BOARD",
+                "NHS North Central London"
+            ),
         ]
 
         for input_name, expected_output in test_cases:

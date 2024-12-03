@@ -233,7 +233,7 @@ class RegionDataProcessor:
             return name
         
         acronyms = {"NHS"}
-        drop_strings = {"COMMISSIONING REGION"}
+        drop_strings = {"COMMISSIONING REGION", "INTEGRATED CARE BOARD"}
 
         for drop_string in drop_strings:
             name = name.replace(drop_string, "")
@@ -338,7 +338,7 @@ class OrganisationImporter:
         org_mapping_df["region"] = org_mapping_df["icb"].map(icb_regions).map(region_names)
         org_mapping_df.loc[org_mapping_df["ods_name"].notna(), "ods_name"] = org_mapping_df.loc[org_mapping_df["ods_name"].notna(), "ods_name"].apply(self.region_data_processor.format_org_name)
         org_mapping_df.loc[org_mapping_df["region"].notna(), "region"] = org_mapping_df.loc[org_mapping_df["region"].notna(), "region"].apply(self.region_data_processor.format_org_name)
-        
+        org_mapping_df.loc[org_mapping_df["icb"].notna(), "icb"] = org_mapping_df.loc[org_mapping_df["icb"].notna(), "icb"].apply(self.region_data_processor.format_org_name)
         self.bigquery_uploader.upload(org_mapping_df)
 
 
