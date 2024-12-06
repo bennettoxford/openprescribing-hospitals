@@ -303,10 +303,16 @@ def filtered_quantities(request):
         ods_names = [item.split("|")[0].strip() for item in ods_names]
         queryset = queryset.filter(organisation__ods_code__in=ods_names)
 
-    vmp_atc_map = {
-        iq.id: [{'code': atc.code, 'name': atc.name} for atc in iq.vmp.atcs.all()]
-        for iq in queryset.select_related('vmp').prefetch_related('vmp__atcs')
-    }
+    vmp_atc_map = {}
+    for item in queryset.select_related('vmp').prefetch_related('vmp__atcs'):
+        try:
+            vmp_atc_map[item.id] = [
+                {'code': atc.code, 'name': atc.name} 
+                for atc in item.vmp.atcs.all()
+            ] if item.vmp else []
+        except Exception as e:
+            print(f"Error processing ATC for item {item.id}: {e}")
+            vmp_atc_map[item.id] = []
 
     value_fields = [
         "id",
