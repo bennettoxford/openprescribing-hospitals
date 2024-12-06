@@ -19,8 +19,8 @@ class Command(BaseCommand):
         atc_path = Path(__file__).parent.parent / "data/atc/2024_ATC.xml"
         ddd_path = Path(__file__).parent.parent / "data/atc/2024 ATC_ddd.xml"
 
-        atc_data = self.parse_atc_xml(atc_path)
-        ddd_data = self.parse_ddd_xml(ddd_path)
+        atc_data = self.parse_xml(atc_path, ["ATCCode", "Name", "Comment"])
+        ddd_data = self.parse_xml(ddd_path, ["ATCCode", "DDD", "UnitType", "AdmCode", "DDDComment"])
 
         atc_df = pd.DataFrame(atc_data, columns=["atc_code", "name", "comment"])
         atc_df = atc_df.astype({"atc_code": "string", "name": "string", "comment": "string"})
@@ -39,29 +39,13 @@ class Command(BaseCommand):
         self.upload_bq(atc_df, ddd_df, client)
         self.stdout.write(self.style.SUCCESS("Successfully imported DDD and ATC data into BigQuery"))
 
-    def parse_atc_xml(self, file_path):
+    def parse_xml(self, file_path, fields):
         tree = ET.parse(file_path)
         root = tree.getroot()
-        atc_data = []
+        data = []
         for row in root.findall(".//z:row", namespaces={"z": "#RowsetSchema"}):
-            atc_code = row.get("ATCCode")
-            name = row.get("Name")
-            comment = row.get("Comment")
-            atc_data.append((atc_code, name, comment))
-        return atc_data
-
-    def parse_ddd_xml(self, file_path):
-        tree = ET.parse(file_path)
-        root = tree.getroot()
-        ddd_data = []
-        for row in root.findall(".//z:row", namespaces={"z": "#RowsetSchema"}):
-            atc_code = row.get("ATCCode")
-            ddd = row.get("DDD")
-            unit_type = row.get("UnitType")
-            adm_code = row.get("AdmCode")
-            ddd_comment = row.get("DDDComment")
-            ddd_data.append((atc_code, ddd, unit_type, adm_code, ddd_comment))
-        return ddd_data
+            data.append(tuple(row.get(field) for field in fields))
+        return data
 
     def upload_bq(self, atc_df: pd.DataFrame, ddd_df: pd.DataFrame, client: bigquery.Client) -> None:
         atc_table_id = f"{PROJECT_ID}.{DATASET_ID}.atc"
