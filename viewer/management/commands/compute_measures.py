@@ -37,6 +37,19 @@ class Command(BaseCommand):
                     result = execute_measure_sql(measure.name)
                     values = result['values']
                     measure_values = values['measure_values']
+                    
+                    # Filter out organisations that have no activity (where both numerator and denominator are 0 or null)
+                    active_orgs = {
+                        row['organisation'] for row in measure_values 
+                        if (row['numerator'] or row['denominator']) and 
+                        not (row['numerator'] == 0 and row['denominator'] == 0)
+                    }
+                    
+                    measure_values = [
+                        row for row in measure_values 
+                        if row['organisation'] in active_orgs
+                    ]
+
                     numerator_vmps = values.get('numerator_vmps', [])
                     denominator_vmps = values.get('denominator_vmps', [])
                     

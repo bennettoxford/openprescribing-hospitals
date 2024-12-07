@@ -174,16 +174,13 @@ class MeasureItemView(TemplateView):
         return context
 
     def get_org_data(self, org_measures):
-        all_orgs = set(org_measures.values_list('organisation__ods_name', flat=True).distinct())
+        # all orgs - those with no successor
+        all_orgs = set(Organisation.objects.filter(successor__isnull=True).values_list('ods_code', flat=True))
         
-        non_zero_orgs = set(org_measures.values('organisation__ods_code')
-                        .annotate(non_zero_count=Count('id', 
-                            filter=Q(denominator__isnull=False) & ~Q(denominator=0)))
-                        .filter(non_zero_count__gt=0)
-                        .values_list('organisation__ods_code', flat=True))
+        measure_orgs = set(org_measures.values_list('organisation__ods_code', flat=True).distinct())
         
         org_measures_dict = {}
-        for measure in org_measures.filter(organisation__ods_code__in=non_zero_orgs).values(
+        for measure in org_measures.values(
             'organisation__ods_code', 'organisation__ods_name', 'month', 'quantity', 'numerator', 'denominator'
         ):
             org_key = f"{measure['organisation__ods_code']} | {measure['organisation__ods_name']}"
@@ -196,7 +193,7 @@ class MeasureItemView(TemplateView):
 
         return {
             "trusts_included": {
-                "included": len(non_zero_orgs),
+                "included": len(measure_orgs),
                 "total": len(all_orgs)
             },
             "org_data": json.dumps(org_measures_dict, cls=DjangoJSONEncoder),
