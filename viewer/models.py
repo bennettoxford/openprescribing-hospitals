@@ -75,6 +75,7 @@ class Organisation(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=["ods_name"]),
+            models.Index(fields=["ods_code"]),
         ]
 
     def get_all_predecessor_codes(self):
