@@ -475,7 +475,7 @@
       <div class="flex flex-col gap-4">
         <!-- Mode Switch -->
         <button 
-          class="text-sm text-oxford-600 hover:text-oxford-800 flex items-center gap-2"
+          class="text-sm text-oxford-600 hover:text-oxford-700 flex items-center gap-2"
           on:click={toggleAdvancedMode}
         >
           <span class="underline">Switch to {isAdvancedMode ? 'basic' : 'advanced'} mode</span>
@@ -499,7 +499,7 @@
           <button
             on:click={runAnalysis}
             disabled={isAnalysisRunning}
-            class="px-4 sm:px-6 py-2 sm:py-2.5 bg-oxford-500 text-white font-medium rounded-md hover:bg-oxford-600 transition-colors duration-200
+            class="px-4 sm:px-6 py-2 sm:py-2.5 bg-oxford-600 text-white font-medium rounded-md hover:bg-oxford-700 transition-colors duration-200
                  disabled:bg-oxford-300 disabled:cursor-not-allowed"
           >
             {isAnalysisRunning ? 'Running Analysis...' : 'Run Analysis'}
@@ -514,14 +514,14 @@
 
     :root {
         --range-slider:            hsl(220, 13%, 91%);
-        --range-handle-inactive:   hsl(212.1, 100%, 50.6%);
-        --range-handle:            hsl(212.1, 100%, 50.6%);
-        --range-handle-focus:      hsl(212, 99.2%, 50.4%);
-        --range-handle-border:     hsl(212.1, 100%, 50.6%);
-        --range-range-inactive:    hsl(212.1, 100%, 50.6%);
-        --range-range:             hsl(212.1, 100%, 50.6%);
-        --range-float-inactive:    hsl(212.2, 97.6%, 49.4%);
-        --range-float:             hsl(212, 99.2%, 50.4%);
+        --range-handle-inactive:   #0058be;
+        --range-handle:            #0058be;
+        --range-handle-focus:      #0058be;
+        --range-handle-border:     #0058be;
+        --range-range-inactive:    #0058be;
+        --range-range:             #0058be;
+        --range-float-inactive:    #0058be;
+        --range-float:             #0058be;
         --range-float-text:        hsl(220, 13%, 91%);
         --range-pip:               hsl(220, 13%, 91%);
         --range-pip-text:          hsl(220, 13%, 91%);

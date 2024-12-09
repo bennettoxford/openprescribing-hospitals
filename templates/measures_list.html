@@ -5,47 +5,63 @@
 {% block content %}
 
 <div class="container xl:max-w-screen-xl pt-2 md:pt-6 pb-4">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 class="text-4xl font-bold mb-8 text-gray-900">Measures</h1>
-        
-        <p class="text-gray-600 mb-4">Measures are pre-defined indicators of prescribing practices in hospitals. They provide valuable insights into areas such as cost-effectiveness, patient safety, and adherence to best practices.</p>
-        
-        <p class="text-gray-600 mb-6">Each measure is tagged with one or more of the following categories:</p>
-
-        <div class="mb-10 max-w-3xl">
-            {% for reason in measure_reasons %}
-            <div class="mb-4">
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="inline-block w-2.5 h-2.5 rounded-sm" style="background-color: {{ reason.colour }}"></span>
-                    <h3 class="text-sm font-medium text-gray-800">{{ reason.reason }}</h3>
-                </div>
-                {% if reason.description %}
-                <div class="prose prose-sm text-gray-500 text-xs ml-4">
-                    {{ reason.description|safe }}
-                </div>
-                {% endif %}
-            </div>
-            {% endfor %}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <!-- Header Section -->
+        <div class="max-w-3xl mb-12">
+            <h1 class="text-4xl font-bold mb-6 text-gray-900 tracking-tight">Measures</h1>
+            <p class="text-lg text-gray-600 mb-8 leading-relaxed">Measures are pre-defined indicators of prescribing practices in hospitals. They provide valuable insights into areas such as cost-effectiveness, patient safety, and adherence to best practices.</p>
         </div>
+
+        <!-- Measures Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {% for measure in measures %}
-            <div class="bg-white rounded-lg shadow-md transition duration-300 ease-in-out hover:shadow-lg flex flex-col h-full">
-                <div class="bg-gray-100 p-4 rounded-t-lg">
-                    <h3 class="text-xl font-semibold text-gray-800 line-clamp-2 h-14">{{ measure.short_name }}</h3>
+            <div class="bg-white rounded-xl shadow-sm {% if not measure.draft %}hover:shadow-md transition-all duration-300{% endif %} flex flex-col h-full border border-gray-100 {% if measure.draft %}opacity-50{% endif %}">
+                <div class="py-2 px-4 border-b border-gray-100 h-[5rem] flex items-center">
+                    <h3 class="text-xl font-semibold text-gray-900 line-clamp-2 leading-tight">
+                        {{ measure.short_name }}
+                        {% if measure.draft %}
+                        <span class="ml-2 text-sm font-normal text-gray-500">(In development)</span>
+                        {% endif %}
+                    </h3>
                 </div>
-                <div class="p-6 text-gray-600 mb-4 flex-grow overflow-hidden">
+                <div class="p-4 text-gray-600 flex-grow">
                     <div class="prose prose-sm max-w-none line-clamp-3">
-                        {{ measure.why_it_matters|safe }}
+                        {{ measure.description|safe }}
                     </div>
                 </div>
                 <div class="px-6 pb-4">
                     {% if measure.reason %}
-                    <span class="inline-block text-xs font-semibold mr-2 px-2.5 py-0.5 rounded" style="background-color: {{ measure.reason.colour }}; color: {% if measure.reason.colour == '#FFEB3B' %}#000000{% else %}#FFFFFF{% endif %};">
-                        {{ measure.reason.reason }}
-                    </span>
+                    <div class="inline-block">
+                        <span class="text-sm font-medium text-gray-500 mr-2">Tags:</span>
+                        <span class="inline-flex items-center text-sm font-normal px-3 py-1 rounded-full cursor-help relative group"
+                              style="background-color: {{ measure.reason.colour }}20; color: {{ measure.reason.colour }};">
+                            <span class="w-2 h-2 rounded-full mr-2" style="background-color: {{ measure.reason.colour }}"></span>
+                            {{ measure.reason.reason }}
+                            <!-- Tooltip -->
+                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-4 bg-white rounded-lg shadow-lg 
+                                      invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-300
+                                      text-sm text-gray-600 z-10">
+                                {{ measure.reason.description|safe }}
+                                <!-- Arrow -->
+                                <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white transform rotate-45"></div>
+                            </div>
+                        </span>
+                    </div>
                     {% endif %}
                 </div>
-                <a href="{% url 'viewer:measure_item' measure.slug %}" class="text-white bg-oxford-500 hover:bg-oxford-600 font-semibold mt-auto py-2 px-4 rounded transition duration-300 ease-in-out text-center">View measure</a>
+                <div class="p-6 pt-2">
+                    {% if measure.draft %}
+                        <button disabled 
+                            class="block w-full text-center text-white bg-gray-400 cursor-not-allowed font-medium py-2.5 px-4 rounded-lg">
+                            View measure
+                        </button>
+                    {% else %}
+                        <a href="{% url 'viewer:measure_item' measure.slug %}" 
+                           class="block w-full text-center text-white bg-oxford-600 hover:bg-oxford-700 font-medium py-2.5 px-4 rounded-lg transition duration-300 ease-in-out">
+                            View measure
+                        </a>
+                    {% endif %}
+                </div>
             </div>
             {% endfor %}
         </div>
