@@ -2,7 +2,7 @@ import numpy as np
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.db.models import Avg, Min, Max, Sum
-from viewer.models import Measure, PrecomputedMeasure, PrecomputedMeasureAggregated, Organisation, PrecomputedPercentile, VMP
+from viewer.models import Measure, PrecomputedMeasure, PrecomputedMeasureAggregated, Organisation, PrecomputedPercentile, VMP, MeasureVMP
 from viewer.measures.measure_utils import execute_measure_sql
 from collections import defaultdict
 from datetime import datetime
@@ -37,16 +37,80 @@ class Command(BaseCommand):
                     result = execute_measure_sql(measure.name)
                     values = result['values']
                     measure_values = values['measure_values']
+                
+                    active_orgs = {
+                        row['organisation'] for row in measure_values 
+                        if (row['numerator'] or row['denominator']) and 
+                        not (row['numerator'] == 0 and row['denominator'] == 0)
+                    }
+                    
+                    measure_values = [
+                        row for row in measure_values 
+                        if row['organisation'] in active_orgs
+                    ]
+
                     numerator_vmps = values.get('numerator_vmps', [])
                     denominator_vmps = values.get('denominator_vmps', [])
                     
-                    vmp_dict = {vmp.code: vmp for vmp in VMP.objects.filter(code__in=set(numerator_vmps + denominator_vmps))}
+                    vmp_dict = {
+                        vmp.code: vmp 
+                        for vmp in VMP.objects.filter(
+                            code__in=set(numerator_vmps + denominator_vmps)
+                        )
+                    }
+
+                    MeasureVMP.objects.filter(measure=measure).delete()
+
+                    measure_vmps = []
+
+                    for code in numerator_vmps:
+                        if code in vmp_dict:
+                            if measure.quantity_type == 'dose':
+                                unit = (
+                                    vmp_dict[code].doses.values('unit')
+                                    .distinct()
+                                    .first()
+                                )
+                            else:
+                                unit = (
+                                    vmp_dict[code].ingredient_quantities.values('unit')
+                                    .distinct()
+                                    .first()
+                                )
+                            measure_vmps.append(
+                                MeasureVMP(
+                                    measure=measure,
+                                    vmp=vmp_dict[code],
+                                    type='numerator',
+                                    unit=unit['unit'] if unit else None
+                                )
+                            )
                     
-                    numerator_vmp_objects = [vmp_dict[code] for code in numerator_vmps if code in vmp_dict]
-                    denominator_vmp_objects = [vmp_dict[code] for code in denominator_vmps if code in vmp_dict]
-                    
-                    measure.numerator_vmps.set(numerator_vmp_objects)
-                    measure.denominator_vmps.set(denominator_vmp_objects)
+
+                    for code in denominator_vmps:
+                        if code in vmp_dict:
+                            if measure.quantity_type == 'dose':
+                                unit = (
+                                    vmp_dict[code].doses.values('unit')
+                                    .distinct()
+                                    .first()
+                                )
+                            else:
+                                unit = (
+                                    vmp_dict[code].ingredient_quantities.values('unit')
+                                    .distinct()
+                                    .first()
+                                )
+                            measure_vmps.append(
+                                MeasureVMP(
+                                    measure=measure,
+                                    vmp=vmp_dict[code],
+                                    type='denominator',
+                                    unit=unit['unit'] if unit else None
+                                )
+                            )
+       
+                    MeasureVMP.objects.bulk_create(measure_vmps)
                     
                     org_data = defaultdict(lambda: defaultdict(lambda: {'numerator': None, 'denominator': None}))
 
