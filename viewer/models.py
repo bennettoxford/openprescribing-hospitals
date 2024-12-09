@@ -176,6 +176,27 @@ class MeasureReason(models.Model):
     def __str__(self):
         return f"{self.reason}"
 
+class MeasureVMP(models.Model):
+    TYPES = [
+        ('numerator', 'Numerator'),
+        ('denominator', 'Denominator'),
+    ]
+    
+    measure = models.ForeignKey('Measure', on_delete=models.CASCADE, related_name='measure_vmps')
+    vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name='measure_vmps')
+    type = models.CharField(max_length=20, choices=TYPES)
+    unit = models.CharField(max_length=50, null=True)
+    
+    class Meta:
+        unique_together = ('measure', 'vmp', 'type')
+        indexes = [
+            models.Index(fields=['measure', 'type']),
+            models.Index(fields=['vmp']),
+        ]
+
+    def __str__(self):
+        return f"{self.measure.name} - {self.vmp.name} ({self.type})"
+
 class Measure(models.Model):
     QUANTITY_TYPES = [
         ('dose', 'Dose'),
@@ -191,8 +212,7 @@ class Measure(models.Model):
     sql_file = models.CharField(max_length=255)
     reason = models.ForeignKey(MeasureReason, on_delete=models.CASCADE, related_name="measures", null=True)
     draft = models.BooleanField(default=True)
-    numerator_vmps = models.ManyToManyField(VMP, related_name="measures_numerator")
-    denominator_vmps = models.ManyToManyField(VMP, related_name="measures_denominator")
+    vmps = models.ManyToManyField(VMP, through='MeasureVMP', related_name='measures')
     quantity_type = models.CharField(max_length=20, choices=QUANTITY_TYPES, default='dose')
 
     def save(self, *args, **kwargs):

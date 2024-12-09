@@ -8,12 +8,10 @@ from rest_framework.decorators import api_view
 from django.core.serializers.json import DjangoJSONEncoder
 from rest_framework.response import Response
 from django.http import JsonResponse
-from django.db.models import Prefetch
 from django.db.models.functions import Coalesce
 from django.db.models import F, Value, Min, Max
 from django.utils.safestring import mark_safe
-from django.db.models import Exists, OuterRef
-from django.db.models import Count, Q, Prefetch
+from django.db.models import Exists, OuterRef, Q, Subquery, OuterRef
 from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
@@ -29,6 +27,7 @@ from .models import (
     Ingredient,
     VTM,
     Measure,
+    MeasureVMP,
     PrecomputedMeasure,
     PrecomputedMeasureAggregated,
     PrecomputedPercentile,
@@ -115,29 +114,35 @@ class MeasureItemView(TemplateView):
 
     def get_measure_context(self, measure):
         markdowner = Markdown()
+
+        measure_vmps = MeasureVMP.objects.filter(
+            measure=measure
+        ).select_related('vmp').values(
+            'vmp__code',
+            'vmp__name',
+            'type',
+            'unit'
+        )
         
-        if measure.quantity_type == 'dose':
-            Model = Dose
-        else:
-            Model = IngredientQuantity
+        denominator_vmps = [
+            {
+                'name': vmp['vmp__name'],
+                'code': vmp['vmp__code'],
+                'unit': vmp['unit']
+            }
+            for vmp in measure_vmps
+            if vmp['type'] == 'denominator'
+        ]
         
-        denominator_vmps = []
-        for vmp in measure.denominator_vmps.all():
-            unit = Model.objects.filter(vmp=vmp).values('unit').first()
-            denominator_vmps.append({
-                'name': vmp.name,
-                'code': vmp.code,
-                'unit': unit['unit'] if unit else None
-            })
-        
-        numerator_vmps = []
-        for vmp in measure.numerator_vmps.all():
-            unit = Model.objects.filter(vmp=vmp).values('unit').first()
-            numerator_vmps.append({
-                'name': vmp.name,
-                'code': vmp.code,
-                'unit': unit['unit'] if unit else None
-            })
+        numerator_vmps = [
+            {
+                'name': vmp['vmp__name'],
+                'code': vmp['vmp__code'],
+                'unit': vmp['unit']
+            }
+            for vmp in measure_vmps
+            if vmp['type'] == 'numerator'
+        ]
         
         return {
             "measure_name": measure.name,
