@@ -15,9 +15,14 @@
         <!-- Measures Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {% for measure in measures %}
-            <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col h-full border border-gray-100">
+            <div class="bg-white rounded-xl shadow-sm {% if not measure.draft %}hover:shadow-md transition-all duration-300{% endif %} flex flex-col h-full border border-gray-100 {% if measure.draft %}opacity-50{% endif %}">
                 <div class="py-2 px-4 border-b border-gray-100 h-[5rem] flex items-center">
-                    <h3 class="text-xl font-semibold text-gray-900 line-clamp-2 leading-tight">{{ measure.short_name }}</h3>
+                    <h3 class="text-xl font-semibold text-gray-900 line-clamp-2 leading-tight">
+                        {{ measure.short_name }}
+                        {% if measure.draft %}
+                        <span class="ml-2 text-sm font-normal text-gray-500">(In development)</span>
+                        {% endif %}
+                    </h3>
                 </div>
                 <div class="p-4 text-gray-600 flex-grow">
                     <div class="prose prose-sm max-w-none line-clamp-3">
@@ -45,10 +50,17 @@
                     {% endif %}
                 </div>
                 <div class="p-6 pt-2">
-                    <a href="{% url 'viewer:measure_item' measure.slug %}" 
-                       class="block w-full text-center text-white bg-oxford-600 hover:bg-oxford-700 font-medium py-2.5 px-4 rounded-lg transition duration-300 ease-in-out">
-                        View measure
-                    </a>
+                    {% if measure.draft %}
+                        <button disabled 
+                            class="block w-full text-center text-white bg-gray-400 cursor-not-allowed font-medium py-2.5 px-4 rounded-lg">
+                            View measure
+                        </button>
+                    {% else %}
+                        <a href="{% url 'viewer:measure_item' measure.slug %}" 
+                           class="block w-full text-center text-white bg-oxford-600 hover:bg-oxford-700 font-medium py-2.5 px-4 rounded-lg transition duration-300 ease-in-out">
+                            View measure
+                        </a>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}

@@ -16,7 +16,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.contrib.auth.views import LoginView as AuthLoginView
-
+from django.shortcuts import redirect
 
 from .models import (
     ATC,
@@ -76,7 +76,7 @@ class MeasuresListView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        measures = Measure.objects.select_related('reason').filter(draft=False)
+        measures = Measure.objects.select_related('reason').order_by('draft', 'name')
         measure_reasons = MeasureReason.objects.all()
         
         markdowner = Markdown()
@@ -95,6 +95,17 @@ class MeasuresListView(TemplateView):
 @method_decorator(login_required, name='dispatch')
 class MeasureItemView(TemplateView):
     template_name = "measure_item.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            slug = kwargs.get("slug")
+            measure = self.get_measure(slug)
+            if measure.draft:
+                return redirect('viewer:measures_list')
+        except Exception:
+            pass
+        
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
