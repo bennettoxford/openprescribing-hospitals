@@ -100,7 +100,6 @@ class SCMDQuantity(models.Model):
         return f"{self.vmp.name} - {self.organisation.ods_name} - {self.year_month}"
     
     class Meta:
-        ordering = ["year_month", "vmp__name", "organisation__ods_name"]
         indexes = [
             models.Index(fields=["vmp"]),
             models.Index(fields=["organisation"]),
@@ -123,7 +122,6 @@ class Dose(models.Model):
         return f"{self.vmp.name} - {self.organisation.ods_name} - {self.year_month}"
 
     class Meta:
-        ordering = ["year_month", "vmp__name", "organisation__ods_name"]
         indexes = [
             models.Index(fields=["vmp"]),
             models.Index(fields=["organisation"]),
@@ -154,12 +152,6 @@ class IngredientQuantity(models.Model):
         )
 
     class Meta:
-        ordering = [
-            "year_month",
-            "ingredient__name",
-            "vmp__name",
-            "organisation__ods_name",
-        ]
         indexes = [
             models.Index(fields=["vmp"]),
             models.Index(fields=["organisation"]),
