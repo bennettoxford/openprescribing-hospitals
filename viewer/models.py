@@ -3,14 +3,14 @@ from django.utils.text import slugify
 from django.core.validators import RegexValidator
 
 class VTM(models.Model):
-    vtm = models.CharField(max_length=20, primary_key=True)
+    vtm = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=255)
 
     def __str__(self):
         return self.name
 
 class Route(models.Model):
-    code = models.CharField(max_length=30, primary_key=True)
+    code = models.CharField(max_length=30, unique=True)
     name = models.CharField(max_length=255, unique=True)
 
     def save(self, *args, **kwargs):
@@ -22,7 +22,7 @@ class Route(models.Model):
         return self.name
 
 class VMP(models.Model):
-    code = models.CharField(max_length=20, primary_key=True)
+    code = models.CharField(max_length=30, unique=True)
     name = models.CharField(max_length=255)
     form = models.CharField(max_length=255, null=True)
     vtm = models.ForeignKey(
@@ -48,7 +48,7 @@ class OntFormRoute(models.Model):
         return f"{self.name}"
 
 class Ingredient(models.Model):
-    code = models.CharField(max_length=20, primary_key=True)
+    code = models.CharField(max_length=30, unique=True)
     name = models.CharField(max_length=255, null=False)
 
     def __str__(self):
@@ -56,7 +56,7 @@ class Ingredient(models.Model):
 
 
 class Organisation(models.Model):
-    ods_code = models.CharField(max_length=10, primary_key=True)
+    ods_code = models.CharField(max_length=10, unique=True)
     ods_name = models.CharField(max_length=255, null=False)
     region = models.CharField(max_length=100, null=False)
     icb = models.CharField(max_length=100, null=True)
