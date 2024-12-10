@@ -8,7 +8,7 @@
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
 
     export let data = [];
-    export let quantityType = 'Dose';
+    export let quantityType = 'VMP Quantity';
     export let searchType = 'vmp';
 
     let selectedPeriod = 'all'; // 'all', 'year', 'month', or 'fytd'
