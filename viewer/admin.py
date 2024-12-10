@@ -8,7 +8,6 @@ from .models import (
     IngredientQuantity,
     Measure,
     MeasureReason,
-    ATC,
     Route,
 )
 
@@ -72,12 +71,6 @@ class MeasureAdmin(admin.ModelAdmin):
 class MeasureReasonAdmin(admin.ModelAdmin):
     list_display = ("reason", "colour")
     search_fields = ("reason", "colour")
-
-
-@admin.register(ATC)
-class ATCAdmin(admin.ModelAdmin):
-    list_display = ("code", "name")
-    search_fields = ("code", "name")
 
 
 @admin.register(Route)

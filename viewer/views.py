@@ -19,7 +19,6 @@ from django.contrib.auth.views import LoginView as AuthLoginView
 from django.shortcuts import redirect
 
 from .models import (
-    ATC,
     Dose,
     Organisation,
     VMP,
@@ -261,16 +260,6 @@ class MeasureItemView(TemplateView):
             "percentile_data": json.dumps(percentiles_list, cls=DjangoJSONEncoder),
         }
 
-
-def get_all_child_atc_codes(atc_codes):
-    all_codes = set(atc_codes)
-    
-    for code in atc_codes:
-        children = ATC.objects.filter(code__startswith=code).exclude(code=code).values_list('code', flat=True)
-        all_codes.update(children)
-    
-    return list(all_codes)
-
 @login_required
 @csrf_protect
 @api_view(["POST"])
@@ -309,25 +298,12 @@ def filtered_quantities(request):
             queryset = queryset.filter(ingredient__code__in=search_items)
         else:
             queryset = queryset.filter(vmp__ingredients__code__in=search_items)
-    elif search_type == "atc":
-        all_atc_codes = get_all_child_atc_codes(search_items)
-        queryset = queryset.filter(vmp__atcs__code__in=all_atc_codes)
 
     if ods_names:
         ods_names = [item.split("|")[0].strip() for item in ods_names]
         queryset = queryset.filter(organisation__ods_code__in=ods_names)
 
-    vmp_atc_map = {}
-    for item in queryset.select_related('vmp').prefetch_related('vmp__atcs'):
-        try:
-            vmp_atc_map[item.id] = [
-                {'code': atc.code, 'name': atc.name} 
-                for atc in item.vmp.atcs.all()
-            ] if item.vmp else []
-        except Exception as e:
-            print(f"Error processing ATC for item {item.id}: {e}")
-            vmp_atc_map[item.id] = []
-
+ 
     value_fields = [
         "id",
         "year_month",
@@ -365,7 +341,6 @@ def filtered_quantities(request):
     data = []
     for item in raw_data:
         try:
-            atc_info = vmp_atc_map[item["id"]]
             route_info = vmp_route_map[item["id"]]
             processed_item = {
                 "id": item["id"],
@@ -377,8 +352,6 @@ def filtered_quantities(request):
                 "ods_code": item["organisation__ods_code"],
                 "ods_name": item["organisation__ods_name"],
                 "vtm_name": item["vmp__vtm__name"] or "",
-                "atc_code": atc_info[0]['code'] if atc_info else "",
-                "atc_name": atc_info[0]['name'] if atc_info else "Unknown ATC",
                 "route_codes": [r['code'] for r in route_info] if route_info else [],
                 "route_names": [r['name'] for r in route_info] if route_info else ["Unknown Route"],
             }
@@ -537,13 +510,7 @@ def filtered_vmp_count(request):
     
     elif search_type == "ingredient":
         queryset = VMP.objects.filter(ingredients__code__in=search_items)
-    elif search_type == "atc":
-        all_atc_codes = get_all_child_atc_codes(search_items)
-        queryset = VMP.objects.filter(atcs__code__in=all_atc_codes)
-        
-        # If no VMPs found for any ATC code, return 0
-        if not queryset.exists():
-            return Response({"vmp_count": 0})
+
     else:
         return Response({"vmp_count": 0})
     
@@ -654,22 +621,7 @@ def search_items(request):
             } for item in items]
         })
     
-    elif search_type == 'atc':
-        vmp_exists = VMP.objects.filter(atcs__code=OuterRef('code')).values('code')
-        items = ATC.objects.filter(
-            Q(name__icontains=search_term) | 
-            Q(code__icontains=search_term)
-        ).annotate(
-            has_vmps=Exists(vmp_exists)
-        ).values('code', 'name', 'has_vmps').distinct().order_by('code')[:50]
-        
-        return JsonResponse({
-            'results': [{
-                'code': item['code'],
-                'name': f"{item['code']} | {item['name']}",
-                'has_vmps': item['has_vmps']
-            } for item in items]
-        })
+
     
     return JsonResponse({'results': []})
 

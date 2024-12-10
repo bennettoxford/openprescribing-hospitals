@@ -30,7 +30,6 @@ class VMP(models.Model):
     )
     ingredients = models.ManyToManyField(
         "Ingredient", related_name="vmps", null=True)
-    atcs = models.ManyToManyField("ATC", related_name="vmps", null=True)
     ont_form_routes = models.ManyToManyField("OntFormRoute", related_name="vmps", null=True)
     routes = models.ManyToManyField("Route", related_name="vmps", null=True)
 
@@ -252,39 +251,6 @@ class OrgSubmissionCache(models.Model):
     class Meta:
         unique_together = ('organisation', 'month')
 
-class ATC(models.Model):
-    code = models.CharField(
-        max_length=7,
-        primary_key=True,
-        validators=[
-            RegexValidator(
-                regex=r'^[A-Z](\d{2}([A-Z](\d{2}([A-Z](\d{2})?)?)?)?)?$',
-                message='Invalid ATC code format',
-            )
-        ]
-    )
-    bnf_code = models.CharField(max_length=20, null=True)
-    name = models.CharField(max_length=255)
-    level = models.IntegerField()
-    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='children')
-
-    def save(self, *args, **kwargs):
-        self.level = len(self.code)
-        if self.level > 1:
-            self.parent = ATC.objects.get(code=self.code[:-2])
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.name} ({self.code})"
-
-    class Meta:
-        indexes = [
-            models.Index(fields=['code']),
-            models.Index(fields=['level']),
-            models.Index(fields=['parent']),
-        ]
-
-
 class PrecomputedMeasureAggregated(models.Model):
     measure = models.ForeignKey(Measure, on_delete=models.CASCADE, related_name="precomputed_measures_aggregated")
     label = models.CharField(max_length=255, null=True)
@@ -322,13 +288,4 @@ class PrecomputedPercentile(models.Model):
 class DataStatus(models.Model):
     year_month = models.DateField()
     file_type = models.CharField(max_length=255)
-
-class DDD(models.Model):
-    atc_code = models.ForeignKey(ATC, on_delete=models.CASCADE, related_name="ddds")
-    ddd = models.FloatField()
-    unit = models.CharField(max_length=50)
-    route = models.ForeignKey(Route, on_delete=models.CASCADE, related_name="ddds")
-
-    def __str__(self):
-        return f"{self.atc_code.name} - {self.ddd} {self.unit}"
 

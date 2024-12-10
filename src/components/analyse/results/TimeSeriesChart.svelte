@@ -90,14 +90,11 @@
         if (quantityType === 'Ingredient Quantity') {
             availableViewModes.push('Ingredient-Unit');
         } else {
-            if (searchType === 'vmp' || searchType === 'vtm' || searchType === 'atc') {
+            if (searchType === 'vmp' || searchType === 'vtm') {
                 availableViewModes.push('Unit');
             }
             if (searchType === 'vtm') {
                 availableViewModes.push('VTM');
-            }
-            if (searchType === 'atc') {
-                availableViewModes.push('ATC');
             }
         }
         availableViewModes.push('Route');
@@ -123,8 +120,6 @@
                 return `${item.ingredient_name} (${item.unit})`;
             case 'VTM':
                 return item.vtm_name || 'Unknown';
-            case 'ATC':
-                return `${item.atc_code} | ${item.atc_name}` || 'Unknown ATC';
             case 'Route':
                 return item.route_names ? item.route_names.join(', ') : 'Unknown Route';
             default:
