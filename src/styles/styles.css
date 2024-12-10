@@ -16,6 +16,6 @@
     @apply bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-2 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-150 ease-in-out;
   }
   .btn-blue {
-    @apply bg-oxford-500 hover:bg-oxford-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-oxford-500 focus:ring-opacity-50 transition duration-150 ease-in-out;
+    @apply bg-oxford-600 hover:bg-oxford-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-oxford-600 focus:ring-opacity-50 transition duration-150 ease-in-out;
   }
 }
