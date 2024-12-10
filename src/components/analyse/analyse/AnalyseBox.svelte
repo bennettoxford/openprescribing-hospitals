@@ -115,7 +115,7 @@
     });
 
     const csrftoken = getCookie('csrftoken');
-    const quantityOptions = ['--', 'VMP Quantity', 'Dose', 'Ingredient Quantity'];
+    const quantityOptions = ['--', 'VMP Quantity', 'Ingredient Quantity'];
 
     async function runAnalysis() {
         if (isAnalysisRunning) return;

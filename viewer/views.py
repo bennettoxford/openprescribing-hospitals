@@ -19,7 +19,6 @@ from django.contrib.auth.views import LoginView as AuthLoginView
 from django.shortcuts import redirect
 
 from .models import (
-    Dose,
     Organisation,
     VMP,
     IngredientQuantity,
@@ -55,7 +54,7 @@ class AnalyseView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        date_range = Dose.objects.aggregate(
+        date_range = SCMDQuantity.objects.aggregate(
             min_date=Min('year_month'),
             max_date=Max('year_month')
         )
@@ -287,8 +286,7 @@ def filtered_quantities(request):
         Model = IngredientQuantity
     elif quantity_type == "VMP Quantity":
         Model = SCMDQuantity
-    else:
-        Model = Dose
+    
 
     queryset = Model.objects.filter(**base_filters)
     if search_type == "product":
