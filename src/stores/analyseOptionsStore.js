@@ -9,7 +9,6 @@ const createAnalyseOptionsStore = () => {
         searchType: 'vmp',
         vmpNames: [],
         vtmNames: [],
-        atcNames: [],
         ingredientNames: [],
         dateRange: {
             startDate: null,

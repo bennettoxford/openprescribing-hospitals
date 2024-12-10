@@ -36,18 +36,11 @@
             filteredItems = filterItems($analyseOptions.productNames, searchTerm);
         } else if (type === 'ingredient') {
             filteredItems = filterItems($analyseOptions.ingredientNames, searchTerm);
-        } else if (type === 'atc') {
-            filteredItems = filterItems($analyseOptions.atcNames, searchTerm);
         }
     }
 
     function filterItems(items, term) {
         if (!items) return [];
-        if (type === 'atc') {
-            return items.filter(item => 
-                item.name.toLowerCase().includes(term.toLowerCase())
-            );
-        }
         return items.filter(item => 
             item.toLowerCase().includes(term.toLowerCase())
         );
@@ -73,7 +66,7 @@
                 filteredItems = data.results.map(item => ({
                     ...item,
                     isExpanded: item.type === 'vtm' ? true : false,
-                    has_vmps: type === 'atc' ? item.has_vmps : true
+                    has_vmps: true
                 }));
                 lastSearchResults = filteredItems;
             } catch (error) {
@@ -211,7 +204,6 @@
         <div class="flex space-x-2 mb-2 pointer-events-auto">
             <button class="px-2 py-1 rounded {type === 'product' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('product')}>Product</button>
             <button class="px-2 py-1 rounded {type === 'ingredient' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('ingredient')}>Ingredient</button>
-            <button class="px-2 py-1 rounded {type === 'atc' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('atc')}>ATC</button>
         </div>
     {/if}
     <div class="grid gap-4">
@@ -417,7 +409,7 @@
                     {#each selectedItems as item}
                         <li class="flex items-center justify-between px-2 py-1">
                             <span class="text-gray-800">
-                                {#if type === 'atc' || type === 'ingredient'}
+                                {#if type === 'ingredient'}
                                     {(selectedDisplayNames[item] || 
                                       filteredItems.find(i => i.code === item)?.name || 
                                       lastSearchResults.find(i => i.code === item)?.name || 

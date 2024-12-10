@@ -120,14 +120,10 @@
                 }));
         }
         
-        // For other search types (ingredient, ATC), use original grouping
+        // For other search types (ingredient), use original grouping
         const groupedByType = filteredData.reduce((acc, item) => {
             let groupKey;
-            if (searchType === 'ingredient') {
-                groupKey = item.ingredient_name || 'Unknown Ingredient';
-            } else if (searchType === 'atc') {
-                groupKey = `${item.atc_code} | ${item.atc_name}` || 'Unknown ATC';
-            }
+            groupKey = item.ingredient_name || 'Unknown Ingredient';
 
             if (!acc[groupKey]) {
                 acc[groupKey] = {
@@ -240,7 +236,7 @@
                             {:else if searchType === 'ingredient'}
                                 Ingredient
                             {:else}
-                                ATC
+                                
                             {/if}
                         </th>
                         <th class="py-3 px-6 text-left">Unit</th>

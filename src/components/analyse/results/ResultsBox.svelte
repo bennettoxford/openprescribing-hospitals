@@ -57,8 +57,6 @@
                 ingredient_name: item.ingredient_name || null,
                 ingredient_code: item.ingredient_code || null,
                 vtm: item.vtm_name || null,
-                atc_code: item.atc_code || null,
-                atc_name: item.atc_name || null,
                 route_names: item.route_names || [],
                 searchType: currentSearchType
             });

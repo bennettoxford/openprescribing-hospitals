@@ -61,9 +61,8 @@
     }
 
     $: displayField = currentSearchType === 'vmp' ? 'vmp' : 
-                      (currentSearchType === 'vtm' ? 'vtm' : 
-                      (currentSearchType === 'atc' ? 'atc_name' : 
-                      (currentSearchType === 'ingredient' ? 'ingredient_name' : 'vmp')));
+                      (currentSearchType === 'vtm' ? 'vtm' : a
+                      (currentSearchType === 'ingredient' ? 'ingredient_name' : 'vmp'));
 
     $: sortedVMPs = [...vmps].sort((a, b) => {
         // Always keep 'nan' units at the top
@@ -187,9 +186,7 @@
                             class:bg-red-100={vmp.unit === 'nan'}
                         >
                             <td class="py-3 px-6 text-left">
-                                {#if currentSearchType === 'atc'}
-                                    {vmp.atc_code ? `${vmp.atc_code} | ${vmp.atc_name}` : 'Unknown ATC'}
-                                {:else if currentSearchType === 'ingredient'}
+                                {#if currentSearchType === 'ingredient'}
                                     {vmp.ingredient_name || 'Unknown Ingredient'}
                                 {:else}
                                     {vmp[displayField] || 'N/A'}
