@@ -8,6 +8,11 @@ class VTM(models.Model):
 
     def __str__(self):
         return self.name
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=["vtm"]),
+        ]
 
 class Route(models.Model):
     code = models.CharField(max_length=30, unique=True)
@@ -20,6 +25,11 @@ class Route(models.Model):
 
     def __str__(self):
         return self.name
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=["code"]),
+        ]
 
 class VMP(models.Model):
     code = models.CharField(max_length=30, unique=True)
@@ -38,7 +48,8 @@ class VMP(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=["name"]),
+            models.Index(fields=["code"]),
+            models.Index(fields=["vtm"]),
         ]
 
 class OntFormRoute(models.Model):
@@ -54,6 +65,10 @@ class Ingredient(models.Model):
     def __str__(self):
         return f"{self.name} ({self.code})"
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["code"]),
+        ]
 
 class Organisation(models.Model):
     ods_code = models.CharField(max_length=10, unique=True)
