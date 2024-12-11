@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.text import slugify
 from django.core.validators import RegexValidator
+from django.contrib.postgres.fields import ArrayField
 
 class VTM(models.Model):
     vtm = models.CharField(max_length=20, unique=True)
@@ -105,47 +106,75 @@ class Organisation(models.Model):
         ).values('vmp').distinct().count()
 
 class SCMDQuantity(models.Model):
-    year_month = models.DateField()
     vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name="scmd_quantities")
-    quantity = models.FloatField(null=True)
-    unit = models.CharField(max_length=50, null=True)
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name="scmd_quantities")
-
-    def __str__(self):
-        return f"{self.vmp.name} - {self.organisation.ods_name} - {self.year_month}"
+    data = ArrayField(
+        ArrayField(
+            models.CharField(max_length=255, null=True),
+            size=3,  # [year_month, quantity, unit]
+        ),
+        null=True,
+        help_text="Array of [year_month, quantity, unit] entries"
+    )
     
     class Meta:
+        unique_together = ('vmp', 'organisation')
         indexes = [
-            models.Index(fields=["vmp"]),
-            models.Index(fields=["organisation"]),
-            models.Index(fields=["year_month"]),
+            models.Index(fields=["vmp", "organisation"]),
         ]
 
+    def __str__(self):
+        return f"{self.vmp.name} - {self.organisation.ods_name}"
+
+    def get_quantity_for_month(self, year_month):
+        """Get quantity and unit for a specific month"""
+        date_str = year_month.strftime('%Y-%m-%d')
+        for entry in self.data:
+            if entry[0] == date_str:
+                return {
+                    'quantity': float(entry[1]) if entry[1] else None,
+                    'unit': entry[2]
+                }
+        return None
+
 class Dose(models.Model):
-    year_month = models.DateField()
     vmp = models.ForeignKey(
         VMP,
         on_delete=models.CASCADE,
         related_name="doses")
-    quantity = models.FloatField(null=True)
-    unit = models.CharField(max_length=50)
     organisation = models.ForeignKey(
         Organisation, on_delete=models.CASCADE, related_name="doses"
     )
+    data = ArrayField(
+        ArrayField(
+            models.CharField(max_length=255, null=True),
+            size=3,  # [year_month, quantity, unit]
+        ),
+        null=True,
+        help_text="Array of [year_month, quantity, unit] entries"
+    )
 
     def __str__(self):
-        return f"{self.vmp.name} - {self.organisation.ods_name} - {self.year_month}"
+        return f"{self.vmp.name} - {self.organisation.ods_name}"
 
     class Meta:
+        unique_together = ('vmp', 'organisation')
         indexes = [
-            models.Index(fields=["vmp"]),
-            models.Index(fields=["organisation"]),
-            models.Index(fields=["year_month"]),
+            models.Index(fields=["vmp", "organisation"]),
         ]
 
+    def get_quantity_for_month(self, year_month):
+        """Get quantity and unit for a specific month"""
+        date_str = year_month.strftime('%Y-%m-%d')
+        for entry in self.data:
+            if entry[0] == date_str:
+                return {
+                    'quantity': float(entry[1]) if entry[1] else None,
+                    'unit': entry[2]
+                }
+        return None
 
 class IngredientQuantity(models.Model):
-    year_month = models.DateField()
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
@@ -153,26 +182,41 @@ class IngredientQuantity(models.Model):
     vmp = models.ForeignKey(
         VMP, on_delete=models.CASCADE, related_name="ingredient_quantities"
     )
-    quantity = models.FloatField(null=True)
-    unit = models.CharField(max_length=50, null=True)
     organisation = models.ForeignKey(
         Organisation,
         on_delete=models.CASCADE,
         related_name="ingredient_quantities")
+    data = ArrayField(
+        ArrayField(
+            models.CharField(max_length=255, null=True),
+            size=3,  # [year_month, quantity, unit]
+        ),
+        null=True,
+        help_text="Array of [year_month, quantity, unit] entries"
+    )
 
     def __str__(self):
         return (
             f"{self.ingredient.name} - {self.vmp.name} - "
-            f"{self.organisation.ods_name} - {self.year_month}"
+            f"{self.organisation.ods_name}"
         )
 
     class Meta:
+        unique_together = ('ingredient', 'vmp', 'organisation')
         indexes = [
-            models.Index(fields=["vmp"]),
-            models.Index(fields=["organisation"]),
-            models.Index(fields=["ingredient"]),
-            models.Index(fields=["year_month"]),
+            models.Index(fields=["vmp", "organisation", "ingredient"]),
         ]
+
+    def get_quantity_for_month(self, year_month):
+        """Get quantity and unit for a specific month"""
+        date_str = year_month.strftime('%Y-%m-%d')
+        for entry in self.data:
+            if entry[0] == date_str:
+                return {
+                    'quantity': float(entry[1]) if entry[1] else None,
+                    'unit': entry[2]
+                }
+        return None
 
 class MeasureReason(models.Model):
     reason = models.CharField(max_length=255)
@@ -295,4 +339,3 @@ class PrecomputedPercentile(models.Model):
 class DataStatus(models.Model):
     year_month = models.DateField()
     file_type = models.CharField(max_length=255)
-
