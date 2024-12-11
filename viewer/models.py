@@ -40,9 +40,9 @@ class VMP(models.Model):
         VTM, on_delete=models.CASCADE, related_name="vmps", null=True
     )
     ingredients = models.ManyToManyField(
-        "Ingredient", related_name="vmps", null=True)
-    ont_form_routes = models.ManyToManyField("OntFormRoute", related_name="vmps", null=True)
-    routes = models.ManyToManyField("Route", related_name="vmps", null=True)
+        "Ingredient", related_name="vmps")
+    ont_form_routes = models.ManyToManyField("OntFormRoute", related_name="vmps")
+    routes = models.ManyToManyField("Route", related_name="vmps")
 
     def __str__(self):
         return f"{self.name} ({self.code})"
