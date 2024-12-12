@@ -17,6 +17,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.contrib.auth.views import LoginView as AuthLoginView
 from django.shortcuts import redirect
+from django.contrib.postgres.aggregates import ArrayAgg
 
 from .models import (
     Organisation,
@@ -54,15 +55,7 @@ class AnalyseView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        date_range = SCMDQuantity.objects.aggregate(
-            min_date=Min('year_month'),
-            max_date=Max('year_month')
-        )
-        context['date_range'] = {
-            'min_date': date_range['min_date'].isoformat() if date_range['min_date'] else None,
-            'max_date': date_range['max_date'].isoformat() if date_range['max_date'] else None
-        }
-
+      
         ods_data = Organisation.objects.values('ods_name', 'ods_code').distinct().order_by('ods_name')
         ods_data = [f"{org['ods_code']} | {org['ods_name']}" for org in ods_data]
         context['ods_data'] = json.dumps(ods_data, default=str)
@@ -263,116 +256,66 @@ class MeasureItemView(TemplateView):
 @csrf_protect
 @api_view(["POST"])
 def filtered_quantities(request):
-    search_items = request.data.get("names", [])
-    ods_names = request.data.get("ods_names", [])
-    search_type = request.data.get("search_type", "vmp")
-    start_date = request.data.get("start_date")
-    end_date = request.data.get("end_date")
-    quantity_type = request.data.get("quantity_type", "VMP Quantity")
-        
-    search_items = [item.split("|")[0].strip() for item in search_items]
-
-    base_filters = {}
-    
-    if start_date:
-        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-        base_filters['year_month__gte'] = start_date
-        
-    if end_date:
-        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-        base_filters['year_month__lte'] = end_date
-
-    if quantity_type == "Ingredient Quantity":
-        Model = IngredientQuantity
-    elif quantity_type == "VMP Quantity":
-        Model = SCMDQuantity
+    search_items = request.data.get("names", None)
+    ods_names = request.data.get("ods_names", None)
+    search_type = request.data.get("search_type", None)
+    quantity_type = request.data.get("quantity_type", None)
     
 
-    queryset = Model.objects.filter(**base_filters)
+    if search_items is None:
+        return Response({"error": "No search items provided"}, status=400)
+    
     if search_type == "product":
-        queryset = queryset.filter(Q(vmp__code__in=search_items) | Q(vmp__vtm__vtm__in=search_items))
+        vmp_query = VMP.objects.filter(
+            Q(code__in=search_items) | Q(vtm__vtm__in=search_items)
+        )
+        vmp_ids = vmp_query.values_list('id', flat=True)
+    
     elif search_type == "ingredient":
-        if quantity_type == "Ingredient Quantity":
-            queryset = queryset.filter(ingredient__code__in=search_items)
+        vmp_query = VMP.objects.filter(ingredients__code__in=search_items)
+        vmp_ids = vmp_query.values_list('id', flat=True)
+    
+    else:
+        return Response({"error": "Invalid search type"}, status=400)
+    
+    if quantity_type == "VMP Quantity":
+        if ods_names:
+            ods_names = [item.split("|")[0].strip() for item in ods_names]
+            queryset = SCMDQuantity.objects.filter(vmp_id__in=vmp_ids, organisation__ods_code__in=ods_names)
         else:
-            queryset = queryset.filter(vmp__ingredients__code__in=search_items)
+            queryset = SCMDQuantity.objects.filter(vmp_id__in=vmp_ids)
+        
+    elif quantity_type == "Ingredient Quantity":
+        if ods_names:
+            ods_names = [item.split("|")[0].strip() for item in ods_names]
+            queryset = IngredientQuantity.objects.filter(vmp_id__in=vmp_ids, organisation__ods_code__in=ods_names).select_related('ingredient')
+        else:
+            queryset = IngredientQuantity.objects.filter(vmp_id__in=vmp_ids).select_related('ingredient')
+    
+    else:
+        return Response({"error": "Invalid quantity type"}, status=400)
+    
 
-    if ods_names:
-        ods_names = [item.split("|")[0].strip() for item in ods_names]
-        queryset = queryset.filter(organisation__ods_code__in=ods_names)
-
- 
     value_fields = [
-        "id",
-        "year_month",
-        "quantity",
-        "unit",
-        "vmp__code",
-        "vmp__name",
-        "organisation__ods_code",
-        "organisation__ods_name",
-        "vmp__vtm__name",
+        'data',
+        'vmp__code',
+        'vmp__name',
+        'vmp__vtm__name',
+        'organisation__ods_code',
+        'organisation__ods_name',
     ]
-
-    if search_type == "ingredient" or quantity_type == "Ingredient Quantity":
-        if quantity_type == "Ingredient Quantity":
-            value_fields.extend([
-                "ingredient__code",
-                "ingredient__name"
-            ])
-        else:
-            value_fields.extend([
-                "vmp__ingredients__code",
-                "vmp__ingredients__name"
-            ])
-
-    raw_data = list(
-        queryset.values(*value_fields)
-        .order_by("year_month", "vmp__name", "organisation__ods_name")
-    )
     
-    vmp_route_map = {
-        iq.id: [{'code': route.code, 'name': route.name} for route in iq.vmp.routes.all()]
-        for iq in queryset.select_related('vmp').prefetch_related('vmp__routes')
-    }
-
-    data = []
-    for item in raw_data:
-        try:
-            route_info = vmp_route_map[item["id"]]
-            processed_item = {
-                "id": item["id"],
-                "year_month": item["year_month"].strftime("%Y-%m-%d"),
-                "quantity": round(item["quantity"], 6) if item["quantity"] is not None and not math.isnan(item["quantity"]) else None,
-                "unit": item["unit"],
-                "vmp_code": item["vmp__code"],
-                "vmp_name": item["vmp__name"],
-                "ods_code": item["organisation__ods_code"],
-                "ods_name": item["organisation__ods_name"],
-                "vtm_name": item["vmp__vtm__name"] or "",
-                "route_codes": [r['code'] for r in route_info] if route_info else [],
-                "route_names": [r['name'] for r in route_info] if route_info else ["Unknown Route"],
-            }
-
-            if search_type == "ingredient" or quantity_type == "Ingredient Quantity":
-                if quantity_type == "Ingredient Quantity":
-                    processed_item.update({
-                        "ingredient_code": item.get("ingredient__code"),
-                        "ingredient_name": item.get("ingredient__name")
-                    })
-                else:
-                    processed_item.update({
-                        "ingredient_code": item.get("vmp__ingredients__code"),
-                        "ingredient_name": item.get("vmp__ingredients__name")
-                    })
-
-            data.append(processed_item)
-        except Exception as e:
-            print(f"Error processing item: {e}")
-            continue
-    
+    if search_type =="ingredient" or quantity_type == "Ingredient Quantity":
+        data = queryset.annotate(
+            routes=ArrayAgg('vmp__routes__name', distinct=True),
+            ingredients=ArrayAgg('vmp__ingredients__name', distinct=True)
+        ).values(*value_fields, 'routes', 'ingredients')
+    else:
+        data = queryset.annotate(
+            routes=ArrayAgg('vmp__routes__name', distinct=True)
+        ).values(*value_fields, 'routes')
+    print(data)
     return Response(data)
-
 
 @method_decorator(login_required, name='dispatch')
 class OrgsSubmittingDataView(TemplateView):
