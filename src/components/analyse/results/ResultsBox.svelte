@@ -21,9 +21,9 @@
     let missingVMPs = [];
     let currentSearchType = 'vmp';
 
-    $: if (analysisData) {
+    $: if (analysisData?.data) {
         console.log("New analysis data received:", analysisData);
-        handleUpdateData(analysisData);
+        handleUpdateData(analysisData.data);
     }
 
     $: {
@@ -38,45 +38,92 @@
 
     function handleUpdateData(data) {
         console.log("Handling update data:", data);
-        const { data: newData, quantityType: newQuantityType, searchType } = data;
-        selectedData = Array.isArray(newData) ? newData : [newData];
-        currentSearchType = searchType;
+        // Ensure data is an array
+        selectedData = Array.isArray(data) ? data : [data];
         
-        resultsStore.update(store => ({
-            ...store,
-            quantityType: newQuantityType,
-            searchType,
-            isAnalysisRunning: false,
-            dateRange: $analyseOptions.dateRange
-        }));
-        
-        vmps = Array.from(new Set(selectedData.map(item => {
-            return JSON.stringify({
-                vmp: item.vmp_name,
-                unit: item.unit,
-                ingredient_name: item.ingredient_name || null,
-                ingredient_code: item.ingredient_code || null,
-                vtm: item.vtm_name || null,
-                route_names: item.route_names || [],
-                searchType: currentSearchType
-            });
-        }))).map(JSON.parse);
+        // Process VMPs from the new data structure
+        try {
+            // Group by VMP and collect all unique units
+            const vmpGroups = selectedData.reduce((acc, item) => {
+                const key = item.vmp__name;
+                if (!acc[key]) {
+                    acc[key] = {
+                        vmp: item.vmp__name,
+                        code: item.vmp__code,
+                        vtm: item.vmp__vtm__name,
+                        ingredients: item.ingredients ? [item.ingredients] : [],
+                        routes: item.routes ? [item.routes] : [],
+                        units: new Set(),
+                        searchType: $analyseOptions.searchType
+                    };
+                }
+                // Add unit from data if it exists
+                if (item.data?.[0]?.[2]) {
+                    acc[key].units.add(item.data[0][2]);
+                }
+                return acc;
+            }, {});
 
-        missingVMPs = vmps.filter(vmp => vmp.unit === 'nan').map(vmp => vmp.vmp);
-        filteredData = selectedData.filter(item => item.unit !== 'nan');
+            // Convert to array and format units
+            vmps = Object.values(vmpGroups).map(vmp => ({
+                ...vmp,
+                unit: vmp.units.size > 0 ? Array.from(vmp.units).join(', ') : 'nan'
+            }));
 
-        resultsStore.update(store => ({
-            ...store,
-            filteredData
-        }));
+            console.log("Processed VMPs:", vmps);
 
-        console.log("Updated resultsStore:", $resultsStore);
+            // Update the results store
+            resultsStore.update(store => ({
+                ...store,
+                analysisData: data,
+                filteredData: selectedData,
+                productData: processProductData(selectedData),
+                showResults: true
+            }));
+        } catch (error) {
+            console.error("Error processing data:", error);
+            console.log("Data that caused error:", data);
+        }
+    }
+
+    function processProductData(data) {
+        if (!Array.isArray(data)) {
+            console.error("Expected array for processProductData, got:", data);
+            return {};
+        }
+
+        return data.reduce((acc, item) => {
+            if (!item || !item.vmp__code) {
+                console.warn("Invalid item in data:", item);
+                return acc;
+            }
+
+            const key = item.vmp__code;
+            try {
+                acc[key] = {
+                    name: item.vmp__name,
+                    code: item.vmp__code,
+                    vtm: item.vmp__vtm__name,
+                    routes: item.routes ? [item.routes] : [],
+                    ingredients: item.ingredients ? [item.ingredients] : [],
+                    data: Array.isArray(item.data) ? item.data.map(([date, quantity, unit]) => ({
+                        date,
+                        quantity: parseFloat(quantity) || 0,
+                        unit
+                    })) : []
+                };
+            } catch (error) {
+                console.error("Error processing item:", item, error);
+            }
+            return acc;
+        }, {});
     }
 
     function handleFilteredData(event) {
         const selectedVMPs = event.detail;
         filteredData = selectedData.filter(item => 
-            selectedVMPs.some(vmp => vmp.vmp === item.vmp_name) && item.unit !== 'nan'
+            selectedVMPs.some(vmp => vmp.vmp === item.vmp__name) && 
+            item.data?.[0]?.[2] !== 'nan'
         );
         console.log('Filtered data in ResultsBox:', filteredData);
 
@@ -100,13 +147,13 @@
                         <ProductList {vmps} currentSearchType={$resultsStore.searchType} on:dataFiltered={handleFilteredData} />
                     </section>
 
-                    <section class="bg-gray-50 rounded-lg p-4">
+                    <!-- <section class="bg-gray-50 rounded-lg p-4">
                         <TimeSeriesChart data={$resultsStore.filteredData} quantityType={$resultsStore.quantityType} searchType={$resultsStore.searchType} />
                     </section>
 
                     <section class="bg-gray-50 rounded-lg p-4">
                         <DataTable data={$resultsStore.filteredData} quantityType={$resultsStore.quantityType} searchType={$resultsStore.searchType} />
-                    </section>
+                    </section> -->
                 </div>
             {:else}
                 <div class="flex items-center justify-center h-[500px] p-6">

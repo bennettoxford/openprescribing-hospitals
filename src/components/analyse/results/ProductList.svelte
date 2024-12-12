@@ -30,7 +30,7 @@
         }
     }
 
-    $: hasIngredients = vmps.some(vmp => vmp.ingredient);
+    $: hasIngredients = vmps.some(vmp => vmp.ingredients);
     $: hasVTMs = vmps.some(vmp => vmp.vtm);
     
     $: selectedCount = Object.values(checkedVMPs).filter(Boolean).length;
@@ -61,8 +61,8 @@
     }
 
     $: displayField = currentSearchType === 'vmp' ? 'vmp' : 
-                      (currentSearchType === 'vtm' ? 'vtm' : a
-                      (currentSearchType === 'ingredient' ? 'ingredient_name' : 'vmp'));
+                      currentSearchType === 'vtm' ? 'vtm' : 
+                      currentSearchType === 'ingredient' ? 'ingredient_name' : 'vmp';
 
     $: sortedVMPs = [...vmps].sort((a, b) => {
         // Always keep 'nan' units at the top
@@ -131,9 +131,10 @@
     $: missingVMPs = vmps.filter(vmp => vmp.unit === 'nan').map(vmp => vmp.vmp);
     $: hasMissingVMPs = missingVMPs.length > 0;
 
-    $: hasMultipleRoutes = vmps.some(vmp => vmp.route_names && vmp.route_names.length > 1);
+    $: hasMultipleRoutes = vmps.some(vmp => vmp.routes && vmp.routes.length > 1);
+    $: hasMultipleIngredients = vmps.some(vmp => vmp.ingredients && vmp.ingredients.length > 1);
     
-    $: hasWarnings = showUnitWarning || showUnitIngredientWarning || hasMissingVMPs || hasMultipleRoutes;
+    $: hasWarnings = showUnitWarning || showUnitIngredientWarning || hasMissingVMPs || hasMultipleRoutes || hasMultipleIngredients;
 
     let showWarnings = false;
 </script>
@@ -160,20 +161,23 @@
             <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
                 <thead class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal sticky top-0 z-10">
                     <tr>
-                        <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy(displayField)}>
-                            {currentSearchType.toUpperCase()} Name <span class="text-gray-400">{getSortIndicator(displayField)}</span>
+                        <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('vmp')}>
+                            VMP Name <span class="text-gray-400">{getSortIndicator('vmp')}</span>
                         </th>
+                        <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('vtm')}>
+                            VTM <span class="text-gray-400">{getSortIndicator('vtm')}</span>
+                        </th>
+                        {#if quantityType === 'Ingredient Quantity' || currentSearchType === 'ingredient' }
+                            <th class="py-3 px-6 text-left">
+                                Ingredients
+                            </th>
+                        {/if}
                         <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('unit')}>
                             Unit <span class="text-gray-400">{getSortIndicator('unit')}</span>
                         </th>
                         <th class="py-3 px-6 text-left">
                             Routes
                         </th>
-                        {#if currentSearchType !== 'vmp'}
-                            <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('vmp')}>
-                                VMP <span class="text-gray-400">{getSortIndicator('vmp')}</span>
-                            </th>
-                        {/if}
                         <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('selected')}>
                             Select <span class="text-gray-400">{getSortIndicator('selected')}</span>
                         </th>
@@ -185,24 +189,25 @@
                             class:hover:bg-gray-100={vmp.unit !== 'nan'}
                             class:bg-red-100={vmp.unit === 'nan'}
                         >
-                            <td class="py-3 px-6 text-left">
-                                {#if currentSearchType === 'ingredient'}
-                                    {vmp.ingredient_name || 'Unknown Ingredient'}
+                            <td class="py-3 px-6 text-left">{vmp.vmp}</td>
+                            <td class="py-3 px-6 text-left">{vmp.vtm || '-'}</td>
+                            {#if quantityType === 'Ingredient Quantity' || currentSearchType === 'ingredient' }
+                                <td class="py-3 px-6 text-left">
+                                    {#if vmp.ingredients && vmp.ingredients.length > 0}
+                                        {vmp.ingredients.join(', ')}
                                 {:else}
-                                    {vmp[displayField] || 'N/A'}
-                                {/if}
-                            </td>
+                                    <span class="text-gray-400">-</span>
+                                    {/if}
+                                </td>
+                            {/if}
                             <td class="py-3 px-6 text-left">{vmp.unit === 'nan' ? '-' : vmp.unit}</td>
                             <td class="py-3 px-6 text-left">
-                                {#if vmp.route_names && vmp.route_names.length > 0}
-                                    {vmp.route_names.join(', ')}
+                                {#if vmp.routes && vmp.routes.length > 0}
+                                    {vmp.routes.join(', ')}
                                 {:else}
                                     <span class="text-gray-400">-</span>
                                 {/if}
                             </td>
-                            {#if currentSearchType !== 'vmp'}
-                                <td class="py-3 px-6 text-left">{vmp.vmp}</td>
-                            {/if}
                             <td class="py-3 px-6 text-left">
                                 <input 
                                     type="checkbox" 
@@ -260,8 +265,8 @@
                             <li class="text-yellow-700">
                                 Some products have multiple routes of administration. Breakdowns by route will show the quantity split equally between each route of administration for these products:
                                 <ul class="list-disc list-inside ml-4 mt-1">
-                                    {#each vmps.filter(vmp => vmp.route_names && vmp.route_names.length > 1) as vmp}
-                                        <li>{vmp.vmp}: {vmp.route_names.join(', ')}</li>
+                                    {#each vmps.filter(vmp => vmp.routes && vmp.routes.length > 1) as vmp}
+                                        <li>{vmp.vmp}: {vmp.routes.join(', ')}</li>
                                     {/each}
                                 </ul>
                             </li>
