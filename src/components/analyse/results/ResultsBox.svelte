@@ -19,11 +19,10 @@
     let vmps = [];
     let filteredData = [];
     let missingVMPs = [];
-    let currentSearchType = 'vmp';
 
-    $: if (analysisData?.data) {
+    $: if (analysisData) {
         console.log("New analysis data received:", analysisData);
-        handleUpdateData(analysisData.data);
+        handleUpdateData(analysisData);
     }
 
     $: {
@@ -38,10 +37,9 @@
 
     function handleUpdateData(data) {
         console.log("Handling update data:", data);
-        // Ensure data is an array
-        selectedData = Array.isArray(data) ? data : [data];
+        // Handle the nested data structure
+        selectedData = Array.isArray(data.data) ? data.data : [];
         
-        // Process VMPs from the new data structure
         try {
             // Group by VMP and collect all unique units
             const vmpGroups = selectedData.reduce((acc, item) => {
@@ -54,31 +52,40 @@
                         ingredients: item.ingredients ? [item.ingredients] : [],
                         routes: item.routes ? [item.routes] : [],
                         units: new Set(),
-                        searchType: $analyseOptions.searchType
+                        searchType: data.searchType || $analyseOptions.searchType
                     };
                 }
-                // Add unit from data if it exists
-                if (item.data?.[0]?.[2]) {
-                    acc[key].units.add(item.data[0][2]);
+                // Add all units from the data array
+                if (item.data) {
+                    item.data.forEach(dataPoint => {
+                        if (dataPoint[2]) {  // Check if unit exists
+                            acc[key].units.add(dataPoint[2]);
+                        }
+                    });
                 }
                 return acc;
             }, {});
 
             // Convert to array and format units
-            vmps = Object.values(vmpGroups).map(vmp => ({
-                ...vmp,
-                unit: vmp.units.size > 0 ? Array.from(vmp.units).join(', ') : 'nan'
-            }));
+            vmps = Object.values(vmpGroups)
+                .filter(vmp => vmp.vmp) // Filter out undefined VMPs
+                .map(vmp => ({
+                    ...vmp,
+                    unit: vmp.units.size > 0 ? Array.from(vmp.units).join(', ') : 'nan'
+                }));
 
             console.log("Processed VMPs:", vmps);
+            filteredData = selectedData; // Initialize with all data
 
             // Update the results store
             resultsStore.update(store => ({
                 ...store,
-                analysisData: data,
+                analysisData: selectedData,
                 filteredData: selectedData,
                 productData: processProductData(selectedData),
-                showResults: true
+                showResults: true,
+                searchType: data.searchType || $analyseOptions.searchType,
+                quantityType: data.quantityType || $analyseOptions.quantityType
             }));
         } catch (error) {
             console.error("Error processing data:", error);
@@ -122,10 +129,9 @@
     function handleFilteredData(event) {
         const selectedVMPs = event.detail;
         filteredData = selectedData.filter(item => 
-            selectedVMPs.some(vmp => vmp.vmp === item.vmp__name) && 
-            item.data?.[0]?.[2] !== 'nan'
+            selectedVMPs.some(vmp => vmp.vmp === item.vmp__name)
         );
-        console.log('Filtered data in ResultsBox:', filteredData);
+        console.log('Filtered data:', filteredData);
 
         resultsStore.update(store => ({
             ...store,
@@ -134,26 +140,26 @@
     }
 </script>
 
-{#if $resultsStore.showResults}
+{#if showResults}
     <div class="results-box bg-white rounded-lg shadow-md h-full flex flex-col">
         <div class="flex-grow overflow-y-auto rounded-t-lg">
-            {#if $resultsStore.isAnalysisRunning}
+            {#if isAnalysisRunning}
                 <div class="flex items-center justify-center h-[500px] p-16">
                     <div class="animate-spin rounded-full h-32 w-32 border-t-4 border-b-4 border-oxford-500"></div>
                 </div>
-            {:else if $resultsStore.analysisData?.data?.length > 0}
+            {:else if selectedData.length > 0}
                 <div class="space-y-6 p-6">
                     <section class="bg-white rounded-lg p-4 border-2 border-oxford-300 shadow-sm">
-                        <ProductList {vmps} currentSearchType={$resultsStore.searchType} on:dataFiltered={handleFilteredData} />
-                    </section>
-
-                    <!-- <section class="bg-gray-50 rounded-lg p-4">
-                        <TimeSeriesChart data={$resultsStore.filteredData} quantityType={$resultsStore.quantityType} searchType={$resultsStore.searchType} />
+                        <ProductList {vmps} on:dataFiltered={handleFilteredData} />
                     </section>
 
                     <section class="bg-gray-50 rounded-lg p-4">
-                        <DataTable data={$resultsStore.filteredData} quantityType={$resultsStore.quantityType} searchType={$resultsStore.searchType} />
-                    </section> -->
+                        <DataTable 
+                            data={filteredData} 
+                            quantityType={$analyseOptions.quantityType} 
+                            searchType={$analyseOptions.searchType} 
+                        />
+                    </section>
                 </div>
             {:else}
                 <div class="flex items-center justify-center h-[500px] p-6">
