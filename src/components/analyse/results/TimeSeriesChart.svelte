@@ -8,6 +8,14 @@
     import * as d3 from 'd3';
     import { resultsStore } from '../../../stores/resultsStore';
 
+    export let data = [];
+    export let quantityType = 'VMP Quantity';
+    export let searchType = 'vmp';
+
+    // Add reactive variables from resultsStore
+    $: currentSearchType = $resultsStore.searchType;
+    $: currentQuantityType = $resultsStore.quantityType;
+
     let chartDiv;
     let viewMode = 'Total';
     let availableViewModes = ['Total'];
@@ -23,10 +31,7 @@
     let chartContainer;
     let isSmallScreen = false;
 
-    $: data = $resultsStore.filteredData || [];
-    $: quantityType = $resultsStore.quantityType;
-    $: searchType = $resultsStore.searchType;
-    $: showNoDataMessage = $resultsStore.showResults && data.length === 0 && $resultsStore.analysisData?.data?.length > 0;
+    $: showNoDataMessage = data.length === 0;
 
     $: {
         console.log('Data received in TimeSeriesChart:', data);
@@ -35,21 +40,14 @@
             if (!availableViewModes.includes(viewMode)) {
                 viewMode = availableViewModes[0];
             }
-            organisations = [...new Set(data.map(item => item.ods_name))];
-            units = [...new Set(data.map(item => item.unit))];
-            if (searchType === 'ingredient') {
-                ingredientUnitPairs = [...new Set(data.map(item => 
-                    `${getIngredientName(item)}-${item.unit}`
-                ))];
-            } else {
-                ingredientUnitPairs = [...new Set(data.map(item => 
-                    `${getIngredientName(item)}-${item.unit}`
-                ))];
-            }
-            vtms = [...new Set(data.map(item => item.vtm_name || 'Unknown'))];
-            routes = [...new Set(data.flatMap(item => 
-                item.route_names || ['Unknown Route']
+            organisations = [...new Set(data.map(item => item.organisation__name))];
+            units = [...new Set(data.flatMap(item => 
+                item.data.map(d => d[2])
             ))];
+            vtms = [...new Set(data.map(item => item.vmp__vtm__name || 'Unknown'))];
+            routes = [...new Set(data.flatMap(item => 
+                item.routes || []
+            ).filter(route => route))];
             if (chartDiv) {
                 updateChart();
             }
@@ -87,8 +85,10 @@
 
     function updateAvailableViewModes() {
         availableViewModes = ['Total', 'Organisation'];
-        if (quantityType === 'Ingredient Quantity') {
-            availableViewModes.push('Ingredient-Unit');
+        
+        // Match ProductList.svelte conditions for ingredients
+        if (currentQuantityType === 'Ingredient Quantity' || currentSearchType === 'ingredient') {
+            availableViewModes.push('Ingredient');
         } else {
             if (searchType === 'vmp' || searchType === 'vtm') {
                 availableViewModes.push('Unit');
@@ -113,77 +113,125 @@
     function getBreakdownKey(item, viewMode) {
         switch (viewMode) {
             case 'Organisation':
-                return item.ods_name;
+                return item.organisation__ods_name || 'Unknown Organisation';
             case 'Unit':
-                return item.unit;
-            case 'Ingredient-Unit':
-                return `${item.ingredient_name} (${item.unit})`;
+                return item.data?.[0]?.[2] || 'Unknown Unit';
+            case 'Ingredient':
+                if (item.ingredients && item.ingredients.length > 0) {
+                    return item.ingredients[0];
+                }
+                return 'Unknown Ingredient';
             case 'VTM':
-                return item.vtm_name || 'Unknown';
+                return item.vmp__vtm__name || 'Unknown VTM';
             case 'Route':
-                return item.route_names ? item.route_names.join(', ') : 'Unknown Route';
+                return item.routes?.[0] || 'Other';
             default:
                 return 'Total';
         }
     }
 
     function prepareChartData(data, viewMode) {
-        console.log('Preparing chart data:', data, viewMode);
+        console.log('Preparing chart data. View mode:', viewMode);
+        
         if (data.length === 0) {
             return { labels: [], datasets: [] };
         }
 
+        // Extract all unique dates from the nested data arrays
+        const allDates = [...new Set(data.flatMap(item => 
+            item.data.map(([date]) => date)
+        ))].sort();
+
+        // For organisation view, first group by organisation
+        if (viewMode === 'Organisation') {
+            const orgData = {};
+            data.forEach(item => {
+                const orgName = item.organisation__ods_name || 'Unknown Organisation';
+                
+                if (!orgData[orgName]) {
+                    orgData[orgName] = {};
+                }
+                item.data.forEach(([date, quantity]) => {
+                    if (!orgData[orgName][date]) {
+                        orgData[orgName][date] = 0;
+                    }
+                    orgData[orgName][date] += parseFloat(quantity || 0);
+                });
+            });
+
+            console.log('Organisations found:', Object.keys(orgData));
+            
+            const datasets = Object.entries(orgData).map(([org, dates], index) => ({
+                label: org,
+                data: allDates.map(date => dates[date] || 0),
+                color: `hsl(${index * 360 / Object.keys(orgData).length}, 70%, 50%)`
+            }));
+
+            return {
+                labels: allDates,
+                datasets
+            };
+        }
+
+        // For other views, use the existing grouping logic
         const groupedData = data.reduce((acc, item) => {
-            const key = item.year_month;
+            const key = getBreakdownKey(item, viewMode);
             if (!acc[key]) {
                 acc[key] = {};
             }
             
-            if (viewMode === 'Route') {
-                const routes = item.route_names || ['Unknown Route'];
-                const quantityPerRoute = parseFloat(item.quantity) / routes.length;
-                
-                routes.forEach(route => {
-                    if (!acc[key][route]) {
-                        acc[key][route] = 0;
+            item.data.forEach(([date, quantity]) => {
+                if (viewMode === 'Route' && item.routes?.length) {
+                    const routes = item.routes;
+                    
+                    // Skip if routes is empty
+                    if (routes.length === 0) {
+                        return;
                     }
-                    acc[key][route] += quantityPerRoute;
-                });
-            } else {
-                const breakdownKey = getBreakdownKey(item, viewMode);
-                if (!acc[key][breakdownKey]) {
-                    acc[key][breakdownKey] = 0;
+
+                    const quantityPerRoute = parseFloat(quantity) / routes.length;
+                    
+                    routes.forEach(route => {
+                        if (!acc[route]) acc[route] = {};
+                        acc[route][date] = (acc[route][date] || 0) + quantityPerRoute;
+                    });
+                } else if (viewMode === 'Ingredient' && item.ingredients?.length) {
+                    // Handle multiple ingredients similar to routes
+                    const ingredients = item.ingredients;
+                    const quantityPerIngredient = parseFloat(quantity) / ingredients.length;
+                    
+                    ingredients.forEach(ingredient => {
+                        if (!acc[ingredient]) acc[ingredient] = {};
+                        acc[ingredient][date] = (acc[ingredient][date] || 0) + quantityPerIngredient;
+                    });
+                } else {
+                    acc[key][date] = (acc[key][date] || 0) + parseFloat(quantity || 0);
                 }
-                acc[key][breakdownKey] += parseFloat(item.quantity);
-            }
+            });
             return acc;
         }, {});
 
-        const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
-        
-        const breakdownKeys = viewMode === 'Route' 
-            ? [...new Set(data.flatMap(item => item.route_names || ['Unknown Route']))]
-            : [...new Set(data.map(item => getBreakdownKey(item, viewMode)))];
-
         if (viewMode === 'Total') {
             return {
-                labels: sortedDates,
+                labels: allDates,
                 datasets: [{
                     label: `Total ${quantityType} over time`,
-                    data: sortedDates.map(date => 
-                        Object.values(groupedData[date]).reduce((sum, val) => sum + val, 0)
+                    data: allDates.map(date => 
+                        Object.values(groupedData).reduce((sum, group) => 
+                            sum + (group[date] || 0), 0
+                        )
                     ),
                     color: 'rgb(75, 192, 192)'
                 }]
             };
         } else {
+            const breakdownKeys = Object.keys(groupedData);
             const datasets = breakdownKeys.map((key, index) => ({
                 label: key,
-                data: sortedDates.map(date => groupedData[date][key] || 0),
+                data: allDates.map(date => groupedData[key][date] || 0),
                 color: `hsl(${index * 360 / breakdownKeys.length}, 70%, 50%)`
             }));
-            console.log("Prepared datasets:", datasets);
-            return { labels: sortedDates, datasets };
+            return { labels: allDates, datasets };
         }
     }
 

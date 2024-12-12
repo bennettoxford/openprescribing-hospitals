@@ -154,6 +154,14 @@
                     </section>
 
                     <section class="bg-gray-50 rounded-lg p-4">
+                        <TimeSeriesChart 
+                            data={filteredData}
+                            quantityType={$analyseOptions.quantityType}
+                            searchType={$analyseOptions.searchType}
+                        />
+                    </section>
+
+                    <section class="bg-gray-50 rounded-lg p-4">
                         <DataTable 
                             data={filteredData} 
                             quantityType={$analyseOptions.quantityType} 
