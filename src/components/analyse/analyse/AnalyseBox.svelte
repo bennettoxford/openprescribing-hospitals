@@ -9,7 +9,6 @@
     import Search from '../../common/Search.svelte';
     import OrganisationSearch from '../../common/OrganisationSearch.svelte';
     import { createEventDispatcher } from 'svelte';
-    import RangeSlider from 'svelte-range-slider-pips';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
     import { getCookie } from '../../../utils/utils';
@@ -24,83 +23,10 @@
     $: quantityType = $analyseOptions.quantityType;
     $: searchType = $analyseOptions.searchType;
 
-    export let minDate = null;
-    export let maxDate = null;
     export let odsData = null;
     
-    let dateValues = [null, null];
-    let dates = [];
-    let formatOptions = { year: 'numeric', month: 'short' };
-
-    function formatDate(dateStr) {
-        if (!dateStr) return '';
-        return new Date(dateStr).toLocaleDateString('en-GB', formatOptions);
-    }
-
-    $: if ($analyseOptions && $analyseOptions.dateRange) {
-        if (dates.length > 0) {
-            const startIndex = dates.indexOf($analyseOptions.dateRange.startDate);
-            const endIndex = dates.indexOf($analyseOptions.dateRange.endDate);
-            if (startIndex !== -1 && endIndex !== -1) {
-                dateValues = [startIndex, endIndex];
-            }
-        }
-    }
-
-    function handleDateRangeChange(event) {
-        const values = event.detail.values;
-        
-        if (!Array.isArray(values) || values.length !== 2) {
-            console.error('Unexpected values format:', values);
-            return;
-        }
-
-        const [startIndex, endIndex] = values;
-
-        if (typeof startIndex !== 'number' || typeof endIndex !== 'number') {
-            console.error('Invalid indices:', { startIndex, endIndex });
-            return;
-        }
-
-        analyseOptions.update(store => ({
-            ...store,
-            dateRange: {
-                startDate: dates[startIndex],
-                endDate: dates[endIndex]
-            }
-        }));
-
-        dateValues = [startIndex, endIndex];
-    }
-
     onMount(async () => {
         try {
-            if (minDate && maxDate) {
-                const start = new Date(minDate);
-                const end = new Date(maxDate);
-                const dateArray = [];
-                let current = new Date(start);
-
-                while (current <= end) {
-                    dateArray.push(current.toISOString().split('T')[0]);
-                    current.setMonth(current.getMonth() + 1);
-                }
-                dates = dateArray;
-
-                
-                analyseOptions.update(store => ({
-                    ...store,
-                    minDate: dates[0],
-                    maxDate: dates[dates.length - 1],
-                    dateRange: {
-                        startDate: dates[0],
-                        endDate: dates[dates.length - 1]
-                    }
-                }));
-
-                dateValues = [0, dates.length - 1];
-            }
-            
             if (odsData) {
                 try {
                     const parsedData = typeof odsData === 'string' ? JSON.parse(odsData) : odsData;
@@ -153,9 +79,7 @@
                     quantity_type: quantityType,
                     names: selectedVMPs,
                     ods_names: $organisationSearchStore.selectedItems,
-                    search_type: searchType,
-                    start_date: $analyseOptions.dateRange.startDate,
-                    end_date: $analyseOptions.dateRange.endDate
+                    search_type: searchType
                 })
             });
 
@@ -228,17 +152,6 @@
             }));
         }
 
-        if (dates.length > 0) {
-            analyseOptions.update(options => ({
-                ...options,
-                dateRange: {
-                    startDate: dates[0],
-                    endDate: dates[dates.length - 1]
-                }
-            }));
-            dateValues = [0, dates.length - 1];
-        }
-
         errorMessage = '';
 
         const searchComponent = document.querySelector('analyse-box search-component');
@@ -253,37 +166,6 @@
 
         dispatch('analysisClear');
     }
-
-    onMount(async () => {
-    try {
-        if (minDate && maxDate) {
-            const start = new Date(minDate);
-            const end = new Date(maxDate);
-            const dateArray = [];
-            let current = new Date(start);
-
-            while (current <= end) {
-                dateArray.push(current.toISOString().split('T')[0]);
-                current.setMonth(current.getMonth() + 1);
-            }
-            dates = dateArray;
-            
-            analyseOptions.update(store => ({
-                ...store,
-                minDate: dates[0],
-                maxDate: dates[dates.length - 1],
-                dateRange: {
-                    startDate: dates[0],
-                    endDate: dates[dates.length - 1]
-                }
-            }));
-
-            dateValues = [0, dates.length - 1];
-        }
-    } catch (error) {
-        console.error('Error initializing date range:', error);
-    }
-});
 
     export let isAdvancedMode = false;
 
@@ -396,8 +278,8 @@
     </div>
 
     <!-- Second Selection Grid - Now always single column -->
+    {#if isAdvancedMode}
     <div class="grid gap-6">
-      {#if isAdvancedMode}
         <!-- Quantity Type Selection -->
         <div class="grid gap-4">
           <div class="flex items-center">
@@ -431,44 +313,8 @@
             </select>
           </div>
         </div>
-      {/if}
-
-      <!-- Date Range -->
-      <div class="grid gap-4">
-        <div>
-          <div class="flex items-center">
-            <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Date Range</h3>
-          </div>
-          {#if dates.length > 0}
-            <div class="px-2">
-              <div class="flex justify-between mb-2 text-sm text-gray-600">
-                <span>{formatDate(dates[0])}</span>
-                <span>{formatDate(dates[dates.length - 1])}</span>
-              </div>
-              <RangeSlider
-                min={0}
-                max={dates.length - 1}
-                step={1}
-                values={dateValues}
-                on:change={handleDateRangeChange}
-                float
-                all="hide"
-                first="pip"
-                last="pip"
-                pipstep={6}
-                formatter={index => formatDate(dates[index])}
-                handleFormatter={index => formatDate(dates[index])}
-                springValues={{ stiffness: 0.3, damping: 0.8 }}
-              />
-              <div class="mt-2 text-center text-sm text-gray-600">
-                Selected range: {formatDate(dates[dateValues[0]])} - {formatDate(dates[dateValues[1]])}
-              </div>
-            </div>
-          {/if}
-        </div>
-      </div>
     </div>
-
+    {/if}
     <!-- Analysis Controls -->
     <div class="mt-8 bg-gray-50 rounded-lg p-4 sm:p-6">
       <div class="flex flex-col gap-4">
@@ -508,27 +354,3 @@
     </div>
   </div>
 </div>
-
-<style>
-
-    :root {
-        --range-slider:            hsl(220, 13%, 91%);
-        --range-handle-inactive:   #0058be;
-        --range-handle:            #0058be;
-        --range-handle-focus:      #0058be;
-        --range-handle-border:     #0058be;
-        --range-range-inactive:    #0058be;
-        --range-range:             #0058be;
-        --range-float-inactive:    #0058be;
-        --range-float:             #0058be;
-        --range-float-text:        hsl(220, 13%, 91%);
-        --range-pip:               hsl(220, 13%, 91%);
-        --range-pip-text:          hsl(220, 13%, 91%);
-        --range-pip-active:        hsl(220, 13%, 91%);
-        --range-pip-active-text:   hsl(220, 13%, 91%);
-        --range-pip-hover:         hsl(220, 13%, 91%);
-        --range-pip-hover-text:    hsl(220, 13%, 91%);
-        --range-pip-in-range:      hsl(220, 13%, 91%);
-        --range-pip-in-range-text: hsl(220, 13%, 91%);
-    }
-</style>

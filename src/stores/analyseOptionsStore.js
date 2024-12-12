@@ -9,13 +9,7 @@ const createAnalyseOptionsStore = () => {
         searchType: 'vmp',
         vmpNames: [],
         vtmNames: [],
-        ingredientNames: [],
-        dateRange: {
-            startDate: null,
-            endDate: null
-        },
-        minDate: null,
-        maxDate: null
+        ingredientNames: []
     });
 
     return {
@@ -36,11 +30,7 @@ export function clearAnalysisOptions() {
         ...store,
         selectedVMPs: [],
         quantityType: '--',
-        searchType: 'vmp',
-        dateRange: {
-            startDate: store.minDate,
-            endDate: store.maxDate
-        }
+        searchType: 'vmp'
     }));
     organisationSearchStore.reset();
     clearResults();
