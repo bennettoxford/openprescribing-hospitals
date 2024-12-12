@@ -12,12 +12,20 @@ const createAnalyseOptionsStore = () => {
         ingredientNames: []
     });
 
+    const runAnalysis = (options) => {
+        update(store => ({
+            ...store,
+            ...options
+        }));
+    };
+
     return {
         subscribe,
         set,
         update,
-        // Update organisations in the organisationSearchStore
+        runAnalysis,
         updateOrganisations: (organisations) => {
+            console.log('Analysis Options Store - Updating organisations:', organisations);
             organisationSearchStore.setItems(organisations);
         }
     };

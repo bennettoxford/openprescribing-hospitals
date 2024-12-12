@@ -7,7 +7,9 @@ export const resultsStore = writable({
     filteredData: null,
     quantityType: null,
     searchType: null,
-    dateRange: null
+    dateRange: null,
+    productData: {},
+    organisationData: {}
 });
 
 function processAnalysisData(data) {
@@ -100,6 +102,8 @@ export function clearResults() {
         showResults: false,
         analysisData: null,
         filteredData: null,
+        productData: {},
+        organisationData: {},
         quantityType: null,
         searchType: null,
         dateRange: null

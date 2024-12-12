@@ -11,6 +11,7 @@
     import { createEventDispatcher } from 'svelte';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
+    import { updateResults } from '../../../stores/resultsStore';
     import { getCookie } from '../../../utils/utils';
     
     const dispatch = createEventDispatcher();
@@ -46,7 +47,6 @@
     async function runAnalysis() {
         if (isAnalysisRunning) return;
 
-        console.log("Run Analysis button clicked");
         errorMessage = '';
 
         if (!selectedVMPs || selectedVMPs.length === 0) {
@@ -88,11 +88,23 @@
             }
 
             const data = await response.json();
-            
+  
+            analyseOptions.runAnalysis({
+                selectedVMPs,
+                quantityType,
+                searchType,
+                organisations: $organisationSearchStore.selectedItems
+            });
+
+            updateResults(data, {
+                quantityType,
+                searchType
+            });
+
             dispatch('analysisComplete', { 
-                data: Array.isArray(data) ? data : [data], 
-                quantityType: quantityType, 
-                searchType: searchType 
+                data: Array.isArray(data) ? data : [data],
+                quantityType,
+                searchType
             });
         } catch (error) {
             console.error("Error fetching filtered data:", error);
