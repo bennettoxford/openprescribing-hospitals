@@ -50,9 +50,7 @@
         errorMessage = '';
 
         if (!selectedVMPs || selectedVMPs.length === 0) {
-            errorMessage = isAdvancedMode 
-                ? "Please select at least one product (VMP, Ingredient, VTM, or ATC)."
-                : "Please select at least one product.";
+            errorMessage = "Please select at least one product or ingredient.";
             return;
         }
 
@@ -125,10 +123,8 @@
     function handleVMPSelection(event) {
         analyseOptions.update(options => ({
             ...options,
-            selectedVMPs: event.detail.items,
-            searchType: event.detail.type
+            selectedVMPs: event.detail.items
         }));
-        console.log("Selected Items:", $analyseOptions.selectedVMPs, "Search Type:", $analyseOptions.searchType);
     }
 
     function handleODSSelection(event) {
@@ -183,6 +179,10 @@
 
     function toggleAdvancedMode() {
         isAdvancedMode = !isAdvancedMode;
+        
+        // Clear selections when switching modes
+        handleClearAnalysis();
+        
         dispatch('advancedModeChange', isAdvancedMode);
     }
 </script>
