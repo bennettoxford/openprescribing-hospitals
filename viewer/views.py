@@ -269,25 +269,28 @@ class MeasureItemView(TemplateView):
 def filtered_quantities(request):
     search_items = request.data.get("names", None)
     ods_names = request.data.get("ods_names", None)
-    search_type = request.data.get("search_type", None)
     quantity_type = request.data.get("quantity_type", None)
     
-
     if search_items is None:
         return Response({"error": "No search items provided"}, status=400)
+
+    vmp_ids = set()
     
-    if search_type == "product":
-        vmp_query = VMP.objects.filter(
-            Q(code__in=search_items) | Q(vtm__vtm__in=search_items)
-        )
-        vmp_ids = vmp_query.values_list('id', flat=True)
-    
-    elif search_type == "ingredient":
-        vmp_query = VMP.objects.filter(ingredients__code__in=search_items)
-        vmp_ids = vmp_query.values_list('id', flat=True)
-    
-    else:
-        return Response({"error": "Invalid search type"}, status=400)
+    # Process each search item based on its type
+    for item in search_items:
+        code, item_type = item.split('|')
+        
+        if item_type == 'vmp':
+            vmp_query = VMP.objects.filter(code=code)
+            vmp_ids.update(vmp_query.values_list('id', flat=True))
+            
+        elif item_type == 'vtm':
+            vmp_query = VMP.objects.filter(vtm__vtm=code)
+            vmp_ids.update(vmp_query.values_list('id', flat=True))
+            
+        elif item_type == 'ingredient':
+            vmp_query = VMP.objects.filter(ingredients__code=code)
+            vmp_ids.update(vmp_query.values_list('id', flat=True))
     
     if quantity_type == "VMP Quantity":
         if ods_names:
@@ -305,7 +308,6 @@ def filtered_quantities(request):
     
     else:
         return Response({"error": "Invalid quantity type"}, status=400)
-    
 
     value_fields = [
         'data',
@@ -316,7 +318,8 @@ def filtered_quantities(request):
         'organisation__ods_name',
     ]
     
-    if search_type == "ingredient" or quantity_type == "Ingredient Quantity":
+    # Always include ingredient names when using Ingredient Quantity
+    if quantity_type == "Ingredient Quantity":
         data = queryset.annotate(
             route_names=ArrayAgg('vmp__routes__name', distinct=True),
             ingredient_names=ArrayAgg('vmp__ingredients__name', distinct=True)
@@ -338,13 +341,13 @@ def filtered_quantities(request):
         route_names=ArrayAgg('routes__name', distinct=True)
     )
     
-    if search_type == "ingredient" or quantity_type == "Ingredient Quantity":
+    if quantity_type == "Ingredient Quantity":
         missing_vmps = missing_vmps.annotate(
             ingredient_names=ArrayAgg('ingredients__name', distinct=True)
         )
     
-    # Add missing VMPs to the response with empty data - this is shown in the Product List table
-    for vmp in missing_vmps.values('code', 'name', 'vtm__name', 'route_names', *(['ingredient_names'] if search_type == "ingredient" or quantity_type == "Ingredient Quantity" else [])):
+    # Add missing VMPs to the response
+    for vmp in missing_vmps.values('code', 'name', 'vtm__name', 'route_names', *(['ingredient_names'] if quantity_type == "Ingredient Quantity" else [])):
         empty_vmp = {
             'data': [],
             'vmp__code': vmp['code'],
@@ -354,7 +357,7 @@ def filtered_quantities(request):
             'organisation__ods_name': None,
             'route_names': vmp['route_names']
         }
-        if search_type == "ingredient" or quantity_type == "Ingredient Quantity":
+        if quantity_type == "Ingredient Quantity":
             empty_vmp['ingredient_names'] = vmp['ingredient_names']
         data_list.append(empty_vmp)
     
@@ -455,51 +458,48 @@ class OrgsSubmittingDataView(TemplateView):
 @api_view(["POST"])
 def filtered_vmp_count(request):
     search_items = request.data.get("names", [])
-    search_type = request.data.get("search_type", "vmp")
-
-    search_items = [item.split("|")[0].strip() for item in search_items]
     
-    if search_type == "product":
-        # Handle both VMP and VTM codes
-        vtm_codes = []
-        vmp_codes = []
-        for code in search_items:
-            if VTM.objects.filter(vtm=code).exists():
-                vtm_codes.append(code)
-            else:
-                vmp_codes.append(code)
-        
-        # Get VMPs directly selected and VMPs under selected VTMs
-        queryset = VMP.objects.filter(
-            Q(code__in=vmp_codes) |
-            Q(vtm__vtm__in=vtm_codes)
-        )
+    # Initialize empty sets for codes and display names
+    vmp_codes = set()
+    display_names = {}
 
-        # Get display names for both VTMs and VMPs
-        vtms = VTM.objects.filter(vtm__in=vtm_codes).values('vtm', 'name')
-        vmps = VMP.objects.filter(code__in=vmp_codes).values('code', 'name')
+    print(search_items)
+    # Process each search item
+    for item in search_items:
+        code, item_type = item.split('|')
         
-        display_names = {}
-        # Add VTM display names
-        for vtm in vtms:
-            display_names[vtm['vtm']] = f"{vtm['name']} ({vtm['vtm']})"
-        # Add VMP display names
-        for vmp in vmps:
-            display_names[vmp['code']] = f"{vmp['name']} ({vmp['code']})"
-        
-        return Response({
-            "vmp_count": queryset.distinct().count(),
-            "display_names": display_names
-        })
-    
-    elif search_type == "ingredient":
-        queryset = VMP.objects.filter(ingredients__code__in=search_items)
+        if item_type == 'vtm':
+            # Get all VMPs for this VTM
+            vtm_vmps = VMP.objects.filter(vtm__vtm=code).values_list('code', flat=True)
+            vmp_codes.update(vtm_vmps)
+            # Get VTM display name
+            vtm = VTM.objects.filter(vtm=code).first()
+            if vtm:
+                display_names[f"{code}|vtm"] = f"{vtm.name} ({code})"
 
-    else:
-        return Response({"vmp_count": 0})
+        elif item_type == 'vmp':
+            vmp_codes.add(code)
+            # Get VMP display name
+            vmp = VMP.objects.filter(code=code).first()
+            if vmp:
+                display_names[f"{code}|vmp"] = f"{vmp.name} ({code})"
+
+        elif item_type == 'ingredient':
+            # Get all VMPs containing this ingredient
+            ingredient_vmps = VMP.objects.filter(ingredients__code=code).values_list('code', flat=True)
+            vmp_codes.update(ingredient_vmps)
+            # Get ingredient display name
+            ingredient = Ingredient.objects.filter(code=code).first()
+            if ingredient:
+                display_names[f"{code}|ingredient"] = f"{ingredient.name} ({code})"
+
+    # Count unique VMPs
+    vmp_count = len(vmp_codes)
     
-    vmp_count = queryset.distinct().count()
-    return Response({"vmp_count": vmp_count})
+    return Response({
+        "vmp_count": vmp_count,
+        "display_names": display_names
+    })
 
 
 @method_decorator(login_required, name='dispatch')

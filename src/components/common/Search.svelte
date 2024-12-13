@@ -31,6 +31,9 @@
     let listContainer;
     let showScrollTop = false;
 
+    let selectedItemsData = {};
+    let expandedItems = new Set();  // Track which VTMs are expanded
+
     $: {
         if (type === 'product') {
             filteredItems = filterItems($analyseOptions.productNames, searchTerm);
@@ -112,45 +115,46 @@
     }
 
     function handleSelect(item) {
+        const itemWithType = `${item.code}|${item.type}`;
         if (item.type === 'vtm') {
-            if (!selectedItems.includes(item.code)) {
-                const vmpCodes = item.vmps.map(vmp => vmp.code);
+            if (!selectedItems.includes(itemWithType)) {
+                const vmpCodes = item.vmps.map(vmp => `${vmp.code}|vmp`);
                 selectedItems = selectedItems.filter(i => !vmpCodes.includes(i));
-                selectedItems = [...selectedItems, item.code];
+                selectedItems = [...selectedItems, itemWithType];
+                selectedItemsData[itemWithType] = item;
             } else {
-                selectedItems = selectedItems.filter(i => i !== item.code);
+                selectedItems = selectedItems.filter(i => i !== itemWithType);
+                delete selectedItemsData[itemWithType];
             }
         } else {
             const parentVtm = filteredItems.find(vtm => 
                 vtm.type === 'vtm' && vtm.vmps?.some(vmp => vmp.code === item.code)
             );
-            if (!parentVtm || !selectedItems.includes(parentVtm.code)) {
-                if (!selectedItems.includes(item.code)) {
-                    selectedItems = [...selectedItems, item.code];
+            if (!parentVtm || !selectedItems.includes(`${parentVtm.code}|vtm`)) {
+                if (!selectedItems.includes(itemWithType)) {
+                    selectedItems = [...selectedItems, itemWithType];
                 } else {
-                    selectedItems = selectedItems.filter(i => i !== item.code);
+                    selectedItems = selectedItems.filter(i => i !== itemWithType);
                 }
             }
         }
         
-        dispatch('selectionChange', { items: selectedItems, type });
+        dispatch('selectionChange', { items: selectedItems });
         fetchVmpCount();
         filteredItems = lastSearchResults;
     }
 
     function handleRemove(item) {
         selectedItems = selectedItems.filter(i => i !== item);
-        dispatch('selectionChange', { items: selectedItems, type });
+        dispatch('selectionChange', { items: selectedItems });
         fetchVmpCount();
     }
 
     function handleTypeChange(newType) {
         type = newType;
-        selectedItems = [];
         searchTerm = '';
         filteredItems = [];
-        dispatch('selectionChange', { items: selectedItems, type });
-        vmpCount = 0;
+        dispatch('selectionChange', { items: selectedItems });
     }
 
     $: {
@@ -159,6 +163,7 @@
             searchTerm = '';
             vmpCount = 0;
             filteredItems = [];
+            lastSearchResults = [];
         }
     }
 
@@ -193,6 +198,25 @@
 
     $: if (filteredItems && listContainer) {
         setTimeout(updateScrollButtonVisibility, 50);
+    }
+
+    $: selectedItemsWithData = selectedItems.map(item => {
+        const [code, type] = item.split('|');
+        return {
+            item,
+            data: selectedItemsData[item] || 
+                  lastSearchResults.find(i => i.code === code) || 
+                  filteredItems.find(i => i.code === code)
+        };
+    });
+
+    function toggleVTMExpand(itemCode) {
+        if (expandedItems.has(itemCode)) {
+            expandedItems.delete(itemCode);
+        } else {
+            expandedItems.add(itemCode);
+        }
+        expandedItems = expandedItems; // Trigger reactivity
     }
 </script>
 
@@ -262,7 +286,7 @@
                                 <li class="group">
                                     <div 
                                         class="pt-2 pb-1 px-3 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
-                                        class:bg-oxford-50={selectedItems.includes(item.code)}
+                                        class:bg-oxford-50={selectedItems.includes(`${item.code}|vtm`)}
                                         on:click={() => handleSelect(item)}
                                     >
                                         <div class="flex-1">
@@ -287,16 +311,12 @@
                                             </div>
                                             <div class="flex items-center gap-2 mt-0.5">
                                                 {#if isAdvancedMode && type === 'product'}
-                                                    <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
-                                                        {#if item.type === 'vtm'}
-                                                            VTM: {item.code}
-                                                        {:else}
-                                                            VMP: {item.code}
-                                                        {/if}
+                                                    <span class="text-xs text-gray-500">
+                                                        Code: {item.code}
                                                     </span>
                                                 {:else if isAdvancedMode && type === 'ingredient'}
-                                                    <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
-                                                        Ingredient: {item.code}
+                                                    <span class="text-xs text-gray-500">
+                                                        Code: {item.code}
                                                     </span>
                                                 {/if}
                                                 {#if item.vmps?.length}
@@ -306,7 +326,7 @@
                                                 {/if}
                                             </div>
                                         </div>
-                                        {#if selectedItems.includes(item.code)}
+                                        {#if selectedItems.includes(`${item.code}|vtm`)}
                                             <span class="text-xs font-medium text-oxford-600 ml-2">Selected (all products)</span>
                                         {/if}
                                     </div>
@@ -316,26 +336,26 @@
                                             {#each item.vmps as vmp}
                                                 <li 
                                                     class="py-1.5 px-3 pl-8 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
-                                                    class:bg-oxford-50={selectedItems.includes(vmp.code)}
-                                                    class:opacity-50={selectedItems.includes(item.code)}
-                                                    class:pointer-events-none={selectedItems.includes(item.code)}
+                                                    class:bg-oxford-50={selectedItems.includes(`${vmp.code}|vmp`)}
+                                                    class:opacity-50={selectedItems.includes(`${item.code}|vtm`)}
+                                                    class:pointer-events-none={selectedItems.includes(`${item.code}|vtm`)}
                                                     on:click={() => handleSelect(vmp)}
                                                 >
                                                     <div>
                                                         <span class="text-sm">{vmp.name}</span>
                                                         <div class="mt-0.5">
                                                             {#if isAdvancedMode && type === 'product'}
-                                                                <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
-                                                                    VMP: {vmp.code}
+                                                                <span class="text-xs text-gray-500">
+                                                                    Code: {vmp.code}
                                                                 </span>
                                                             {:else if isAdvancedMode && type === 'ingredient'}
-                                                                <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
-                                                                    Ingredient: {vmp.code}
+                                                                <span class="text-xs text-gray-500">
+                                                                    Code: {vmp.code}
                                                                 </span>
                                                             {/if}
                                                         </div>
                                                     </div>
-                                                    {#if selectedItems.includes(vmp.code) && !selectedItems.includes(item.code)}
+                                                    {#if selectedItems.includes(`${vmp.code}|vmp`) && !selectedItems.includes(`${item.code}|vtm`)}
                                                         <span class="text-xs font-medium text-oxford-600 ml-2">Selected</span>
                                                     {/if}
                                                 </li>
@@ -346,7 +366,7 @@
                             {:else}
                                 <li 
                                     class="py-1.5 px-3 cursor-pointer relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
-                                    class:bg-oxford-50={selectedItems.includes(item.code)}
+                                    class:bg-oxford-50={selectedItems.includes(`${item.code}|vmp`)}
                                     class:opacity-50={!item.has_vmps}
                                     class:pointer-events-none={!item.has_vmps}
                                     on:click={() => item.has_vmps && handleSelect(item)}
@@ -358,12 +378,12 @@
                                         {/if}
                                         <div class="flex items-center gap-2 mt-0.5">
                                             {#if isAdvancedMode && type === 'product'}
-                                                <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
-                                                    VMP: {item.code}
+                                                <span class="text-xs text-gray-500">
+                                                    Code: {item.code}
                                                 </span>
                                             {:else if isAdvancedMode && type === 'ingredient'}
-                                                <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
-                                                    Ingredient: {item.code}
+                                                <span class="text-xs text-gray-500">
+                                                    Code: {item.code}
                                                 </span>
                                             {/if}
                                             {#if item.vmps?.length}
@@ -373,7 +393,7 @@
                                             {/if}
                                         </div>
                                     </div>
-                                    {#if selectedItems.includes(item.code)}
+                                    {#if selectedItems.includes(`${item.code}|vmp`)}
                                         <span class="text-xs font-medium text-oxford-600 mt-0.5 block">Selected</span>
                                     {/if}
                                 </li>
@@ -402,41 +422,89 @@
         </div>
         {#if selectedItems.length > 0}
             <div>
-                <h3 class="font-semibold my-2 text-md text-gray-700">
-                    Selected items:
+                <h3 class="font-medium text-sm text-gray-900 mb-3">
+                    Selected items
                 </h3>
-                <ul class="border border-gray-200 rounded-md">
-                    {#each selectedItems as item}
-                        <li class="flex items-center justify-between px-2 py-1">
-                            <span class="text-gray-800">
-                                {#if type === 'ingredient'}
-                                    {(selectedDisplayNames[item] || 
-                                      filteredItems.find(i => i.code === item)?.name || 
-                                      lastSearchResults.find(i => i.code === item)?.name || 
-                                      item)}
-                                {:else}
-                                    {(selectedDisplayNames[item] || 
-                                      filteredItems.find(i => i.code === item)?.display_name || 
-                                      lastSearchResults.find(i => i.code === item)?.display_name || 
-                                      item).replace(/\([^)]*\)/g, '').trim()}
-                                {/if}
-                            </span>
-                            <button 
-                                on:click={() => handleRemove(item)}
-                                class="px-2 py-1 text-sm text-white bg-red-600 hover:bg-red-700 rounded-md"
-                            >
-                                Remove
-                            </button>
+                <ul class="bg-white border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-100">
+                    {#each selectedItemsWithData as {item, data}}
+                        {@const [code, type] = item.split('|')}
+                        <li class="group">
+                            <div class="p-3 hover:bg-gray-50 transition-colors duration-150">
+                                <div class="grid grid-cols-[1fr,auto] gap-3">
+                                    <div class="flex flex-col min-w-0">
+                                        <span class="text-sm text-gray-700 break-words">
+                                            {(selectedDisplayNames[item] || 
+                                              data?.display_name || 
+                                              item).replace(/\([^)]*\)/g, '').trim()}
+                                        </span>
+                                        <span class="text-xs text-gray-500 mt-1">
+                                            Code: {code}
+                                        </span>
+                                        {#if type === 'vtm'}
+                                            <button 
+                                                on:click={() => toggleVTMExpand(item)}
+                                                class="flex items-center gap-1.5 mt-2 text-sm text-gray-500 hover:text-gray-700 transition-colors duration-150"
+                                            >
+                                                <svg 
+                                                    class="w-3.5 h-3.5 transform transition-transform duration-150 {expandedItems.has(item) ? 'rotate-90' : ''}" 
+                                                    fill="none" 
+                                                    stroke="currentColor" 
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                </svg>
+                                                <span class="text-xs">
+                                                    {data?.vmps?.length || 0} product{data?.vmps?.length !== 1 ? 's' : ''} included
+                                                </span>
+                                            </button>
+                                        {/if}
+                                    </div>
+                                    <div class="flex flex-col items-center gap-2">
+                                        {#if isAdvancedMode}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                                                {type === 'ingredient' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 
+                                                 'bg-blue-50 text-blue-700 border border-blue-200'}">
+                                                {type === 'ingredient' ? 'Ingredient' : 'Product'}
+                                            </span>
+                                        {/if}
+                                        <button 
+                                            on:click={() => handleRemove(item)}
+                                            class="px-2 py-1 text-xs font-medium text-white bg-red-600 
+                                                   hover:bg-red-700 rounded-md transition-colors duration-150"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {#if type === 'vtm' && data?.vmps && expandedItems.has(item)}
+                                <ul class="bg-gray-50 border-t border-gray-100 py-2 px-3">
+                                    {#each data.vmps as vmp}
+                                        <li class="flex items-center py-1">
+                                            <span class="w-1 h-1 bg-gray-400 rounded-full mr-2.5"></span>
+                                            <span class="text-sm text-gray-600">
+                                                {vmp.name}
+                                            </span>
+                                        </li>
+                                    {/each}
+                                </ul>
+                            {/if}
                         </li>
                     {/each}
                 </ul>
-                <p class="mt-2 text-sm text-gray-600">
+                <p class="mt-3 text-sm text-gray-600">
                     {#if isCalculating}
-                        Calculating number of individual products analysed...
+                        <span class="flex items-center gap-2">
+                            <svg class="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Calculating number of individual products...
+                        </span>
                     {:else if vmpCount > 0}
                         This selection will analyse {vmpCount} unique product{vmpCount !== 1 ? 's' : ''}.
                         {#if vmpCount > 100}
-                            <span class="text-amber-600 font-semibold">
+                            <span class="block mt-1 text-amber-600 font-medium">
                                 Warning: This is a large number of products. The analysis may take a long time. 
                                 Consider making your selection more specific.
                             </span>
