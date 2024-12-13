@@ -316,17 +316,49 @@ def filtered_quantities(request):
         'organisation__ods_name',
     ]
     
-    if search_type =="ingredient" or quantity_type == "Ingredient Quantity":
+    if search_type == "ingredient" or quantity_type == "Ingredient Quantity":
         data = queryset.annotate(
-            routes=ArrayAgg('vmp__routes__name', distinct=True),
-            ingredients=ArrayAgg('vmp__ingredients__name', distinct=True)
-        ).values(*value_fields, 'routes', 'ingredients')
+            route_names=ArrayAgg('vmp__routes__name', distinct=True),
+            ingredient_names=ArrayAgg('vmp__ingredients__name', distinct=True)
+        ).values(*value_fields, 'route_names', 'ingredient_names')
     else:
         data = queryset.annotate(
-            routes=ArrayAgg('vmp__routes__name', distinct=True)
-        ).values(*value_fields, 'routes')
-    print(data)
-    return Response(data)
+            route_names=ArrayAgg('vmp__routes__name', distinct=True)
+        ).values(*value_fields, 'route_names')
+
+    data_list = list(data)
+    included_vmps = {item['vmp__code'] for item in data_list}
+    
+    # Get missing VMPs
+    missing_vmps = VMP.objects.filter(
+        id__in=vmp_ids
+    ).exclude(
+        code__in=included_vmps
+    ).annotate(
+        route_names=ArrayAgg('routes__name', distinct=True)
+    )
+    
+    if search_type == "ingredient" or quantity_type == "Ingredient Quantity":
+        missing_vmps = missing_vmps.annotate(
+            ingredient_names=ArrayAgg('ingredients__name', distinct=True)
+        )
+    
+    # Add missing VMPs to the response with empty data - this is shown in the Product List table
+    for vmp in missing_vmps.values('code', 'name', 'vtm__name', 'route_names', *(['ingredient_names'] if search_type == "ingredient" or quantity_type == "Ingredient Quantity" else [])):
+        empty_vmp = {
+            'data': [],
+            'vmp__code': vmp['code'],
+            'vmp__name': vmp['name'],
+            'vmp__vtm__name': vmp['vtm__name'],
+            'organisation__ods_code': None,
+            'organisation__ods_name': None,
+            'route_names': vmp['route_names']
+        }
+        if search_type == "ingredient" or quantity_type == "Ingredient Quantity":
+            empty_vmp['ingredient_names'] = vmp['ingredient_names']
+        data_list.append(empty_vmp)
+    
+    return Response(data_list)
 
 @method_decorator(login_required, name='dispatch')
 class OrgsSubmittingDataView(TemplateView):
