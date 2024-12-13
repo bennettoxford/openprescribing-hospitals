@@ -2,7 +2,6 @@ import os
 from django.db import connection
 from django.conf import settings
 from ..models import Measure
-import json
 
 
 def execute_measure_sql(measure_name):
@@ -26,19 +25,10 @@ def execute_measure_sql(measure_name):
 
     with connection.cursor() as cursor:
         cursor.execute(sql)
-        result = cursor.fetchone()
+        result = cursor.fetchall()
 
     if result:
-        return {
-            "name": result[0],
-            "description": result[1],
-            "unit": result[2],
-            "values": json.loads(result[3]),
-        }
+        return result
+
     else:
-        return {
-            "name": measure.name,
-            "description": measure.description,
-            "unit": None,
-            "values": [],
-        }
+        return None

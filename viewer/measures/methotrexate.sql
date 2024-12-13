@@ -2,7 +2,7 @@ WITH measure_vmps AS (
     SELECT DISTINCT
         vmp.id,
         CASE 
-            WHEN vmp.code = '42264711000001102' THEN 'numerator'
+            WHEN vmp.code = '41791911000001107' THEN 'numerator'
             ELSE 'denominator'
         END as vmp_type
     FROM viewer_vmp vmp
@@ -12,5 +12,4 @@ SELECT
     mv.vmp_type
 FROM viewer_vmp vmp
 JOIN measure_vmps mv ON mv.id = vmp.id
-JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
-WHERE vtm.vtm = '774689009'
+WHERE vmp.code IN ('41791911000001107', '41792011000001100')
