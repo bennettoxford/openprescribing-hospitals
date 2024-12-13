@@ -105,6 +105,40 @@ class Command(BaseCommand):
         # get the measurevmps associated with this measure
         measurevmps = MeasureVMP.objects.filter(measure=measure)
 
+        def get_consistent_unit(queryset):
+            """
+            Get the consistent unit from a queryset's data arrays.
+            Raises ValueError if units are inconsistent.
+            """
+            first_unit = None
+            for record in queryset:
+                for entry in record.data or []:
+                    if len(entry) >= 3 and entry[2]:  # if unit exists
+                        if first_unit is None:
+                            first_unit = entry[2]
+                        elif entry[2] != first_unit:
+                            raise ValueError(f"Inconsistent units found: {first_unit} vs {entry[2]}")
+            return first_unit
+
+        # Add this after getting the measurevmps
+        for measurevmp in measurevmps:
+            # Get all quantity records for this VMP
+            vmp_records = subset.filter(vmp=measurevmp.vmp)
+            
+            try:
+                unit = get_consistent_unit(vmp_records)
+                if unit:
+                    measurevmp.unit = unit
+                    measurevmp.save()
+                else:
+                    self.stdout.write(
+                        self.style.WARNING(f'No unit found for VMP: {measurevmp.vmp.name}')
+                    )
+            except ValueError as e:
+                self.stdout.write(
+                    self.style.ERROR(f'Error setting unit for VMP {measurevmp.vmp.name}: {str(e)}')
+                )
+
         numerator_vmps = measurevmps.filter(type='numerator').values_list('vmp', flat=True)
         denominator_vmps = measurevmps.values_list('vmp', flat=True)
 
