@@ -425,7 +425,7 @@
                 <h3 class="font-medium text-sm text-gray-900 mb-3">
                     Selected items
                 </h3>
-                <ul class="bg-white border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-100">
+                <ul class="bg-white border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
                     {#each selectedItemsWithData as {item, data}}
                         {@const [code, type] = item.split('|')}
                         <li class="group">
