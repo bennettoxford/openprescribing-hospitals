@@ -27,7 +27,7 @@ class ORDAPIClient:
     def __init__(self, base_url: str):
         self.base_url = base_url
     
-    def get_all_orgs(roles) -> List[str]:
+    def get_all_orgs(self, roles: List[str]) -> List[str]:  # Added self parameter
         """
         Get a list of ODS codes for all organisations with the specified roles.
 
@@ -37,7 +37,7 @@ class ORDAPIClient:
         Returns:
             List[str]: A list of ODS codes for all organisations with the specified roles.
         """
-        urls = [f"{BASE_URL}?Roles={role}&Limit=1000" for role in roles]
+        urls = [f"{self.base_url}?Roles={role}&Limit=1000" for role in roles]  # Use self.base_url
         all_orgs = []
         for url in urls:
             try:
@@ -49,7 +49,7 @@ class ORDAPIClient:
                 logger.error(f"Error fetching organizations: {e}")
         return all_orgs
 
-    def get_org_details(orgs: List[str]) -> Dict[str, Any]:
+    def get_org_details(self, orgs: List[str]) -> Dict[str, Any]:  # Added self parameter
         """
         Get details for a list of organisations.
 
@@ -61,7 +61,7 @@ class ORDAPIClient:
         """
         all_orgs_details = {}
         for org in tqdm(orgs):
-            url = f"{BASE_URL}/{org}"
+            url = f"{self.base_url}/{org}"  # Use self.base_url
             try:
                 response = requests.get(url)
                 response.raise_for_status()
@@ -213,18 +213,26 @@ class RegionDataProcessor:
                     icb_regions[icb] = region
         return icb_regions
 
-    def get_region_names(self, regions: set) -> Dict[str, str]:
-        """Get the region names for a set of regions."""
-        region_names = {}
-        region_details = self.api_client.get_org_details(list(regions))
+    def get_region_or_icb_names(self, org_codes: set) -> Dict[str, str]:
+        """
+        Get organisation names for a set of organisation codes (regions or ICBs).
+
+        Args:
+            org_codes (set): Set of organisation codes to fetch names for
+
+        Returns:
+            Dict[str, str]: Dictionary mapping organisation codes to their names
+        """
+        org_names = {}
+        org_details = self.api_client.get_org_details(list(org_codes))
         
-        for region, details in region_details.items():
-            region_name = details.get("Organisation", {}).get("Name", "")
-            if region_name:
-                region_names[region] = region_name
+        for org_code, details in org_details.items():
+            org_name = details.get("Organisation", {}).get("Name", "")
+            if org_name:
+                org_names[org_code] = org_name
             else:
-                logger.error(f"Error fetching region name for {region}")
-        return region_names
+                logger.error(f"Error fetching name for organisation {org_code}")
+        return org_names
 
     @staticmethod
     def format_org_name(name: str) -> str:
@@ -333,12 +341,16 @@ class OrganisationImporter:
         icbs_list = org_mapping_df["icb"].dropna().unique().tolist()
         icb_regions = self.region_data_processor.get_icb_regions(icbs_list)
         unique_regions = set(icb_regions.values())
-        region_names = self.region_data_processor.get_region_names(unique_regions)
+        region_names = self.region_data_processor.get_region_or_icb_names(unique_regions)
+
+        icb_names = self.region_data_processor.get_region_or_icb_names(icbs_list)
 
         org_mapping_df["region"] = org_mapping_df["icb"].map(icb_regions).map(region_names)
+        org_mapping_df["icb"] = org_mapping_df["icb"].map(icb_names)
         org_mapping_df.loc[org_mapping_df["ods_name"].notna(), "ods_name"] = org_mapping_df.loc[org_mapping_df["ods_name"].notna(), "ods_name"].apply(self.region_data_processor.format_org_name)
         org_mapping_df.loc[org_mapping_df["region"].notna(), "region"] = org_mapping_df.loc[org_mapping_df["region"].notna(), "region"].apply(self.region_data_processor.format_org_name)
         org_mapping_df.loc[org_mapping_df["icb"].notna(), "icb"] = org_mapping_df.loc[org_mapping_df["icb"].notna(), "icb"].apply(self.region_data_processor.format_org_name)
+ 
         self.bigquery_uploader.upload(org_mapping_df)
 
 
