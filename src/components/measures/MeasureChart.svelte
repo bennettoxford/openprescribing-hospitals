@@ -20,6 +20,15 @@
 
   let isZoomedIn = false;
 
+  function formatValue(value) {
+    if (value === 0) return '0';
+    if (Number.isInteger(value)) return value.toString();
+    if (value >= 10) return Math.round(value).toString();
+    if (value >= 1) return Number(value.toFixed(1)).toString();
+    if (value >= 0.1) return Number(value.toFixed(2)).toString();
+    return Number(value.toFixed(4)).toString();
+  }
+
   function updateZoomState() {
     const xDomain = xScale.domain();
     const yDomain = yScale.domain();
@@ -74,7 +83,7 @@
       .duration(duration)
       .call(d3.axisLeft(yScale)
         .ticks(10)
-        .tickFormat(d3.format('.1f')))
+        .tickFormat(value => formatValue(value)))
       .call(g => g.selectAll('.tick text')
         .style('font-size', '14px'));
 
@@ -163,7 +172,7 @@
       .attr('class', 'y-axis')
       .call(d3.axisLeft(yScale)
         .ticks(10)
-        .tickFormat(d3.format('.1f')))
+        .tickFormat(value => formatValue(value)))
       .call(g => g.selectAll('.tick text')
         .style('font-size', '14px'));
 
@@ -460,7 +469,7 @@
 
       tooltip
         .html(`<strong>${displayName || 'Unknown'}</strong>${displayCode ? `<br>ODS Code: ${displayCode.trim()}` : ''}<br>Date: ${
-        d3.timeFormat('%b %Y')(date)}<br>Percentage: ${value !== null ? (value * 100).toFixed(1) : 'N/A'}%${
+        d3.timeFormat('%b %Y')(date)}<br>Percentage: ${value !== null ? (value * 100).toFixed(2) : 'N/A'}%${
         numerator !== null && denominator !== null ? `<br>Numerator: ${numerator.toFixed(2)}<br>Denominator: ${denominator.toFixed(2)}` : ''}${
         d.org_count ? `<br>Organisations included: ${d.org_count}` : ''
         }`)
@@ -500,8 +509,8 @@
 
       tooltip
         .html(`<strong>${displayName || 'Unknown'}</strong>${displayCode ? `<br>ODS Code: ${displayCode.trim()}` : ''}<br>Date: ${
-        d3.timeFormat('%b %Y')(nearestDate)}<br>Percentage: ${nearestValue !== null ? (nearestValue * 100).toFixed(1) : 'N/A'}%${
-        numerator !== null && denominator !== null ? `<br>Numerator: ${numerator.toFixed(2)}<br>Denominator: ${denominator.toFixed(2)}` : ''}${
+        d3.timeFormat('%b %Y')(nearestDate)}<br>Percentage: ${nearestValue !== null ? formatValue(nearestValue * 100) : 'N/A'}%${
+        numerator !== null && denominator !== null ? `<br>Numerator: ${formatValue(numerator)}<br>Denominator: ${formatValue(denominator)}` : ''}${
         d.org_count ? `<br>Organisations included: ${d.org_count}` : ''
         }`)
         .style('left', `${tooltipX}px`)
