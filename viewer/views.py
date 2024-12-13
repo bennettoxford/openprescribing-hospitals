@@ -182,17 +182,28 @@ class MeasureItemView(TemplateView):
         return context
 
     def get_org_data(self, org_measures):
-        # all orgs - those with no successor
-        all_orgs = set(Organisation.objects.filter(successor__isnull=True).values_list('ods_code', flat=True))
+        # Get all active orgs (those with no successor)
+        all_orgs = Organisation.objects.filter(
+            successor__isnull=True
+        ).values('ods_code', 'ods_name').order_by('ods_name')
         
+        # Create a set of orgs that are included in the measure
         measure_orgs = set(org_measures.values_list('organisation__ods_code', flat=True).distinct())
         
         org_measures_dict = {}
+       
+        for org in all_orgs:
+            org_key = f"{org['ods_code']} | {org['ods_name']}"
+            org_measures_dict[org_key] = {
+                'available': org['ods_code'] in measure_orgs,
+                'data': []
+            }
+        
         for measure in org_measures.values(
             'organisation__ods_code', 'organisation__ods_name', 'month', 'quantity', 'numerator', 'denominator'
         ):
             org_key = f"{measure['organisation__ods_code']} | {measure['organisation__ods_name']}"
-            org_measures_dict.setdefault(org_key, []).append({
+            org_measures_dict[org_key]['data'].append({
                 'month': measure['month'],
                 'quantity': measure['quantity'],
                 'numerator': measure['numerator'],

@@ -85,6 +85,8 @@
         try {
             const parsedData = typeof odsData === 'string' ? JSON.parse(odsData) : odsData;
             organisationSearchStore.setItems(parsedData);
+            organisationSearchStore.setAvailableItems(parsedData);
+            organisationSearchStore.setFilterType('trust');
         } catch (error) {
             console.error('Error parsing ODS data:', error);
         }
