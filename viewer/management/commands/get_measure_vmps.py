@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from viewer.models import Measure, VMP, MeasureVMP
+from viewer.models import Measure, VMP, MeasureVMP, Dose, IngredientQuantity
 from viewer.measures.measure_utils import execute_measure_sql
 
 class Command(BaseCommand):
@@ -32,13 +32,23 @@ class Command(BaseCommand):
             for row in result:
                 vmp_id, vmp_type = row
                 try:
-                    measure_vmps.append(
-                        MeasureVMP(
-                            measure=measure,
-                            vmp_id=vmp_id,
-                            type=vmp_type
+                    vmp = VMP.objects.get(id=vmp_id)
+                    
+                    # Check for data based on measure's quantity_type
+                    has_data = False
+                    if measure.quantity_type == 'dose':
+                        has_data = Dose.objects.filter(vmp=vmp).exclude(data=[]).exists()
+                    else:  # ingredient
+                        has_data = IngredientQuantity.objects.filter(vmp=vmp).exclude(data=[]).exists()
+                    
+                    if has_data:
+                        measure_vmps.append(
+                            MeasureVMP(
+                                measure=measure,
+                                vmp=vmp,
+                                type=vmp_type
+                            )
                         )
-                    )
                 except VMP.DoesNotExist:
                     self.stdout.write(
                         self.style.WARNING(f'VMP with id {vmp_id} does not exist')
