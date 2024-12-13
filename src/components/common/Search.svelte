@@ -403,7 +403,7 @@
         {#if selectedItems.length > 0}
             <div>
                 <h3 class="font-semibold my-2 text-md text-gray-700">
-                    Selected {isAdvancedMode ? (type === 'product' ? type : type.toUpperCase()) : 'product'} names:
+                    Selected items:
                 </h3>
                 <ul class="border border-gray-200 rounded-md">
                     {#each selectedItems as item}
@@ -414,11 +414,6 @@
                                       filteredItems.find(i => i.code === item)?.name || 
                                       lastSearchResults.find(i => i.code === item)?.name || 
                                       item)}
-                                {:else if isAdvancedMode}
-                                    {selectedDisplayNames[item] || 
-                                     filteredItems.find(i => i.code === item)?.display_name || 
-                                     lastSearchResults.find(i => i.code === item)?.display_name || 
-                                     item}
                                 {:else}
                                     {(selectedDisplayNames[item] || 
                                       filteredItems.find(i => i.code === item)?.display_name || 
