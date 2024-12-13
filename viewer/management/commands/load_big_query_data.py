@@ -15,6 +15,7 @@ from viewer.models import (
     DataStatus,
     SCMDQuantity,
     Route,
+    OntFormRoute,
 )
 import glob
 from tqdm import tqdm
@@ -36,6 +37,7 @@ class Command(BaseCommand):
         self.load_ingredient_quantity(data_dir)
         self.load_data_status(data_dir)
         self.load_route(data_dir)
+        self.load_ont_form_route(data_dir)
 
         self.stdout.write(self.style.SUCCESS(
             "Successfully loaded all data into the database"))
@@ -460,3 +462,30 @@ class Command(BaseCommand):
                         self.stdout.write(self.style.ERROR(f"Error creating batch: {str(e)}"))
 
         self.stdout.write(self.style.SUCCESS(f"Loaded {total_scmd_quantities} SCMDQuantities"))
+
+    def load_ont_form_route(self, directory):
+        ont_form_routes = self.load_csv("vmp_ontform_table", directory)
+        ont_form_routes["vmp"] = ont_form_routes["vmp"].astype(str)
+        
+        unique_routes = ont_form_routes["descr"].unique()
+        route_objects = [OntFormRoute(name=name) for name in unique_routes]
+        OntFormRoute.objects.bulk_create(route_objects, ignore_conflicts=True)
+
+        ont_form_route_ids = dict(OntFormRoute.objects.values_list('name', 'id'))
+        vmp_ids = dict(VMP.objects.values_list('code', 'id'))
+
+        vmp_route_relations = []
+        for _, row in ont_form_routes.iterrows():
+            if pd.notnull(row["vmp"]) and pd.notnull(row["descr"]):
+                if row["vmp"] in vmp_ids and row["descr"] in ont_form_route_ids:
+                    vmp_route_relations.append(
+                        VMP.ont_form_routes.through(
+                            vmp_id=vmp_ids[row["vmp"]],
+                            ontformroute_id=ont_form_route_ids[row["descr"]]
+                        )
+                    )
+
+        VMP.ont_form_routes.through.objects.bulk_create(vmp_route_relations, ignore_conflicts=True)
+
+        self.stdout.write(self.style.SUCCESS(
+            f"Loaded {len(route_objects)} OntFormRoutes and {len(vmp_route_relations)} VMP-OntFormRoute relationships"))
