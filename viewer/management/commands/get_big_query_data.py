@@ -97,7 +97,7 @@ class Command(BaseCommand):
     """
 
     organisation_table_sql = """
-        SELECT DISTINCT d.ods_code, o.ods_name, o.region, o.successor_ods_code
+        SELECT DISTINCT d.ods_code, o.ods_name, o.region, o.icb, o.successor_ods_code
         FROM `ebmdatalab.scmd.dose` d
         LEFT JOIN `ebmdatalab.scmd.ods_mapped` o
         ON d.ods_code = o.ods_code

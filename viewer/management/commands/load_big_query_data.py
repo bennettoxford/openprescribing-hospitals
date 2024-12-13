@@ -166,7 +166,7 @@ class Command(BaseCommand):
         # First pass: Create all organisations without setting successors
         org_objects = [
             Organisation(
-                ods_code=org["ods_code"], ods_name=org["ods_name"], region=org["region"]
+                ods_code=org["ods_code"], ods_name=org["ods_name"], region=org["region"], icb=org["icb"]
             )
             for org in organisations.to_dict(orient="records")
         ]
