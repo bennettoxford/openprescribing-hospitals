@@ -1,13 +1,14 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 
 function createOrganisationSearchStore() {
     const { subscribe, set, update } = writable({
         items: [],
         selectedItems: [],
-        filterType: 'trust'
+        filterType: 'trust',
+        availableItems: new Set()
     });
 
-    return {
+    const store = {
         subscribe,
         setItems: (items) => {
             update(store => ({ ...store, items }));
@@ -18,17 +19,28 @@ function createOrganisationSearchStore() {
         setFilterType: (filterType) => {
             update(store => ({ ...store, filterType }));
         },
+        setAvailableItems: (availableItems) => {
+            update(store => ({ ...store, availableItems: new Set(availableItems) }));
+        },
+        isAvailable(item) {
+            const currentStore = get(this);
+            return currentStore.availableItems.has(item);
+        },
         isFiltering() {
-            return this.selectedItems.length > 0;
+            const currentStore = get(this);
+            return currentStore.selectedItems.length > 0;
         },
         reset() {
             update(store => ({
                 ...store,
                 selectedItems: [],
-                items: []
+                items: [],
+                availableItems: new Set()
             }));
         }
     };
+
+    return store;
 }
 
 export const organisationSearchStore = createOrganisationSearchStore();

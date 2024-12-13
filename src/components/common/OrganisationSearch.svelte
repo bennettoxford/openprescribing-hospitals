@@ -6,6 +6,7 @@
 <script>
     import { onMount, createEventDispatcher } from 'svelte';
     import '../../styles/styles.css';
+    import { organisationSearchStore } from '../../stores/organisationSearchStore';
 
     const dispatch = createEventDispatcher();
 
@@ -70,6 +71,10 @@
     $: isItemSelected = (item) => selectedItems.includes(item);
 
     function toggleItem(item) {
+        if (!source.isAvailable(item)) {
+            return;
+        }
+
         let newSelectedItems;
         if (selectedItems.includes(item)) {
             newSelectedItems = selectedItems.filter(i => i !== item);
@@ -79,10 +84,9 @@
             return;
         }
         
-        source.updateSelection(newSelectedItems, showOrganisationSelection);
+        source.updateSelection(newSelectedItems);
         dispatch('selectionChange', {
-            selectedItems: newSelectedItems,
-            usedOrganisationSelection: showOrganisationSelection
+            selectedItems: newSelectedItems
         });
     }
 
@@ -139,6 +143,10 @@
     $: if (filteredItems && listContainer) {
         setTimeout(updateScrollButtonVisibility, 50);
     }
+
+    function isItemAvailable(item) {
+        return source.isAvailable(item);
+    }
 </script>
 
 <div class="dropdown relative w-full h-full flex flex-col">
@@ -187,27 +195,28 @@
                     bind:this={listContainer}
                     on:scroll={updateScrollButtonVisibility}
                 >
-                    {#each filteredItems as item (item)}
-                        <li 
-                            class="p-2 cursor-pointer transition duration-150 ease-in-out relative {maxSelected && !isItemSelected(item) ? 'bg-gray-300 cursor-not-allowed' : ''}"
-                            class:bg-oxford-100={isItemSelected(item)}
-                            class:text-oxford-500={isItemSelected(item)}
-                            class:hover:bg-oxford-200={isItemSelected(item)}
-                            class:hover:bg-gray-100={!isItemSelected(item) && !maxSelected}
-                            on:click={() => { if (!maxSelected || isItemSelected(item)) toggleItem(item); }}
+                    {#each filteredItems as item}
+                        <div
+                            class="p-2 transition duration-150 ease-in-out relative
+                                   {maxSelected && !isItemSelected(item) ? 'bg-gray-300 cursor-not-allowed' : ''}
+                                   {!isItemAvailable(item) ? 'text-gray-400 cursor-not-allowed' : 'cursor-pointer'}
+                                   {isItemSelected(item) ? 'bg-oxford-100 text-oxford-500' : ''}
+                                   {isItemSelected(item) ? 'hover:bg-oxford-200' : isItemAvailable(item) && !maxSelected ? 'hover:bg-gray-100' : ''}"
+                            on:click={() => { 
+                                if (isItemAvailable(item) && (!maxSelected || isItemSelected(item))) {
+                                    toggleItem(item);
+                                }
+                            }}
                         >
-                            <div class="flex items-center">
+                            <div class="flex items-center justify-between">
                                 <span>{item}</span>
                                 {#if isItemSelected(item)}
                                     <span class="ml-auto text-sm font-medium">Selected</span>
-                                {/if}
-                                {#if maxSelected && !isItemSelected(item)}
-                                    <div class="absolute top-0 left-full ml-2 w-auto p-1 text-sm text-white bg-black rounded">
-                                        Max selected
-                                    </div>
+                                {:else if !isItemAvailable(item)}
+                                    <span class="ml-auto text-sm italic">(excluded)</span>
                                 {/if}
                             </div>
-                        </li>
+                        </div>
                     {/each}
                 </ul>
                 {#if showScrollTop}
@@ -231,3 +240,14 @@
         {/if}
     </div>
 </div>
+
+<style>
+    .unavailable {
+        color: #999;
+        cursor: not-allowed;
+    }
+
+    .text-gray-400 {
+        cursor: not-allowed;
+    }
+</style>

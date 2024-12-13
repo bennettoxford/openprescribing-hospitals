@@ -145,6 +145,8 @@
         if (parsedOrgData.length > 0) {
             searchableOrgs = prepareOrganisationsForSearch(parsedOrgData);
             organisationSearchStore.setItems(searchableOrgs);
+            organisationSearchStore.setAvailableItems(searchableOrgs);
+            organisationSearchStore.setFilterType('trust');
         }
     }
 
@@ -176,6 +178,9 @@
             
             if (organisations.length > 0) {
                 months = Object.keys(organisations[0].data).sort();
+                const allOrgs = prepareOrganisationsForSearch(organisations);
+                organisationSearchStore.setItems(allOrgs);
+                organisationSearchStore.setAvailableItems(allOrgs);
             }
 
             setTimeout(createChart, 0);

@@ -27,6 +27,8 @@ const createAnalyseOptionsStore = () => {
         updateOrganisations: (organisations) => {
             console.log('Analysis Options Store - Updating organisations:', organisations);
             organisationSearchStore.setItems(organisations);
+            organisationSearchStore.setAvailableItems(organisations);
+            organisationSearchStore.setFilterType('trust');
         }
     };
 };

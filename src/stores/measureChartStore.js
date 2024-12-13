@@ -37,6 +37,18 @@ export function getOrganisationIndex(orgName, allOrgs) {
         Object.keys(allOrgs).indexOf(orgName);
 }
 
+const createDataArrayWithNulls = (data, allDates, field) => {
+  if (!data || !Array.isArray(data)) {
+    return allDates.map(() => null);
+  }
+
+  const dataMap = new Map(data.map(d => [d.month, d[field]]));
+  return allDates.map(date => {
+    const value = dataMap.get(date);
+    return value !== undefined ? value : null;
+  });
+};
+
 export const filteredData = derived(
   [selectedMode, orgdata, regiondata, icbdata, percentiledata, visibleTrusts, visibleICBs, visibleRegions],
   ([$selectedMode, $orgdata, $regiondata, $icbdata, $percentiledata, $visibleTrusts, $visibleICBs, $visibleRegions]) => {
@@ -45,24 +57,19 @@ export const filteredData = derived(
 
     const sortDates = (a, b) => new Date(a) - new Date(b);
 
-    const createDataArrayWithNulls = (data, allDates, field) => {
-      const dataMap = new Map(data.map(d => [d.month, d[field]]));
-      return allDates.map(date => {
-        const value = dataMap.get(date);
-        return value !== undefined ? value : null;
-      });
-    };
-
     switch ($selectedMode) {
       case 'trust':
         if (typeof $orgdata === 'object' && !Array.isArray($orgdata)) {
-          const allDates = [...new Set(Object.values($orgdata).flatMap(org => org.map(d => d.month)))].sort(sortDates);
+          const allDates = [...new Set(Object.values($orgdata).flatMap(org => {
+            return org.data && Array.isArray(org.data) ? org.data.map(d => d.month) : [];
+          }))].sort(sortDates);
+          
           labels = allDates;
           const trustNames = Object.keys($orgdata);
           datasets = trustNames
             .filter(trust => $visibleTrusts.size === 0 || $visibleTrusts.has(trust))
             .map((trust) => {
-              const trustData = $orgdata[trust];
+              const trustData = $orgdata[trust].data || [];
               return {
                 label: trust,
                 data: createDataArrayWithNulls(trustData, allDates, 'quantity'),
@@ -173,19 +180,19 @@ export const filteredData = derived(
         // Add selected organisations
         if ($visibleTrusts.size > 0) {
           Array.from($visibleTrusts).forEach((org, index) => {
-            if ($orgdata[org]) {
+            if ($orgdata[org] && $orgdata[org].data) {
               datasets.push({
                 label: org,
                 data: labels.map(date => {
-                  const dataPoint = $orgdata[org].find(d => d.month === date);
+                  const dataPoint = $orgdata[org].data.find(d => d.month === date);
                   return dataPoint ? dataPoint.quantity : null;
                 }),
                 numerator: labels.map(date => {
-                  const dataPoint = $orgdata[org].find(d => d.month === date);
+                  const dataPoint = $orgdata[org].data.find(d => d.month === date);
                   return dataPoint ? dataPoint.numerator : null;
                 }),
                 denominator: labels.map(date => {
-                  const dataPoint = $orgdata[org].find(d => d.month === date);
+                  const dataPoint = $orgdata[org].data.find(d => d.month === date);
                   return dataPoint ? dataPoint.denominator : null;
                 }),
                 color: getOrganisationColor(datasets.length),
@@ -217,24 +224,6 @@ export const filteredData = derived(
             color: '#005AB5',
             strokeWidth: 3
           }];
-        }
-        break;
-      case 'trust':
-        if (typeof $orgdata === 'object' && !Array.isArray($orgdata)) {
-
-          const allDates = [...new Set(Object.values($orgdata).flatMap(trust => trust.map(d => d.month)))].sort(sortDates);
-          labels = allDates;
-          
-          let trustsToShow = $visibleTrusts.size > 0 ? Array.from($visibleTrusts) : Object.keys($orgdata);
-          datasets = trustsToShow.map((trust, index) => {
-            const trustData = $orgdata[trust];
-            if (!trustData) return null;
-            return {
-              label: trust,
-              data: createDataArrayWithNulls(trustData, allDates),
-              color: getTrustColor(index)
-            };
-          }).filter(Boolean);
         }
         break;
     }

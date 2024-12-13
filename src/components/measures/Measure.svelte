@@ -71,14 +71,18 @@
     onMount(() => {
         const parsedOrgData = JSON.parse(orgdata);
         orgStore.set(parsedOrgData);
+        
+        // Get all trusts and available trusts
         trusts = Object.keys(parsedOrgData);
+        const availableTrusts = trusts.filter(trust => parsedOrgData[trust].available);
+        
+        organisationSearchStore.setItems(trusts);
+        organisationSearchStore.setAvailableItems(availableTrusts);
+        organisationSearchStore.setFilterType('trust');
         
         const parsedIcbData = JSON.parse(icbdata);
         icbStore.set(parsedIcbData);
         icbs = parsedIcbData.map(icb => icb.name);
-        
-        organisationSearchStore.setItems(trusts);
-        organisationSearchStore.setFilterType('trust');
         
         const parsedRegionData = JSON.parse(regiondata);
         regionStore.set(parsedRegionData);
@@ -112,18 +116,23 @@
         const newMode = event.target.value;
         selectedMode.set(newMode);
         
+        // Clear all selections
         visibleRegions.set(new Set());
         visibleTrusts.set(new Set());
         visibleICBs.set(new Set());
         
+        // Ensure proper data format before updating stores
         if (newMode === 'icb') {
-            organisationSearchStore.setItems(icbs);
+            const icbArray = Array.isArray(icbs) ? icbs : [];
+            organisationSearchStore.setItems(icbArray);
             organisationSearchStore.setFilterType('icb');
         } else if (newMode === 'region') {
-            organisationSearchStore.setItems(regions);
+            const regionsArray = Array.isArray(regions) ? regions : [];
+            organisationSearchStore.setItems(regionsArray);
             organisationSearchStore.setFilterType('region');
         } else if (newMode === 'trust' || newMode === 'percentiles') {
-            organisationSearchStore.setItems(trusts);
+            const trustsArray = Array.isArray(trusts) ? trusts : [];
+            organisationSearchStore.setItems(trustsArray);
             organisationSearchStore.setFilterType('trust');
         }
         organisationSearchStore.updateSelection([]);
