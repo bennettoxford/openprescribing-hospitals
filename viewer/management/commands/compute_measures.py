@@ -184,7 +184,7 @@ class Command(BaseCommand):
                 org_values[org_id][month] = {
                     "numerator": num_value,
                     "denominator": den_value,
-                    "value": num_value / den_value if den_value else None
+                    "value": num_value / den_value if den_value else 0
                 }
         
 
@@ -211,48 +211,60 @@ class Command(BaseCommand):
         # Calculate percentiles
         precomputed_percentiles = []
         
-        # Get all unique months from org_values
+        # Get all months across all data
         all_months = set()
         for org_data in org_values.values():
             all_months.update(org_data.keys())
         
+        # Ensure every org has every month
+        for org_id in measure_orgs:
+            if org_id not in org_values:
+                org_values[org_id] = {}
+            
+            # Add missing months with zero values
+            for month in all_months:
+                if month not in org_values[org_id]:
+                    org_values[org_id][month] = {
+                        "numerator": 0,
+                        "denominator": 0,
+                        "value": 0
+                    }
+        
         # For each month, calculate percentiles
         for month in all_months:
-            # Get all non-None values for this month
+            # Get ALL values for this month (convert None to 0)
             month_values = [
-                org_data[month]['value']
+                org_data[month]['value'] if org_data[month]['value'] is not None else 0
                 for org_data in org_values.values()
-                if month in org_data and org_data[month]['value'] is not None
             ]
             
-            if month_values:
-                # Sort values for percentile calculation
-                month_values.sort()
-                n = len(month_values)
+            # Now all values will be numbers, so sort will work
+            month_values.sort()
+            n = len(month_values)
+            
+            # Calculate percentiles from 5 to 95 in steps of 10 (but also include 50)
+            for percentile in [5, 15, 25, 35, 45, 50, 55, 65, 75, 85, 95]:
+                # Calculate index for this percentile
+                k = (n - 1) * (percentile / 100)
+                f = math.floor(k)
+                c = math.ceil(k)
                 
-                # Calculate percentiles from 5 to 95 in steps of 5
-                for percentile in range(5, 100, 5):
-                    # Calculate index for this percentile
-                    k = (n - 1) * (percentile / 100)
-                    f = math.floor(k)
-                    c = math.ceil(k)
-                    
-                    if f == c:
-                        value = month_values[int(k)]
-                    else:
-                        # Interpolate when k is not an integer
-                        d0 = month_values[int(f)] * (c - k)
-                        d1 = month_values[int(c)] * (k - f)
-                        value = d0 + d1
-                    
-                    precomputed_percentiles.append(
-                        PrecomputedPercentile(
-                            measure=measure,
-                            month=month,
-                            percentile=percentile,
-                            quantity=value
-                        )
+                if f == c:
+                    value = month_values[int(k)]
+                else:
+                    # Interpolate when k is not an integer
+                    d0 = month_values[int(f)] * (c - k)
+                    d1 = month_values[int(c)] * (k - f)
+                    value = d0 + d1
+                
+                precomputed_percentiles.append(
+                    PrecomputedPercentile(
+                        measure=measure,
+                        month=month,
+                        percentile=percentile,
+                        quantity=value
                     )
+                )
         
         # Bulk create all percentile records
         PrecomputedPercentile.objects.bulk_create(precomputed_percentiles)
