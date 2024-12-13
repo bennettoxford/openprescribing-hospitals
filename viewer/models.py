@@ -1,16 +1,22 @@
 from django.db import models
 from django.utils.text import slugify
 from django.core.validators import RegexValidator
+from django.contrib.postgres.fields import ArrayField
 
 class VTM(models.Model):
-    vtm = models.CharField(max_length=20, primary_key=True)
+    vtm = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=255)
 
     def __str__(self):
         return self.name
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=["vtm"]),
+        ]
 
 class Route(models.Model):
-    code = models.CharField(max_length=30, primary_key=True)
+    code = models.CharField(max_length=30, unique=True)
     name = models.CharField(max_length=255, unique=True)
 
     def save(self, *args, **kwargs):
@@ -20,25 +26,31 @@ class Route(models.Model):
 
     def __str__(self):
         return self.name
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=["code"]),
+        ]
 
 class VMP(models.Model):
-    code = models.CharField(max_length=20, primary_key=True)
+    code = models.CharField(max_length=30, unique=True)
     name = models.CharField(max_length=255)
     form = models.CharField(max_length=255, null=True)
     vtm = models.ForeignKey(
         VTM, on_delete=models.CASCADE, related_name="vmps", null=True
     )
     ingredients = models.ManyToManyField(
-        "Ingredient", related_name="vmps", null=True)
-    ont_form_routes = models.ManyToManyField("OntFormRoute", related_name="vmps", null=True)
-    routes = models.ManyToManyField("Route", related_name="vmps", null=True)
+        "Ingredient", related_name="vmps")
+    ont_form_routes = models.ManyToManyField("OntFormRoute", related_name="vmps")
+    routes = models.ManyToManyField("Route", related_name="vmps")
 
     def __str__(self):
         return f"{self.name} ({self.code})"
 
     class Meta:
         indexes = [
-            models.Index(fields=["name"]),
+            models.Index(fields=["code"]),
+            models.Index(fields=["vtm"]),
         ]
 
 class OntFormRoute(models.Model):
@@ -48,15 +60,19 @@ class OntFormRoute(models.Model):
         return f"{self.name}"
 
 class Ingredient(models.Model):
-    code = models.CharField(max_length=20, primary_key=True)
+    code = models.CharField(max_length=30, unique=True)
     name = models.CharField(max_length=255, null=False)
 
     def __str__(self):
         return f"{self.name} ({self.code})"
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["code"]),
+        ]
 
 class Organisation(models.Model):
-    ods_code = models.CharField(max_length=10, primary_key=True)
+    ods_code = models.CharField(max_length=10, unique=True)
     ods_name = models.CharField(max_length=255, null=False)
     region = models.CharField(max_length=100, null=False)
     icb = models.CharField(max_length=100, null=True)
@@ -81,58 +97,77 @@ class Organisation(models.Model):
         """Returns a list of ods_codes for all predecessors of this organisation"""
         return list(self.predecessors.all().values_list('ods_code', flat=True))
 
-    def get_combined_vmp_count(self, year_month):
-        """Returns the combined unique VMP count for this org and its predecessors for a given month"""
-        org_codes = [self.ods_code] + self.get_all_predecessor_codes()
-        return SCMDQuantity.objects.filter(
-            organisation__ods_code__in=org_codes,
-            year_month=year_month
-        ).values('vmp').distinct().count()
 
 class SCMDQuantity(models.Model):
-    year_month = models.DateField()
     vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name="scmd_quantities")
-    quantity = models.FloatField(null=True)
-    unit = models.CharField(max_length=50, null=True)
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name="scmd_quantities")
-
-    def __str__(self):
-        return f"{self.vmp.name} - {self.organisation.ods_name} - {self.year_month}"
+    data = ArrayField(
+        ArrayField(
+            models.CharField(max_length=255, null=True),
+            size=3,  # [year_month, quantity, unit]
+        ),
+        null=True,
+        help_text="Array of [year_month, quantity, unit] entries"
+    )
     
     class Meta:
-        ordering = ["year_month", "vmp__name", "organisation__ods_name"]
+        unique_together = ('vmp', 'organisation')
         indexes = [
-            models.Index(fields=["vmp"]),
-            models.Index(fields=["organisation"]),
-            models.Index(fields=["year_month"]),
+            models.Index(fields=["vmp", "organisation"]),
         ]
 
+    def __str__(self):
+        return f"{self.vmp.name} - {self.organisation.ods_name}"
+
+    def get_quantity_for_month(self, year_month):
+        """Get quantity and unit for a specific month"""
+        date_str = year_month.strftime('%Y-%m-%d')
+        for entry in self.data:
+            if entry[0] == date_str:
+                return {
+                    'quantity': float(entry[1]) if entry[1] else None,
+                    'unit': entry[2]
+                }
+        return None
+
 class Dose(models.Model):
-    year_month = models.DateField()
     vmp = models.ForeignKey(
         VMP,
         on_delete=models.CASCADE,
         related_name="doses")
-    quantity = models.FloatField(null=True)
-    unit = models.CharField(max_length=50)
     organisation = models.ForeignKey(
         Organisation, on_delete=models.CASCADE, related_name="doses"
     )
+    data = ArrayField(
+        ArrayField(
+            models.CharField(max_length=255, null=True),
+            size=3,  # [year_month, quantity, unit]
+        ),
+        null=True,
+        help_text="Array of [year_month, quantity, unit] entries"
+    )
 
     def __str__(self):
-        return f"{self.vmp.name} - {self.organisation.ods_name} - {self.year_month}"
+        return f"{self.vmp.name} - {self.organisation.ods_name}"
 
     class Meta:
-        ordering = ["year_month", "vmp__name", "organisation__ods_name"]
+        unique_together = ('vmp', 'organisation')
         indexes = [
-            models.Index(fields=["vmp"]),
-            models.Index(fields=["organisation"]),
-            models.Index(fields=["year_month"]),
+            models.Index(fields=["vmp", "organisation"]),
         ]
 
+    def get_quantity_for_month(self, year_month):
+        """Get quantity and unit for a specific month"""
+        date_str = year_month.strftime('%Y-%m-%d')
+        for entry in self.data:
+            if entry[0] == date_str:
+                return {
+                    'quantity': float(entry[1]) if entry[1] else None,
+                    'unit': entry[2]
+                }
+        return None
 
 class IngredientQuantity(models.Model):
-    year_month = models.DateField()
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
@@ -140,32 +175,41 @@ class IngredientQuantity(models.Model):
     vmp = models.ForeignKey(
         VMP, on_delete=models.CASCADE, related_name="ingredient_quantities"
     )
-    quantity = models.FloatField(null=True)
-    unit = models.CharField(max_length=50, null=True)
     organisation = models.ForeignKey(
         Organisation,
         on_delete=models.CASCADE,
         related_name="ingredient_quantities")
+    data = ArrayField(
+        ArrayField(
+            models.CharField(max_length=255, null=True),
+            size=3,  # [year_month, quantity, unit]
+        ),
+        null=True,
+        help_text="Array of [year_month, quantity, unit] entries"
+    )
 
     def __str__(self):
         return (
             f"{self.ingredient.name} - {self.vmp.name} - "
-            f"{self.organisation.ods_name} - {self.year_month}"
+            f"{self.organisation.ods_name}"
         )
 
     class Meta:
-        ordering = [
-            "year_month",
-            "ingredient__name",
-            "vmp__name",
-            "organisation__ods_name",
-        ]
+        unique_together = ('ingredient', 'vmp', 'organisation')
         indexes = [
-            models.Index(fields=["vmp"]),
-            models.Index(fields=["organisation"]),
-            models.Index(fields=["ingredient"]),
-            models.Index(fields=["year_month"]),
+            models.Index(fields=["vmp", "organisation", "ingredient"]),
         ]
+
+    def get_quantity_for_month(self, year_month):
+        """Get quantity and unit for a specific month"""
+        date_str = year_month.strftime('%Y-%m-%d')
+        for entry in self.data:
+            if entry[0] == date_str:
+                return {
+                    'quantity': float(entry[1]) if entry[1] else None,
+                    'unit': entry[2]
+                }
+        return None
 
 class MeasureReason(models.Model):
     reason = models.CharField(max_length=255)
@@ -288,4 +332,3 @@ class PrecomputedPercentile(models.Model):
 class DataStatus(models.Model):
     year_month = models.DateField()
     file_type = models.CharField(max_length=255)
-

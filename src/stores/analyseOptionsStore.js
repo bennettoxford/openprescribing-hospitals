@@ -9,21 +9,23 @@ const createAnalyseOptionsStore = () => {
         searchType: 'vmp',
         vmpNames: [],
         vtmNames: [],
-        ingredientNames: [],
-        dateRange: {
-            startDate: null,
-            endDate: null
-        },
-        minDate: null,
-        maxDate: null
+        ingredientNames: []
     });
+
+    const runAnalysis = (options) => {
+        update(store => ({
+            ...store,
+            ...options
+        }));
+    };
 
     return {
         subscribe,
         set,
         update,
-        // Update organisations in the organisationSearchStore
+        runAnalysis,
         updateOrganisations: (organisations) => {
+            console.log('Analysis Options Store - Updating organisations:', organisations);
             organisationSearchStore.setItems(organisations);
         }
     };
@@ -36,11 +38,7 @@ export function clearAnalysisOptions() {
         ...store,
         selectedVMPs: [],
         quantityType: '--',
-        searchType: 'vmp',
-        dateRange: {
-            startDate: store.minDate,
-            endDate: store.maxDate
-        }
+        searchType: 'vmp'
     }));
     organisationSearchStore.reset();
     clearResults();

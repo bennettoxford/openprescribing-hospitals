@@ -11,139 +11,104 @@
     export let quantityType = 'VMP Quantity';
     export let searchType = 'vmp';
 
-    let selectedPeriod = 'all'; // 'all', 'year', 'month', or 'fytd'
-    let latestYearAvailable = false;
-    let latestMonthAvailable = false;
-    let currentFYAvailable = false;
+    let selectedPeriod = 'all';
+    let latestMonth = '';
+    let latestYear = '';
+    let currentFY = '';
 
-    $: data = $resultsStore.filteredData || [];
-    $: quantityType = $resultsStore.quantityType;
-    $: searchType = $resultsStore.searchType;
     $: dateRange = $analyseOptions.dateRange;
 
+    // Calculate available periods when data changes
     $: {
-        if (dateRange?.startDate && dateRange?.endDate) {
-            const start = new Date(dateRange.startDate);
-            const end = new Date(dateRange.endDate);
-            
-            // Check for year availability
-            const monthsDiff = (end.getFullYear() - start.getFullYear()) * 12 + 
-                             (end.getMonth() - start.getMonth());
-            latestYearAvailable = monthsDiff >= 12;
+        if (data?.length > 0) {
+            // Get all dates from all items
+            const allDates = data.flatMap(item => 
+                item.data.map(([date]) => new Date(date))
+            ).sort((a, b) => b - a); // Sort descending
 
-            // Check for month availability
-            latestMonthAvailable = monthsDiff >= 1;
-
-            // Check for financial year to date availability
-            const currentDate = new Date(end);
-            const currentFYStart = new Date(currentDate.getFullYear(), 3, 1); // April 1st
-            if (currentDate < currentFYStart) {
-                currentFYStart.setFullYear(currentFYStart.getFullYear() - 1);
+            if (allDates.length > 0) {
+                const latest = allDates[0];
+                latestMonth = latest.toLocaleDateString('en-GB', { year: 'numeric', month: 'short' });
+                latestYear = latest.getFullYear().toString();
+                
+                // Calculate financial year
+                const fyStart = latest.getMonth() >= 3 ? latest.getFullYear() : latest.getFullYear() - 1;
+                currentFY = `${fyStart}/${(fyStart + 1).toString().slice(2)}`;
             }
-            
-            // Only show FYTD option if:
-            // 1. The selected period includes at least one April
-            // 2. The start date is before or equal to the current FY start
-            const hasApril = Array.from({ length: monthsDiff + 1 }, (_, i) => {
-                const date = new Date(start);
-                date.setMonth(date.getMonth() + i);
-                return date.getMonth() === 3; // 3 is April (0-based months)
-            }).some(Boolean);
-            
-            currentFYAvailable = hasApril && start <= currentFYStart;
         }
     }
 
-    $: groupedData = processData(data, quantityType, searchType, selectedPeriod);
-
     function processData(data, quantityType, searchType, period) {
-        if (!data.length) return [];
+        if (!data?.length) return [];
 
-        let filteredData = data;
-        
-        if (period !== 'all') {
-            const endDate = new Date(dateRange.endDate);
-            let startDate;
+        let filteredData = data.map(item => ({
+            vtm_name: item.vmp__vtm__name || 'Unknown VTM',
+            vmp_name: item.vmp__name || 'Unknown VMP',
+            ingredient_name: item.vmp__vtm__name || 'Unknown Ingredient',
+            data: item.data || []
+        }));
 
-            switch (period) {
-                case 'year':
-                    startDate = new Date(endDate);
-                    startDate.setFullYear(endDate.getFullYear() - 1);
-                    break;
-                case 'month':
-                    startDate = new Date(endDate);
-                    startDate.setMonth(endDate.getMonth() - 1);
-                    break;
-                case 'fytd':
-                    startDate = new Date(endDate.getFullYear(), 3, 1); // April 1st
-                    if (endDate < startDate) {
-                        startDate.setFullYear(startDate.getFullYear() - 1);
-                    }
-                    break;
-            }
+        // Determine the latest month from the data
+        const allDates = filteredData.flatMap(item => 
+            item.data.map(([date]) => new Date(date))
+        ).sort((a, b) => b - a); // Sort descending
 
-            filteredData = data.filter(item => {
-                const itemDate = new Date(item.year_month);
-                return itemDate >= startDate && itemDate <= endDate;
-            });
-        }
+        const latestDate = allDates[0];
+        const latestMonth = latestDate ? latestDate.getMonth() : null;
+        const latestYear = latestDate ? latestDate.getFullYear() : null;
 
-        if (searchType === 'product') {
-            const groupedByVTM = filteredData.reduce((acc, item) => {
-                const vtmKey = item.vtm_name || 'Unknown Product group';
-                if (!acc[vtmKey]) {
-                    acc[vtmKey] = {
-                        total: 0,
-                        units: {}
-                    };
+        // Filter data based on selected period
+        filteredData = filteredData.map(item => ({
+            ...item,
+            data: item.data.filter(([date]) => {
+                const dataDate = new Date(date);
+
+                switch (period) {
+                    case 'latest_month':
+                        return dataDate.getMonth() === latestMonth &&
+                               dataDate.getFullYear() === latestYear;
+                    case 'latest_year':
+                        return dataDate.getFullYear() === latestYear;
+                    case 'current_fy':
+                        const fyStart = new Date(latestYear, 3, 1); // April 1st
+                        if (latestDate < fyStart) {
+                            fyStart.setFullYear(fyStart.getFullYear() - 1);
+                        }
+                        return dataDate >= fyStart && dataDate <= latestDate;
+                    default: // 'all'
+                        return true;
                 }
+            })
+        }));
 
-                const quantity = parseFloat(item.quantity) || 0;
-                acc[vtmKey].total += quantity;
-
-                if (!acc[vtmKey].units[item.unit]) {
-                    acc[vtmKey].units[item.unit] = 0;
-                }
-                acc[vtmKey].units[item.unit] += quantity;
-
-                return acc;
-            }, {});
-
-            return Object.entries(groupedByVTM)
-                .sort(([, a], [, b]) => b.total - a.total)
-                .map(([vtmName, data]) => ({
-                    key: vtmName,
-                    total: data.total,
-                    units: Object.entries(data.units)
-                        .sort(([, a], [, b]) => b - a)
-                        .map(([unit, quantity]) => ({ unit, quantity }))
-                }));
-        }
-        
-        // For other search types (ingredient), use original grouping
-        const groupedByType = filteredData.reduce((acc, item) => {
-            let groupKey;
-            groupKey = item.ingredient_name || 'Unknown Ingredient';
-
-            if (!acc[groupKey]) {
-                acc[groupKey] = {
+        // Group by the appropriate type
+        const groupedData = filteredData.reduce((acc, item) => {
+            const key = searchType === 'product' ? item.vtm_name : 
+                       searchType === 'vmp' ? item.vmp_name : 
+                       item.ingredient_name;
+            
+            if (!acc[key]) {
+                acc[key] = {
                     total: 0,
                     units: {}
                 };
             }
 
-            const quantity = parseFloat(item.quantity) || 0;
-            acc[groupKey].total += quantity;
+            // Process all data points
+            item.data.forEach(([date, quantity, unit]) => {
+                const parsedQuantity = parseFloat(quantity) || 0;
+                acc[key].total += parsedQuantity;
 
-            if (!acc[groupKey].units[item.unit]) {
-                acc[groupKey].units[item.unit] = 0;
-            }
-            acc[groupKey].units[item.unit] += quantity;
+                if (!acc[key].units[unit]) {
+                    acc[key].units[unit] = 0;
+                }
+                acc[key].units[unit] += parsedQuantity;
+            });
 
             return acc;
         }, {});
 
-        return Object.entries(groupedByType)
+        return Object.entries(groupedData)
             .sort(([, a], [, b]) => b.total - a.total)
             .map(([key, value]) => ({
                 key,
@@ -154,8 +119,10 @@
             }));
     }
 
+    $: groupedData = processData(data, quantityType, searchType, selectedPeriod);
+
     function formatNumber(number) {
-        return Math.round(number).toLocaleString('en-US');
+        return Math.round(number).toLocaleString('en-GB');
     }
 
     function formatDate(dateStr) {
@@ -164,19 +131,6 @@
             year: 'numeric', 
             month: 'short'
         });
-    }
-
-   
-
-    $: {
-        if (data.length > 0) {
-            console.log('Sample of incoming data:', {
-                total: data.length,
-                firstItem: data[0],
-                lastItem: data[data.length - 1],
-                dateRange
-            });
-        }
     }
 </script>
 
@@ -187,40 +141,16 @@
                 <h3 class="text-xl font-semibold">
                     Total {quantityType} by {searchType === 'vmp' || searchType === 'vtm' ? 'product' : searchType}
                 </h3>
-                {#if dateRange?.startDate && dateRange?.endDate}
-                    <p class="text-sm text-gray-500 mt-1">
-                        {#if selectedPeriod === 'all'}
-                            Totals calculated between {formatDate(dateRange.startDate)} and {formatDate(dateRange.endDate)}
-                        {:else if selectedPeriod === 'year'}
-                            Totals calculated between {formatDate(new Date(dateRange.endDate).setFullYear(new Date(dateRange.endDate).getFullYear() - 1))} and {formatDate(dateRange.endDate)}
-                        {:else if selectedPeriod === 'month'}
-                            Total for {formatDate(dateRange.endDate)}
-                        {:else if selectedPeriod === 'fytd'}
-                            {#if new Date(dateRange.endDate).getMonth() >= 3}
-                                Totals calculated between {formatDate(new Date(new Date(dateRange.endDate).getFullYear(), 3, 1))} and {formatDate(dateRange.endDate)}
-                            {:else}
-                                Totals calculated between {formatDate(new Date(new Date(dateRange.endDate).getFullYear() - 1, 3, 1))} and {formatDate(dateRange.endDate)}
-                            {/if}
-                        {/if}
-                    </p>
-                {/if}
             </div>
             <div class="flex items-center space-x-2">
-                <select 
-                    id="period-select"
+                <select
                     bind:value={selectedPeriod}
-                    class="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-oxford-500"
+                    class="form-select rounded-md border-gray-300 shadow-sm focus:border-oxford-500 focus:ring-oxford-500"
                 >
-                    <option value="all">Entire period</option>
-                    {#if latestMonthAvailable}
-                        <option value="month">Latest month</option>
-                    {/if}
-                    {#if latestYearAvailable}
-                        <option value="year">Latest year</option>
-                    {/if}
-                    {#if currentFYAvailable}
-                        <option value="fytd">Financial year to date</option>
-                    {/if}
+                    <option value="all">All time</option>
+                    <option value="latest_month">Latest month ({latestMonth})</option>
+                    <option value="latest_year">Latest year ({latestYear})</option>
+                    <option value="current_fy">Financial year ({currentFY})</option>
                 </select>
             </div>
         </div>
@@ -236,7 +166,7 @@
                             {:else if searchType === 'ingredient'}
                                 Ingredient
                             {:else}
-                                
+                                Product
                             {/if}
                         </th>
                         <th class="py-3 px-6 text-left">Unit</th>

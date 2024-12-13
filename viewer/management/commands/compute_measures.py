@@ -1,309 +1,393 @@
-import numpy as np
+import math
+
+from django.db.models import F
+from tqdm import tqdm
+from django.db.models import Case, When, IntegerField, CharField
 from django.core.management.base import BaseCommand
-from django.db import transaction
-from django.db.models import Avg, Min, Max, Sum
-from viewer.models import Measure, PrecomputedMeasure, PrecomputedMeasureAggregated, Organisation, PrecomputedPercentile, VMP, MeasureVMP
-from viewer.measures.measure_utils import execute_measure_sql
-from collections import defaultdict
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
+
+from viewer.models import (
+    Measure,
+    MeasureVMP, 
+    PrecomputedMeasure, 
+    PrecomputedMeasureAggregated, 
+    PrecomputedPercentile,
+    Dose,
+    IngredientQuantity,
+    Organisation
+)
+
 
 class Command(BaseCommand):
-    help = 'Compute and store measures in the database'
+    help = 'Populates MeasureVMP instances for a given measure based on SQL file'
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--measure',
-            type=str,
-            help='Specify a measure to compute. If not provided, all measures will be computed.'
-        )
+        parser.add_argument('measure_name', type=str, help='Short name of the measure')
 
     def handle(self, *args, **kwargs):
-        measure_name = kwargs.get('measure')
-        if measure_name:
-            measures = Measure.objects.filter(short_name=measure_name)
-            if not measures.exists():
-                self.stdout.write(self.style.ERROR(f"Measure {measure_name} does not exist."))
-                return
-        else:
-            measures = Measure.objects.all()
+        measure_name = kwargs.get('measure_name')
+        
+        try:
+            measure = Measure.objects.get(short_name=measure_name)
+        except Measure.DoesNotExist:
+            self.stdout.write(
+                self.style.ERROR(f'Measure with short name "{measure_name}" does not exist')
+            )
+            return
 
-        for measure in measures:
-            self.stdout.write(f"Computing measure: {measure.name}")
+        def delete_existing_precomputed_data(measure):
+            PrecomputedMeasure.objects.filter(measure=measure).delete()
+            PrecomputedMeasureAggregated.objects.filter(measure=measure).delete()
+            PrecomputedPercentile.objects.filter(measure=measure).delete()
+            self.stdout.write(f"Deleted existing precomputed data for measure: {measure.name}")
+
+        delete_existing_precomputed_data(measure)
+
+        # Map quantity_type string to actual model
+        model_mapping = {
+            'dose': Dose,
+            'ingredient': IngredientQuantity
+        }
+
+        model = model_mapping.get(measure.quantity_type)
+        if not model:
+            self.stdout.write(
+                self.style.ERROR(f'Invalid quantity_type: {measure.quantity_type}')
+            )
+            return
+
+        org_successor_map = {}
+        org_icb_map = {}
+        org_region_map = {}
+
+        for org in Organisation.objects.all():
+            if org.successor:
+                org_successor_map[org.id] = org.successor.id
+            else:
+                org_successor_map[org.id] = org.id
+
+            org_icb_map[org.id] = org.icb
+            org_region_map[org.id] = org.region
+
+        
+
+        subset = model.objects.filter(vmp__in=measure.vmps.all())
+
+        # annotate with the icb and region
+        subset = subset.annotate(icb=F('organisation__icb'), region=F('organisation__region'))
+        
+        # annotate with the successor id (if an org has no successor, set it to itself)
+        subset = subset.annotate(
+            normalised_org_id=Case(
+                When(organisation__successor_id__isnull=True, then=F('organisation_id')),
+                default=F('organisation__successor_id'),
+                output_field=IntegerField(),
+            ),
+            # normalised icb is the icb of the successor if it has one, otherwise the icb of the org
+            normalised_icb_id=Case(
+                When(organisation__successor__icb__isnull=True, then=F('organisation__icb')),
+                default=F('organisation__successor__icb'),
+                output_field=CharField(),
+            ),
+            # normalised region is the region of the successor if it has one, otherwise the region of the org
+            normalised_region_id=Case(
+                When(organisation__successor__region__isnull=True, then=F('organisation__region')),
+                default=F('organisation__successor__region'),
+                output_field=CharField(),
+            )
+        )
+
+
+        measure_orgs = subset.values_list('normalised_org_id', flat=True).distinct()
+        measure_icbs = subset.values_list('normalised_icb_id', flat=True).distinct()
+        measure_regions = subset.values_list('normalised_region_id', flat=True).distinct()  
+        
+
+        # get the measurevmps associated with this measure
+        measurevmps = MeasureVMP.objects.filter(measure=measure)
+
+        def get_consistent_unit(queryset):
+            """
+            Get the consistent unit from a queryset's data arrays.
+            Raises ValueError if units are inconsistent.
+            """
+            first_unit = None
+            for record in queryset:
+                for entry in record.data or []:
+                    if len(entry) >= 3 and entry[2]:  # if unit exists
+                        if first_unit is None:
+                            first_unit = entry[2]
+                        elif entry[2] != first_unit:
+                            raise ValueError(f"Inconsistent units found: {first_unit} vs {entry[2]}")
+            return first_unit
+
+        # Add this after getting the measurevmps
+        for measurevmp in measurevmps:
+            # Get all quantity records for this VMP
+            vmp_records = subset.filter(vmp=measurevmp.vmp)
+            
             try:
-                with transaction.atomic():
-                    self.delete_existing_precomputed_data(measure)
-
-                    result = execute_measure_sql(measure.name)
-                    values = result['values']
-                    measure_values = values['measure_values']
-                
-                    active_orgs = {
-                        row['organisation'] for row in measure_values 
-                        if (row['numerator'] or row['denominator']) and 
-                        not (row['numerator'] == 0 and row['denominator'] == 0)
-                    }
-                    
-                    measure_values = [
-                        row for row in measure_values 
-                        if row['organisation'] in active_orgs
-                    ]
-
-                    numerator_vmps = values.get('numerator_vmps', [])
-                    denominator_vmps = values.get('denominator_vmps', [])
-                    
-                    vmp_dict = {
-                        vmp.code: vmp 
-                        for vmp in VMP.objects.filter(
-                            code__in=set(numerator_vmps + denominator_vmps)
-                        )
-                    }
-
-                    MeasureVMP.objects.filter(measure=measure).delete()
-
-                    measure_vmps = []
-
-                    for code in numerator_vmps:
-                        if code in vmp_dict:
-                            if measure.quantity_type == 'dose':
-                                unit = (
-                                    vmp_dict[code].doses.values('unit')
-                                    .distinct()
-                                    .first()
-                                )
-                            else:
-                                unit = (
-                                    vmp_dict[code].ingredient_quantities.values('unit')
-                                    .distinct()
-                                    .first()
-                                )
-                            measure_vmps.append(
-                                MeasureVMP(
-                                    measure=measure,
-                                    vmp=vmp_dict[code],
-                                    type='numerator',
-                                    unit=unit['unit'] if unit else None
-                                )
-                            )
-                    
-
-                    for code in denominator_vmps:
-                        if code in vmp_dict:
-                            if measure.quantity_type == 'dose':
-                                unit = (
-                                    vmp_dict[code].doses.values('unit')
-                                    .distinct()
-                                    .first()
-                                )
-                            else:
-                                unit = (
-                                    vmp_dict[code].ingredient_quantities.values('unit')
-                                    .distinct()
-                                    .first()
-                                )
-                            measure_vmps.append(
-                                MeasureVMP(
-                                    measure=measure,
-                                    vmp=vmp_dict[code],
-                                    type='denominator',
-                                    unit=unit['unit'] if unit else None
-                                )
-                            )
-       
-                    MeasureVMP.objects.bulk_create(measure_vmps)
-                    
-                    org_data = defaultdict(lambda: defaultdict(lambda: {'numerator': None, 'denominator': None}))
-
-                    for row in measure_values:
-                        month = datetime.strptime(row['month'], "%Y-%m").strftime("%Y-%m-%d")
-                        org_data[row['organisation']][month]['numerator'] = row['numerator']
-                        org_data[row['organisation']][month]['denominator'] = row['denominator']
-
-                    org_ods_names = set(org_data.keys())
-                    organisations = {org.ods_name: org for org in Organisation.objects.filter(ods_name__in=org_ods_names)}
-
-                    precomputed_measures = []
-                    for org, months in org_data.items():
-                        organisation = organisations.get(org)
-                        if organisation:
-                            for month, data in months.items():
-                                numerator = data['numerator']
-                                denominator = data['denominator']
-
-                                if denominator and denominator != 0:
-                                    quantity = numerator / denominator
-                                elif denominator and denominator == 0:
-                                    quantity = 0
-                                else:
-                                    quantity = None
-                                    
-                                precomputed_measure = PrecomputedMeasure(
-                                    measure=measure,
-                                    organisation=organisation,
-                                    month=month,
-                                    numerator=numerator,
-                                    denominator=denominator,
-                                    quantity=quantity
-                                )
-                                precomputed_measures.append(precomputed_measure)
-
-                    PrecomputedMeasure.objects.bulk_create(
-                        precomputed_measures,
-                        update_conflicts=True,
-                        update_fields=['numerator', 'denominator', 'quantity'],
-                        unique_fields=['measure', 'organisation', 'month'],
-                        batch_size=100
+                unit = get_consistent_unit(vmp_records)
+                if unit:
+                    measurevmp.unit = unit
+                    measurevmp.save()
+                else:
+                    self.stdout.write(
+                        self.style.WARNING(f'No unit found for VMP: {measurevmp.vmp.name}')
                     )
-
-                self.calculate_and_store_aggregations(measure)
-                self.calculate_and_store_percentiles(measure)
-
-                self.stdout.write(self.style.SUCCESS(f"Successfully computed measure: {measure.name}"))
-            except Exception as e:
-                self.stdout.write(self.style.ERROR(f"Error computing measure {measure.name}: {str(e)}"))
-                self.stdout.write(self.style.ERROR(f"Result keys: {result.keys() if 'result' in locals() else 'Result not available'}"))
-
-    def delete_existing_precomputed_data(self, measure):
-        PrecomputedMeasure.objects.filter(measure=measure).delete()
-        PrecomputedMeasureAggregated.objects.filter(measure=measure).delete()
-        PrecomputedPercentile.objects.filter(measure=measure).delete()
-        self.stdout.write(f"Deleted existing precomputed data for measure: {measure.name}")
-
-    def calculate_and_store_aggregations(self, measure):
-        region_aggregations = (
-            PrecomputedMeasure.objects
-            .filter(measure=measure)
-            .values('organisation__region', 'month')
-            .annotate(
-                numerator_sum=Sum('numerator'),
-                denominator_sum=Sum('denominator')
-            )
-        )
-
-        icb_aggregations = (
-            PrecomputedMeasure.objects
-            .filter(measure=measure)
-            .values('organisation__icb', 'month')
-            .annotate(
-                numerator_sum=Sum('numerator'),
-                denominator_sum=Sum('denominator')
-            )
-        )
-
-        national_aggregations = (
-            PrecomputedMeasure.objects
-            .filter(measure=measure)
-            .values('month')
-            .annotate(
-                numerator_sum=Sum('numerator'),
-                denominator_sum=Sum('denominator')
-            )
-        )
-
-        aggregated_measures = []
-
-        for agg in region_aggregations:
-            quantity = agg['numerator_sum'] / agg['denominator_sum'] if agg['denominator_sum'] and agg['denominator_sum'] != 0 else None
-            aggregated_measures.append(
-                PrecomputedMeasureAggregated(
-                    measure=measure,
-                    label=agg['organisation__region'],
-                    month=agg['month'],
-                    numerator=agg['numerator_sum'],
-                    denominator=agg['denominator_sum'],
-                    quantity=quantity,
-                    category='region'
+            except ValueError as e:
+                self.stdout.write(
+                    self.style.ERROR(f'Error setting unit for VMP {measurevmp.vmp.name}: {str(e)}')
                 )
-            )
 
-        for agg in icb_aggregations:
-            quantity = agg['numerator_sum'] / agg['denominator_sum'] if agg['denominator_sum'] and agg['denominator_sum'] != 0 else None
-            aggregated_measures.append(
-                PrecomputedMeasureAggregated(
+        numerator_vmps = measurevmps.filter(type='numerator').values_list('vmp', flat=True)
+        denominator_vmps = measurevmps.values_list('vmp', flat=True)
+
+        def get_monthly_sums(queryset):
+            monthly_sums = {}
+            for record in queryset:
+                for entry in record.data or []:
+                    month = entry[0]
+                    if entry[1]:  # if quantity exists
+                        if month not in monthly_sums:
+                            monthly_sums[month] = 0
+                        monthly_sums[month] += float(entry[1])
+            return monthly_sums
+
+        # Calculate sums for numerator and denominator
+        numerator_records = subset.filter(vmp__in=numerator_vmps)
+        denominator_records = subset.filter(vmp__in=denominator_vmps)
+
+        org_values = {}
+
+        for org_id in measure_orgs:
+            # Get monthly sums for numerator
+            num_monthly = get_monthly_sums(
+                numerator_records.filter(normalised_org_id=org_id)
+            )
+            
+            # Get monthly sums for denominator
+            den_monthly = get_monthly_sums(
+                denominator_records.filter(normalised_org_id=org_id)
+            )
+            
+
+            # Initialize org dictionary if not exists
+            if org_id not in org_values:
+                org_values[org_id] = {}
+            
+            # For each month that appears in either numerator or denominator
+            all_months = set(num_monthly.keys()) | set(den_monthly.keys())
+            for month in all_months:
+                num_value = num_monthly.get(month, 0)
+                den_value = den_monthly.get(month, 0)
+                
+                org_values[org_id][month] = {
+                    "numerator": num_value,
+                    "denominator": den_value,
+                    "value": num_value / den_value if den_value else 0
+                }
+        
+
+        # populate precomputed measures
+        precomputed_measures = []
+        for org_id, values in tqdm(org_values.items()):
+            for month, value in values.items():
+                precomputed_measures.append(
+                    PrecomputedMeasure(
+                        measure=measure,
+                        organisation=Organisation.objects.get(id=org_id),
+                        month=month,
+                        numerator=value["numerator"],
+                        denominator=value["denominator"],
+                        quantity=value["value"]
+                    )
+                )
+        
+        PrecomputedMeasure.objects.bulk_create(precomputed_measures)
+        self.stdout.write(
+            self.style.SUCCESS(f'Successfully created {len(precomputed_measures)} precomputed measures')
+        )
+
+        # Calculate percentiles
+        precomputed_percentiles = []
+        
+        # Get all months across all data
+        all_months = set()
+        for org_data in org_values.values():
+            all_months.update(org_data.keys())
+        
+        # Ensure every org has every month
+        for org_id in measure_orgs:
+            if org_id not in org_values:
+                org_values[org_id] = {}
+            
+            # Add missing months with zero values
+            for month in all_months:
+                if month not in org_values[org_id]:
+                    org_values[org_id][month] = {
+                        "numerator": 0,
+                        "denominator": 0,
+                        "value": 0
+                    }
+        
+        # For each month, calculate percentiles
+        for month in all_months:
+            # Get ALL values for this month (convert None to 0)
+            month_values = [
+                org_data[month]['value'] if org_data[month]['value'] is not None else 0
+                for org_data in org_values.values()
+            ]
+            
+            # Now all values will be numbers, so sort will work
+            month_values.sort()
+            n = len(month_values)
+            
+            # Calculate percentiles from 5 to 95 in steps of 10 (but also include 50)
+            for percentile in [5, 15, 25, 35, 45, 50, 55, 65, 75, 85, 95]:
+                # Calculate index for this percentile
+                k = (n - 1) * (percentile / 100)
+                f = math.floor(k)
+                c = math.ceil(k)
+                
+                if f == c:
+                    value = month_values[int(k)]
+                else:
+                    # Interpolate when k is not an integer
+                    d0 = month_values[int(f)] * (c - k)
+                    d1 = month_values[int(c)] * (k - f)
+                    value = d0 + d1
+                
+                precomputed_percentiles.append(
+                    PrecomputedPercentile(
+                        measure=measure,
+                        month=month,
+                        percentile=percentile,
+                        quantity=value
+                    )
+                )
+        
+        # Bulk create all percentile records
+        PrecomputedPercentile.objects.bulk_create(precomputed_percentiles)
+        self.stdout.write(
+            self.style.SUCCESS(f'Successfully created {len(precomputed_percentiles)} percentile records')
+        )
+
+
+        icb_values = {}
+
+        for icb_id in measure_icbs:
+            # Get monthly sums for numerator
+            num_monthly = get_monthly_sums(
+                numerator_records.filter(normalised_icb_id=icb_id)
+            )
+            
+            # Get monthly sums for denominator
+            den_monthly = get_monthly_sums(
+                denominator_records.filter(normalised_icb_id=icb_id)
+            )
+            
+
+            # Initialize org dictionary if not exists
+            if icb_id not in icb_values:
+                icb_values[icb_id] = {}
+            
+            # For each month that appears in either numerator or denominator
+            all_months = set(num_monthly.keys()) | set(den_monthly.keys())
+            for month in all_months:
+                num_value = num_monthly.get(month, 0)
+                den_value = den_monthly.get(month, 0)
+                
+                icb_values[icb_id][month] = {
+                    "numerator": num_value,
+                    "denominator": den_value,
+                    "value": num_value / den_value if den_value else None
+                }
+        
+        for label, values in icb_values.items():
+            for month, value in values.items():
+                PrecomputedMeasureAggregated.objects.create(
                     measure=measure,
-                    label=agg['organisation__icb'],
-                    month=agg['month'],
-                    numerator=agg['numerator_sum'],
-                    denominator=agg['denominator_sum'],
-                    quantity=quantity,
+                    label=label,
+                    month=month,
+                    numerator=value["numerator"],
+                    denominator=value["denominator"],
+                    quantity=value["value"],
                     category='icb'
                 )
-            )
 
-        for agg in national_aggregations:
-            quantity = agg['numerator_sum'] / agg['denominator_sum'] if agg['denominator_sum'] and agg['denominator_sum'] != 0 else None
-            aggregated_measures.append(
-                PrecomputedMeasureAggregated(
+        region_values = {}
+
+        for region_id in measure_regions:
+            # Get monthly sums for numerator
+            num_monthly = get_monthly_sums(
+                numerator_records.filter(normalised_region_id=region_id)
+            )
+            
+            # Get monthly sums for denominator
+            den_monthly = get_monthly_sums(
+                denominator_records.filter(normalised_region_id=region_id)
+            )
+            
+
+            # Initialize org dictionary if not exists
+            if region_id not in region_values:
+                region_values[region_id] = {}
+            
+            # For each month that appears in either numerator or denominator
+            all_months = set(num_monthly.keys()) | set(den_monthly.keys())
+            for month in all_months:
+                num_value = num_monthly.get(month, 0)
+                den_value = den_monthly.get(month, 0)
+                
+                region_values[region_id][month] = {
+                    "numerator": num_value,
+                    "denominator": den_value,
+                    "value": num_value / den_value if den_value else None
+                }
+        
+        for label, values in region_values.items():
+            for month, value in values.items():
+                PrecomputedMeasureAggregated.objects.create(
                     measure=measure,
-                    label='National',
-                    month=agg['month'],
-                    numerator=agg['numerator_sum'],
-                    denominator=agg['denominator_sum'],
-                    quantity=quantity,
-                    category='national'
+                    label=label,
+                    month=month,
+                    numerator=value["numerator"],
+                    denominator=value["denominator"],
+                    quantity=value["value"],
+                    category='region'
                 )
-            )
 
-        with transaction.atomic():
-            PrecomputedMeasureAggregated.objects.bulk_create(
-                aggregated_measures,
-                update_conflicts=True,
-                update_fields=['numerator', 'denominator', 'quantity'],
-                unique_fields=['measure', 'category', 'label', 'month'],
-                batch_size=100
-            )
+        national_values = {}
 
-    def calculate_and_store_percentiles(self, measure):
-        date_range = PrecomputedMeasure.objects.filter(measure=measure).aggregate(
-            min_date=Min('month'),
-            max_date=Max('month')
+        num_monthly = get_monthly_sums(
+                numerator_records
+            )
+            
+        # Get monthly sums for denominator
+        den_monthly = get_monthly_sums(
+            denominator_records
         )
         
-        min_date, max_date = date_range['min_date'], date_range['max_date']
-        
-        all_months = [min_date + relativedelta(months=i) for i in range((max_date.year - min_date.year) * 12 + max_date.month - min_date.month + 1)]
-
-        percentile_values = [5, 15, 25, 35, 45, 50, 55, 65, 75, 85, 95]
-        
-        percentiles_to_create = []
-
+        # For each month that appears in either numerator or denominator
+        all_months = set(num_monthly.keys()) | set(den_monthly.keys())
         for month in all_months:
-            values = PrecomputedMeasure.objects.filter(
-                measure=measure,
-                month=month,
-                quantity__isnull=False
-            ).values_list('quantity', flat=True)
-
-            values = list(filter(None, values))
+            num_value = num_monthly.get(month, 0)
+            den_value = den_monthly.get(month, 0)
             
-            if values:
-                percentile_results = np.percentile(values, percentile_values)
-                
-                for percentile, value in zip(percentile_values, percentile_results):
-                    percentiles_to_create.append(
-                        PrecomputedPercentile(
-                            measure=measure,
-                            month=month,
-                            percentile=percentile,
-                            quantity=value
-                        )
-                    )
-            else:
-                for percentile in percentile_values:
-                    percentiles_to_create.append(
-                        PrecomputedPercentile(
-                            measure=measure,
-                            month=month,
-                            percentile=percentile,
-                            quantity=0
-                        )
-                    )
+            national_values[month] = {
+                "numerator": num_value,
+                "denominator": den_value,
+                "value": num_value / den_value if den_value else None
+            }
 
-        with transaction.atomic():
-            PrecomputedPercentile.objects.bulk_create(
-                percentiles_to_create,
-                update_conflicts=True,
-                update_fields=['quantity'],
-                unique_fields=['measure', 'month', 'percentile'],
-                batch_size=100
+        for month, value in national_values.items():
+            PrecomputedMeasureAggregated.objects.create(
+                measure=measure,
+                label='National',
+                month=month,
+                numerator=value["numerator"],
+                denominator=value["denominator"],
+                quantity=value["value"],
+                category='national'
             )
+

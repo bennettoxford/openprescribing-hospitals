@@ -42,23 +42,40 @@ class OrganisationAdmin(admin.ModelAdmin):
 
 @admin.register(Dose)
 class DoseAdmin(admin.ModelAdmin):
-    list_display = ("year_month", "vmp", "quantity", "unit", "organisation")
-    list_filter = ("year_month", "unit", "organisation")
-    search_fields = ("vmp__name", "organisation__ods_name")
+    list_display = ('vmp', 'organisation', 'get_latest_quantity', 'get_latest_unit')
+    list_filter = ('vmp', 'organisation')
+    search_fields = ('vmp__name', 'organisation__ods_name')
+
+    def get_latest_quantity(self, obj):
+        if obj.data and len(obj.data) > 0:
+            return obj.data[-1][1]
+        return None
+    get_latest_quantity.short_description = 'Latest Quantity'
+
+    def get_latest_unit(self, obj):
+        if obj.data and len(obj.data) > 0:
+            return obj.data[-1][2]
+        return None
+    get_latest_unit.short_description = 'Latest Unit'
 
 
 @admin.register(IngredientQuantity)
 class IngredientQuantityAdmin(admin.ModelAdmin):
-    list_display = (
-        "year_month",
-        "ingredient",
-        "vmp",
-        "quantity",
-        "unit",
-        "organisation",
-    )
-    list_filter = ("year_month", "unit", "organisation")
-    search_fields = ("ingredient__name", "vmp__name", "organisation__ods_name")
+    list_display = ('ingredient', 'vmp', 'organisation', 'get_latest_quantity', 'get_latest_unit')
+    list_filter = ('ingredient', 'vmp', 'organisation')
+    search_fields = ('ingredient__name', 'vmp__name', 'organisation__ods_name')
+
+    def get_latest_quantity(self, obj):
+        if obj.data and len(obj.data) > 0:
+            return obj.data[-1][1]
+        return None
+    get_latest_quantity.short_description = 'Latest Quantity'
+
+    def get_latest_unit(self, obj):
+        if obj.data and len(obj.data) > 0:
+            return obj.data[-1][2]
+        return None
+    get_latest_unit.short_description = 'Latest Unit'
 
 
 @admin.register(Measure)

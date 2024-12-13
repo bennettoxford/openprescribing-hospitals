@@ -15,6 +15,7 @@ from viewer.models import (
     DataStatus,
     SCMDQuantity,
     Route,
+    OntFormRoute,
 )
 import glob
 from tqdm import tqdm
@@ -36,6 +37,7 @@ class Command(BaseCommand):
         self.load_ingredient_quantity(data_dir)
         self.load_data_status(data_dir)
         self.load_route(data_dir)
+        self.load_ont_form_route(data_dir)
 
         self.stdout.write(self.style.SUCCESS(
             "Successfully loaded all data into the database"))
@@ -100,7 +102,9 @@ class Command(BaseCommand):
             inplace=True)
         vmps["code"] = vmps["code"].astype(int).astype(str)
 
+        # there is a row for every vmp-ingredient pair, so we need to drop duplicates
         vmps_dropped_duplicates = vmps.drop_duplicates(subset=["code"])
+
 
         vmps_dropped_duplicates = vmps_dropped_duplicates.to_dict(
             orient="records")
@@ -110,6 +114,9 @@ class Command(BaseCommand):
             [VMP(code=vmp["code"], name=vmp["name"]) for vmp in vmps_dropped_duplicates]
         )
 
+        vmp_code_to_id = dict(VMP.objects.values_list('code', 'id'))
+        ingredient_code_to_id = dict(Ingredient.objects.values_list('code', 'id'))
+
         # Prepare ingredient and VTM relationships
         ingredient_relations = []
         vtm_updates = []
@@ -117,10 +124,12 @@ class Command(BaseCommand):
         for _, row in vmps.iterrows():
             if pd.notnull(row["ingredient"]):
                 ing = str(int(row["ingredient"]))
-                ingredient_relations.append(
-                    VMP.ingredients.through(
-                        vmp_id=row["code"],
-                        ingredient_id=ing))
+                if row["code"] in vmp_code_to_id and ing in ingredient_code_to_id:
+                    ingredient_relations.append(
+                        VMP.ingredients.through(
+                            vmp_id=vmp_code_to_id[row["code"]],
+                            ingredient_id=ingredient_code_to_id[ing])
+                    )
 
             if pd.notnull(row["vtm"]):
                 vtm = str(int(row["vtm"]))
@@ -133,11 +142,11 @@ class Command(BaseCommand):
             )
 
         # Bulk update VTMs
-        vtm_map = {vtm.vtm: vtm.vtm for vtm in VTM.objects.all()}
+        vtm_map = dict(VTM.objects.values_list('vtm', 'id'))
         vmp_objects = []
         for update in vtm_updates:
             if update["vtm"] in vtm_map:
-                vmp = VMP(code=update["code"])
+                vmp = VMP.objects.get(code=update["code"])
                 vmp.vtm_id = vtm_map[update["vtm"]]
                 vmp_objects.append(vmp)
 
@@ -157,7 +166,7 @@ class Command(BaseCommand):
         # First pass: Create all organisations without setting successors
         org_objects = [
             Organisation(
-                ods_code=org["ods_code"], ods_name=org["ods_name"], region=org["region"]
+                ods_code=org["ods_code"], ods_name=org["ods_name"], region=org["region"], icb=org["icb"]
             )
             for org in organisations.to_dict(orient="records")
         ]
@@ -167,37 +176,24 @@ class Command(BaseCommand):
                 org_objects, ignore_conflicts=True)
 
         # Second pass: Update successor relationships
-        successor_updates = []
         for org in organisations.to_dict(orient="records"):
-            if org["successor_ods_code"] and not pd.isna(
-                    org["successor_ods_code"]):
-                # Check if the successor exists
-                if Organisation.objects.filter(
-                    ods_code=org["successor_ods_code"]
-                ).exists():
-                    successor_updates.append(
-                        Organisation(
-                            ods_code=org["ods_code"],
-                            successor_id=org["successor_ods_code"],
-                        )
-                    )
-                else:
-                    print(org)
+            if org["successor_ods_code"] and not pd.isna(org["successor_ods_code"]):
+                # Check if both organisations exist
+                try:
+                    current_org = Organisation.objects.get(ods_code=org["ods_code"])
+                    successor_org = Organisation.objects.get(ods_code=org["successor_ods_code"])
+                    current_org.successor = successor_org
+                    current_org.save()
+                except Organisation.DoesNotExist:
                     self.stdout.write(
                         self.style.WARNING(
-                            f"Successor {org['successor_ods_code']} for {org['ods_code']} not found. Skipping."
+                            f"Organisation {org['ods_code']} or its successor {org['successor_ods_code']} not found. Skipping."
                         )
                     )
-
-        if successor_updates:
-            with transaction.atomic():
-                Organisation.objects.bulk_update(
-                    successor_updates, ["successor"], batch_size=100
-                )
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Loaded {len(org_objects)} Organisations and updated {len(successor_updates)} successor relationships"
+                f"Loaded {len(org_objects)} Organisations and updated successor relationships"
             )
         )
 
@@ -229,19 +225,20 @@ class Command(BaseCommand):
         route_objects = [Route(code=route["code"], name=route["name"]) for route in unique_routes]
         Route.objects.bulk_create(route_objects, ignore_conflicts=True)
 
-        # Get existing VMP codes
-        existing_vmp_codes = set(VMP.objects.values_list('code', flat=True))
+        # Get existing VMP codes and Route codes with their IDs
+        vmp_code_to_id = dict(VMP.objects.values_list('code', 'id'))
+        route_code_to_id = dict(Route.objects.values_list('code', 'id'))
 
         # Add routes to VMPs
         vmp_route_relations = []
         for _, row in routes.iterrows():
             if pd.notnull(row["vmp_code"]):
                 vmp_code = str(int(row["vmp_code"]))
-                if vmp_code in existing_vmp_codes:
+                if vmp_code in vmp_code_to_id and row["code"] in route_code_to_id:
                     vmp_route_relations.append(
                         VMP.routes.through(
-                            vmp_id=vmp_code,
-                            route_id=row["code"]
+                            vmp_id=vmp_code_to_id[vmp_code],
+                            route_id=route_code_to_id[row["code"]]
                         )
                     )
 
@@ -259,60 +256,64 @@ class Command(BaseCommand):
 
     def load_dose(self, directory):
         doses = self.load_monthly_csv(
-            os.path.join(
-                directory,
-                "dose_quantity"),
+            os.path.join(directory, "dose_quantity"),
             "*.csv")
         doses["vmp_code"] = doses["vmp_code"].astype(int).astype(str)
 
-        organisations = {
-            org.ods_code: org for org in Organisation.objects.all()}
-        vmps = {vmp.code: vmp for vmp in VMP.objects.all()}
+        # Get mappings using IDs
+        organisations = dict(Organisation.objects.values_list('ods_code', 'id'))
+        vmps = dict(VMP.objects.values_list('code', 'id'))
 
-        # Filter out rows with missing org or vmp
-        valid_doses = doses[doses["ods_code"].isin(
-            organisations) & doses["vmp_code"].isin(vmps)]
+        # Filter valid doses and group by vmp and organisation
+        valid_doses = doses[doses["ods_code"].isin(organisations) & doses["vmp_code"].isin(vmps)]
+        grouped = valid_doses.groupby(['vmp_code', 'ods_code'])
 
         batch_size = 1000
         total_doses = 0
+        dose_objects = []
 
-        with tqdm(total=len(valid_doses), desc="Processing Dose") as pbar:
-            for batch in self.batch_iterator(
-                valid_doses.itertuples(index=False), batch_size
-            ):
-                dose_objects = []
-
-                for row in batch:
-                    # Only create dose object if both quantity and unit are not null
+        with tqdm(total=len(grouped), desc="Processing Dose") as pbar:
+            for (vmp_code, ods_code), group in grouped:
+                # Create array of [year_month, quantity, unit] for each group
+                data_array = []
+                for _, row in group.iterrows():
                     if pd.notnull(row.dose_quantity) and pd.notnull(row.dose_unit):
-                        year_month = datetime.strptime(
-                            row.year_month, "%Y-%m-%d").date()
-                        vmp = vmps[row.vmp_code]
-                        org = organisations[row.ods_code]
-
-                        dose_objects.append(
-                            Dose(
-                                year_month=year_month,
-                                vmp=vmp,
-                                quantity=float(row.dose_quantity),
-                                unit=row.dose_unit,
-                                organisation=org,
-                            )
+                        data_array.append([
+                            row.year_month,
+                            str(float(row.dose_quantity)),
+                            row.dose_unit
+                        ])
+                
+                if data_array:  # Only create object if there's data
+                    dose_objects.append(
+                        Dose(
+                            vmp_id=vmps[vmp_code],
+                            organisation_id=organisations[ods_code],
+                            data=data_array
                         )
+                    )
 
+                if len(dose_objects) >= batch_size:
+                    with transaction.atomic():
+                        try:
+                            Dose.objects.bulk_create(dose_objects, ignore_conflicts=True)
+                            total_doses += len(dose_objects)
+                        except Exception as e:
+                            self.stdout.write(self.style.ERROR(f"Error creating batch: {str(e)}"))
+                    dose_objects = []
+                
+                pbar.update(1)
+
+            # Create any remaining objects
+            if dose_objects:
                 with transaction.atomic():
                     try:
-                        Dose.objects.bulk_create(dose_objects)
+                        Dose.objects.bulk_create(dose_objects, ignore_conflicts=True)
                         total_doses += len(dose_objects)
                     except Exception as e:
-                        self.stdout.write(
-                            self.style.ERROR(f"Error creating batch: {str(e)}")
-                        )
+                        self.stdout.write(self.style.ERROR(f"Error creating batch: {str(e)}"))
 
-                pbar.update(len(batch))
-
-        self.stdout.write(self.style.SUCCESS(
-            f"Loaded {total_doses} Doses"))
+        self.stdout.write(self.style.SUCCESS(f"Loaded {total_doses} Doses"))
 
     def batch_iterator(self, iterable, batch_size):
         iterator = iter(iterable)
@@ -326,19 +327,16 @@ class Command(BaseCommand):
         ingredient_quantities = self.load_monthly_csv(
             os.path.join(directory, "ingredient_quantity"), "*.csv"
         )
-        ingredient_quantities["vmp_code"] = (
-            ingredient_quantities["vmp_code"].astype(int).astype(str)
+        ingredient_quantities["vmp_code"] = ingredient_quantities["vmp_code"].astype(int).astype(str)
+        ingredient_quantities["ingredient_code"] = ingredient_quantities["ingredient_code"].apply(
+            lambda x: str(int(x)) if pd.notnull(x) else x
         )
-        ingredient_quantities["ingredient_code"] = ingredient_quantities[
-            "ingredient_code"
-        ].apply(lambda x: str(int(x)) if pd.notnull(x) else x)
 
-        organisations = {
-            org.ods_code: org for org in Organisation.objects.all()}
-        vmps = {vmp.code: vmp for vmp in VMP.objects.all()}
-        ingredients = {ing.code: ing for ing in Ingredient.objects.all()}
+        # Get mappings using IDs
+        organisations = dict(Organisation.objects.values_list('ods_code', 'id'))
+        vmps = dict(VMP.objects.values_list('code', 'id'))
+        ingredients = dict(Ingredient.objects.values_list('code', 'id'))
 
-        # Filter out rows with missing org, vmp, or ingredient
         valid_iq = ingredient_quantities[
             ingredient_quantities["ods_code"].isin(organisations)
             & ingredient_quantities["vmp_code"].isin(vmps)
@@ -347,42 +345,54 @@ class Command(BaseCommand):
 
         batch_size = 1000
         total_iq = 0
+        iq_objects = []
 
-        with tqdm(total=len(valid_iq), desc="Processing IngredientQuantities") as pbar:
-            for batch in self.batch_iterator(
-                valid_iq.itertuples(index=False), batch_size
-            ):
-                iq_objects = []
+        # Group by ingredient, vmp, and organisation
+        grouped = valid_iq.groupby(['ingredient_code', 'vmp_code', 'ods_code'])
 
-                for row in batch:
-                    # Only create object if both quantity and unit are not null
-                    if pd.notnull(row.ingredient_quantity) and pd.notnull(row.ingredient_unit) and pd.notnull(row.ingredient_code):
-                        iq_objects.append(
-                            IngredientQuantity(
-                                year_month=datetime.strptime(
-                                    row.year_month, "%Y-%m-%d"
-                                ).date(),
-                                ingredient=ingredients[row.ingredient_code],
-                                vmp=vmps[row.vmp_code],
-                                quantity=float(row.ingredient_quantity),
-                                unit=row.ingredient_unit,
-                                organisation=organisations[row.ods_code],
-                            )
+        with tqdm(total=len(grouped), desc="Processing IngredientQuantities") as pbar:
+            for (ingredient_code, vmp_code, ods_code), group in grouped:
+                # Create array of [year_month, quantity, unit] for each group
+                data_array = []
+                for _, row in group.iterrows():
+                    if pd.notnull(row.ingredient_quantity) and pd.notnull(row.ingredient_unit):
+                        data_array.append([
+                            row.year_month,
+                            str(float(row.ingredient_quantity)),
+                            row.ingredient_unit
+                        ])
+                
+                if data_array:  # Only create object if there's data
+                    iq_objects.append(
+                        IngredientQuantity(
+                            ingredient_id=ingredients[ingredient_code],
+                            vmp_id=vmps[vmp_code],
+                            organisation_id=organisations[ods_code],
+                            data=data_array
                         )
+                    )
 
+                if len(iq_objects) >= batch_size:
+                    with transaction.atomic():
+                        try:
+                            IngredientQuantity.objects.bulk_create(iq_objects, ignore_conflicts=True)
+                            total_iq += len(iq_objects)
+                        except Exception as e:
+                            self.stdout.write(self.style.ERROR(f"Error creating batch: {str(e)}"))
+                    iq_objects = []
+                
+                pbar.update(1)
+
+            # Create any remaining objects
+            if iq_objects:
                 with transaction.atomic():
                     try:
-                        IngredientQuantity.objects.bulk_create(iq_objects)
+                        IngredientQuantity.objects.bulk_create(iq_objects, ignore_conflicts=True)
                         total_iq += len(iq_objects)
                     except Exception as e:
-                        self.stdout.write(
-                            self.style.ERROR(f"Error creating batch: {str(e)}")
-                        )
+                        self.stdout.write(self.style.ERROR(f"Error creating batch: {str(e)}"))
 
-                pbar.update(len(batch))
-
-        self.stdout.write(self.style.SUCCESS(
-            f"Loaded {total_iq} IngredientQuantities"))
+        self.stdout.write(self.style.SUCCESS(f"Loaded {total_iq} IngredientQuantities"))
 
     def load_data_status(self, directory):
         data_status = self.load_csv("data_status_table", directory)
@@ -394,59 +404,88 @@ class Command(BaseCommand):
         
     def load_scmd_quantity(self, directory):
         doses = self.load_monthly_csv(
-            os.path.join(
-                directory,
-                "dose_quantity"),
+            os.path.join(directory, "dose_quantity"),
             "*.csv")
         doses["vmp_code"] = doses["vmp_code"].astype(int).astype(str)
 
-        organisations = {
-            org.ods_code: org for org in Organisation.objects.all()}
-        vmps = {vmp.code: vmp for vmp in VMP.objects.all()}
+        # Get mappings using IDs
+        organisations = dict(Organisation.objects.values_list('ods_code', 'id'))
+        vmps = dict(VMP.objects.values_list('code', 'id'))
 
-        # Filter out rows with missing org or vmp
-        valid_doses = doses[doses["ods_code"].isin(
-            organisations) & doses["vmp_code"].isin(vmps)]
+        # Filter valid doses and group by vmp and organisation
+        valid_doses = doses[doses["ods_code"].isin(organisations) & doses["vmp_code"].isin(vmps)]
+        grouped = valid_doses.groupby(['vmp_code', 'ods_code'])
 
         batch_size = 1000
         total_scmd_quantities = 0
+        scmd_objects = []
 
-        with tqdm(total=len(valid_doses), desc="Processing SCMDQuantity") as pbar:
-            for batch in self.batch_iterator(
-                valid_doses.itertuples(index=False), batch_size
-            ):
-                scmd_quantity_objects = []
-
-                for row in batch:
-                    year_month = datetime.strptime(
-                        row.year_month, "%Y-%m-%d").date()
-                    vmp = vmps[row.vmp_code]
-                    org = organisations[row.ods_code]
-
-                    scmd_quantity_objects.append(
+        with tqdm(total=len(grouped), desc="Processing SCMDQuantity") as pbar:
+            for (vmp_code, ods_code), group in grouped:
+                # Create array of [year_month, quantity, unit] for each group
+                data_array = []
+                for _, row in group.iterrows():
+                    if pd.notnull(row.SCMD_quantity):
+                        data_array.append([
+                            row.year_month,
+                            str(float(row.SCMD_quantity)),
+                            row.SCMD_quantity_basis
+                        ])
+                
+                if data_array:  # Only create object if there's data
+                    scmd_objects.append(
                         SCMDQuantity(
-                            year_month=year_month,
-                            vmp=vmp,
-                            quantity=(
-                                float(row.SCMD_quantity)
-                                if pd.notnull(row.SCMD_quantity)
-                                else None
-                            ),
-                            unit=row.SCMD_quantity_basis,
-                            organisation=org,
+                            vmp_id=vmps[vmp_code],
+                            organisation_id=organisations[ods_code],
+                            data=data_array
+                        )
+                    )
+           
+                if len(scmd_objects) >= batch_size:
+                    with transaction.atomic():
+                        try:
+                            SCMDQuantity.objects.bulk_create(scmd_objects, ignore_conflicts=False)
+                            total_scmd_quantities += len(scmd_objects)
+                        except Exception as e:
+                            self.stdout.write(self.style.ERROR(f"Error creating batch: {str(e)}"))
+                    scmd_objects = []
+                
+                pbar.update(1)
+
+            # Create any remaining objects
+            if scmd_objects:
+                with transaction.atomic():
+                    try:
+                        SCMDQuantity.objects.bulk_create(scmd_objects, ignore_conflicts=False)
+                        total_scmd_quantities += len(scmd_objects)
+                    except Exception as e:
+                        self.stdout.write(self.style.ERROR(f"Error creating batch: {str(e)}"))
+
+        self.stdout.write(self.style.SUCCESS(f"Loaded {total_scmd_quantities} SCMDQuantities"))
+
+    def load_ont_form_route(self, directory):
+        ont_form_routes = self.load_csv("vmp_ontform_table", directory)
+        ont_form_routes["vmp"] = ont_form_routes["vmp"].astype(str)
+        
+        unique_routes = ont_form_routes["descr"].unique()
+        route_objects = [OntFormRoute(name=name) for name in unique_routes]
+        OntFormRoute.objects.bulk_create(route_objects, ignore_conflicts=True)
+
+        ont_form_route_ids = dict(OntFormRoute.objects.values_list('name', 'id'))
+        vmp_ids = dict(VMP.objects.values_list('code', 'id'))
+
+        vmp_route_relations = []
+        for _, row in ont_form_routes.iterrows():
+            if pd.notnull(row["vmp"]) and pd.notnull(row["descr"]):
+                if row["vmp"] in vmp_ids and row["descr"] in ont_form_route_ids:
+                    vmp_route_relations.append(
+                        VMP.ont_form_routes.through(
+                            vmp_id=vmp_ids[row["vmp"]],
+                            ontformroute_id=ont_form_route_ids[row["descr"]]
                         )
                     )
 
-                with transaction.atomic():
-                    try:
-                        SCMDQuantity.objects.bulk_create(scmd_quantity_objects)
-                        total_scmd_quantities += len(scmd_quantity_objects)
-                    except Exception as e:
-                        self.stdout.write(
-                            self.style.ERROR(f"Error creating batch: {str(e)}")
-                        )
-
-                pbar.update(len(batch))
+        VMP.ont_form_routes.through.objects.bulk_create(vmp_route_relations, ignore_conflicts=True)
 
         self.stdout.write(self.style.SUCCESS(
-            f"Loaded {total_scmd_quantities} SCMDQuantities"))
+            f"Loaded {len(route_objects)} OntFormRoutes and {len(vmp_route_relations)} VMP-OntFormRoute relationships"))
