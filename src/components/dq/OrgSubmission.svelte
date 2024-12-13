@@ -249,7 +249,10 @@
     function parseDate(dateStr) {
         if (!dateStr) return null;
         const [month, year] = dateStr.split(' ');
-        return new Date(`${month} 1, ${year}`);
+        const date = new Date(`${month} 1, ${year}`);
+        date.setMonth(date.getMonth() + 1);
+        date.setDate(0);
+        return date;
     }
 
     function updateTooltipContent(event, d, org) {
