@@ -53,6 +53,63 @@ class VMP(models.Model):
             models.Index(fields=["vtm"]),
         ]
 
+class ATC(models.Model):
+    code = models.CharField(
+        max_length=7,
+        unique=True,
+        validators=[
+            # ATC codes are up to 7 characters long. They represent up to 5 levels of hierarchy.
+            # The first character is a single letter
+            # The second level is a 2 character number
+            # The third level is a single letter
+            # The fourth level is a single letter
+            # the fifth level is a 2 character number
+            RegexValidator(
+                regex=r'^[A-Z][0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{2}$',
+                message="Invalid ATC code"
+            )
+        ]
+    )
+    name = models.CharField(max_length=255, null=True)
+    level = models.IntegerField(null=True)
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='children')
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+    
+    def save(self, *args, **kwargs):
+        # First deduce the level from the code length
+        if len(self.code) == 7:
+            self.level = 5
+            parent_code = self.code[:5]
+        elif len(self.code) == 5:
+            self.level = 4
+            parent_code = self.code[:3]
+        elif len(self.code) == 3:
+            self.level = 3
+            parent_code = self.code[:2]
+        elif len(self.code) == 2:
+            self.level = 2
+            parent_code = None
+        
+        # If we have a parent code, try to find the parent
+        if parent_code:
+            try:
+                self.parent = ATC.objects.get(code=parent_code)
+            except ATC.DoesNotExist:
+                # Handle the case where parent doesn't exist
+                self.parent = None
+        else:
+            self.parent = None
+        
+        super().save(*args, **kwargs)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=["code"]),
+        ]
+
+
 class OntFormRoute(models.Model):
     name = models.CharField(max_length=255)
 
