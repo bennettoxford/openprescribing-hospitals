@@ -50,7 +50,7 @@
                         code: item.vmp__code,
                         vtm: item.vmp__vtm__name,
                         ingredients: item.ingredients ? [item.ingredients] : [],
-                        routes: item.routes ? [item.routes] : [],
+                        routes: item.route_names ? [item.route_names] : [],
                         units: new Set(),
                         searchType: data.searchType || $analyseOptions.searchType
                     };
