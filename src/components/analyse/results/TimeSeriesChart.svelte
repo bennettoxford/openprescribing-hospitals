@@ -84,7 +84,7 @@
     }
 
     function updateAvailableViewModes() {
-        availableViewModes = ['Total', 'Organisation'];
+        availableViewModes = ['Total', 'Organisation', 'Product'];
         
         // Match ProductList.svelte conditions for ingredients
         if (currentQuantityType === 'Ingredient Quantity' || currentSearchType === 'ingredient') {
@@ -112,6 +112,8 @@
 
     function getBreakdownKey(item, viewMode) {
         switch (viewMode) {
+            case 'Product':
+                return item.vmp__name || 'Unknown Product';
             case 'Organisation':
                 return item.organisation__ods_name || 'Unknown Organisation';
             case 'Unit':
