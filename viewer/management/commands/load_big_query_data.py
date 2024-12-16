@@ -16,11 +16,13 @@ from viewer.models import (
     SCMDQuantity,
     Route,
     OntFormRoute,
-    ATC
+    ATC,
+    DDD
 )
 import glob
 from tqdm import tqdm
 import itertools
+from django.db.models import Count
 
 
 class Command(BaseCommand):
@@ -29,18 +31,19 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         data_dir = os.path.join(settings.BASE_DIR, "data")
 
-        self.load_vtm(data_dir)
-        self.load_ingredient(data_dir)
-        self.load_vmp(data_dir)
-        self.load_organisation(data_dir)
-        self.load_scmd_quantity(data_dir)
-        self.load_dose(data_dir)
-        self.load_ingredient_quantity(data_dir)
-        self.load_data_status(data_dir)
-        self.load_route(data_dir)
-        self.load_ont_form_route(data_dir)
-        self.load_atc(data_dir)
-        self.load_vmp_atc(data_dir)
+        # self.load_vtm(data_dir)
+        # self.load_ingredient(data_dir)
+        # self.load_vmp(data_dir)
+        # self.load_organisation(data_dir)
+        # self.load_scmd_quantity(data_dir)
+        # self.load_dose(data_dir)
+        # self.load_ingredient_quantity(data_dir)
+        # self.load_data_status(data_dir)
+        # self.load_route(data_dir)
+        # self.load_ont_form_route(data_dir)
+        # self.load_atc(data_dir)
+        # self.load_vmp_atc(data_dir)
+        self.load_ddd(data_dir)
 
         self.stdout.write(self.style.SUCCESS(
             "Successfully loaded all data into the database"))
@@ -565,3 +568,52 @@ class Command(BaseCommand):
                 f"Successfully associated {len(vmp_atc_relations)} VMP-ATC relationships"
             )
         )
+    
+    def load_ddd(self, directory):
+        ddd = self.load_csv("ddd_table", directory)
+        ddd["atc_code"] = ddd["atc_code"].astype(str)
+        ddd["ddd"] = ddd["ddd"].astype(float)
+        ddd["unit_type"] = ddd["unit_type"].astype(str)
+        ddd["dmd_route"] = ddd["dmd_route"].astype(str)
+
+        # check if the VMP has a single route - each ddd is associated with a single route
+        # so if a VMP has multiple routes, we don't know which ddd to use
+        
+        vmps_with_single_route = (
+            VMP.objects
+            .annotate(route_count=Count('routes'))
+            .filter(route_count=1)
+            .prefetch_related('atcs', 'routes')
+        )
+
+        vmp_route_dict = {
+            (vmp.id, vmp.routes.all()[0].name): {
+                'vmp': vmp,
+                'route': vmp.routes.all()[0],
+                'atc_codes': {atc.code for atc in vmp.atcs.all()}
+            }
+            for vmp in vmps_with_single_route
+        }
+
+        ddd_objects = []
+        for _, row in tqdm(ddd.iterrows(), desc="Processing DDDs"):
+            atc_code = row["atc_code"]
+            dmd_route = row["dmd_route"]
+
+            for (vmp_id, route_name), vmp_data in vmp_route_dict.items():
+                if route_name == dmd_route and atc_code in vmp_data['atc_codes']:
+                    ddd_objects.append(
+                        DDD(
+                            vmp=vmp_data['vmp'],
+                            ddd=row["ddd"],
+                            unit_type=row["unit_type"],
+                            route=vmp_data['route']
+                        )
+                    )
+
+        batch_size = 1000
+        for i in range(0, len(ddd_objects), batch_size):
+            batch = ddd_objects[i:i + batch_size]
+            DDD.objects.bulk_create(batch, ignore_conflicts=True)
+
+        self.stdout.write(self.style.SUCCESS(f"Loaded {len(ddd_objects)} DDDs"))
