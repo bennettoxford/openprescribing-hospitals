@@ -34,7 +34,7 @@ from .models import (
     DataStatus,
     MeasureReason,
     SCMDQuantity,
-    
+    DDDQuantity
 )
 
 
@@ -292,20 +292,28 @@ def filtered_quantities(request):
             vmp_query = VMP.objects.filter(ingredients__code=code)
             vmp_ids.update(vmp_query.values_list('id', flat=True))
     
+    if ods_names:
+        ods_names = [item.split("|")[0].strip() for item in ods_names]
+
+
     if quantity_type == "VMP Quantity":
         if ods_names:
-            ods_names = [item.split("|")[0].strip() for item in ods_names]
             queryset = SCMDQuantity.objects.filter(vmp_id__in=vmp_ids, organisation__ods_code__in=ods_names)
         else:
             queryset = SCMDQuantity.objects.filter(vmp_id__in=vmp_ids)
         
     elif quantity_type == "Ingredient Quantity":
         if ods_names:
-            ods_names = [item.split("|")[0].strip() for item in ods_names]
             queryset = IngredientQuantity.objects.filter(vmp_id__in=vmp_ids, organisation__ods_code__in=ods_names).select_related('ingredient')
         else:
             queryset = IngredientQuantity.objects.filter(vmp_id__in=vmp_ids).select_related('ingredient')
     
+    elif quantity_type == "DDD":
+        if ods_names:
+            queryset = DDDQuantity.objects.filter(vmp_id__in=vmp_ids, organisation__ods_code__in=ods_names)
+        else:
+            queryset = DDDQuantity.objects.filter(vmp_id__in=vmp_ids)
+
     else:
         return Response({"error": "Invalid quantity type"}, status=400)
 
@@ -318,12 +326,12 @@ def filtered_quantities(request):
         'organisation__ods_name',
     ]
     
-    # Always include ingredient names when using Ingredient Quantity
     if quantity_type == "Ingredient Quantity":
         data = queryset.annotate(
             route_names=ArrayAgg('vmp__routes__name', distinct=True),
             ingredient_names=ArrayAgg('vmp__ingredients__name', distinct=True)
         ).values(*value_fields, 'route_names', 'ingredient_names')
+
     else:
         data = queryset.annotate(
             route_names=ArrayAgg('vmp__routes__name', distinct=True)
@@ -360,7 +368,7 @@ def filtered_quantities(request):
         if quantity_type == "Ingredient Quantity":
             empty_vmp['ingredient_names'] = vmp['ingredient_names']
         data_list.append(empty_vmp)
-    
+
     return Response(data_list)
 
 @method_decorator(login_required, name='dispatch')
