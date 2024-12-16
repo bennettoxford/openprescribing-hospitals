@@ -155,10 +155,12 @@ class Command(BaseCommand):
                 ELSE d.ddd
             END AS ddd,
             COALESCE(uc.basis, d.unit_type) AS unit_type,
-            d.adm_code
+            arm.dmd_route
         FROM `ebmdatalab.scmd.ddd` d
         LEFT JOIN `ebmdatalab.scmd.unit_conversion` uc
             ON LOWER(d.unit_type) = uc.unit
+        LEFT JOIN `ebmdatalab.scmd.adm_route_mapping` arm
+            ON d.adm_code = arm.who_route
     """
 
     atc_vmp_table_sql = """
