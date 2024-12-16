@@ -44,7 +44,7 @@
             units = [...new Set(data.flatMap(item => 
                 item.data.map(d => d[2])
             ))];
-            vtms = [...new Set(data.map(item => item.vmp__vtm__name || 'Unknown'))];
+            vtms = [...new Set(data.map(item => item.vmp__vtm__name || 'Unknown Product Group'))];
             routes = [...new Set(data.flatMap(item => 
                 item.routes || []
             ).filter(route => route))];
@@ -84,20 +84,42 @@
     }
 
     function updateAvailableViewModes() {
-        availableViewModes = ['Total', 'Organisation'];
+        availableViewModes = ['Total'];
         
-        // Match ProductList.svelte conditions for ingredients
+        // Only add Organisation mode if there is more than one organisation
+        const uniqueOrgs = new Set(data.map(item => item.organisation__ods_code).filter(Boolean));
+        if (uniqueOrgs.size > 1) {
+            availableViewModes.push('Organisation');
+        }
+
+        // Only add Product mode if there is more than one product
+        const uniqueProducts = new Set(data.map(item => item.vmp__name).filter(Boolean));
+        if (uniqueProducts.size > 1) {
+            availableViewModes.push('Product');
+        }
+
+        // Only add Product Group mode if there is more than one product group
+        const uniqueProductGroups = new Set(data.map(item => item.vmp__vtm__name).filter(Boolean));
+        if (uniqueProductGroups.size > 1) {
+            availableViewModes.push('Product Group');
+        }
+
+        // Only add Unit mode if there is more than one unit and correct search type
+        const uniqueUnits = new Set(data.flatMap(item => item.data.map(d => d[2])).filter(Boolean));
+        if (uniqueUnits.size > 1 && (searchType === 'vmp' || searchType === 'vtm')) {
+            availableViewModes.push('Unit');
+        }
+
+        // Only add Route mode if there is more than one route
+        const uniqueRoutes = new Set(data.flatMap(item => item.routes || []).filter(Boolean));
+        if (uniqueRoutes.size > 1) {
+            availableViewModes.push('Route');
+        }
+        
+        // Keep existing ingredient logic as it's dependent on quantity type
         if (currentQuantityType === 'Ingredient Quantity' || currentSearchType === 'ingredient') {
             availableViewModes.push('Ingredient');
-        } else {
-            if (searchType === 'vmp' || searchType === 'vtm') {
-                availableViewModes.push('Unit');
-            }
-            if (searchType === 'vtm') {
-                availableViewModes.push('VTM');
-            }
         }
-        availableViewModes.push('Route');
     }
 
     function getIngredientName(item) {
@@ -112,6 +134,8 @@
 
     function getBreakdownKey(item, viewMode) {
         switch (viewMode) {
+            case 'Product':
+                return item.vmp__name || 'Unknown Product';
             case 'Organisation':
                 return item.organisation__ods_name || 'Unknown Organisation';
             case 'Unit':
@@ -121,8 +145,8 @@
                     return item.ingredients[0];
                 }
                 return 'Unknown Ingredient';
-            case 'VTM':
-                return item.vmp__vtm__name || 'Unknown VTM';
+            case 'Product Group':
+                return item.vmp__vtm__name || 'Unknown Product Group';
             case 'Route':
                 return item.routes?.[0] || 'Other';
             default:

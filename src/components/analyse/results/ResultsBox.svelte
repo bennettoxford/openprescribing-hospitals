@@ -37,7 +37,6 @@
 
     function handleUpdateData(data) {
         console.log("Handling update data:", data);
-        // Handle the nested data structure
         selectedData = Array.isArray(data.data) ? data.data : [];
         
         try {
@@ -49,8 +48,8 @@
                         vmp: item.vmp__name,
                         code: item.vmp__code,
                         vtm: item.vmp__vtm__name,
-                        ingredients: item.ingredients ? [item.ingredients] : [],
-                        routes: item.routes ? [item.routes] : [],
+                        ingredients: item.ingredient_names || [],
+                        routes: item.routes || [],
                         units: new Set(),
                         searchType: data.searchType || $analyseOptions.searchType
                     };
@@ -71,11 +70,12 @@
                 .filter(vmp => vmp.vmp) // Filter out undefined VMPs
                 .map(vmp => ({
                     ...vmp,
-                    unit: vmp.units.size > 0 ? Array.from(vmp.units).join(', ') : 'nan'
+                    unit: vmp.units.size > 0 ? Array.from(vmp.units).join(', ') : 'nan',
+                    routes: Array.isArray(vmp.routes) ? vmp.routes : []
                 }));
 
             console.log("Processed VMPs:", vmps);
-            filteredData = selectedData; // Initialize with all data
+            filteredData = selectedData;
 
             // Update the results store
             resultsStore.update(store => ({
@@ -111,8 +111,8 @@
                     name: item.vmp__name,
                     code: item.vmp__code,
                     vtm: item.vmp__vtm__name,
-                    routes: item.routes ? [item.routes] : [],
-                    ingredients: item.ingredients ? [item.ingredients] : [],
+                    routes: item.routes || [],
+                    ingredients: item.ingredient_names || [],
                     data: Array.isArray(item.data) ? item.data.map(([date, quantity, unit]) => ({
                         date,
                         quantity: parseFloat(quantity) || 0,
