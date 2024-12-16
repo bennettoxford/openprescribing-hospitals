@@ -365,6 +365,7 @@ class Measure(models.Model):
     QUANTITY_TYPES = [
         ('dose', 'Dose'),
         ('ingredient', 'Ingredient Quantity'),
+        ('ddd', 'DDD'),
     ]
     
     name = models.CharField(max_length=255, unique=True)
