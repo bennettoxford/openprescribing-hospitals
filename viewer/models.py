@@ -54,6 +54,21 @@ class VMP(models.Model):
             models.Index(fields=["vtm"]),
         ]
 
+class DDD(models.Model):
+    vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name="ddds")
+    ddd = models.FloatField()
+    unit_type = models.CharField(max_length=255)
+    route = models.ForeignKey(Route, on_delete=models.CASCADE, related_name="ddds")
+
+    def __str__(self):
+        return f"{self.vmp.name} - {self.ddd} {self.unit_type} - {self.route.name}"
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=["vmp"]),
+            models.Index(fields=["vmp", "route"]),
+        ]
+
 class ATC(models.Model):
     code = models.CharField(
         max_length=7,
