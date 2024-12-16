@@ -293,6 +293,45 @@ class IngredientQuantity(models.Model):
                 }
         return None
 
+class DDDQuantity(models.Model):
+    vmp = models.ForeignKey(
+        VMP, on_delete=models.CASCADE, related_name="ddd_quantities"
+    )
+    organisation = models.ForeignKey(
+        Organisation,
+        on_delete=models.CASCADE,
+        related_name="ddd_quantities")
+    data = ArrayField(
+        ArrayField(
+            models.CharField(max_length=255, null=True),
+            size=3,  # [year_month, quantity, unit]
+        ),
+        null=True,
+        help_text="Array of [year_month, quantity, unit] entries"
+    )
+
+    def __str__(self):
+        return (
+            f"{self.vmp.name} - {self.organisation.ods_name}"
+        )
+
+    class Meta:
+        unique_together = ('vmp', 'organisation')
+        indexes = [
+            models.Index(fields=["vmp", "organisation"]),
+        ]
+
+    def get_quantity_for_month(self, year_month):
+        """Get quantity and unit for a specific month"""
+        date_str = year_month.strftime('%Y-%m-%d')
+        for entry in self.data:
+            if entry[0] == date_str:
+                return {
+                    'quantity': float(entry[1]) if entry[1] else None,
+                    'unit': entry[2]
+                }
+        return None
+
 class MeasureReason(models.Model):
     reason = models.CharField(max_length=255)
     description = models.TextField(null=True)
