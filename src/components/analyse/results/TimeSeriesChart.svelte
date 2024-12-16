@@ -44,7 +44,7 @@
             units = [...new Set(data.flatMap(item => 
                 item.data.map(d => d[2])
             ))];
-            vtms = [...new Set(data.map(item => item.vmp__vtm__name || 'Unknown'))];
+            vtms = [...new Set(data.map(item => item.vmp__vtm__name || 'Unknown Product Group'))];
             routes = [...new Set(data.flatMap(item => 
                 item.routes || []
             ).filter(route => route))];
@@ -84,7 +84,13 @@
     }
 
     function updateAvailableViewModes() {
-        availableViewModes = ['Total', 'Organisation', 'Product'];
+        availableViewModes = ['Total', 'Product', 'Product Group'];
+        
+        // Only add Organisation mode if there is more than one organisation
+        const uniqueOrgs = new Set(data.map(item => item.organisation__ods_code).filter(Boolean));
+        if (uniqueOrgs.size > 1) {
+            availableViewModes.push('Organisation');
+        }
         
         // Match ProductList.svelte conditions for ingredients
         if (currentQuantityType === 'Ingredient Quantity' || currentSearchType === 'ingredient') {
@@ -123,8 +129,8 @@
                     return item.ingredients[0];
                 }
                 return 'Unknown Ingredient';
-            case 'VTM':
-                return item.vmp__vtm__name || 'Unknown VTM';
+            case 'Product Group':
+                return item.vmp__vtm__name || 'Unknown Product Group';
             case 'Route':
                 return item.routes?.[0] || 'Other';
             default:
