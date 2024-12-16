@@ -17,7 +17,8 @@ from viewer.models import (
     Route,
     OntFormRoute,
     ATC,
-    DDD
+    DDD,
+    DDDQuantity
 )
 import glob
 from tqdm import tqdm
@@ -43,7 +44,8 @@ class Command(BaseCommand):
         # self.load_ont_form_route(data_dir)
         # self.load_atc(data_dir)
         # self.load_vmp_atc(data_dir)
-        self.load_ddd(data_dir)
+        # self.load_ddd(data_dir)
+        self.load_ddd_quantity()
 
         self.stdout.write(self.style.SUCCESS(
             "Successfully loaded all data into the database"))
@@ -578,7 +580,7 @@ class Command(BaseCommand):
 
         # check if the VMP has a single route - each ddd is associated with a single route
         # so if a VMP has multiple routes, we don't know which ddd to use
-        
+
         vmps_with_single_route = (
             VMP.objects
             .annotate(route_count=Count('routes'))
@@ -617,3 +619,86 @@ class Command(BaseCommand):
             DDD.objects.bulk_create(batch, ignore_conflicts=True)
 
         self.stdout.write(self.style.SUCCESS(f"Loaded {len(ddd_objects)} DDDs"))
+
+    def load_ddd_quantity(self):
+
+        ddd_data = {}
+        for ddd in DDD.objects.all():
+            ddd_data[ddd.vmp_id] = {
+                'ddd': ddd.ddd,
+                'unit_type': ddd.unit_type
+            }
+
+        batch_size = 1000
+        total_ddd_quantities = 0
+        ddd_quantity_objects = []
+
+        # Get all IngredientQuantity objects, grouped by VMP and organisation
+        ingredient_quantities = IngredientQuantity.objects.all()
+        total_count = ingredient_quantities.count()
+
+        with tqdm(total=total_count, desc="Processing DDDQuantities") as pbar:
+            for iq in ingredient_quantities.iterator():
+                vmp_id = iq.vmp_id
+                
+                # Skip if no DDD data for this VMP
+                if vmp_id not in ddd_data:
+                    pbar.update(1)
+                    continue
+
+                ddd_info = ddd_data[vmp_id]
+                data_array = []
+
+                # Process each data entry in the IngredientQuantity
+                if iq.data:
+                    for entry in iq.data:
+                        year_month, quantity, unit = entry
+                        
+                        if quantity and unit:
+                            # Check if units match
+                            if unit.lower() == ddd_info['unit_type'].lower():
+                                try:
+                                    # Calculate DDD quantity
+                                    ingredient_qty = float(quantity)
+                                    ddd_quantity = ingredient_qty / ddd_info['ddd']
+                                    
+                                    data_array.append([
+                                        year_month,
+                                        str(ddd_quantity),
+                                        f"DDD ({round(ddd_info['ddd'], 5) if ddd_info['ddd'] != round(ddd_info['ddd'], 5) else ddd_info['ddd']} {ddd_info['unit_type']})"
+                                    ])
+                                except (ValueError, ZeroDivisionError):
+                                    continue
+
+                if data_array:  # Only create object if there's data
+                    ddd_quantity_objects.append(
+                        DDDQuantity(
+                            vmp_id=vmp_id,
+                            organisation_id=iq.organisation_id,
+                            data=data_array
+                        )
+                    )
+
+                if len(ddd_quantity_objects) >= batch_size:
+                    with transaction.atomic():
+                        try:
+                            DDDQuantity.objects.bulk_create(ddd_quantity_objects, ignore_conflicts=True)
+                            total_ddd_quantities += len(ddd_quantity_objects)
+                        except Exception as e:
+                            self.stdout.write(self.style.ERROR(f"Error creating batch: {str(e)}"))
+                    ddd_quantity_objects = []
+                
+                pbar.update(1)
+
+            # Create any remaining objects
+            if ddd_quantity_objects:
+                with transaction.atomic():
+                    try:
+                        DDDQuantity.objects.bulk_create(ddd_quantity_objects, ignore_conflicts=True)
+                        total_ddd_quantities += len(ddd_quantity_objects)
+                    except Exception as e:
+                        self.stdout.write(self.style.ERROR(f"Error creating batch: {str(e)}"))
+
+        self.stdout.write(self.style.SUCCESS(f"Loaded {total_ddd_quantities} DDDQuantities"))
+
+ 
