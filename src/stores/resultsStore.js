@@ -32,7 +32,7 @@ function processAnalysisData(data) {
                 name: item.vmp__name,
                 vtm: item.vmp__vtm__name,
                 routes: item.routes || [],
-                ingredients: item.ingredients || [],
+                ingredients: item.ingredient_names || [],
                 organisations: {}
             };
         }
@@ -54,7 +54,7 @@ function processAnalysisData(data) {
             name: item.vmp__name,
             vtm: item.vmp__vtm__name,
             routes: item.routes || [],
-            ingredients: item.ingredients || [],
+            ingredients: item.ingredient_names || [],
             data: timeSeriesData
         };
     });
