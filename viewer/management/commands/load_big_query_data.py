@@ -16,6 +16,7 @@ from viewer.models import (
     SCMDQuantity,
     Route,
     OntFormRoute,
+    ATC
 )
 import glob
 from tqdm import tqdm
@@ -38,6 +39,7 @@ class Command(BaseCommand):
         self.load_data_status(data_dir)
         self.load_route(data_dir)
         self.load_ont_form_route(data_dir)
+        self.load_atc(data_dir)
 
         self.stdout.write(self.style.SUCCESS(
             "Successfully loaded all data into the database"))
@@ -489,3 +491,40 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f"Loaded {len(route_objects)} OntFormRoutes and {len(vmp_route_relations)} VMP-OntFormRoute relationships"))
+
+    def load_atc(self, directory):
+        atcs = self.load_csv("atc_table", directory)
+        
+        # Clean the data
+        atcs = atcs[atcs["atc_code"].notnull()]
+        atcs = atcs[atcs["name"].notnull()]
+        
+        # Remove any trailing/leading whitespace
+        atcs["atc_code"] = atcs["atc_code"].str.strip()
+        atcs["name"] = atcs["name"].str.strip()
+        
+        # Sort by code length to ensure parents are created before children
+        atcs = atcs.sort_values(by="atc_code", key=lambda x: x.str.len())
+        
+        # Create a dictionary to store code to ID mapping
+        code_to_id = {}
+        atc_objects = []
+        # Process each ATC code
+        for _, row in atcs.iterrows():
+            code = row["atc_code"]
+            name = row["name"]
+            
+            # Create ATC object
+            atc = ATC(
+                code=code,
+                name=name,
+            )
+            atc_objects.append(atc)
+        
+    
+        ATC.objects.bulk_create(atc_objects, ignore_conflicts=False)
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Successfully loaded {len(atc_objects)} ATC codes"
+            )
+        )
