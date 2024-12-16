@@ -40,6 +40,7 @@ class Command(BaseCommand):
         self.load_route(data_dir)
         self.load_ont_form_route(data_dir)
         self.load_atc(data_dir)
+        self.load_vmp_atc(data_dir)
 
         self.stdout.write(self.style.SUCCESS(
             "Successfully loaded all data into the database"))
@@ -526,5 +527,41 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 f"Successfully loaded {len(atc_objects)} ATC codes"
+            )
+        )
+
+    def load_vmp_atc(self, directory):
+        vmp_atc = self.load_csv("atc_mapping_table", directory)
+        
+        # Convert VMP codes to strings
+        vmp_atc["vmp_code"] = vmp_atc["vmp_code"].astype(str)
+        vmp_atc["atc_code"] = vmp_atc["atc_code"].astype(str)
+        
+        # Get mappings for existing VMPs and ATCs
+        vmp_ids = dict(VMP.objects.values_list('code', 'id'))
+        atc_ids = dict(ATC.objects.values_list('code', 'id'))
+        
+        # Create VMP-ATC relationships
+        vmp_atc_relations = []
+        
+        for _, row in vmp_atc.iterrows():
+            if row["vmp_code"] in vmp_ids and row["atc_code"] in atc_ids:
+                vmp_atc_relations.append(
+                    VMP.atcs.through(
+                        vmp_id=vmp_ids[row["vmp_code"]],
+                        atc_id=atc_ids[row["atc_code"]]
+                    )
+                )
+        
+        # Bulk create the relationships
+        with transaction.atomic():
+            VMP.atcs.through.objects.bulk_create(
+                vmp_atc_relations, 
+                ignore_conflicts=True
+            )
+        
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Successfully associated {len(vmp_atc_relations)} VMP-ATC relationships"
             )
         )
