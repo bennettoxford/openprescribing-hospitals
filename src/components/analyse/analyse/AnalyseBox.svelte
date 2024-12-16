@@ -42,7 +42,7 @@
     });
 
     const csrftoken = getCookie('csrftoken');
-    const quantityOptions = ['--', 'VMP Quantity', 'Ingredient Quantity'];
+    const quantityOptions = ['--', 'VMP Quantity', 'Ingredient Quantity', 'DDD'];
 
     async function runAnalysis() {
         if (isAnalysisRunning) return;

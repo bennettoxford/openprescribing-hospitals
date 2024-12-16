@@ -13,6 +13,7 @@ from viewer.models import (
     PrecomputedPercentile,
     Dose,
     IngredientQuantity,
+    DDDQuantity,
     Organisation
 )
 
@@ -45,7 +46,8 @@ class Command(BaseCommand):
         # Map quantity_type string to actual model
         model_mapping = {
             'dose': Dose,
-            'ingredient': IngredientQuantity
+            'ingredient': IngredientQuantity,
+            'ddd': DDDQuantity
         }
 
         model = model_mapping.get(measure.quantity_type)

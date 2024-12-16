@@ -16,10 +16,14 @@ from viewer.models import (
     SCMDQuantity,
     Route,
     OntFormRoute,
+    ATC,
+    DDD,
+    DDDQuantity
 )
 import glob
 from tqdm import tqdm
 import itertools
+from django.db.models import Count
 
 
 class Command(BaseCommand):
@@ -28,16 +32,20 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         data_dir = os.path.join(settings.BASE_DIR, "data")
 
-        self.load_vtm(data_dir)
-        self.load_ingredient(data_dir)
-        self.load_vmp(data_dir)
-        self.load_organisation(data_dir)
-        self.load_scmd_quantity(data_dir)
-        self.load_dose(data_dir)
-        self.load_ingredient_quantity(data_dir)
-        self.load_data_status(data_dir)
-        self.load_route(data_dir)
-        self.load_ont_form_route(data_dir)
+        # self.load_vtm(data_dir)
+        # self.load_ingredient(data_dir)
+        # self.load_vmp(data_dir)
+        # self.load_organisation(data_dir)
+        # self.load_scmd_quantity(data_dir)
+        # self.load_dose(data_dir)
+        # self.load_ingredient_quantity(data_dir)
+        # self.load_data_status(data_dir)
+        # self.load_route(data_dir)
+        # self.load_ont_form_route(data_dir)
+        # self.load_atc(data_dir)
+        # self.load_vmp_atc(data_dir)
+        # self.load_ddd(data_dir)
+        self.load_ddd_quantity()
 
         self.stdout.write(self.style.SUCCESS(
             "Successfully loaded all data into the database"))
@@ -489,3 +497,208 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f"Loaded {len(route_objects)} OntFormRoutes and {len(vmp_route_relations)} VMP-OntFormRoute relationships"))
+
+    def load_atc(self, directory):
+        atcs = self.load_csv("atc_table", directory)
+        
+        # Clean the data
+        atcs = atcs[atcs["atc_code"].notnull()]
+        atcs = atcs[atcs["name"].notnull()]
+        
+        # Remove any trailing/leading whitespace
+        atcs["atc_code"] = atcs["atc_code"].str.strip()
+        atcs["name"] = atcs["name"].str.strip()
+        
+        # Sort by code length to ensure parents are created before children
+        atcs = atcs.sort_values(by="atc_code", key=lambda x: x.str.len())
+        
+        # Create a dictionary to store code to ID mapping
+        code_to_id = {}
+        atc_objects = []
+        # Process each ATC code
+        for _, row in atcs.iterrows():
+            code = row["atc_code"]
+            name = row["name"]
+            
+            # Create ATC object
+            atc = ATC(
+                code=code,
+                name=name,
+            )
+            atc_objects.append(atc)
+        
+    
+        ATC.objects.bulk_create(atc_objects, ignore_conflicts=False)
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Successfully loaded {len(atc_objects)} ATC codes"
+            )
+        )
+
+    def load_vmp_atc(self, directory):
+        vmp_atc = self.load_csv("atc_mapping_table", directory)
+        
+        # Convert VMP codes to strings
+        vmp_atc["vmp_code"] = vmp_atc["vmp_code"].astype(str)
+        vmp_atc["atc_code"] = vmp_atc["atc_code"].astype(str)
+        
+        # Get mappings for existing VMPs and ATCs
+        vmp_ids = dict(VMP.objects.values_list('code', 'id'))
+        atc_ids = dict(ATC.objects.values_list('code', 'id'))
+        
+        # Create VMP-ATC relationships
+        vmp_atc_relations = []
+        
+        for _, row in vmp_atc.iterrows():
+            if row["vmp_code"] in vmp_ids and row["atc_code"] in atc_ids:
+                vmp_atc_relations.append(
+                    VMP.atcs.through(
+                        vmp_id=vmp_ids[row["vmp_code"]],
+                        atc_id=atc_ids[row["atc_code"]]
+                    )
+                )
+        
+        # Bulk create the relationships
+        with transaction.atomic():
+            VMP.atcs.through.objects.bulk_create(
+                vmp_atc_relations, 
+                ignore_conflicts=True
+            )
+        
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Successfully associated {len(vmp_atc_relations)} VMP-ATC relationships"
+            )
+        )
+    
+    def load_ddd(self, directory):
+        ddd = self.load_csv("ddd_table", directory)
+        ddd["atc_code"] = ddd["atc_code"].astype(str)
+        ddd["ddd"] = ddd["ddd"].astype(float)
+        ddd["unit_type"] = ddd["unit_type"].astype(str)
+        ddd["dmd_route"] = ddd["dmd_route"].astype(str)
+
+        # check if the VMP has a single route - each ddd is associated with a single route
+        # so if a VMP has multiple routes, we don't know which ddd to use
+
+        vmps_with_single_route = (
+            VMP.objects
+            .annotate(route_count=Count('routes'))
+            .filter(route_count=1)
+            .prefetch_related('atcs', 'routes')
+        )
+
+        vmp_route_dict = {
+            (vmp.id, vmp.routes.all()[0].name): {
+                'vmp': vmp,
+                'route': vmp.routes.all()[0],
+                'atc_codes': {atc.code for atc in vmp.atcs.all()}
+            }
+            for vmp in vmps_with_single_route
+        }
+
+        ddd_objects = []
+        for _, row in tqdm(ddd.iterrows(), desc="Processing DDDs"):
+            atc_code = row["atc_code"]
+            dmd_route = row["dmd_route"]
+
+            for (vmp_id, route_name), vmp_data in vmp_route_dict.items():
+                if route_name == dmd_route and atc_code in vmp_data['atc_codes']:
+                    ddd_objects.append(
+                        DDD(
+                            vmp=vmp_data['vmp'],
+                            ddd=row["ddd"],
+                            unit_type=row["unit_type"],
+                            route=vmp_data['route']
+                        )
+                    )
+
+        batch_size = 1000
+        for i in range(0, len(ddd_objects), batch_size):
+            batch = ddd_objects[i:i + batch_size]
+            DDD.objects.bulk_create(batch, ignore_conflicts=True)
+
+        self.stdout.write(self.style.SUCCESS(f"Loaded {len(ddd_objects)} DDDs"))
+
+    def load_ddd_quantity(self):
+
+        ddd_data = {}
+        for ddd in DDD.objects.all():
+            ddd_data[ddd.vmp_id] = {
+                'ddd': ddd.ddd,
+                'unit_type': ddd.unit_type
+            }
+
+        batch_size = 1000
+        total_ddd_quantities = 0
+        ddd_quantity_objects = []
+
+        # Get all IngredientQuantity objects, grouped by VMP and organisation
+        ingredient_quantities = IngredientQuantity.objects.all()
+        total_count = ingredient_quantities.count()
+
+        with tqdm(total=total_count, desc="Processing DDDQuantities") as pbar:
+            for iq in ingredient_quantities.iterator():
+                vmp_id = iq.vmp_id
+                
+                # Skip if no DDD data for this VMP
+                if vmp_id not in ddd_data:
+                    pbar.update(1)
+                    continue
+
+                ddd_info = ddd_data[vmp_id]
+                data_array = []
+
+                # Process each data entry in the IngredientQuantity
+                if iq.data:
+                    for entry in iq.data:
+                        year_month, quantity, unit = entry
+                        
+                        if quantity and unit:
+                            # Check if units match
+                            if unit.lower() == ddd_info['unit_type'].lower():
+                                try:
+                                    # Calculate DDD quantity
+                                    ingredient_qty = float(quantity)
+                                    ddd_quantity = ingredient_qty / ddd_info['ddd']
+                                    
+                                    data_array.append([
+                                        year_month,
+                                        str(ddd_quantity),
+                                        f"DDD ({round(ddd_info['ddd'], 5) if ddd_info['ddd'] != round(ddd_info['ddd'], 5) else ddd_info['ddd']} {ddd_info['unit_type']})"
+                                    ])
+                                except (ValueError, ZeroDivisionError):
+                                    continue
+
+                if data_array:  # Only create object if there's data
+                    ddd_quantity_objects.append(
+                        DDDQuantity(
+                            vmp_id=vmp_id,
+                            organisation_id=iq.organisation_id,
+                            data=data_array
+                        )
+                    )
+
+                if len(ddd_quantity_objects) >= batch_size:
+                    with transaction.atomic():
+                        try:
+                            DDDQuantity.objects.bulk_create(ddd_quantity_objects, ignore_conflicts=True)
+                            total_ddd_quantities += len(ddd_quantity_objects)
+                        except Exception as e:
+                            self.stdout.write(self.style.ERROR(f"Error creating batch: {str(e)}"))
+                    ddd_quantity_objects = []
+                
+                pbar.update(1)
+
+            # Create any remaining objects
+            if ddd_quantity_objects:
+                with transaction.atomic():
+                    try:
+                        DDDQuantity.objects.bulk_create(ddd_quantity_objects, ignore_conflicts=True)
+                        total_ddd_quantities += len(ddd_quantity_objects)
+                    except Exception as e:
+                        self.stdout.write(self.style.ERROR(f"Error creating batch: {str(e)}"))
+
+        self.stdout.write(self.style.SUCCESS(f"Loaded {total_ddd_quantities} DDDQuantities"))
+
+ 

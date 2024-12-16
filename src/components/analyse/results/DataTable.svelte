@@ -175,23 +175,37 @@
                 </thead>
                 <tbody class="text-gray-600 text-sm">
                     {#each groupedData as group}
-                        <tr class="border-b border-gray-200 hover:bg-gray-100 font-bold">
-                            <td class="py-3 px-6 text-left" rowspan={group.units.length + 1}>
-                                {group.key}
-                            </td>
-                            <td class="py-3 px-6 text-left">All units</td>
-                            <td class="py-3 px-6 text-right">
-                                {formatNumber(group.total)}
-                            </td>
-                        </tr>
-                        {#each group.units as unitData}
+                        {#if quantityType === 'DDD'}
                             <tr class="border-b border-gray-200 hover:bg-gray-100">
-                                <td class="py-3 px-6 text-left">{unitData.unit}</td>
+                                <td class="py-3 px-6 text-left">
+                                    {group.key}
+                                </td>
+                                <td class="py-3 px-6 text-left">
+                                    {group.units[0]?.unit || 'DDD'}
+                                </td>
                                 <td class="py-3 px-6 text-right">
-                                    {formatNumber(unitData.quantity)}
+                                    {formatNumber(group.total)}
                                 </td>
                             </tr>
-                        {/each}
+                        {:else}
+                            <tr class="border-b border-gray-200 hover:bg-gray-100 font-bold">
+                                <td class="py-3 px-6 text-left" rowspan={group.units.length + 1}>
+                                    {group.key}
+                                </td>
+                                <td class="py-3 px-6 text-left">All units</td>
+                                <td class="py-3 px-6 text-right">
+                                    {formatNumber(group.total)}
+                                </td>
+                            </tr>
+                            {#each group.units as unitData}
+                                <tr class="border-b border-gray-200 hover:bg-gray-100">
+                                    <td class="py-3 px-6 text-left">{unitData.unit}</td>
+                                    <td class="py-3 px-6 text-right">
+                                        {formatNumber(unitData.quantity)}
+                                    </td>
+                                </tr>
+                            {/each}
+                        {/if}
                     {/each}
                 </tbody>
             </table>
