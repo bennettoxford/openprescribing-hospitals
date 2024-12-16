@@ -43,6 +43,7 @@ class VMP(models.Model):
         "Ingredient", related_name="vmps")
     ont_form_routes = models.ManyToManyField("OntFormRoute", related_name="vmps")
     routes = models.ManyToManyField("Route", related_name="vmps")
+    atcs = models.ManyToManyField("ATC", related_name="vmps")
 
     def __str__(self):
         return f"{self.name} ({self.code})"
