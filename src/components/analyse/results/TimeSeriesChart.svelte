@@ -84,26 +84,42 @@
     }
 
     function updateAvailableViewModes() {
-        availableViewModes = ['Total', 'Product', 'Product Group'];
+        availableViewModes = ['Total'];
         
         // Only add Organisation mode if there is more than one organisation
         const uniqueOrgs = new Set(data.map(item => item.organisation__ods_code).filter(Boolean));
         if (uniqueOrgs.size > 1) {
             availableViewModes.push('Organisation');
         }
+
+        // Only add Product mode if there is more than one product
+        const uniqueProducts = new Set(data.map(item => item.vmp__name).filter(Boolean));
+        if (uniqueProducts.size > 1) {
+            availableViewModes.push('Product');
+        }
+
+        // Only add Product Group mode if there is more than one product group
+        const uniqueProductGroups = new Set(data.map(item => item.vmp__vtm__name).filter(Boolean));
+        if (uniqueProductGroups.size > 1) {
+            availableViewModes.push('Product Group');
+        }
+
+        // Only add Unit mode if there is more than one unit and correct search type
+        const uniqueUnits = new Set(data.flatMap(item => item.data.map(d => d[2])).filter(Boolean));
+        if (uniqueUnits.size > 1 && (searchType === 'vmp' || searchType === 'vtm')) {
+            availableViewModes.push('Unit');
+        }
+
+        // Only add Route mode if there is more than one route
+        const uniqueRoutes = new Set(data.flatMap(item => item.routes || []).filter(Boolean));
+        if (uniqueRoutes.size > 1) {
+            availableViewModes.push('Route');
+        }
         
-        // Match ProductList.svelte conditions for ingredients
+        // Keep existing ingredient logic as it's dependent on quantity type
         if (currentQuantityType === 'Ingredient Quantity' || currentSearchType === 'ingredient') {
             availableViewModes.push('Ingredient');
-        } else {
-            if (searchType === 'vmp' || searchType === 'vtm') {
-                availableViewModes.push('Unit');
-            }
-            if (searchType === 'vtm') {
-                availableViewModes.push('VTM');
-            }
         }
-        availableViewModes.push('Route');
     }
 
     function getIngredientName(item) {
