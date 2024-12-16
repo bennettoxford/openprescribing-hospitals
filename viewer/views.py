@@ -19,6 +19,7 @@ from django.contrib.auth.views import LoginView as AuthLoginView
 from django.shortcuts import redirect
 from django.contrib.postgres.aggregates import ArrayAgg
 
+from .forms import LoginForm
 from .models import (
     Organisation,
     VMP,
@@ -48,6 +49,7 @@ class IndexView(TemplateView):
 
 class LoginView(AuthLoginView):
     template_name = 'login.html'
+    form_class = LoginForm
 
 @method_decorator(login_required, name='dispatch')
 class AnalyseView(TemplateView):
