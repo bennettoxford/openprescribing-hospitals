@@ -110,6 +110,15 @@ class ATC(models.Model):
             models.Index(fields=["code"]),
         ]
 
+    def get_vmps(self, include_children=True):
+        """
+        Get VMPs associated with this ATC code.
+        If include_children is True, also gets VMPs from child ATC codes.
+        """
+        if include_children:
+            return VMP.objects.filter(atcs__code__startswith=self.code).distinct()
+        return VMP.objects.filter(atcs__code=self.code).distinct()
+
 
 class OntFormRoute(models.Model):
     name = models.CharField(max_length=255)
