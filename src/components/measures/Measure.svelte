@@ -25,9 +25,10 @@
     } from '../../stores/measureChartStore.js';
     import MeasureChart from './MeasureChart.svelte';
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
-    import ModeSelector from './ModeSelector.svelte';
+    import ModeSelector from '../common/ModeSelector.svelte';
     import ChartLegend from './ChartLegend.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore';
+    import { modeSelectorStore } from '../../stores/modeSelectorStore.js';
 
     export let orgdata = '[]';
     export let regiondata = '[]';
@@ -112,30 +113,37 @@
         }
     }
 
-    function handleModeChange(event) {
-        const newMode = event.target.value;
-        selectedMode.set(newMode);
-        
-        // Clear all selections
-        visibleRegions.set(new Set());
-        visibleTrusts.set(new Set());
-        visibleICBs.set(new Set());
-        
-        // Ensure proper data format before updating stores
-        if (newMode === 'icb') {
-            const icbArray = Array.isArray(icbs) ? icbs : [];
-            organisationSearchStore.setItems(icbArray);
-            organisationSearchStore.setFilterType('icb');
-        } else if (newMode === 'region') {
-            const regionsArray = Array.isArray(regions) ? regions : [];
-            organisationSearchStore.setItems(regionsArray);
-            organisationSearchStore.setFilterType('region');
-        } else if (newMode === 'trust' || newMode === 'percentiles') {
-            const trustsArray = Array.isArray(trusts) ? trusts : [];
-            organisationSearchStore.setItems(trustsArray);
-            organisationSearchStore.setFilterType('trust');
+    const modeOptions = [
+        { value: 'percentiles', label: 'Trust (Percentiles)' },
+        { value: 'trust', label: 'Trust' },
+        { value: 'icb', label: 'ICB' },
+        { value: 'region', label: 'Region' },
+        { value: 'national', label: 'National' },
+    ];
+
+    $: currentMode = $modeSelectorStore.selectedMode;
+    $: {
+        if (currentMode) {
+            selectedMode.set(currentMode);
+            
+            // Clear all selections
+            visibleRegions.set(new Set());
+            visibleTrusts.set(new Set());
+            visibleICBs.set(new Set());
+            
+            // Update organisation search based on mode
+            if (currentMode === 'icb') {
+                organisationSearchStore.setItems(icbs);
+                organisationSearchStore.setFilterType('icb');
+            } else if (currentMode === 'region') {
+                organisationSearchStore.setItems(regions);
+                organisationSearchStore.setFilterType('region');
+            } else if (currentMode === 'trust' || currentMode === 'percentiles') {
+                organisationSearchStore.setItems(trusts);
+                organisationSearchStore.setFilterType('trust');
+            }
+            organisationSearchStore.updateSelection([]);
         }
-        organisationSearchStore.updateSelection([]);
     }
 
     $: {
@@ -146,6 +154,10 @@
         } else if ($selectedMode === 'trust' || $selectedMode === 'percentiles') {
             organisationSearchStore.updateSelection(Array.from($visibleTrusts));
         }
+    }
+
+    function handleModeChange(newMode) {
+        selectedMode.set(newMode);
     }
 </script>
 
@@ -169,7 +181,13 @@
             {/if}
             <!-- Mode Selector - full width on mobile, spans 1 column on lg+ -->
             <div class="lg:col-span-1">
-                <ModeSelector {handleModeChange} />
+                <ModeSelector 
+                    options={modeOptions}
+                    initialMode="percentiles"
+                    label="Select Mode"
+                    onChange={handleModeChange}
+                    variant="dropdown"
+                />
             </div>
         </div>
     </div>

@@ -7,6 +7,7 @@
     import { onMount, afterUpdate, onDestroy } from 'svelte';
     import * as d3 from 'd3';
     import { resultsStore } from '../../../stores/resultsStore';
+    import ModeSelector from '../../common/ModeSelector.svelte';
 
     export let data = [];
     export let quantityType = 'VMP Quantity';
@@ -688,6 +689,16 @@
             updateChart();
         }
     });
+
+    $: modeOptions = availableViewModes.map(mode => ({
+        value: mode,
+        label: mode
+    }));
+
+    function handleModeChange(newMode) {
+        viewMode = newMode;
+        handleViewModeChange();
+    }
 </script>
 
 {#if showNoDataMessage}
@@ -703,19 +714,14 @@
     <div class="p-4">
         <h3 class="text-xl font-semibold mb-4">Time Series Analysis</h3>
         <div class="space-y-4">
-            <div class="flex flex-wrap gap-2">
-                {#each availableViewModes as mode}
-                    <button
-                        class="px-3 py-1 rounded-full text-sm font-medium transition-colors"
-                        class:bg-oxford-600={viewMode === mode}
-                        class:text-white={viewMode === mode}
-                        class:bg-gray-200={viewMode !== mode}
-                        class:text-gray-700={viewMode !== mode}
-                        on:click={() => viewMode = mode}
-                    >
-                        {mode}
-                    </button>
-                {/each}
+            <div class="w-full">
+                <ModeSelector
+                    options={modeOptions}
+                    initialMode="Total"
+                    label="View Mode"
+                    onChange={handleModeChange}
+                    variant="pills"
+                />
             </div>
             <div class="bg-gray-50 rounded-lg p-6">
                 <div bind:this={chartContainer}>

@@ -3,6 +3,7 @@
   import * as d3 from 'd3';
   import { filteredData, getOrganisationColor, selectedMode } from '../../stores/measureChartStore.js';
   import { regionColors } from '../../utils/chartConfig.js';
+  import { modeSelectorStore } from '../../stores/modeSelectorStore.js';
 
   let chartDiv;
   let tooltip;
@@ -14,7 +15,7 @@
   let margin;
   let svg;
 
-  $: isPercentileMode = $selectedMode === 'percentiles';
+  $: isPercentileMode = $modeSelectorStore.selectedMode === 'percentiles';
 
   let brushing = false;
 
@@ -243,7 +244,7 @@
         .attr('d', d => line(d.data));
 
       // Update percentile areas specifically
-      if ($selectedMode === 'percentiles') {
+      if ($modeSelectorStore.selectedMode === 'percentiles') {
         percentileAreasGroup.selectAll('path')
           .transition()
           .duration(750)
@@ -286,7 +287,7 @@
     }
 
     // Draw shaded areas for percentiles inside the clipped area FIRST
-    if ($selectedMode === 'percentiles') {
+    if ($modeSelectorStore.selectedMode === 'percentiles') {
       const percentileDatasets = $filteredData.datasets.filter(d => d.label.includes('Percentile') && d.fill);
       
       percentileDatasets.sort((a, b) => {
@@ -494,9 +495,9 @@
       const denominator = d.denominator ? d.denominator[nearestIndex] : null;
 
       let displayName, displayCode;
-      if ($selectedMode === 'organisation') {
+      if ($modeSelectorStore.selectedMode === 'organisation') {
         [displayCode, displayName] = d.label.split('|');
-      } else if ($selectedMode === 'national') {
+      } else if ($modeSelectorStore.selectedMode === 'national') {
         displayName = 'National';
         displayCode = '';
       } else {
@@ -599,7 +600,7 @@
       .attr('d', d => line(d.data));
 
     // Update areas if in percentile mode
-    if ($selectedMode === 'percentiles') {
+    if ($modeSelectorStore.selectedMode === 'percentiles') {
       svg.select('g[clip-path]')
         .select('.percentile-areas-group')
         .selectAll('path')
