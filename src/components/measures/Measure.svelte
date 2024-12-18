@@ -13,7 +13,7 @@
     import { onMount } from 'svelte';
     import { 
         selectedMode, 
-        orgdata as orgStore, 
+        orgdata as orgdataStore, 
         regiondata as regionStore, 
         icbdata as icbStore, 
         percentiledata as percentileStore, 
@@ -21,14 +21,17 @@
         selectedICBs,
         visibleRegions,
         visibleTrusts,
-        visibleICBs
+        visibleICBs,
+        getOrganisationColor,
+        getOrganisationIndex
     } from '../../stores/measureChartStore.js';
     import MeasureChart from './MeasureChart.svelte';
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
     import ModeSelector from '../common/ModeSelector.svelte';
-    import ChartLegend from './ChartLegend.svelte';
+    import ChartLegend from '../common/ChartLegend.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore';
     import { modeSelectorStore } from '../../stores/modeSelectorStore.js';
+    import { regionColors } from '../../utils/chartConfig.js';
 
     export let orgdata = '[]';
     export let regiondata = '[]';
@@ -71,7 +74,7 @@
 
     onMount(() => {
         const parsedOrgData = JSON.parse(orgdata);
-        orgStore.set(parsedOrgData);
+        orgdataStore.set(parsedOrgData);
         
         // Get all trusts and available trusts
         trusts = Object.keys(parsedOrgData);
@@ -159,6 +162,34 @@
     function handleModeChange(newMode) {
         selectedMode.set(newMode);
     }
+
+    $: legendItems = $selectedMode === 'region' ? 
+        Object.entries(regionColors).map(([region, color]) => ({
+            label: region,
+            color,
+        })) :
+        $selectedMode === 'trust' && $orgdataStore ?
+            Object.keys($orgdataStore).map((trust) => ({
+                label: trust,
+                color: getOrganisationColor(getOrganisationIndex(trust, $orgdataStore)),
+            })) :
+        $selectedMode === 'icb' && $icbStore ?
+            $icbStore.map((icb, index) => ({
+                label: icb.name,
+                color: getOrganisationColor(index),
+            })) :
+            [];
+
+    function handleLegendChange(items) {
+        const newVisible = new Set(items);
+        if ($selectedMode === 'region') {
+            visibleRegions.set(newVisible);
+        } else if ($selectedMode === 'trust' || $selectedMode === 'percentiles') {
+            visibleTrusts.set(newVisible);
+        } else if ($selectedMode === 'icb') {
+            visibleICBs.set(newVisible);
+        }
+    }
 </script>
 
 <div class="grid grid-cols-1 lg:grid-cols-4 gap-x-4 gap-y-2">
@@ -196,7 +227,7 @@
     <!-- Chart - spans 3 columns on lg+ -->
     <div class="lg:col-span-3 relative" style="min-height: 350px;">
         <div class="chart-container absolute inset-0">
-            {#if orgdata.length === 0}
+            {#if orgdataStore.length === 0}
                 <p class="text-center text-gray-500 pt-8">No data available.</p>
             {:else}
                 <MeasureChart />
@@ -207,7 +238,11 @@
     <!-- Legend - spans 1 column on lg+ -->
     {#if showLegend}
         <div class="legend-container">
-            <ChartLegend />
+            <ChartLegend 
+                items={legendItems}
+                isPercentileMode={$selectedMode === 'percentiles'}
+                onChange={handleLegendChange}
+            />
         </div>
     {/if}
 </div>
