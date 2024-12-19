@@ -27,6 +27,7 @@ export default defineConfig({
         'measure': "./src/components/measures/Measure.svelte",
         'org-submission': "./src/components/dq/OrgSubmission.svelte",
         'collapsible-section': "./src/components/measures/CollapsibleSection.svelte",
+        'chart': "./src/components/common/Chart.svelte",
       }
     },
   },
