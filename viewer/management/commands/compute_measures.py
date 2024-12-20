@@ -186,7 +186,7 @@ class Command(BaseCommand):
                 org_values[org_id][month] = {
                     "numerator": num_value,
                     "denominator": den_value,
-                    "value": num_value / den_value if den_value else 0
+                    "value": (num_value / den_value * 100) if den_value else 0
                 }
         
 
@@ -302,7 +302,7 @@ class Command(BaseCommand):
                 icb_values[icb_id][month] = {
                     "numerator": num_value,
                     "denominator": den_value,
-                    "value": num_value / den_value if den_value else None
+                    "value": (num_value / den_value * 100) if den_value else None
                 }
         
         for label, values in icb_values.items():
@@ -344,7 +344,7 @@ class Command(BaseCommand):
                 region_values[region_id][month] = {
                     "numerator": num_value,
                     "denominator": den_value,
-                    "value": num_value / den_value if den_value else None
+                    "value": (num_value / den_value * 100) if den_value else None
                 }
         
         for label, values in region_values.items():
@@ -379,7 +379,7 @@ class Command(BaseCommand):
             national_values[month] = {
                 "numerator": num_value,
                 "denominator": den_value,
-                "value": num_value / den_value if den_value else None
+                "value": (num_value / den_value * 100) if den_value else None
             }
 
         for month, value in national_values.items():
