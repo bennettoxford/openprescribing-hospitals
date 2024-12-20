@@ -9,7 +9,6 @@
   import ResultsBox from './results/ResultsBox.svelte';
   import { writable } from 'svelte/store';
   import { analyseOptions } from '../../stores/analyseOptionsStore';
-  import { get } from 'svelte/store';
   import { organisationSearchStore } from '../../stores/organisationSearchStore';
 
   let isAnalysisRunning = writable(false);
@@ -40,9 +39,8 @@
     isAnalyseBoxCollapsed = true;
   }
 
-  function handleAnalysisError(event) {
+  function handleAnalysisError() {
     isAnalysisRunning.set(false);
-    // Handle error if needed
   }
 
   function handleOrganisationDropdownToggle(event) {
@@ -72,12 +70,10 @@
     isAnalyseBoxCollapsed = !isAnalyseBoxCollapsed;
   }
 
-  // Function to check screen size
   function checkScreenSize() {
-    isLargeScreen = window.innerWidth >= 1024; // Assuming 1024px is the breakpoint for large screens
+    isLargeScreen = window.innerWidth >= 1024;
   }
 
-  // Add event listener to update screen size on resize
   window.addEventListener('resize', checkScreenSize);
   onMount(() => {
     checkScreenSize();
@@ -150,7 +146,7 @@
                     <h2 class="text-lg font-semibold">Results</h2>
                 </div>
                 <results-box 
-                    class="flex-grow" 
+                    className="flex-grow" 
                     isAnalysisRunning={$isAnalysisRunning} 
                     analysisData={analysisData} 
                     {showResults}

@@ -6,17 +6,20 @@
 <script>
     import { onMount, createEventDispatcher } from 'svelte';
     import '../../styles/styles.css';
-    import { organisationSearchStore } from '../../stores/organisationSearchStore';
 
     const dispatch = createEventDispatcher();
 
     export let source;
     export let overlayMode = false;
-    $: placeholderText = `Search and select up to 10 ${
-        $source.filterType === 'icb' ? 'Integrated Care Boards' : 
-        $source.filterType === 'region' ? 'regions' : 
-        'NHS Trusts'
-    }...`;
+    export let disabled = false;
+
+    $: placeholderText = disabled ? 
+        'Selection disabled' :
+        `Search and select ${
+            $source.filterType === 'icb' ? 'Integrated Care Boards' : 
+            $source.filterType === 'region' ? 'regions' : 
+            'NHS Trusts'
+        }...`;
 
     $: counterText = $source.filterType === 'icb' ? 'ICBs' :
                      $source.filterType === 'region' ? 'regions' :
@@ -28,9 +31,9 @@
     let showScrollTop = false;
 
     $: items = $source.items || [];
-    $: selectedItems = $source.selectedItems || [];
+    $: selectedItems = Array.from($source.selectedItems || []);
+    $: availableItems = Array.from($source.availableItems || []);
     $: showOrganisationSelection = $source.usedOrganisationSelection;
-    $: filterType = $source.filterType;
 
     function normalizeString(str) {
         return str
@@ -53,58 +56,44 @@
             return isItemSelected(a) ? -1 : 1;
         });
 
-    $: maxSelected = selectedItems.length >= 10;
 
-    function toggleDropdown() {
-        isOpen = !isOpen;
-        dispatch('dropdownToggle', { isOpen });
-    }
-
-    function toggleOrganisationSelection() {
-        source.toggleSelection();
-        if (!showOrganisationSelection) {
-            isOpen = true;
-        }
-        dispatch('dropdownToggle', { isOpen });
-    }
-
-    $: isItemSelected = (item) => selectedItems.includes(item);
+    $: isItemSelected = (item) => {
+        const selected = $source.selectedItems || [];
+        return Array.isArray(selected) ? (selected.includes(item) && isItemAvailable(item)) : false;
+    };
 
     function toggleItem(item) {
-        if (!source.isAvailable(item)) {
+        if (!isItemAvailable(item)) {
             return;
         }
 
         let newSelectedItems;
         if (selectedItems.includes(item)) {
             newSelectedItems = selectedItems.filter(i => i !== item);
-        } else if (selectedItems.length < 10) {
-            newSelectedItems = [...selectedItems, item];
         } else {
-            return;
+            newSelectedItems = [...selectedItems, item];
         }
         
         source.updateSelection(newSelectedItems);
         dispatch('selectionChange', {
-            selectedItems: newSelectedItems
+            selectedItems: newSelectedItems,
+            source: 'search'
         });
     }
 
     function deselectAll() {
-        source.updateSelection([], showOrganisationSelection);
+        source.updateSelection([]);
+        dispatch('clearAll');
         dispatch('selectionChange', {
             selectedItems: [],
+            source: 'search',
             usedOrganisationSelection: showOrganisationSelection
         });
     }
 
     function updateScrollButtonVisibility() {
         if (listContainer) {
-            console.log({
-                scrollHeight: listContainer.scrollHeight,
-                clientHeight: listContainer.clientHeight,
-                scrollTop: listContainer.scrollTop
-            });
+            
             
             showScrollTop = listContainer.scrollHeight > listContainer.clientHeight && listContainer.scrollTop > 0;
         }
@@ -147,42 +136,74 @@
     function isItemAvailable(item) {
         return source.isAvailable(item);
     }
+
+    function selectAll() {
+        const availableItems = $source.availableItems || [];
+        source.updateSelection(availableItems);
+        dispatch('selectionChange', {
+            selectedItems: availableItems,
+            source: 'search'
+        });
+    }
 </script>
 
 <div class="dropdown relative w-full h-full flex flex-col">
     <div class="flex flex-col">
-        <div class="flex">
-            <div class="relative flex-grow">
-                <input
-                    type="text"
-                    bind:value={searchTerm}
-                    on:focus={() => isOpen = true}
-                    placeholder={placeholderText}
-                    class="w-full p-2 border border-gray-300 rounded-l-md pr-8 {isOpen ? 'rounded-bl-none' : ''}"
-                />
-                <button
-                    class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    on:click|stopPropagation={() => searchTerm = ''}
-                >
-                    {#if searchTerm}
-                        <span>✕</span>
-                    {/if}
-                </button>
-            </div>
-
-            <div class="flex items-center gap-2 bg-gray-50 px-3 border border-l-0 border-gray-300 {isOpen ? 'rounded-tr-md' : 'rounded-r-md'}">
-                {#if selectedItems.length > 0}
-                    <button
-                        on:click={deselectAll}
-                        class="text-sm text-red-600 hover:text-red-700 hover:underline font-medium transition-colors duration-150"
+        <div class="flex flex-col gap-2">
+            <div class="flex justify-between items-center">
+                <label class="text-sm font-medium {disabled ? 'text-gray-400' : 'text-gray-700'}">
+                    Select {$source.filterType === 'icb' ? 'ICB' : 
+                           $source.filterType === 'region' ? 'Region' : 
+                           'Trust'}
+                </label>
+                <div class="flex items-center gap-2 text-sm">
+                    <button 
+                        class="text-blue-600 hover:text-blue-800 font-medium {disabled ? 'opacity-50 cursor-not-allowed' : ''}" 
+                        on:click={selectAll}
+                        disabled={disabled}
                     >
-                        Clear all
+                        Select All
                     </button>
-                    <div class="w-[1px] h-4 bg-gray-300"></div>
-                {/if}
-                <div class="flex flex-col items-center text-xs text-gray-500 py-1">
-                    <span class="font-medium">{selectedItems.length}/10</span>
-                    <span>{counterText}</span>
+                    <span class="text-gray-300">|</span>
+                    <button 
+                        class="text-red-600 hover:text-red-800 font-medium {disabled ? 'opacity-50 cursor-not-allowed' : ''}" 
+                        on:click={deselectAll}
+                        disabled={disabled}
+                    >
+                        Clear All
+                    </button>
+                </div>
+            </div>
+            <div class="flex">
+                <div class="relative flex-grow">
+                    <input
+                        type="text"
+                        bind:value={searchTerm}
+                        on:focus={() => !disabled && (isOpen = true)}
+                        placeholder={placeholderText}
+                        disabled={disabled}
+                        class="w-full p-2 border border-gray-300 rounded-l-md pr-8 
+                               {isOpen ? 'rounded-bl-none' : ''} 
+                               {disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}"
+                    />
+                    <button
+                        class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 
+                               {disabled ? 'hidden' : ''}"
+                        on:click|stopPropagation={() => searchTerm = ''}
+                    >
+                        {#if searchTerm}
+                            <span>✕</span>
+                        {/if}
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2 bg-gray-50 px-3 border border-l-0 border-gray-300 
+                            {isOpen ? 'rounded-tr-md' : 'rounded-r-md'} 
+                            {disabled ? 'bg-gray-100' : ''} w-[85px]">
+                    <div class="flex flex-col items-center text-xs text-gray-500 py-1 w-full">
+                        <span class="font-medium">{selectedItems.filter(item => isItemAvailable(item)).length}/{availableItems.length}</span>
+                        <span>{counterText}</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -198,12 +219,11 @@
                     {#each filteredItems as item}
                         <div
                             class="p-2 transition duration-150 ease-in-out relative
-                                   {maxSelected && !isItemSelected(item) ? 'bg-gray-300 cursor-not-allowed' : ''}
                                    {!isItemAvailable(item) ? 'text-gray-400 cursor-not-allowed' : 'cursor-pointer'}
                                    {isItemSelected(item) ? 'bg-oxford-100 text-oxford-500' : ''}
-                                   {isItemSelected(item) ? 'hover:bg-oxford-200' : isItemAvailable(item) && !maxSelected ? 'hover:bg-gray-100' : ''}"
+                                   {isItemSelected(item) ? 'hover:bg-oxford-200' : isItemAvailable(item) ? 'hover:bg-gray-100' : ''}"
                             on:click={() => { 
-                                if (isItemAvailable(item) && (!maxSelected || isItemSelected(item))) {
+                                if (isItemAvailable(item)) {
                                     toggleItem(item);
                                 }
                             }}
