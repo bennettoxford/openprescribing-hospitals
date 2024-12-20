@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import { legendStore } from './legendStore';
 
 export const resultsStore = writable({
     isAnalysisRunning: false,
@@ -97,6 +98,7 @@ function calculateDateRange(data) {
 }
 
 export function clearResults() {
+    legendStore.reset();
     resultsStore.set({
         isAnalysisRunning: false,
         showResults: false,

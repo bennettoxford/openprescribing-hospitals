@@ -8,6 +8,8 @@
     import * as d3 from 'd3';
     import { resultsStore } from '../../../stores/resultsStore';
     import ModeSelector from '../../common/ModeSelector.svelte';
+    import ChartLegend from '../../common/ChartLegend.svelte';
+    import { legendStore } from '../../../stores/legendStore';
 
     export let data = [];
     export let quantityType = 'VMP Quantity';
@@ -138,18 +140,15 @@
             case 'Product':
                 return item.vmp__name || 'Unknown Product';
             case 'Organisation':
-                return item.organisation__ods_name || 'Unknown Organisation';
+                return item.organisation__ods_name || item.organisation__name || 'Unknown Organisation';
             case 'Unit':
                 return item.data?.[0]?.[2] || 'Unknown Unit';
             case 'Ingredient':
-                if (item.ingredients && item.ingredients.length > 0) {
-                    return item.ingredients[0];
-                }
-                return 'Unknown Ingredient';
+                return getIngredientName(item);
             case 'Product Group':
                 return item.vmp__vtm__name || 'Unknown Product Group';
             case 'Route':
-                return item.routes?.[0] || 'Other';
+                return (item.routes && item.routes.length > 0) ? item.routes[0] : 'Other';
             default:
                 return 'Total';
         }
@@ -167,38 +166,35 @@
             item.data.map(([date]) => date)
         ))].sort();
 
-        // For organisation view, first group by organisation
-        if (viewMode === 'Organisation') {
-            const orgData = {};
+        if (viewMode === 'Total') {
+            const totalByDate = {};
             data.forEach(item => {
-                const orgName = item.organisation__ods_name || 'Unknown Organisation';
-                
-                if (!orgData[orgName]) {
-                    orgData[orgName] = {};
-                }
                 item.data.forEach(([date, quantity]) => {
-                    if (!orgData[orgName][date]) {
-                        orgData[orgName][date] = 0;
+                    if (!totalByDate[date]) {
+                        totalByDate[date] = 0;
                     }
-                    orgData[orgName][date] += parseFloat(quantity || 0);
+                    totalByDate[date] += parseFloat(quantity || 0);
                 });
             });
 
-            console.log('Organisations found:', Object.keys(orgData));
-            
-            const datasets = Object.entries(orgData).map(([org, dates], index) => ({
-                label: org,
-                data: allDates.map(date => dates[date] || 0),
-                color: `hsl(${index * 360 / Object.keys(orgData).length}, 70%, 50%)`
-            }));
+            const dataset = {
+                label: `Total ${quantityType}`,
+                data: allDates.map(date => totalByDate[date] || 0),
+                color: 'rgb(75, 192, 192)'
+            };
+
+            legendStore.setItems([{
+                label: dataset.label,
+                color: dataset.color
+            }]);
 
             return {
                 labels: allDates,
-                datasets
+                datasets: [dataset]
             };
         }
 
-        // For other views, use the existing grouping logic
+        // For other views, group the data by the selected breakdown
         const groupedData = data.reduce((acc, item) => {
             const key = getBreakdownKey(item, viewMode);
             if (!acc[key]) {
@@ -206,58 +202,26 @@
             }
             
             item.data.forEach(([date, quantity]) => {
-                if (viewMode === 'Route' && item.routes?.length) {
-                    const routes = item.routes;
-                    
-                    // Skip if routes is empty
-                    if (routes.length === 0) {
-                        return;
-                    }
-
-                    const quantityPerRoute = parseFloat(quantity) / routes.length;
-                    
-                    routes.forEach(route => {
-                        if (!acc[route]) acc[route] = {};
-                        acc[route][date] = (acc[route][date] || 0) + quantityPerRoute;
-                    });
-                } else if (viewMode === 'Ingredient' && item.ingredients?.length) {
-                    // Handle multiple ingredients similar to routes
-                    const ingredients = item.ingredients;
-                    const quantityPerIngredient = parseFloat(quantity) / ingredients.length;
-                    
-                    ingredients.forEach(ingredient => {
-                        if (!acc[ingredient]) acc[ingredient] = {};
-                        acc[ingredient][date] = (acc[ingredient][date] || 0) + quantityPerIngredient;
-                    });
-                } else {
-                    acc[key][date] = (acc[key][date] || 0) + parseFloat(quantity || 0);
+                if (!acc[key][date]) {
+                    acc[key][date] = 0;
                 }
+                acc[key][date] += parseFloat(quantity || 0);
             });
             return acc;
         }, {});
 
-        if (viewMode === 'Total') {
-            return {
-                labels: allDates,
-                datasets: [{
-                    label: `Total ${quantityType} over time`,
-                    data: allDates.map(date => 
-                        Object.values(groupedData).reduce((sum, group) => 
-                            sum + (group[date] || 0), 0
-                        )
-                    ),
-                    color: 'rgb(75, 192, 192)'
-                }]
-            };
-        } else {
-            const breakdownKeys = Object.keys(groupedData);
-            const datasets = breakdownKeys.map((key, index) => ({
-                label: key,
-                data: allDates.map(date => groupedData[key][date] || 0),
-                color: `hsl(${index * 360 / breakdownKeys.length}, 70%, 50%)`
-            }));
-            return { labels: allDates, datasets };
-        }
+        const datasets = Object.entries(groupedData).map(([key, dateValues], index) => ({
+            label: key,
+            data: allDates.map(date => dateValues[date] || 0),
+            color: `hsl(${index * 360 / Object.keys(groupedData).length}, 70%, 50%)`
+        }));
+
+        legendStore.setItems(datasets.map(dataset => ({
+            label: dataset.label,
+            color: dataset.color
+        })));
+
+        return { labels: allDates, datasets };
     }
 
     function getBreakdownKeys(viewMode) {
@@ -278,19 +242,17 @@
     function updateChart() {
         if (chartDiv) {
             const chartData = prepareChartData(data, viewMode);
-            visibleDatasets = chartData.datasets.map((_, i) => i);
             
-            isSmallScreen = window.innerWidth < 768;
+            const isSmallScreen = window.innerWidth < 768;
+            const showLegend = viewMode !== 'Total';
+
             const dateRange = d3.extent(chartData.labels, d => new Date(d));
             const yearDiff = (dateRange[1] - dateRange[0]) / (1000 * 60 * 60 * 24 * 365);
-
-            const showLegend = viewMode !== 'Total' && viewMode !== 'Organisation' && !isSmallScreen;
-            const legendWidth = showLegend ? 150 : 0;
 
             const margin = { 
                 top: 20, 
                 right: 20 + (showLegend ? 150 : 0), 
-                bottom: yearDiff < 2 ? 120 : 50, // Increased bottom margin for monthly ticks
+                bottom: yearDiff < 2 ? 120 : 50,
                 left: 60 
             };
 
@@ -403,8 +365,9 @@
             }
 
             function updateLines() {
+                const visibleLabels = $legendStore.visibleItems;
                 const lines = svg.selectAll('.line')
-                    .data(chartData.datasets.filter((_, i) => visibleDatasets.includes(i)));
+                    .data(chartData.datasets.filter(d => visibleLabels.has(d.label)));
 
                 lines.exit().remove();
 
@@ -415,11 +378,20 @@
                     .attr('fill', 'none')
                     .attr('stroke', d => d.color)
                     .attr('stroke-width', 2)
-                    .attr('d', d => line(d.data.map((value, i) => ({ date: new Date(chartData.labels[i]), value }))));
+                    .attr('d', d => line(d.data.map((value, i) => ({ 
+                        date: new Date(chartData.labels[i]), 
+                        value 
+                    }))));
             }
 
             // Initial drawing of lines
             updateLines();
+
+            const unsubscribe = legendStore.subscribe(() => {
+                updateLines();
+            });
+
+            return () => unsubscribe();
 
             // Modify the initial y-axis and y-grid creation
             svg.append('g')
@@ -440,146 +412,6 @@
                 .call(g => g.selectAll('.tick line')
                     .attr('stroke', 'lightgrey')
                     .attr('stroke-dasharray', '2,2'));
-
-            // Add legend to the right side of the chart
-            if (showLegend) {
-                console.log("Creating legend for view mode:", viewMode);
-                
-                const legendItemHeight = 20;
-                const legendItemPadding = 5;
-                const legendPadding = 10;
-                const maxLegendWidth = 250; // Increased from 200
-                const maxLegendHeight = height;
-
-                // Create a temporary SVG to measure text widths
-                const tempSvg = d3.select(chartDiv).append('svg').style('visibility', 'hidden');
-                const textWidths = chartData.datasets.map(d => {
-                    const text = tempSvg.append('text').text(d.label);
-                    const width = text.node().getComputedTextLength();
-                    text.remove();
-                    return width;
-                });
-                tempSvg.remove();
-
-                const maxTextWidth = Math.min(d3.max(textWidths), maxLegendWidth - 40); // 40 for color indicator and padding
-                const legendWidth = maxTextWidth + 40;
-                const legendHeight = Math.min(maxLegendHeight, chartData.datasets.length * (legendItemHeight + legendItemPadding) + legendPadding * 2);
-
-                const legend = svg.append('g')
-                    .attr('class', 'legend')
-                    .attr('transform', `translate(${width + 10}, 0)`);
-
-                // Add a border for the legend
-                legend.append('rect')
-                    .attr('width', legendWidth)
-                    .attr('height', legendHeight)
-                    .attr('fill', 'white')
-                    .attr('stroke', '#ccc')
-                    .attr('stroke-width', 1)
-                    .attr('rx', 5)
-                    .attr('ry', 5);
-
-                const legendContent = legend.append('g')
-                    .attr('class', 'legend-content')
-                    .attr('transform', `translate(${legendPadding}, ${legendPadding})`)
-                    .attr('clip-path', 'url(#legend-clip)');
-
-                // Add a clip path to prevent content from overflowing
-                legend.append('clipPath')
-                    .attr('id', 'legend-clip')
-                    .append('rect')
-                    .attr('width', legendWidth - legendPadding * 2)
-                    .attr('height', legendHeight - legendPadding * 2);
-
-                const legendItems = legendContent.selectAll('.legend-item')
-                    .data(chartData.datasets)
-                    .enter()
-                    .append('g')
-                    .attr('class', 'legend-item')
-                    .attr('transform', (d, i) => `translate(0, ${i * (legendItemHeight * 1.5 + legendItemPadding)})`);
-
-                legendItems.append('line')
-                    .attr('x1', 0)
-                    .attr('y1', legendItemHeight / 2)
-                    .attr('x2', 15)
-                    .attr('y2', legendItemHeight / 2)
-                    .attr('stroke', d => d.color)
-                    .attr('stroke-width', 2);
-
-                legendItems.append('text')
-                    .attr('x', 20)
-                    .attr('y', legendItemHeight / 2)
-                    .attr('dy', '.35em')
-                    .style('font-size', '10px')
-                    .style('fill', '#333')
-                    .each(function(d) {
-                        const text = d3.select(this);
-                        const words = d.label.split(/\s+/);
-                        let line = '';
-                        const lineHeight = 1.1; // ems
-                        const y = text.attr('y');
-                        const dy = parseFloat(text.attr('dy'));
-                        let tspan = text.text(null).append('tspan').attr('x', 20).attr('y', y).attr('dy', dy + 'em');
-
-                        for (let i = 0; i < words.length; i++) {
-                            const testLine = line + words[i] + ' ';
-                            const testWidth = this.getComputedTextLength();
-                            if (testWidth > maxTextWidth && i > 0) {
-                                tspan.text(line);
-                                line = words[i] + ' ';
-                                tspan = text.append('tspan').attr('x', 20).attr('y', y).attr('dy', `${++lineNumber * lineHeight + dy}em`).text(words[i]);
-                            } else {
-                                line = testLine;
-                            }
-                        }
-                        tspan.text(line);
-                    });
-
-                // Make legend scrollable if there are too many items
-                if (chartData.datasets.length * (legendItemHeight + legendItemPadding) > legendHeight - legendPadding * 2) {
-                    const scrollableArea = legend.append('foreignObject')
-                        .attr('x', legendPadding)
-                        .attr('y', legendPadding)
-                        .attr('width', legendWidth - legendPadding * 2)
-                        .attr('height', legendHeight - legendPadding * 2)
-                        .append('xhtml:div')
-                        .style('width', '100%')
-                        .style('height', '100%')
-                        .style('overflow-y', 'scroll');
-
-                    scrollableArea.node().appendChild(legendContent.node());
-                }
-
-                // Modify the click event for legend items
-                legendItems.style('cursor', 'pointer')
-                    .on('click', function(event, d) {
-                        const index = chartData.datasets.indexOf(d);
-                        const legendItem = d3.select(this);
-                        
-                        if (visibleDatasets.includes(index)) {
-                            // Toggle off the dataset
-                            visibleDatasets = visibleDatasets.filter(i => i !== index);
-                            legendItem.style('opacity', 0.5);
-                        } else {
-                            // Toggle on the dataset
-                            visibleDatasets.push(index);
-                            legendItem.style('opacity', 1);
-                        }
-                        
-                        // If all datasets are hidden, show all of them
-                        if (visibleDatasets.length === 0) {
-                            visibleDatasets = chartData.datasets.map((_, i) => i);
-                            legend.selectAll('.legend-item').style('opacity', 1);
-                        }
-                        
-                        updateLines();
-                    });
-
-                // Adjust SVG width to accommodate the legend
-                svg.attr('width', width + margin.left + margin.right + legendWidth + 10);
-            } else {
-                console.log("Not creating legend: Total view, Organisation breakdown, or small screen");
-            }
 
             // Tooltip
             tooltip = d3.select(chartDiv)
@@ -723,10 +555,17 @@
                     variant="pills"
                 />
             </div>
-            <div class="bg-gray-50 rounded-lg p-6">
-                <div bind:this={chartContainer}>
-                    <div bind:this={chartDiv}></div>
+            <div class="flex gap-4">
+                <div class="flex-grow bg-gray-50 rounded-lg p-6">
+                    <div bind:this={chartContainer}>
+                        <div bind:this={chartDiv}></div>
+                    </div>
                 </div>
+                {#if viewMode !== 'Total' && !isSmallScreen}
+                    <div class="w-64 bg-white rounded-lg p-4 border border-gray-200 legend-container">
+                        <ChartLegend />
+                    </div>
+                {/if}
             </div>
         </div>
     </div>
@@ -736,5 +575,16 @@
     .chart-container {
         position: relative;
         width: 100%;
+    }
+
+    .legend-container {
+        height: 350px;
+        overflow-y: auto;
+    }
+
+    @media (max-width: 1024px) {
+        .legend-container {
+            max-height: 200px;
+        }
     }
 </style>
