@@ -17,15 +17,27 @@ function processAnalysisData(data) {
     const productData = {};
     const organisationData = {};
 
+    if (!Array.isArray(data)) {
+        console.error('Invalid data format:', data);
+        return { productData, organisationData };
+    }
+
     data.forEach(item => {
-        const productKey = `${item.vmp__code}`;
+        if (!item.organisation__ods_code || !item.vmp__code || !Array.isArray(item.data)) {
+            console.warn('Invalid item format:', item);
+            return;
+        }
+
+        const productKey = item.vmp__code;
         const orgKey = item.organisation__ods_code;
         
-        const timeSeriesData = item.data.map(([date, quantity, unit]) => ({
-            date,
-            quantity: parseFloat(quantity) || 0,
-            unit
-        }));
+        const timeSeriesData = item.data
+            .filter(([date, quantity]) => date && quantity)
+            .map(([date, quantity, unit]) => ({
+                date,
+                quantity: parseFloat(quantity) || 0,
+                unit
+            }));
 
         if (!productData[productKey]) {
             productData[productKey] = {
@@ -64,9 +76,6 @@ function processAnalysisData(data) {
 }
 
 export function updateResults(data, options = {}) {
-    console.log('Results Store - Updating with data:', data);
-    console.log('Results Store - Update options:', options);
-
     const { productData, organisationData } = processAnalysisData(data);
 
     resultsStore.update(store => ({
