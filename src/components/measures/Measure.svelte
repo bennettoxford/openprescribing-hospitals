@@ -278,12 +278,12 @@
         $selectedMode === 'percentiles' ?
             [
                 ...$showPercentiles ? [
-                    { label: 'Median (50th Percentile)', color: '#DC3220', visible: true, selectable: false },
-                    { label: '5th-95th Percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.1 },
-                    { label: '15th-85th Percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.2 },
-                    { label: '25th-75th Percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.4 },
-                    { label: '35th-65th Percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.6 },
-                    { label: '45th-55th Percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.8 }
+                    { label: 'Median (50th percentile)', color: '#DC3220', visible: true, selectable: false },
+                    { label: '5th-95th percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.1 },
+                    { label: '15th-85th percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.2 },
+                    { label: '25th-75th percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.4 },
+                    { label: '35th-65th percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.6 },
+                    { label: '45th-55th percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.8 }
                 ] : [],
                 ...Array.from($visibleTrusts || []).map(trust => ({
                     label: trust,
@@ -480,8 +480,22 @@
                         {#if $selectedMode === 'percentiles'}
                             <div class="flex items-center gap-2">
                                 <span class="text-sm text-gray-600 leading-tight text-center">
-                                    Toggle<br>percentiles
+                                    Show<br>percentiles
                                 </span>
+                                <div class="relative inline-block group">
+                                    <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
+                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
+                                                group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
+                                                ring-1 ring-black ring-opacity-5 p-4">
+                                        <p class="text-sm text-gray-500">
+                                            Percentiles show variation in this measure across Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.
+                                        </p>
+                                    </div>
+                                </div>
                                 <label class="inline-flex items-center cursor-pointer">
                                     <input
                                         type="checkbox"

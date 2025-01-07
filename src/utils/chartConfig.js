@@ -16,38 +16,38 @@ export const chartOptions = {
 
 export const percentilesLegend = [
     { 
-        label: 'Median (50th Percentile)', 
+        label: 'Median (50th percentile)', 
         color: '#DC3220',
         strokeWidth: 2.5,
         strokeDasharray: '5,5',
         isLine: true
     },
     { 
-        label: '45th-55th Percentile', 
+        label: '45th-55th percentiles', 
         color: '#005AB5', 
         fillOpacity: 0.8, 
         isArea: true 
     },
     { 
-        label: '35th-45th and 55th-65th Percentile', 
+        label: '35th-45th and 55th-65th percentile', 
         color: '#005AB5', 
         fillOpacity: 0.6, 
         isArea: true 
     },
     { 
-        label: '25th-35th and 65th-75th Percentile', 
+        label: '25th-35th and 65th-75th percentile', 
         color: '#005AB5', 
         fillOpacity: 0.4, 
         isArea: true 
     },
     { 
-        label: '15th-25th and 75th-85th Percentile', 
+        label: '15th-25th and 75th-85th percentile', 
         color: '#005AB5', 
         fillOpacity: 0.2, 
         isArea: true 
     },
     { 
-        label: '5th-15th and 85th-95th Percentile', 
+        label: '5th-15th and 85th-95th percentile', 
         color: '#005AB5', 
         fillOpacity: 0.1, 
         isArea: true 
