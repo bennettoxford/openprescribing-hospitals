@@ -13,25 +13,20 @@
     $: quantityType = $resultsStore.quantityType;
 
     onMount(() => {
-        console.log('VMPs received:', vmps);
         initializeCheckedVMPs();
     });
 
     function initializeCheckedVMPs() {
         checkedVMPs = Object.fromEntries(vmps.map(vmp => [vmp.vmp, vmp.unit !== 'nan']));
-        console.log('Initialized checkedVMPs:', checkedVMPs);
     }
 
     $: {
         if (vmps.length > 0) {
-            console.log('VMPs data in ProductList:', vmps);
-            console.log('First VMP complete object:', vmps[0]);
             initializeCheckedVMPs();
         }
     }
 
     $: hasIngredients = vmps.some(vmp => vmp.ingredients);
-    $: hasVTMs = vmps.some(vmp => vmp.vtm);
     
     $: selectedCount = Object.values(checkedVMPs).filter(Boolean).length;
 
@@ -60,9 +55,6 @@
         return '↑↓';
     }
 
-    $: displayField = currentSearchType === 'vmp' ? 'vmp' : 
-                      currentSearchType === 'vtm' ? 'vtm' : 
-                      currentSearchType === 'ingredient' ? 'ingredient_name' : 'vmp';
 
     $: sortedVMPs = [...vmps].sort((a, b) => {
         // Always keep 'nan' units at the top
@@ -82,11 +74,8 @@
     function updateCheckedVMPs(vmp) {
         if (vmp && vmp.vmp) {
             checkedVMPs[vmp.vmp] = !checkedVMPs[vmp.vmp];
-            checkedVMPs = {...checkedVMPs}; // Trigger reactivity
-            console.log('Updated checkedVMPs:', checkedVMPs);
+            checkedVMPs = {...checkedVMPs};
             updateFilteredData();
-        } else {
-            console.error('Invalid VMP object:', vmp);
         }
     }
 
@@ -108,12 +97,6 @@
                 return isSelectedVMP && item.unit !== 'nan';
             });
 
-            console.log('Updating store with filtered data:', {
-                selectedVMPs,
-                filteredData,
-                originalDataLength: originalData.length
-            });
-
             return {
                 ...store,
                 filteredData: filteredData
@@ -123,7 +106,6 @@
 
     $: {
         if (vmps.length > 0 && Object.keys(checkedVMPs).length > 0) {
-            console.log('Initial data filter with VMPs:', vmps);
             updateFilteredData();
         }
     }

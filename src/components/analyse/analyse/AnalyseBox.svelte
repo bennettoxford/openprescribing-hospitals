@@ -25,13 +25,17 @@
     $: searchType = $analyseOptions.searchType;
 
     export let odsData = null;
-    
+    export let mindate = null;
+    export let maxdate = null;
+    export let isAdvancedMode = false;
+
     onMount(async () => {
         try {
             if (odsData) {
                 try {
                     const parsedData = typeof odsData === 'string' ? JSON.parse(odsData) : odsData;
                     organisationSearchStore.setItems(parsedData);
+                    organisationSearchStore.updateSelection(parsedData);
                 } catch (error) {
                     console.error('Error parsing ODS data:', error);
                 }
@@ -51,6 +55,11 @@
 
         if (!selectedVMPs || selectedVMPs.length === 0) {
             errorMessage = "Please select at least one product or ingredient.";
+            return;
+        }
+
+        if (!$organisationSearchStore.selectedItems || $organisationSearchStore.selectedItems.length === 0) {
+            errorMessage = "Please select at least one Trust to analyse.";
             return;
         }
 
@@ -82,7 +91,8 @@
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                throw new Error(data.error || `HTTP error! status: ${response.status}`);
             }
 
             const data = await response.json();
@@ -137,27 +147,24 @@
             ...options,
             quantityType: event.target.value
         }));
-        console.log('Quantity type changed:', $analyseOptions.quantityType);
     }
 
     function handleOrganisationDropdownToggle(event) {
         isOrganisationDropdownOpen = event.detail.isOpen;
     }
 
-    function handleClearAnalysis() {
+    function resetSelections(newQuantityType, clearOrgs = false) {
+        const allOrgs = $organisationSearchStore.availableItems;
+        
         analyseOptions.update(options => ({
             ...options,
             selectedVMPs: [],
-            searchType: 'vmp'
+            searchType: 'vmp',
+            quantityType: newQuantityType
         }));
-
-        organisationSearchStore.updateSelection([]);
-
-        if (isAdvancedMode) {
-            analyseOptions.update(options => ({
-                ...options,
-                quantityType: '--'
-            }));
+        
+        if (clearOrgs) {
+            organisationSearchStore.updateSelection(allOrgs);
         }
 
         errorMessage = '';
@@ -166,24 +173,24 @@
         if (searchComponent) {
             searchComponent.clearInput();
         }
-
-        const orgSearchComponent = document.querySelector('analyse-box organisation-search');
-        if (orgSearchComponent) {
-            orgSearchComponent.clearInput();
-        }
-
-        dispatch('analysisClear');
     }
-
-    export let isAdvancedMode = false;
 
     function toggleAdvancedMode() {
         isAdvancedMode = !isAdvancedMode;
-        
-        // Clear selections when switching modes
-        handleClearAnalysis();
-        
+
+        const currentOrgSelections = $organisationSearchStore.selectedItems;
+
+        resetSelections(isAdvancedMode ? '--' : 'VMP Quantity');
+
+        if (currentOrgSelections && currentOrgSelections.length > 0) {
+            organisationSearchStore.updateSelection(currentOrgSelections);
+        }
         dispatch('advancedModeChange', isAdvancedMode);
+    }
+
+    function handleClearAnalysis() {
+        resetSelections(isAdvancedMode ? '--' : 'VMP Quantity');
+        dispatch('analysisClear');
     }
 </script>
 
@@ -260,32 +267,6 @@
             on:dropdownToggle={handleOrganisationDropdownToggle}
           />
         </div>
-        
-        <!-- Trust Selection Box -->
-        {#if $organisationSearchStore.selectedItems.length > 0}
-          <div class="w-full">
-            <h3 class="font-semibold my-2 text-md text-gray-700">
-              Selected {$organisationSearchStore.filterType === 'icb' ? 'ICBs' : 'Trusts'}:
-            </h3>
-            <ul class="border border-gray-200 rounded-md">
-              {#each $organisationSearchStore.selectedItems as item}
-                <li class="flex items-center justify-between px-2 py-1">
-                  <span class="text-gray-800">{item}</span>
-                  <button 
-                    on:click={() => {
-                      const newSelection = $organisationSearchStore.selectedItems.filter(i => i !== item);
-                      organisationSearchStore.updateSelection(newSelection);
-                      handleODSSelection({ detail: { selectedItems: newSelection } });
-                    }}
-                    class="px-2 py-1 text-sm text-white bg-red-600 hover:bg-red-700 rounded-md"
-                  >
-                    Remove
-                  </button>
-                </li>
-              {/each}
-            </ul>
-          </div>
-        {/if}
       </div>
     </div>
 

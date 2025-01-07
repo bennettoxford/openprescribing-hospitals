@@ -8,7 +8,7 @@ function createOrganisationSearchStore() {
         availableItems: new Set()
     });
 
-    const store = {
+    return {
         subscribe,
         setItems: (items) => {
             update(store => ({ ...store, items }));
@@ -25,22 +25,8 @@ function createOrganisationSearchStore() {
         isAvailable(item) {
             const currentStore = get(this);
             return currentStore.availableItems.has(item);
-        },
-        isFiltering() {
-            const currentStore = get(this);
-            return currentStore.selectedItems.length > 0;
-        },
-        reset() {
-            update(store => ({
-                ...store,
-                selectedItems: [],
-                items: [],
-                availableItems: new Set()
-            }));
         }
     };
-
-    return store;
 }
 
 export const organisationSearchStore = createOrganisationSearchStore();

@@ -4,7 +4,6 @@
   }} />
 
 <script>
-    import { resultsStore } from '../../../stores/resultsStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
 
     export let data = [];
@@ -28,12 +27,18 @@
 
             if (allDates.length > 0) {
                 const latest = allDates[0];
-                latestMonth = latest.toLocaleDateString('en-GB', { year: 'numeric', month: 'short' });
+                const earliest = allDates[allDates.length - 1];
+                
+                const startDate = earliest.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+                const endDate = latest.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+                
+                latestMonth = latest.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
                 latestYear = latest.getFullYear().toString();
                 
-                // Calculate financial year
                 const fyStart = latest.getMonth() >= 3 ? latest.getFullYear() : latest.getFullYear() - 1;
-                currentFY = `${fyStart}/${(fyStart + 1).toString().slice(2)}`;
+                currentFY = 'FYTD';
+        
+                dateRange = `${startDate}-${endDate}`;
             }
         }
     }
@@ -142,16 +147,43 @@
                     Total {quantityType} by {searchType === 'vmp' || searchType === 'vtm' ? 'product' : searchType}
                 </h3>
             </div>
-            <div class="flex items-center space-x-2">
-                <select
-                    bind:value={selectedPeriod}
-                    class="form-select rounded-md border-gray-300 shadow-sm focus:border-oxford-500 focus:ring-oxford-500"
+            <div class="flex flex-wrap gap-2">
+                <button
+                    class="px-3 py-1 rounded-full text-sm font-medium transition-colors
+                        {selectedPeriod === 'all' 
+                            ? 'bg-oxford-600 text-white' 
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+                    on:click={() => selectedPeriod = 'all'}
                 >
-                    <option value="all">All time</option>
-                    <option value="latest_month">Latest month ({latestMonth})</option>
-                    <option value="latest_year">Latest year ({latestYear})</option>
-                    <option value="current_fy">Financial year ({currentFY})</option>
-                </select>
+                    {dateRange}
+                </button>
+                <button
+                    class="px-3 py-1 rounded-full text-sm font-medium transition-colors
+                        {selectedPeriod === 'latest_month' 
+                            ? 'bg-oxford-600 text-white' 
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+                    on:click={() => selectedPeriod = 'latest_month'}
+                >
+                    {latestMonth}
+                </button>
+                <button
+                    class="px-3 py-1 rounded-full text-sm font-medium transition-colors
+                        {selectedPeriod === 'latest_year' 
+                            ? 'bg-oxford-600 text-white' 
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+                    on:click={() => selectedPeriod = 'latest_year'}
+                >
+                    {latestYear}
+                </button>
+                <button
+                    class="px-3 py-1 rounded-full text-sm font-medium transition-colors
+                        {selectedPeriod === 'current_fy' 
+                            ? 'bg-oxford-600 text-white' 
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+                    on:click={() => selectedPeriod = 'current_fy'}
+                >
+                    {currentFY}
+                </button>
             </div>
         </div>
     </div>
