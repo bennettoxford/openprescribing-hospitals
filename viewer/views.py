@@ -273,87 +273,76 @@ def filtered_quantities(request):
     ods_names = request.data.get("ods_names", None)
     quantity_type = request.data.get("quantity_type", None)
     
-    if not search_items:
-        return Response({"error": "No search items provided"}, status=400)
-
-    if not ods_names:
-        return Response({"error": "Please select at least one Trust to analyse"}, status=400)
-    
-    if not quantity_type or quantity_type == '--':
-        return Response({"error": "Please select a valid quantity type"}, status=400)
+    # Early validation checks remain the same
+    if not all([search_items, ods_names, quantity_type]) or quantity_type == '--':
+        return Response({"error": "Missing required parameters"}, status=400)
 
     ods_codes = [item.split("|")[0].strip() for item in ods_names]
 
     vmp_ids = set()
+    query = Q()
     for item in search_items:
         try:
             code, item_type = item.split('|')
-            
             if item_type == 'vmp':
-                vmp_query = VMP.objects.filter(code=code)
-                vmp_ids.update(vmp_query.values_list('id', flat=True))
-                
+                query |= Q(code=code)
             elif item_type == 'vtm':
-                vmp_query = VMP.objects.filter(vtm__vtm=code)
-                vmp_ids.update(vmp_query.values_list('id', flat=True))
-                
+                query |= Q(vtm__vtm=code)
             elif item_type == 'ingredient':
-                vmp_query = VMP.objects.filter(ingredients__code=code)
-                vmp_ids.update(vmp_query.values_list('id', flat=True))
+                query |= Q(ingredients__code=code)
         except ValueError:
             return Response({"error": f"Invalid search item format: {item}"}, status=400)
     
+    vmp_ids = set(VMP.objects.filter(query).values_list('id', flat=True))
+    
     if not vmp_ids:
-        return Response({"error": "No valid VMPs found for the given search items"}, status=400)
+        return Response({"error": "No valid VMPs found"}, status=400)
 
     try:
-        if quantity_type == "VMP Quantity":
-            queryset = SCMDQuantity.objects.filter(
-                vmp_id__in=vmp_ids,
-                organisation__ods_code__in=ods_codes
-            )
-            
-        elif quantity_type == "Ingredient Quantity":
-            queryset = IngredientQuantity.objects.filter(
-                vmp_id__in=vmp_ids,
-                organisation__ods_code__in=ods_codes
-            ).select_related('ingredient')
-            
-        elif quantity_type == "DDD":
-            queryset = DDDQuantity.objects.filter(
-                vmp_id__in=vmp_ids,
-                organisation__ods_code__in=ods_codes
-            )
-        else:
+        base_vmps = VMP.objects.filter(
+            id__in=vmp_ids
+        ).select_related('vtm').annotate(
+            route_list=ArrayAgg('routes__name', distinct=True),
+            ingredient_names=ArrayAgg('ingredients__name', distinct=True)
+        ).values(
+            'id', 'code', 'name', 'vtm__name',
+            'route_list', 'ingredient_names'
+        )
+
+        vmp_info = {
+            vmp['id']: {
+                'vmp__code': vmp['code'],
+                'vmp__name': vmp['name'],
+                'vmp__vtm__name': vmp['vtm__name'],
+                'routes': [route for route in vmp['route_list'] if route],
+                'ingredient_names': vmp['ingredient_names'],
+                'data': [],
+            }
+            for vmp in base_vmps
+        }
+
+        quantity_model = {
+            "VMP Quantity": SCMDQuantity,
+            "Ingredient Quantity": IngredientQuantity,
+            "DDD": DDDQuantity
+        }.get(quantity_type)
+
+        if not quantity_model:
             return Response({"error": "Invalid quantity type"}, status=400)
 
-        value_fields = [
-            'data',
-            'vmp__code',
-            'vmp__name',
-            'vmp__vtm__name',
-            'organisation__ods_code',
-            'organisation__ods_name',
-        ]
-        
-        if quantity_type == "Ingredient Quantity":
-            data = queryset.annotate(
-                route_list=ArrayAgg('vmp__routes__name', distinct=True),
-                ingredient_names=ArrayAgg('vmp__ingredients__name', distinct=True)
-            ).values(*value_fields, 'route_list', 'ingredient_names')
-        else:
-            data = queryset.annotate(
-                route_list=ArrayAgg('vmp__routes__name', distinct=True)
-            ).values(*value_fields, 'route_list')
+        quantity_data = quantity_model.objects.filter(
+            vmp_id__in=vmp_ids,
+            organisation__ods_code__in=ods_codes
+        ).select_related('organisation')
 
-        data_list = list(data)
-        for item in data_list:
-            item['routes'] = [route for route in item.get('route_list', []) if route]
-            if not item['routes']:
-                item['routes'] = ['Other']
-            item.pop('route_list', None)
+        for item in quantity_data:
+            if item.vmp_id in vmp_info:
+                vmp_data = vmp_info[item.vmp_id]
+                vmp_data['organisation__ods_code'] = item.organisation.ods_code
+                vmp_data['organisation__ods_name'] = item.organisation.ods_name
+                vmp_data['data'] = item.data
 
-        return Response(data_list)
+        return Response(list(vmp_info.values()))
 
     except Exception as e:
         print(f"Error processing request: {str(e)}")

@@ -147,7 +147,6 @@
             ...options,
             quantityType: event.target.value
         }));
-        console.log('Quantity type changed:', $analyseOptions.quantityType);
     }
 
     function handleOrganisationDropdownToggle(event) {

@@ -648,6 +648,16 @@
         if (value == null || isNaN(value)) return 'N/A';
         return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
+
+    function hasChartableData(data) {
+        if (!Array.isArray(data) || data.length === 0) return false;
+
+        return data.some(item => 
+            Array.isArray(item.data) && 
+            item.data.length > 0 &&
+            item.data.some(([_, value]) => value && !isNaN(parseFloat(value)))
+        );
+    }
 </script>
 
 {#if showResults}
@@ -662,7 +672,7 @@
                     <section class="bg-white rounded-lg p-4 border-2 border-oxford-300 shadow-sm">
                         <ProductList {vmps} on:dataFiltered={handleFilteredData} />
                     </section>
-
+                    {#if hasChartableData(selectedData)}
                     <section class="p-4">
                         <div class="mb-4">
                             <ModeSelector 
@@ -694,22 +704,34 @@
                                     />
                                 </div>
                             {/if}
+                            </div>
+                        </section>
+                        <section class="p-4">
+                            <DataTable 
+                                data={filteredData} 
+                                quantityType={$analyseOptions.quantityType} 
+                                searchType={$analyseOptions.searchType} 
+                            />
+                        </section>
+                    {:else}
+                        <div class="flex items-center justify-center h-[500px] p-6">
+                            <div class="text-center space-y-6">
+                                <div>
+                                    <p class="text-oxford-600 text-xl font-medium mb-3">No data to display</p>
+                                    <p class="text-oxford-400 text-base max-w-md">No data was returned for the selected quantity type of the chose products.</p>
+                                </div>
+                            </div>
                         </div>
-                    </section>
+                    {/if}
 
-                    <section class="p-4">
-                        <DataTable 
-                            data={filteredData} 
-                            quantityType={$analyseOptions.quantityType} 
-                            searchType={$analyseOptions.searchType} 
-                        />
-                    </section>
+                   
                 </div>
             {:else}
                 <div class="flex items-center justify-center h-[500px] p-6">
                     <div class="text-center space-y-6">
                         <div>
-                            <p class="text-oxford-600 text-xl font-medium mb-3">No analysis results</p>
+                            <p class="text-oxford-600 text-xl font-medium mb-3">No data to display</p>
+                            <p class="text-oxford-400 text-base max-w-md">The analysis returned no chartable data.</p>
                         </div>
                     </div>
                 </div>

@@ -23,53 +23,57 @@ function processAnalysisData(data) {
     }
 
     data.forEach(item => {
-        if (!item.organisation__ods_code || !item.vmp__code || !Array.isArray(item.data)) {
+        if (item.vmp__code) {
+            const productKey = item.vmp__code;
+            
+            if (!productData[productKey]) {
+                productData[productKey] = {
+                    code: item.vmp__code,
+                    name: item.vmp__name,
+                    vtm: item.vmp__vtm__name,
+                    routes: item.routes || [],
+                    ingredients: item.ingredient_names || [],
+                    organisations: {}
+                };
+            }
+
+            if (item.organisation__ods_code) {
+                const orgKey = item.organisation__ods_code;
+                const timeSeriesData = Array.isArray(item.data) 
+                    ? item.data
+                        .filter(([date, quantity]) => date && quantity)
+                        .map(([date, quantity, unit]) => ({
+                            date,
+                            quantity: parseFloat(quantity) || 0,
+                            unit
+                        }))
+                    : [];
+
+                productData[productKey].organisations[orgKey] = {
+                    ods_code: item.organisation__ods_code,
+                    ods_name: item.organisation__ods_name,
+                    data: timeSeriesData
+                };
+
+                if (!organisationData[orgKey]) {
+                    organisationData[orgKey] = {
+                        ods_code: item.organisation__ods_code,
+                        ods_name: item.organisation__ods_name,
+                        products: {}
+                    };
+                }
+                organisationData[orgKey].products[productKey] = {
+                    code: item.vmp__code,
+                    name: item.vmp__name,
+                    vtm: item.vmp__vtm__name,
+                    routes: item.routes || [],
+                    ingredients: item.ingredient_names || [],
+                    data: timeSeriesData
+                };
+            }
+        } else {
             console.warn('Invalid item format:', item);
-            return;
         }
-
-        const productKey = item.vmp__code;
-        const orgKey = item.organisation__ods_code;
-        
-        const timeSeriesData = item.data
-            .filter(([date, quantity]) => date && quantity)
-            .map(([date, quantity, unit]) => ({
-                date,
-                quantity: parseFloat(quantity) || 0,
-                unit
-            }));
-
-        if (!productData[productKey]) {
-            productData[productKey] = {
-                code: item.vmp__code,
-                name: item.vmp__name,
-                vtm: item.vmp__vtm__name,
-                routes: item.routes || [],
-                ingredients: item.ingredient_names || [],
-                organisations: {}
-            };
-        }
-        productData[productKey].organisations[orgKey] = {
-            ods_code: item.organisation__ods_code,
-            ods_name: item.organisation__ods_name,
-            data: timeSeriesData
-        };
-
-        if (!organisationData[orgKey]) {
-            organisationData[orgKey] = {
-                ods_code: item.organisation__ods_code,
-                ods_name: item.organisation__ods_name,
-                products: {}
-            };
-        }
-        organisationData[orgKey].products[productKey] = {
-            code: item.vmp__code,
-            name: item.vmp__name,
-            vtm: item.vmp__vtm__name,
-            routes: item.routes || [],
-            ingredients: item.ingredient_names || [],
-            data: timeSeriesData
-        };
     });
 
     return { productData, organisationData };
