@@ -316,7 +316,7 @@ def filtered_quantities(request):
                 'vmp__vtm__name': vmp['vtm__name'],
                 'routes': [route for route in vmp['route_list'] if route],
                 'ingredient_names': vmp['ingredient_names'],
-                'data': [],
+                'organisations': {}
             }
             for vmp in base_vmps
         }
@@ -338,11 +338,31 @@ def filtered_quantities(request):
         for item in quantity_data:
             if item.vmp_id in vmp_info:
                 vmp_data = vmp_info[item.vmp_id]
-                vmp_data['organisation__ods_code'] = item.organisation.ods_code
-                vmp_data['organisation__ods_name'] = item.organisation.ods_name
-                vmp_data['data'] = item.data
+                org_code = item.organisation.ods_code
+                
+                vmp_data['organisations'][org_code] = {
+                    'ods_code': org_code,
+                    'ods_name': item.organisation.ods_name,
+                    'data': item.data
+                }
 
-        return Response(list(vmp_info.values()))
+        response_data = []
+        for vmp_id, vmp_data in vmp_info.items():
+            if vmp_data['organisations']:
+                for org_code, org_data in vmp_data['organisations'].items():
+                    response_item = {
+                        'vmp__code': vmp_data['vmp__code'],
+                        'vmp__name': vmp_data['vmp__name'],
+                        'vmp__vtm__name': vmp_data['vmp__vtm__name'],
+                        'routes': vmp_data['routes'],
+                        'ingredient_names': vmp_data['ingredient_names'],
+                        'organisation__ods_code': org_data['ods_code'],
+                        'organisation__ods_name': org_data['ods_name'],
+                        'data': org_data['data']
+                    }
+                    response_data.append(response_item)
+
+        return Response(response_data)
 
     except Exception as e:
         print(f"Error processing request: {str(e)}")
