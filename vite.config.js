@@ -21,7 +21,6 @@ export default defineConfig({
         'main': path.resolve(__dirname, "src/main.js"),
         'analyse': "./src/components/analyse/Analyse.svelte",
         'search-box': "./src/components/common/Search.svelte",
-        'time-series-chart': "./src/components/analyse/results/TimeSeriesChart.svelte",
         'organisation-search': "./src/components/common/OrganisationSearch.svelte",
         'data-table': "./src/components/analyse/results/DataTable.svelte",
         'measure': "./src/components/measures/Measure.svelte",
