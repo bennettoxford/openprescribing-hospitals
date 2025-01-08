@@ -33,6 +33,7 @@ function processAnalysisData(data) {
                     vtm: item.vmp__vtm__name,
                     routes: item.routes || [],
                     ingredients: item.ingredient_names || [],
+                    ingredient_codes: item.ingredient_codes || [],
                     organisations: {}
                 };
             }
@@ -68,6 +69,7 @@ function processAnalysisData(data) {
                     vtm: item.vmp__vtm__name,
                     routes: item.routes || [],
                     ingredients: item.ingredient_names || [],
+                    ingredient_codes: item.ingredient_codes || [],
                     data: timeSeriesData
                 };
             }
