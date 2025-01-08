@@ -14,11 +14,35 @@
             </h2>
             <div class="space-y-6">
                 <div class="group">
-                    <h3 class="font-medium text-oxford-900 mb-3 text-lg group-hover:text-blue-600 transition-colors duration-200">What is OpenPrescribing Hospitals?</h3>
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg">What is OpenPrescribing Hospitals?</h3>
                     <p class="text-slate-600 leading-relaxed">
                         OpenPrescribing Hospitals is a platform that provides open access to NHS hospital medicines data, allowing healthcare professionals and researchers to explore stock control data across different hospital trusts.
                     </p>
                 </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-md p-8 border border-slate-200 hover:shadow-lg transition-shadow duration-300">
+            <h2 class="text-2xl font-semibold mb-6 text-oxford-900 flex items-center">
+                Data Source
+            </h2>
+            <div class="space-y-6">
+                <div class="group">
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg">Where do you get the data from?</h3>
+                    <p class="text-slate-600 leading-relaxed">
+                        The OpenPrescribing Hospitals platform uses the Secondary Care Medicines Dataset (SCMD). The data held in the SCMD are collated by <a href="https://www.rx-info.co.uk/" class="text-blue-600 hover:text-blue-800 hover:underline font-medium">Rx-info</a> and hosted on the <a href="https://opendata.nhsbsa.net/dataset/secondary-care-medicines-data-indicative-price" class="text-blue-600 hover:text-blue-800 hover:underline font-medium">National Health Service Business Services Authority (NHSBSA) Open Data Portal</a>.
+                    </p>
+                    <p class="text-slate-600 leading-relaxed mt-4">
+                        It contains usage and indicative cost for medications prescribed from all NHS Acute, Teaching, Specialist, Mental Health and Community Trusts in England (this does not include medications dispensed by community pharmacy but this is <a href="https://opendata.nhsbsa.net/dataset/hospital-prescribing-dispensed-in-the-community" class="text-blue-600 hover:text-blue-800 hover:underline font-medium">available separately</a>).
+                    </p>
+                </div>
+
+                <div class="group">
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg">Is there information about indication or patient age in the SCMD?</h3>
+                    <p class="text-slate-600 leading-relaxed">
+                        No, the SCMD does not contain any patient information as it relates only to pharmacy stock control data.
+                    </p>
+                </div>
+                
             </div>
         </div>
         <div class="bg-white rounded-xl shadow-md p-8 border border-slate-200 hover:shadow-lg transition-shadow duration-300">
@@ -27,7 +51,7 @@
             </h2>
             <div class="space-y-6">
                 <div class="group">
-                    <h3 class="font-medium text-oxford-900 mb-3 text-lg group-hover:text-blue-600 transition-colors duration-200">What is provisional data?</h3>
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg">What is provisional data?</h3>
                     <p class="text-slate-600 leading-relaxed">
                         45% of the data sources for SCMD are subject to backtracking. This means that historical prices or issues can be amended based on the actual invoiced price charged or stock issue less amount used. 
                         Backtracking is at its greatest in the most recent 3 months of data. Therefore, the SCMD data is initially published as provisional data, which is subject to change. Once backtracking is accounted for,
@@ -44,19 +68,19 @@
             </h2>
             <div class="space-y-6">
                 <div class="group">
-                    <h3 class="font-medium text-oxford-900 mb-3 text-lg group-hover:text-blue-600 transition-colors duration-200">What is a VMP (Virtual Medicinal Product)?</h3>
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg">What is a VMP (Virtual Medicinal Product)?</h3>
                     <p class="text-slate-600 leading-relaxed">
                         A VMP represents a single formulation (e.g., apixaban 5mg tablets). Different formulations of the same product will have different VMPs, but the same formulation made by different manufacturers will be grouped together. This is the right choice when searching for a specific formulation.
                     </p>
                 </div>
                 <div class="group">
-                    <h3 class="font-medium text-oxford-900 mb-3 text-lg group-hover:text-blue-600 transition-colors duration-200">What is a VTM (Virtual Therapeutic Moiety)?</h3>
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg">What is a VTM (Virtual Therapeutic Moiety)?</h3>
                     <p class="text-slate-600 leading-relaxed">
                         A VTM is a group containing all the formulations of a specific drug or combination (e.g., ivacaftor + tezacaftor + elexacaftor). The group will contain all the VMPs with the same exact ingredients. This is the right choice when searching for a specific treatment but need to group all formulations.
                     </p>
                 </div>
                 <div class="group">
-                    <h3 class="font-medium text-oxford-900 mb-3 text-lg group-hover:text-blue-600 transition-colors duration-200">What is an Ingredient search?</h3>
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg">What is an Ingredient search?</h3>
                     <p class="text-slate-600 leading-relaxed">
                         Searching by ingredient groups all products containing the active ingredient, including combination products. This is useful when you want to find all medicines containing a particular substance, regardless of formulation or combinations.
                     </p>
@@ -70,13 +94,13 @@
             </h2>
             <div class="space-y-6">
                 <div class="group">
-                    <h3 class="font-medium text-oxford-900 mb-3 text-lg group-hover:text-blue-600 transition-colors duration-200">What is VMP Quantity?</h3>
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg">What is VMP Quantity?</h3>
                     <p class="text-slate-600 leading-relaxed">
                         Every VMP has a quantity unit associted with it. The VMP quantity is the total quantity of the VMP in this unit of measure.
                     </p>
                 </div>
                 <div class="group">
-                    <h3 class="font-medium text-oxford-900 mb-3 text-lg group-hover:text-blue-600 transition-colors duration-200">What is Ingredient Quantity?</h3>
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg">What is Ingredient Quantity?</h3>
                     <p class="text-slate-600 leading-relaxed">
                         Ingredient quantity measures the amount of active ingredient in the medicine, typically in milligrams or grams. This is useful when comparing different formulations of the same medicine or when analysing total ingredient usage across various products.
                     </p>
@@ -90,7 +114,7 @@
             </h2>
             <div class="space-y-6">
                 <div class="group">
-                    <h3 class="font-medium text-oxford-900 mb-3 text-lg group-hover:text-blue-600 transition-colors duration-200">Which trusts are included in the data?</h3>
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg">Which trusts are included in the data?</h3>
                     <p class="text-slate-600 leading-relaxed">
                         The platform includes data from all NHS hospital trusts in England that submit data to the NHS Business Services Authority (NHSBSA). This includes acute trusts, mental health trusts, and specialist trusts.
                     </p>
@@ -105,7 +129,7 @@
             </h2>
             <div class="space-y-6">
                 <div class="group">
-                    <h3 class="font-medium text-oxford-900 mb-3 text-lg group-hover:text-blue-600 transition-colors duration-200">What are percentile charts?</h3>
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg">What are percentile charts?</h3>
                     <p class="text-slate-600 leading-relaxed">
                         Percentile charts show the extent of variation at the level of individual Trusts. You can read more about why we use them in <a href="https://www.bennett.ox.ac.uk/blog/2019/04/communicating-variation-in-prescribing-why-we-use-deciles/" class="underline font-semibold" target="_blank">this blog post</a>.
                     </p>
