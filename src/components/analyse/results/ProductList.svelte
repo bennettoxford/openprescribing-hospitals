@@ -125,13 +125,8 @@
     <h3 class="text-xl font-semibold mb-4">Products included</h3>
     
     <div class="mb-4 text-sm text-gray-700">
-        <p class="mb-2">This table shows all products returned in your analysis. You can select which products to include in your analysis:</p>
-        <ul class="list-disc list-inside mb-2">
-            <li>Use the checkboxes to select or deselect products.</li>
-            <li>Products highlighted in red have missing quantity data and cannot be included.</li>
-            <li>Click on column headers to sort the table.</li>
-        </ul>
-        <p>Only selected products with valid values for the chosen quantity type will be used in the analysis.</p>
+        <p class="mb-2">This table shows all products returned in your analysis. Use the checkboxes to select or deselect products.</p>
+        <p>Only selected products with valid values quantity values will be used in the analysis.</p>
     </div>
 
     <p class="mb-2 text-sm text-gray-600">
