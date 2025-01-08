@@ -144,11 +144,9 @@
                         <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('vtm')}>
                             Product Group <span class="text-gray-400">{getSortIndicator('vtm')}</span>
                         </th>
-                        {#if quantityType === 'Ingredient Quantity' || currentSearchType === 'ingredient' }
-                            <th class="py-3 px-6 text-left">
-                                Ingredient
-                            </th>
-                        {/if}
+                        <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('ingredients')}>
+                            Ingredient <span class="text-gray-400">{getSortIndicator('ingredients')}</span>
+                        </th>
                         <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('unit')}>
                             Unit <span class="text-gray-400">{getSortIndicator('unit')}</span>
                         </th>
@@ -168,15 +166,13 @@
                         >
                             <td class="py-3 px-6 text-left">{vmp.vmp}</td>
                             <td class="py-3 px-6 text-left">{vmp.vtm || '-'}</td>
-                            {#if quantityType === 'Ingredient Quantity' || currentSearchType === 'ingredient' }
-                                <td class="py-3 px-6 text-left">
-                                    {#if vmp.ingredients && vmp.ingredients.length > 0}
-                                        {vmp.ingredients.join(', ')}
+                            <td class="py-3 px-6 text-left">
+                                {#if vmp.ingredients && vmp.ingredients.length > 0}
+                                    {vmp.ingredients.join(', ')}
                                 {:else}
                                     <span class="text-gray-400">-</span>
-                                    {/if}
-                                </td>
-                            {/if}
+                                {/if}
+                            </td>
                             <td class="py-3 px-6 text-left">{vmp.unit === 'nan' ? '-' : vmp.unit}</td>
                             <td class="py-3 px-6 text-left">
                                 {#if vmp.routes && vmp.routes.length > 0}
@@ -244,6 +240,16 @@
                                 <ul class="list-disc list-inside ml-4 mt-1">
                                     {#each vmps.filter(vmp => vmp.routes && vmp.routes.length > 1) as vmp}
                                         <li>{vmp.vmp}: {vmp.routes.join(', ')}</li>
+                                    {/each}
+                                </ul>
+                            </li>
+                        {/if}
+                        {#if hasMultipleIngredients}
+                            <li class="text-yellow-700">
+                                Some products have multiple ingredients. When viewing by ingredient, quantities will be split equally between each ingredient for these products:
+                                <ul class="list-disc list-inside ml-4 mt-1">
+                                    {#each vmps.filter(vmp => vmp.ingredients && vmp.ingredients.length > 1) as vmp}
+                                        <li>{vmp.vmp}: {vmp.ingredients.join(', ')}</li>
                                     {/each}
                                 </ul>
                             </li>
