@@ -213,7 +213,7 @@
       <!-- Product Selection -->
       <div class="grid gap-4">
         <div class="flex items-center">
-          <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Product selection</h3>
+          <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Select product(s)</h3>
           <div class="relative inline-block group">
             <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
               <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -226,7 +226,7 @@
               <p class="text-sm text-gray-500">
                 {#if isAdvancedMode}
                   Search for and select products to include to analyse. You can select individual products
-                  (VMP) or groups of products by ingredient or therapeutic moiety (VTM). See <a href="/faq/#product-selection-types" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+                  or groups of products by ingredient or product group. See <a href="/faq/#product-selection-types" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
                 {:else}
                 Search for and select individual products or groups of products to analyse. See <a href="/faq/#product-selection-types" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
                 {/if}
@@ -242,7 +242,7 @@
       <!-- Trust Selection -->
       <div class="grid gap-4">
         <div class="flex items-center">
-          <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Trusts selection</h3>
+          <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Select NHS Trust(s)</h3>
           <div class="relative inline-block group">
             <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
               <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">

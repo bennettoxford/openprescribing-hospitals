@@ -125,13 +125,8 @@
     <h3 class="text-xl font-semibold mb-4">Products included</h3>
     
     <div class="mb-4 text-sm text-gray-700">
-        <p class="mb-2">This table shows all products returned in your analysis. You can select which products to include in your analysis:</p>
-        <ul class="list-disc list-inside mb-2">
-            <li>Use the checkboxes to select or deselect products.</li>
-            <li>Products highlighted in red have missing quantity data and cannot be included.</li>
-            <li>Click on column headers to sort the table.</li>
-        </ul>
-        <p>Only selected products with valid values for the chosen quantity type will be used in the analysis.</p>
+        <p class="mb-2">This table shows all products returned in your analysis. Use the checkboxes to select or deselect products.</p>
+        <p>Only selected products with valid values quantity values will be used in the analysis.</p>
     </div>
 
     <p class="mb-2 text-sm text-gray-600">
@@ -141,24 +136,24 @@
     <div class="overflow-x-auto">
         <div class="max-h-96 overflow-y-auto relative">
             <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
-                <thead class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal sticky top-0 z-10">
+                <thead class="bg-gray-200 text-gray-600 text-sm leading-normal sticky top-0 z-10">
                     <tr>
                         <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('vmp')}>
-                            VMP Name <span class="text-gray-400">{getSortIndicator('vmp')}</span>
+                            Product <span class="text-gray-400">{getSortIndicator('vmp')}</span>
                         </th>
                         <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('vtm')}>
-                            VTM <span class="text-gray-400">{getSortIndicator('vtm')}</span>
+                            Product Group <span class="text-gray-400">{getSortIndicator('vtm')}</span>
                         </th>
                         {#if quantityType === 'Ingredient Quantity' || currentSearchType === 'ingredient' }
                             <th class="py-3 px-6 text-left">
-                                Ingredients
+                                Ingredient
                             </th>
                         {/if}
                         <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('unit')}>
                             Unit <span class="text-gray-400">{getSortIndicator('unit')}</span>
                         </th>
                         <th class="py-3 px-6 text-left">
-                            Routes
+                            Route of Administration
                         </th>
                         <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('selected')}>
                             Select <span class="text-gray-400">{getSortIndicator('selected')}</span>

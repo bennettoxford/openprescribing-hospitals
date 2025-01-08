@@ -28,7 +28,7 @@
 
     let viewModes = [
         { value: 'total', label: 'Total' },
-        { value: 'organisation', label: 'Organisation' }
+        { value: 'organisation', label: 'NHS Trust' }
     ];
 
     const resultsChartStore = createChartStore({
@@ -518,7 +518,7 @@
         // Only add organisation mode if there are multiple organisations
         const uniqueOrgs = new Set(selectedData.map(item => item.organisation__ods_code));
         if (uniqueOrgs.size > 1) {
-            viewModes.push({ value: 'organisation', label: 'Organisation' });
+            viewModes.push({ value: 'organisation', label: 'NHS Trust' });
         }
 
         if (vmps.length > 1) {

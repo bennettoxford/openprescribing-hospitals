@@ -23,7 +23,7 @@
 
     $: counterText = $source.filterType === 'icb' ? 'ICBs' :
                      $source.filterType === 'region' ? 'regions' :
-                     'Trusts';
+                     'NHS Trusts';
 
     let isOpen = false;
     let searchTerm = '';
@@ -154,7 +154,7 @@
                 <label class="text-sm font-medium {disabled ? 'text-gray-400' : 'text-gray-700'}">
                     Select {$source.filterType === 'icb' ? 'ICB' : 
                            $source.filterType === 'region' ? 'Region' : 
-                           'Trust'}
+                           'NHS Trust'}
                 </label>
                 <div class="flex items-center gap-2 text-sm">
                     <button 
