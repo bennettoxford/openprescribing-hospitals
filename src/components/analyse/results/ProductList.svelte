@@ -136,24 +136,24 @@
     <div class="overflow-x-auto">
         <div class="max-h-96 overflow-y-auto relative">
             <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
-                <thead class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal sticky top-0 z-10">
+                <thead class="bg-gray-200 text-gray-600 text-sm leading-normal sticky top-0 z-10">
                     <tr>
                         <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('vmp')}>
-                            VMP Name <span class="text-gray-400">{getSortIndicator('vmp')}</span>
+                            Product <span class="text-gray-400">{getSortIndicator('vmp')}</span>
                         </th>
                         <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('vtm')}>
-                            VTM <span class="text-gray-400">{getSortIndicator('vtm')}</span>
+                            Product Group <span class="text-gray-400">{getSortIndicator('vtm')}</span>
                         </th>
                         {#if quantityType === 'Ingredient Quantity' || currentSearchType === 'ingredient' }
                             <th class="py-3 px-6 text-left">
-                                Ingredients
+                                Ingredient
                             </th>
                         {/if}
                         <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('unit')}>
                             Unit <span class="text-gray-400">{getSortIndicator('unit')}</span>
                         </th>
                         <th class="py-3 px-6 text-left">
-                            Routes
+                            Route of Administration
                         </th>
                         <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('selected')}>
                             Select <span class="text-gray-400">{getSortIndicator('selected')}</span>
