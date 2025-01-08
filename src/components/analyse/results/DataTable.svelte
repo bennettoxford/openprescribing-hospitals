@@ -144,7 +144,7 @@
         <div class="flex justify-between items-center">
             <div>
                 <h3 class="text-xl font-semibold">
-                    Total {quantityType} by {searchType === 'vmp' || searchType === 'vtm' ? 'product' : searchType}
+                    Total quantity by {searchType === 'vmp' || searchType === 'vtm' ? 'product' : searchType}
                 </h3>
             </div>
             <div class="flex flex-wrap gap-2">
