@@ -45,19 +45,19 @@
   <div class="w-full">
     {#if label}
       <label class="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+      <div class="flex flex-wrap gap-2">
+        {#each $modeSelectorStore.options as option}
+          <button
+            class="px-3 py-1 rounded-full text-sm font-medium transition-colors
+              {$modeSelectorStore.selectedMode === option.value
+                ? 'bg-oxford-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+            on:click={() => handlePillClick(option.value)}
+          >
+            {option.label}
+          </button>
+        {/each}
+      </div>
     {/if}
-    <div class="flex flex-wrap gap-2">
-      {#each $modeSelectorStore.options as option}
-        <button
-          class="px-3 py-1 rounded-full text-sm font-medium transition-colors
-            {$modeSelectorStore.selectedMode === option.value
-              ? 'bg-oxford-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
-          on:click={() => handlePillClick(option.value)}
-        >
-          {option.label}
-        </button>
-      {/each}
-    </div>
   </div>
 {/if}
