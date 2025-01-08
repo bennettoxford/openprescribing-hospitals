@@ -213,7 +213,7 @@
       <!-- Product Selection -->
       <div class="grid gap-4">
         <div class="flex items-center">
-          <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Product selection</h3>
+          <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Select product(s)</h3>
           <div class="relative inline-block group">
             <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
               <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -242,7 +242,7 @@
       <!-- Trust Selection -->
       <div class="grid gap-4">
         <div class="flex items-center">
-          <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">NHS Trust selection</h3>
+          <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Select NHS Trust(s)</h3>
           <div class="relative inline-block group">
             <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
               <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
