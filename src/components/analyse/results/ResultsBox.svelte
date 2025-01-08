@@ -336,6 +336,43 @@
             maxValue = Math.max(...Object.values(routeData)
                 .flatMap(route => route.data)
                 .filter(v => v !== null && !isNaN(v)));
+        } else if ($modeSelectorStore.selectedMode === 'ingredient') {
+            const ingredientData = {};
+            data.forEach(item => {
+                const ingredients = item.ingredient_names || ['Unknown'];
+                ingredients.forEach((ingredient, index) => {
+                    if (!ingredientData[ingredient]) {
+                        ingredientData[ingredient] = {
+                            data: new Array(allDates.length).fill(0)
+                        };
+                    }
+                    
+                    item.data.forEach(([date, value]) => {
+                        const dateIndex = allDates.indexOf(date);
+                        if (dateIndex !== -1) {
+                            const numValue = parseFloat(value);
+                            if (!isNaN(numValue)) {
+                                // If a product has multiple ingredients, split the quantity equally
+                                ingredientData[ingredient].data[dateIndex] += numValue / ingredients.length;
+                            }
+                        }
+                    });
+                });
+            });
+
+            datasets = Object.entries(ingredientData)
+                .filter(([_, { data }]) => data.some(v => v > 0))
+                .map(([ingredient, { data }], index) => ({
+                    label: ingredient,
+                    data: data,
+                    color: getConsistentColor(ingredient, index),
+                    strokeOpacity: 1,
+                    isIngredient: true
+                }));
+
+            maxValue = Math.max(...Object.values(ingredientData)
+                .flatMap(ingredient => ingredient.data)
+                .filter(v => v !== null && !isNaN(v)));
         }
 
         if (maxValue === undefined) {
@@ -528,6 +565,11 @@
         const uniqueVtms = new Set(vmps.map(vmp => vmp.vtm));
         if (uniqueVtms.size > 1) {
             viewModes.push({ value: 'productGroup', label: 'Product Group' });
+        }
+
+        const uniqueIngredients = new Set(vmps.flatMap(vmp => vmp.ingredients || []));
+        if (uniqueIngredients.size > 1) {
+            viewModes.push({ value: 'ingredient', label: 'Ingredient' });
         }
 
         const uniqueUnits = new Set(vmps.flatMap(vmp => Array.from(vmp.units)));
