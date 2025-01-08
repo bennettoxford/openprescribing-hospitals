@@ -166,7 +166,7 @@
     }
 
     const modeOptions = [
-        { value: 'percentiles', label: 'Trust' },
+        { value: 'percentiles', label: 'NHS Trust' },
         { value: 'icb', label: 'ICB' },
         { value: 'region', label: 'Region' },
         { value: 'national', label: 'National' },
