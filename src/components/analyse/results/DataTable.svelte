@@ -175,15 +175,29 @@
                 >
                     {latestYear}
                 </button>
-                <button
-                    class="px-3 py-1 rounded-full text-sm font-medium transition-colors
-                        {selectedPeriod === 'current_fy' 
-                            ? 'bg-oxford-600 text-white' 
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
-                    on:click={() => selectedPeriod = 'current_fy'}
-                >
-                    {currentFY}
-                </button>
+                <div class="relative inline-block group">
+                    <button
+                        class="px-3 py-1 rounded-full text-sm font-medium transition-colors
+                            {selectedPeriod === 'current_fy' 
+                                ? 'bg-oxford-600 text-white' 
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+                        on:click={() => selectedPeriod = 'current_fy'}
+                    >
+                        {currentFY}
+                    </button>
+                    <div class="absolute z-10 scale-0 transition-all duration-100 origin-bottom transform 
+                                group-hover:scale-100 w-[200px] -translate-x-full left-full bottom-8 mb-1 
+                                rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 p-4
+                                max-w-[calc(100vw-2rem)]">
+                        <p class="text-sm text-gray-500">
+                            Financial Year to Date: April {latestMonth ? 
+                                new Date(latestMonth).getMonth() >= 3 ? 
+                                    new Date(latestMonth).getFullYear() : 
+                                    new Date(latestMonth).getFullYear() - 1
+                                : ''} - {latestMonth}
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
