@@ -199,7 +199,7 @@
 
                 <div class="flex items-center gap-2 bg-gray-50 px-3 border border-l-0 border-gray-300 
                             {isOpen ? 'rounded-tr-md' : 'rounded-r-md'} 
-                            {disabled ? 'bg-gray-100' : ''} w-[85px]">
+                            {disabled ? 'bg-gray-100' : ''} min-w-[120px]">
                     <div class="flex flex-col items-center text-xs text-gray-500 py-1 w-full">
                         <span class="font-medium">{selectedItems.filter(item => isItemAvailable(item)).length}/{availableItems.length}</span>
                         <span>{counterText}</span>
