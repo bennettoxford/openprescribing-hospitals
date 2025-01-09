@@ -600,33 +600,37 @@
 </script>
 
 <div class="flex flex-col w-full">
-    <div class="w-full max-w-[600px] relative z-50 mb-4">
-        {#if searchableOrgs.length > 0}
-            <OrganisationSearch 
-                source={organisationSearchStore}
-                overlayMode={true}
-                on:selectionChange={handleSearchSelect}
-                on:dropdownToggle={handleOrganisationDropdownToggle}
-            />
-        {:else}
-            <div class="text-sm text-gray-500">Loading organisations...</div>
-        {/if}
-    </div>
+    <div class="max-w-7xl mx-auto w-full">
+        <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 lg:gap-12 mb-4">
+            <div class="w-full lg:max-w-[600px] relative z-50">
+                {#if searchableOrgs.length > 0}
+                    <OrganisationSearch 
+                        source={organisationSearchStore}
+                        overlayMode={true}
+                        on:selectionChange={handleSearchSelect}
+                        on:dropdownToggle={handleOrganisationDropdownToggle}
+                    />
+                {:else}
+                    <div class="text-sm text-gray-500">Loading organisations...</div>
+                {/if}
+            </div>
 
-    <div class="flex items-center mb-2 mr-8 justify-end">
-        <select 
-            bind:value={sortType}
-            class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium 
-                   bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 
-                   focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 
-                   transition-all duration-200 h-[38px]"
-            on:change={() => createChart()}
-        >
-            <option value="missing_latest">Sort by submission status in latest month</option>
-            <option value="missing_months">Sort by number of months with no data submission</option>
-            <option value="missing_proportion">Sort by variation in the number of unique products issued</option>
-            <option value="alphabetical">Sort alphabetically</option>
-        </select>
+            <div class="flex-shrink-0">
+                <select 
+                    bind:value={sortType}
+                    class="w-full lg:w-auto inline-flex items-center justify-center px-4 py-2 text-sm font-medium 
+                           bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 
+                           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 
+                           transition-all duration-200 h-[38px]"
+                    on:change={() => createChart()}
+                >
+                    <option value="missing_latest">Sort by submission status in latest month</option>
+                    <option value="missing_months">Sort by number of months with no data submission</option>
+                    <option value="missing_proportion">Sort by variation in the number of unique products issued</option>
+                    <option value="alphabetical">Sort alphabetically</option>
+                </select>
+            </div>
+        </div>
     </div>
     
     {#if error}
