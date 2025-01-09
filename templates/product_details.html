@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load django_vite %}
+
+{% block head %}
+    {% vite_asset 'src/components/dq/ProductDetails.svelte' %}
+{% endblock %}
+
+{% block title %}Product Details{% endblock %}
+
+{% block content %}
+<product-details
+    products='{{ products }}'
+    current-page='{{ current_page }}'
+    total-pages='{{ total_pages }}'
+    search='{{ search_term }}'
+></product-details>
+{% endblock %}

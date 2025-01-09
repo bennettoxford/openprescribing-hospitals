@@ -12,6 +12,7 @@ from .views import (
     ContactView,
     FAQView,
     search_items,
+    ProductDetailsView,
 )
 
 
@@ -30,4 +31,5 @@ urlpatterns = [
     path('contact/', ContactView.as_view(), name='contact'),
     path('faq/', FAQView.as_view(), name='faq'),
     path("api/search/", search_items, name="search_items"),
+    path('products/', ProductDetailsView.as_view(), name='product_details'),
 ]
