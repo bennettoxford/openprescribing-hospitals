@@ -39,7 +39,6 @@ from .models import (
 )
 
 
-@method_decorator(login_required, name='dispatch')
 class IndexView(TemplateView):
     template_name = "index.html"
 
@@ -510,7 +509,6 @@ def filtered_vmp_count(request):
     })
 
 
-@method_decorator(login_required, name='dispatch')
 class ContactView(TemplateView):
     template_name = "contact.html"
 

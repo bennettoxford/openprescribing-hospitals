@@ -14,12 +14,9 @@
     </head>
     <body class="preload flex flex-col min-h-screen text-slate bg-white">
         <div class="flex flex-col min-h-screen bg-slate-100">
-            <div class="md:hidden">
+            <nav>
                 {% include 'partials/nav.html' %}
-            </div>
-            <div class="hidden md:block">
-                {% include 'partials/nav.html' %}
-            </div>
+            </nav>
             <div class="flex-grow overflow-y-auto">
                 {% block full_width_content %}{% endblock %}
                 <div>
