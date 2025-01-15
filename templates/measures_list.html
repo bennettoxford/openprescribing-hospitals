@@ -65,12 +65,12 @@
                 <div class="p-6 pt-2">
                     {% if measure.draft %}
                         <button disabled 
-                            class="block w-full text-center text-white bg-gray-400 cursor-not-allowed font-medium py-2.5 px-4 rounded-lg">
+                            class="inline-flex w-full justify-center items-center px-4 py-2 bg-gray-50 text-gray-400 rounded-lg cursor-not-allowed font-medium">
                             View measure
                         </button>
                     {% else %}
                         <a href="{% url 'viewer:measure_item' measure.slug %}" 
-                           class="block w-full text-center text-white bg-oxford-600 hover:bg-oxford-700 font-medium py-2.5 px-4 rounded-lg transition duration-300 ease-in-out">
+                           class="inline-flex w-full justify-center items-center px-4 py-2 bg-oxford-50 text-oxford-600 rounded-lg hover:bg-oxford-100 transition-colors duration-200 font-medium">
                             View measure
                         </a>
                     {% endif %}

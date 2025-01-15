@@ -337,8 +337,8 @@
           <button
             on:click={runAnalysis}
             disabled={isAnalysisRunning}
-            class="px-4 sm:px-6 py-2 sm:py-2.5 bg-oxford-600 text-white font-medium rounded-md hover:bg-oxford-700 transition-colors duration-200
-                 disabled:bg-oxford-300 disabled:cursor-not-allowed"
+            class="px-4 sm:px-6 py-2 sm:py-2.5 bg-oxford-50 text-oxford-600 font-medium rounded-md hover:bg-oxford-100 transition-colors duration-200
+                 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
           >
             {isAnalysisRunning ? 'Running Analysis...' : 'Run Analysis'}
           </button>
