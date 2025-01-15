@@ -3,45 +3,41 @@
 
 {% block title %}Home{% endblock %}
 {% block full_width_content %}
-<div class="absolute inset-0 sm:bg-bn-blush-50 -z-10"></div>
-{% endblock %}
+<div class="isolate sm:bg-bn-blush-50 relative overflow-hidden">
+    <div class="hidden sm:block absolute inset-x-0 -z-10 overflow-hidden opacity-25">
+        <svg class="relative -z-10 max-w-none -top-1/2" viewBox="0 0 1155 678">
+            <path fill="url(#45de2b6b-92d5-4d68-a6a0-9b9b2abad533)" d="M317.219 518.975L203.852 678 0 438.341l317.219 80.634 204.172-286.402c1.307 132.337 45.083 346.658 209.733 145.248C936.936 126.058 882.053-94.234 1031.02 41.331c119.18 108.451 130.68 295.337 121.53 375.223L855 299l21.173 362.054-558.954-142.079z" />
+            <defs>
+                <linearGradient id="45de2b6b-92d5-4d68-a6a0-9b9b2abad533" x1="1155.49" x2="-78.208" y1=".177" y2="474.645" gradientUnits="userSpaceOnUse">
+                    <stop class="text-bn-blush-600" stop-color="currentColor" />
+                    <stop class="text-bn-strawberry-600" offset="1" stop-color="currentColor" />
+                </linearGradient>
+            </defs>
+        </svg>
+    </div>
 
-{% block content %}
-<div class="container xl:max-w-screen-xl pt-2 md:pt-6 pb-4">
-    <div class="relative overflow-hidden">
-        <div class="relative px-6 lg:px-8">
-            <div class="mx-auto max-w-2xl py-16 sm:py-24 lg:py-32">
-                <div class="grid gap-y-6 text-center text-lg leading-relaxed text-oxford-800">
-                    <h1 class="text-4xl font-bold tracking-tight text-oxford-900 sm:text-6xl">
-                        OpenPrescribing Hospitals
-                    </h1>
-                    
-                    <h2 class="text-xl sm:text-2xl text-oxford-700 font-medium">
-                        Explore NHS hospital medicines data across NHS Trusts in England
-                    </h2>
-                    
-                    <p class="text-gray-600 max-w-prose mx-auto">
-                        Every month, NHS England publishes processed pharmacy stock control data in the form of the 
-                        <a href="https://opendata.nhsbsa.net/dataset/secondary-care-medicines-data-indicative-price" target="_blank" class="text-blue-600 hover:text-blue-700 font-semibold">Secondary Care Medicines Dataset (SCMD)</a>.
-                        </a> OpenPrescribing Hospitals allows easy exploration of this data 
-                        through a set of curated Measures and a custom analysis builder.
-                    </p>
-                  
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 max-w-screen-xl mx-auto">
-                        <div class="bg-white rounded-lg shadow-lg flex flex-col">
-                            <div class="bg-gradient-to-r from-oxford-600/60 via-bn-roman-600/70 to-bn-strawberry-600/60 text-white p-2 rounded-t-lg">
-                                <h2 class="text-lg font-semibold">Submission History</h2>
-                            </div>
-                            <div class="p-4 flex flex-col flex-grow">
-                                <p class="text-gray-600 mb-6 flex-grow">View the data submission history for each NHS Trust in England over time and identify gaps in reporting.</p>
-                                {% if user.is_authenticated %}
-                                    <a href="{% url 'viewer:submission_history' %}" 
-                                       class="w-full bg-oxford-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-oxford-600 transition-colors duration-200 hover:bg-oxford-700 text-center">
-                                        View History
-                                    </a>
-                                {% endif %}
-                            </div>
-                        </div>
+    <div class="bg-bn-blush-50 sm:bg-transparent relative px-6 lg:px-8 backdrop-blur-3xl">
+        <div class="mx-auto max-w-2xl py-16 sm:py-24">
+            <div class="grid gap-y-6 text-center text-lg leading-relaxed text-oxford-800">
+                <h1 class="text-4xl font-bold tracking-tight text-oxford-900 sm:text-6xl">
+                    OpenPrescribing Hospitals
+                </h1>
+                
+                <h2 class="text-xl sm:text-2xl text-oxford-700 font-medium">
+                    Explore NHS hospital medicines data across NHS Trusts in England
+                </h2>
+                
+                <p class="text-gray-600 max-w-prose mx-auto">
+                    Every month, NHS England publishes processed pharmacy stock control data in the form of the 
+                    <a href="https://opendata.nhsbsa.net/dataset/secondary-care-medicines-data-indicative-price" target="_blank" class="text-oxford-600 hover:text-oxford-700 font-semibold">Secondary Care Medicines Dataset (SCMD)</a>.
+                    OpenPrescribing Hospitals allows easy exploration of this data 
+                    through a set of curated Measures and a custom analysis builder.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
 
                         <div class="bg-white rounded-lg shadow-lg flex flex-col">
                             <div class="bg-gradient-to-r from-oxford-600/60 via-bn-roman-600/70 to-bn-strawberry-600/60 text-white p-2 rounded-t-lg">
