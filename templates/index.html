@@ -34,10 +34,12 @@
                             </div>
                             <div class="p-4 flex flex-col flex-grow">
                                 <p class="text-gray-600 mb-6 flex-grow">View the data submission history for each NHS Trust in England over time and identify gaps in reporting.</p>
-                                <a href="{% url 'viewer:submission_history' %}" 
-                                   class="w-full bg-oxford-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-oxford-600 transition-colors duration-200 hover:bg-oxford-700 text-center">
-                                    View History
-                                </a>
+                                {% if user.is_authenticated %}
+                                    <a href="{% url 'viewer:submission_history' %}" 
+                                       class="w-full bg-oxford-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-oxford-600 transition-colors duration-200 hover:bg-oxford-700 text-center">
+                                        View History
+                                    </a>
+                                {% endif %}
                             </div>
                         </div>
 
@@ -47,10 +49,12 @@
                             </div>
                             <div class="p-4 flex flex-col flex-grow">
                                 <p class="text-gray-600 mb-6 flex-grow">Explore a curated set of measures that highlight variation in medicines issued across NHS Trusts.</p>
-                                <a href="{% url 'viewer:measures_list' %}" 
-                                   class="w-full bg-oxford-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-oxford-600 transition-colors duration-200 hover:bg-oxford-700 text-center">
-                                    View Measures
-                                </a>
+                                {% if user.is_authenticated %}
+                                    <a href="{% url 'viewer:measures_list' %}" 
+                                       class="w-full bg-oxford-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-oxford-600 transition-colors duration-200 hover:bg-oxford-700 text-center">
+                                        View Measures
+                                    </a>
+                                {% endif %}
                             </div>
                         </div>
 
@@ -60,17 +64,31 @@
                             </div>
                             <div class="p-4 flex flex-col flex-grow">
                                 <p class="text-gray-600 mb-6 flex-grow">Build your own analysis. Explore trends for individual products or groups of related products issued across NHS Trusts.</p>
-                                <a href="{% url 'viewer:analyse' %}" 
-                                   class="w-full bg-oxford-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-oxford-600 transition-colors duration-200 hover:bg-oxford-700 text-center">
-                                    Start Analysing
-                                </a>
+                                {% if user.is_authenticated %}
+                                    <a href="{% url 'viewer:analyse' %}" 
+                                       class="w-full bg-oxford-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-oxford-600 transition-colors duration-200 hover:bg-oxford-700 text-center">
+                                        Start Analysing
+                                    </a>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
+
+                    {% if not user.is_authenticated %}
+                        <div class="mt-8 text-center">
+                            <div class="relative bg-white rounded-lg p-6 shadow-sm max-w-2xl mx-auto">
+                                <div class="absolute inset-0 rounded-lg bg-gradient-to-r from-oxford-600/60 via-bn-roman-600/70 to-bn-strawberry-600/60"></div>
+                                <div class="absolute inset-[2px] bg-white rounded-lg"></div>
+                                <p class="relative text-gray-800 text-lg font-medium mb-4">
+                                    OpenPrescribing Hospitals is currently under development and conducting user testing.
+                                    If you are interested in accessing the platform, please <a href="{% url 'viewer:contact' %}" class="text-blue-600 hover:text-blue-700 font-bold underline">contact us</a>.
+                                </p>
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 {% endblock %}
