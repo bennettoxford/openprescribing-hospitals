@@ -770,7 +770,12 @@
                             <div class="text-center space-y-6">
                                 <div>
                                     <p class="text-oxford-600 text-xl font-medium mb-3">No data to display</p>
-                                    <p class="text-oxford-400 text-base max-w-md">No data was returned for the selected quantity type of the chose products.</p>
+                                    <p class="text-oxford-400 text-base max-w-md">
+                                        No data was returned for the selected quantity type of the chosen products. 
+                                        <a href="/faq/#missing-quantities" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
+                                            Learn more about why quantities might be missing
+                                        </a>.
+                                    </p>
                                 </div>
                             </div>
                         </div>
