@@ -137,6 +137,29 @@
             </div>
         </div>
 
+        <div class="bg-white rounded-xl shadow-md p-8 border border-slate-200 hover:shadow-lg transition-shadow duration-300">
+            <h2 id="missing-quantities" class="text-2xl font-semibold mb-6 text-oxford-900 flex items-center">
+                Missing Quantities
+            </h2>
+            <div class="space-y-6">
+                <div class="group">
+                    <h3 class="font-medium text-oxford-900 mb-3 text-lg">Why is there no quantity for some products?</h3>
+                    <p class="text-slate-600 leading-relaxed">
+                        There are two reasons why there might be no quantity data in custom analysis results:
+
+                        1. The product hasn't been used by any of the selected NHS Trusts. When NHS Trusts submit their data, they only submit data for products they have used. 
+                        2. The quantity type selected could not be calculated for the selected products. Every product has an associated VMP quantity 
+                        (see <a href="#quantity-type" class="underline font-semibold" target="_blank">Quantity Types</a>) in the raw SCMD data.
+                        From these, alternative quantites are calculated, which may be more appropriiate ways to measure the quantity of a product. Calculation of these quantities relies
+                        on suplementary data, which is not always present. For example, in calculating the Ingredient Quantity, there has to be an indication of the ingredients within a 
+                        product; if this is missing, the Ingredient Quantity cannot be calculated and that product will be excluded from the analysis.
+
+                        Products with missing quantities are marked in red in the 'Products Included' section of the results.
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <div class="bg-gradient-to-br from-blue-50 to-slate-50 rounded-xl shadow-md p-8 border border-slate-200">
             <h2 class="text-2xl font-semibold mb-4 text-oxford-900 flex items-center">
                 Need More Help?

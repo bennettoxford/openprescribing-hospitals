@@ -116,7 +116,7 @@
     $: hasMultipleRoutes = vmps.some(vmp => vmp.routes && vmp.routes.length > 1);
     $: hasMultipleIngredients = vmps.some(vmp => vmp.ingredients && vmp.ingredients.length > 1);
     
-    $: hasWarnings = showUnitWarning || showUnitIngredientWarning || hasMissingVMPs || hasMultipleRoutes || hasMultipleIngredients;
+    $: hasWarnings = showUnitWarning || showUnitIngredientWarning || hasMultipleRoutes || hasMultipleIngredients;
 
     let showWarnings = false;
 </script>
@@ -198,6 +198,15 @@
         </div>
     </div>
 
+    {#if hasMissingVMPs}
+        <div class="mt-4 p-3 bg-red-100 border border-red-200 rounded-lg text-red-700 text-sm">
+            Products shaded in red have no quantity data and will be excluded from the analysis.
+            <a href="/faq#missing-quantities" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
+                Find out why in the FAQs
+            </a>
+        </div>
+    {/if}
+
     {#if hasWarnings}
         <div class="mt-4">
             <button
@@ -222,16 +231,6 @@
                         {#if showUnitIngredientWarning}
                             <li class="text-yellow-700">
                                 This list contains multiple unit-ingredient combinations. Please review carefully.
-                            </li>
-                        {/if}
-                        {#if hasMissingVMPs}
-                            <li class="text-yellow-700">
-                                Some products have missing quantity data and are excluded from the analysis:
-                                <ul class="list-disc list-inside ml-4 mt-1">
-                                    {#each missingVMPs as vmp}
-                                        <li>{vmp}</li>
-                                    {/each}
-                                </ul>
                             </li>
                         {/if}
                         {#if hasMultipleRoutes}
