@@ -272,7 +272,6 @@ def filtered_quantities(request):
     ods_names = request.data.get("ods_names", None)
     quantity_type = request.data.get("quantity_type", None)
     
-    # Early validation checks remain the same
     if not all([search_items, ods_names, quantity_type]) or quantity_type == '--':
         return Response({"error": "Missing required parameters"}, status=400)
 
@@ -309,18 +308,20 @@ def filtered_quantities(request):
             'route_list', 'ingredient_names', 'ingredient_codes'
         )
 
-        vmp_info = {
-            vmp['id']: {
+        response_data = []
+        for vmp in base_vmps:
+            response_item = {
                 'vmp__code': vmp['code'],
                 'vmp__name': vmp['name'],
                 'vmp__vtm__name': vmp['vtm__name'],
                 'routes': [route for route in vmp['route_list'] if route],
                 'ingredient_names': vmp['ingredient_names'],
                 'ingredient_codes': vmp['ingredient_codes'],
-                'organisations': {}
+                'organisation__ods_code': None,
+                'organisation__ods_name': None,
+                'data': []
             }
-            for vmp in base_vmps
-        }
+            response_data.append(response_item)
 
         quantity_model = {
             "VMP Quantity": SCMDQuantity,
@@ -328,41 +329,25 @@ def filtered_quantities(request):
             "DDD": DDDQuantity
         }.get(quantity_type)
 
-        if not quantity_model:
-            return Response({"error": "Invalid quantity type"}, status=400)
+        if quantity_model:
+            quantity_data = quantity_model.objects.filter(
+                vmp_id__in=vmp_ids,
+                organisation__ods_code__in=ods_codes
+            ).select_related('organisation')
 
-        quantity_data = quantity_model.objects.filter(
-            vmp_id__in=vmp_ids,
-            organisation__ods_code__in=ods_codes
-        ).select_related('organisation')
-
-        for item in quantity_data:
-            if item.vmp_id in vmp_info:
-                vmp_data = vmp_info[item.vmp_id]
-                org_code = item.organisation.ods_code
-                
-                vmp_data['organisations'][org_code] = {
-                    'ods_code': org_code,
-                    'ods_name': item.organisation.ods_name,
+            for item in quantity_data:
+                response_item = {
+                    'vmp__code': item.vmp.code,
+                    'vmp__name': item.vmp.name,
+                    'vmp__vtm__name': item.vmp.vtm.name if item.vmp.vtm else None,
+                    'routes': [route.name for route in item.vmp.routes.all()],
+                    'ingredient_names': [ing.name for ing in item.vmp.ingredients.all()],
+                    'ingredient_codes': [ing.code for ing in item.vmp.ingredients.all()],
+                    'organisation__ods_code': item.organisation.ods_code,
+                    'organisation__ods_name': item.organisation.ods_name,
                     'data': item.data
                 }
-
-        response_data = []
-        for vmp_id, vmp_data in vmp_info.items():
-            if vmp_data['organisations']:
-                for org_code, org_data in vmp_data['organisations'].items():
-                    response_item = {
-                        'vmp__code': vmp_data['vmp__code'],
-                        'vmp__name': vmp_data['vmp__name'],
-                        'vmp__vtm__name': vmp_data['vmp__vtm__name'],
-                        'routes': vmp_data['routes'],
-                        'ingredient_names': vmp_data['ingredient_names'],
-                        'ingredient_codes': vmp_data['ingredient_codes'],
-                        'organisation__ods_code': org_data['ods_code'],
-                        'organisation__ods_name': org_data['ods_name'],
-                        'data': org_data['data']
-                    }
-                    response_data.append(response_item)
+                response_data.append(response_item)
 
         return Response(response_data)
 
