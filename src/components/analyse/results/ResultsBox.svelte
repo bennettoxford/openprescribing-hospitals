@@ -562,22 +562,32 @@
             viewModes.push({ value: 'product', label: 'Product' });
         }
 
-        const uniqueVtms = new Set(vmps.map(vmp => vmp.vtm));
+
+        const uniqueVtms = new Set(vmps.map(vmp => vmp.vtm).filter(vtm => vtm && vtm !== '-' && vtm !== 'nan'));
         if (uniqueVtms.size > 1) {
             viewModes.push({ value: 'productGroup', label: 'Product Group' });
         }
 
-        const uniqueIngredients = new Set(vmps.flatMap(vmp => vmp.ingredients || []));
+        const uniqueIngredients = new Set(
+            vmps.flatMap(vmp => (vmp.ingredients || []))
+                .filter(ing => ing && ing !== '-' && ing !== 'nan')
+        );
         if (uniqueIngredients.size > 1) {
             viewModes.push({ value: 'ingredient', label: 'Ingredient' });
         }
 
-        const uniqueUnits = new Set(vmps.flatMap(vmp => Array.from(vmp.units)));
+        const uniqueUnits = new Set(
+            vmps.flatMap(vmp => Array.from(vmp.units))
+                .filter(unit => unit && unit !== '-' && unit !== 'nan')
+        );
         if (uniqueUnits.size > 1) {
             viewModes.push({ value: 'unit', label: 'Unit' });
         }
 
-        const uniqueRoutes = new Set(vmps.flatMap(vmp => vmp.routes));
+        const uniqueRoutes = new Set(
+            vmps.flatMap(vmp => vmp.routes)
+                .filter(route => route && route !== '-' && route !== 'nan')
+        );
         if (uniqueRoutes.size > 1) {
             viewModes.push({ value: 'route', label: 'Route' });
         }
