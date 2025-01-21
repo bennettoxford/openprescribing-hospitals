@@ -193,10 +193,45 @@
         dispatch('analysisClear');
     }
 </script>
-
+<div class="border-b border-gray-200">
+  <nav class="flex space-x-0 w-full" aria-label="Tabs">
+    <div class="flex items-center gap-2 w-full">
+      <button
+        class={`py-2 border-b-2 font-medium text-sm flex-1 text-center ${
+          !isAdvancedMode
+            ? 'border-oxford-500 text-oxford-600'
+            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+        }`}
+        on:click={() => {
+          if (isAdvancedMode) toggleAdvancedMode();
+        }}
+      >
+        <span class="text-sm px-2">
+          Single product search
+        </span>
+      </button>
+      <button
+        class={`py-2 border-b-2 font-medium text-sm flex-1 text-center ${
+          isAdvancedMode
+            ? 'border-oxford-500 text-oxford-600'
+            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+        }`}
+        on:click={() => {
+          if (!isAdvancedMode) toggleAdvancedMode();
+        }}
+      >
+        <span class="text-sm">
+          Multi-product search
+        </span>
+      </button>
+    </div>
+  </nav>
+</div>
+ <!-- Header -->
+ 
 <div class="p-4 sm:p-6 bg-white rounded-lg w-full">
   <div class="grid gap-8">
-    <!-- Header -->
+    <!-- Tabs -->
     <div>
       <p class="text-sm text-oxford">
         {#if isAdvancedMode}
@@ -207,6 +242,8 @@
         {/if}
       </p>
     </div>
+
+   
 
     <!-- Selection Grid - Now always single column -->
     <div class="grid gap-6">
@@ -311,14 +348,6 @@
     <!-- Analysis Controls -->
     <div class="mt-8 bg-gray-50 rounded-lg p-4 sm:p-6">
       <div class="flex flex-col gap-4">
-        <!-- Mode Switch -->
-        <button 
-          class="text-sm text-oxford-600 hover:text-oxford-700 flex items-center gap-2"
-          on:click={toggleAdvancedMode}
-        >
-          <span class="underline">Switch to {isAdvancedMode ? 'basic' : 'advanced'} mode</span>
-        </button>
-
         <!-- Error Message -->
         {#if errorMessage}
           <div class="p-3 bg-red-100 border border-red-400 text-red-700 rounded">

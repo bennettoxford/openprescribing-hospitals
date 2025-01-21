@@ -278,7 +278,7 @@
             {:else if filteredItems.length > 0 || isLoading}
                 <div class="fixed inset-0 bg-transparent" on:click={() => filteredItems = []}></div>
                 <div class="absolute top-[calc(100%_-_1px)] left-0 right-0 z-10">
-                    <ul class="border border-gray-300 rounded-none border-t-0 max-h-[30vh] overflow-y-auto divide-y divide-gray-200 bg-white {!showScrollTop ? 'rounded-b-md' : ''}"
+                    <ul class="border border-gray-300 rounded-none border-t-0 max-h-[20vh] overflow-y-auto divide-y divide-gray-200 bg-white {!showScrollTop ? 'rounded-b-md' : ''}"
                         bind:this={listContainer}
                         on:scroll={updateScrollButtonVisibility}>
                         {#each filteredItems as item}
