@@ -6,15 +6,13 @@
 <script>
     import DataTable from './DataTable.svelte';
     import ProductList from './ProductList.svelte';
-    import { resultsStore } from '../../../stores/resultsStore';
+    import { resultsStore, updateVisibleItems } from '../../../stores/resultsStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
     import Chart from '../../common/Chart.svelte';
-    import { legendStore } from '../../../stores/legendStore';
     import { modeSelectorStore } from '../../../stores/modeSelectorStore';
     import { chartConfig } from '../../../utils/chartConfig.js';
     import ModeSelector from '../../common/ModeSelector.svelte';
     import { createChartStore } from '../../../stores/chartStore';
-    import ChartLegend from '../../common/ChartLegend.svelte';
     import { timeFormat } from 'd3-time-format';
 
     export let className = '';
@@ -412,15 +410,6 @@
 
         resultsChartStore.setConfig(chartConfig);
 
-        legendStore.setItems(datasets.map(d => ({
-            label: d.label,
-            color: d.color,
-            visible: true,
-            selectable: true
-        })));
-        
-        legendStore.setVisibleItems(datasets.map(d => d.label));
-
         return { labels: allDates, datasets };
     }
 
@@ -593,21 +582,8 @@
         }
     }
 
-    function handleLegendChange(items) {
-        const newVisible = new Set(items);
-        
-        const currentData = $resultsChartStore.data;
-        
-        const updatedData = {
-            ...currentData,
-            datasets: currentData.datasets.map(dataset => ({
-                ...dataset,
-                hidden: !newVisible.has(dataset.label)
-            }))
-        };
-        
-        resultsChartStore.setData(updatedData);
-        legendStore.setVisibleItems(items);
+    function handleVisibilityChange(items) {
+        updateVisibleItems(items);
     }
 
     $: legendItems = $modeSelectorStore.selectedMode === 'organisation' ? 
@@ -735,28 +711,15 @@
                                 onChange={handleModeChange}
                             />
                         </div>
-                        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                            <div class={`relative h-[400px] ${$modeSelectorStore.selectedMode === 'total' ? 'lg:col-span-4' : 'lg:col-span-3'}`}>
+                        <div class="grid grid-cols-1 gap-4">
+                            <div class="relative h-[400px]">
                                 <Chart 
                                     store={resultsChartStore} 
                                     data={filteredData.length > 0 ? filteredData : selectedData}
                                     formatTooltipContent={customTooltipFormatter}
                                 />
                             </div>
-                            {#if $modeSelectorStore.selectedMode !== 'total'}
-                                <div class="legend-container lg:h-[400px] overflow-y-auto bg-white">
-                                    <ChartLegend 
-                                        items={datasets.map(d => ({
-                                            label: d.label,
-                                            color: d.color,
-                                            visible: true,
-                                            selectable: true
-                                        }))}
-                                        onChange={handleLegendChange}
-                                    />
-                                </div>
-                            {/if}
-                            </div>
+                        </div>
                         </section>
                         <section class="p-4">
                             <DataTable 

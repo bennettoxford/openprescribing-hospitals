@@ -1,5 +1,4 @@
 import { writable } from 'svelte/store';
-import { legendStore } from './legendStore';
 
 export const resultsStore = writable({
     isAnalysisRunning: false,
@@ -10,7 +9,8 @@ export const resultsStore = writable({
     searchType: null,
     dateRange: null,
     productData: {},
-    organisationData: {}
+    organisationData: {},
+    visibleItems: new Set()
 });
 
 function processAnalysisData(data) {
@@ -113,7 +113,6 @@ function calculateDateRange(data) {
 }
 
 export function clearResults() {
-    legendStore.reset();
     resultsStore.set({
         isAnalysisRunning: false,
         showResults: false,
@@ -123,7 +122,15 @@ export function clearResults() {
         organisationData: {},
         quantityType: null,
         searchType: null,
-        dateRange: null
+        dateRange: null,
+        visibleItems: new Set()
     });
+}
+
+export function updateVisibleItems(items) {
+    resultsStore.update(store => ({
+        ...store,
+        visibleItems: new Set(items)
+    }));
 }
 
