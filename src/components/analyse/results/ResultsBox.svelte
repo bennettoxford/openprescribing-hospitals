@@ -388,7 +388,34 @@
                 padTop: 1.1,
                 resetToInitial: true
             },
-            yAxisTickFormat: value => formatAxisValue(value, maxValue),
+            yAxisTickFormat: value => {
+                const range = maxValue;
+                
+                let decimals = 1;
+                if (typeof value === 'number' && !isNaN(value)) {
+                    // Get the magnitude of the difference between consecutive values
+                    const step = range / 10;
+                    if (step > 0) {
+                        // Calculate required decimals based on step size
+                        decimals = Math.min(
+                            Math.max(
+                                1,
+                                Math.ceil(Math.abs(Math.log10(step))) + 1
+                            ),
+                            5
+                        );
+                    }
+                }
+                
+                // Format with k/m suffix if needed
+                if (maxValue >= 1000000) {
+                    return `${(value / 1000000).toFixed(Math.min(decimals, 1))}m`;
+                } else if (maxValue >= 1000) {
+                    return `${(value / 1000).toFixed(Math.min(decimals, 1))}k`;
+                }
+                
+                return value.toFixed(decimals);
+            },
             tooltipValueFormat: value => formatLargeNumber(value, combinedUnits)
         };
 

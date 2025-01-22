@@ -176,9 +176,19 @@
           fontSize: '14px'
         },
         formatter: function() {
-          return config.yAxisTickFormat ? 
-            config.yAxisTickFormat(this.value) : 
-            `${this.value.toFixed(1)}%`;
+          if (config.yAxisTickFormat) {
+            return config.yAxisTickFormat(this.value, this.axis.max - this.axis.min);
+          }
+          
+          // Get the axis range based on current view
+          const range = this.axis.max - this.axis.min;
+          
+          // Determine decimal places based on range
+          let decimals = 1;
+          if (range <= 0.1) decimals = 3;
+          else if (range <= 1) decimals = 2;
+          
+          return `${this.value.toFixed(decimals)}%`;
         }
       },
       gridLineWidth: 1,
