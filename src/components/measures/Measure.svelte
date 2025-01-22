@@ -23,17 +23,17 @@
         visibleTrusts,
         visibleICBs,
         getOrAssignColor,
-        showPercentiles
+        showPercentiles,
+        updatePercentilesVisibility,
+        getDatasetVisibility
     } from '../../stores/measureChartStore.js';
     import Chart from '../common/Chart.svelte';
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
     import ModeSelector from '../common/ModeSelector.svelte';
-    import ChartLegend from '../common/ChartLegend.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore';
     import { modeSelectorStore } from '../../stores/modeSelectorStore.js';
     import { regionColors } from '../../utils/chartConfig.js';
     import { filteredData } from '../../stores/measureChartStore.js';
-    import { legendStore } from '../../stores/legendStore.js';
 
     export let orgdata = '[]';
     export let regiondata = '[]';
@@ -79,6 +79,22 @@
         }
     });
 
+    let chartOptions = {
+        chart: {
+            type: 'line',
+            height: 350
+        },
+        title: {
+            text: undefined
+        },
+        yAxis: {
+            min: 0,
+            max: 100,
+            allowDecimals: false,
+            tickInterval: 20
+        }
+    };
+
     onMount(() => {
         const parsedOrgData = JSON.parse(orgdata);
         orgdataStore.set(parsedOrgData);
@@ -121,47 +137,56 @@
     });
 
     function handleSelectionChange(event) {
-        const { selectedItems, source } = event.detail;
+        const selectedItems = event.detail?.selectedItems || [];
+        const source = event.detail?.source;
  
         if ($selectedMode === 'icb') {
-            visibleICBs.set(new Set(selectedItems));
-            organisationSearchStore.updateSelection(selectedItems);
-            legendStore.setVisibleItems(selectedItems);
+            const itemsArray = Array.isArray(selectedItems) ? selectedItems : Array.from(selectedItems);
+            visibleICBs.set(new Set(itemsArray));
+            organisationSearchStore.updateSelection(itemsArray);
             
             const updatedData = {
                 ...$filteredData,
-                datasets: $filteredData.datasets.map(dataset => ({
+                datasets: ($filteredData?.datasets || []).map(dataset => ({
                     ...dataset,
-                    hidden: !selectedItems.includes(dataset.label)
+                    hidden: !itemsArray.includes(dataset.label)
                 }))
             };
             measureChartStore.setData(updatedData);
         } else if ($selectedMode === 'region') {
-            visibleRegions.set(new Set(selectedItems));
-            organisationSearchStore.updateSelection(selectedItems);
-            legendStore.setVisibleItems(selectedItems);
+            const itemsArray = Array.isArray(selectedItems) ? selectedItems : Array.from(selectedItems);
+            visibleRegions.set(new Set(itemsArray));
+            organisationSearchStore.updateSelection(itemsArray);
 
             const updatedData = {
                 ...$filteredData,
-                datasets: $filteredData.datasets.map(dataset => ({
+                datasets: ($filteredData?.datasets || []).map(dataset => ({
                     ...dataset,
-                    hidden: !selectedItems.includes(dataset.label)
+                    hidden: !itemsArray.includes(dataset.label)
                 }))
             };
             measureChartStore.setData(updatedData);
         } else if ($selectedMode === 'percentiles') {
-            visibleTrusts.set(new Set(selectedItems));
-            organisationSearchStore.updateSelection(selectedItems);
+            const itemsArray = Array.isArray(selectedItems) ? selectedItems : Array.from(selectedItems);
+            visibleTrusts.set(new Set(itemsArray));
+            organisationSearchStore.updateSelection(itemsArray);
             if ($selectedMode === 'percentiles') {
-                legendStore.setVisibleItems([
-                    'Median (50th Percentile)',
-                    'Percentile Range',
-                    ...selectedItems
-                ]);
-            } else {
-                legendStore.setVisibleItems(selectedItems);
+                const updatedData = {
+                    ...$filteredData,
+                    datasets: $filteredData.datasets.map(dataset => ({
+                        ...dataset,
+                        hidden: (!$showPercentiles && (
+                            dataset.label === 'Median (50th Percentile)' ||
+                            dataset.label.includes('th Percentile')
+                        )) || (
+                            !Array.from($visibleTrusts).includes(dataset.label) && 
+                            !dataset.alwaysVisible
+                        )
+                    }))
+                };
+                measureChartStore.setData(updatedData);
             }
-            measureChartStore.updateVisibleItems(new Set(selectedItems));
+            measureChartStore.updateVisibleItems(new Set(itemsArray));
         }
     }
 
@@ -192,7 +217,6 @@
                     }))
                 };
                 measureChartStore.setData(updatedData);
-                legendStore.setVisibleItems(Array.from($visibleICBs));
             } else if (currentMode === 'region') {
                 organisationSearchStore.setItems(regions);
                 organisationSearchStore.setFilterType('region');
@@ -207,7 +231,6 @@
                     }))
                 };
                 measureChartStore.setData(updatedData);
-                legendStore.setVisibleItems(Array.from($visibleRegions));
             } else if (currentMode === 'percentiles') {
                 organisationSearchStore.setItems(trusts);
                 organisationSearchStore.setFilterType('trust');
@@ -217,13 +240,20 @@
                 organisationSearchStore.updateSelection(Array.from($visibleTrusts));
                 measureChartStore.updateVisibleItems(new Set($visibleTrusts));
                 if (currentMode === 'percentiles') {
-                    legendStore.setVisibleItems([
-                        'Median (50th Percentile)',
-                        'Percentile Range',
-                        ...Array.from($visibleTrusts)
-                    ]);
-                } else {
-                    legendStore.setVisibleItems(Array.from($visibleTrusts));
+                    const updatedData = {
+                        ...$filteredData,
+                        datasets: $filteredData.datasets.map(dataset => ({
+                            ...dataset,
+                            hidden: (!$showPercentiles && (
+                                dataset.label === 'Median (50th Percentile)' ||
+                                dataset.label.includes('th Percentile')
+                            )) || (
+                                !Array.from($visibleTrusts).includes(dataset.label) && 
+                                !dataset.alwaysVisible
+                            )
+                        }))
+                    };
+                    measureChartStore.setData(updatedData);
                 }
             } else if (currentMode === 'national') {
 
@@ -235,7 +265,6 @@
                     }))
                 };
                 measureChartStore.setData(updatedData);
-                legendStore.setVisibleItems(['National']);
             }
         }
     }
@@ -256,13 +285,22 @@
         if ($filteredData) {
             const updatedData = {
                 ...$filteredData,
-                datasets: $filteredData.datasets.map(dataset => ({
-                    ...dataset,
-                    hidden: newMode === 'national' ? false :
-                        newMode === 'region' ? !Array.from($visibleRegions).includes(dataset.label) :
-                        newMode === 'icb' ? !Array.from($visibleICBs).includes(dataset.label) :
-                        !Array.from($visibleTrusts).includes(dataset.label)
-                }))
+                datasets: $filteredData.datasets.map(dataset => {
+                    if (newMode === 'percentiles') {
+                        return {
+                            ...dataset,
+                            hidden: !getDatasetVisibility(dataset, newMode, $visibleTrusts, $showPercentiles)
+                        };
+                    } else {
+                        return {
+                            ...dataset,
+                            hidden: newMode === 'national' ? false :
+                                newMode === 'region' ? !$visibleRegions.has(dataset.label) :
+                                newMode === 'icb' ? !$visibleICBs.has(dataset.label) :
+                                !$visibleTrusts.has(dataset.label)
+                        };
+                    }
+                })
             };
             measureChartStore.setData(updatedData);
         }
@@ -323,16 +361,14 @@
                         dataset.label === 'Median (50th Percentile)' ||
                         dataset.label.includes('th Percentile')
                     )) || (
-                        !newVisible.has(dataset.label) && 
+                        !Array.from($visibleTrusts).includes(dataset.label) && 
                         !dataset.alwaysVisible
                     ) :
-                    !newVisible.has(dataset.label)
+                    !Array.from(newVisible).includes(dataset.label)
             }))
         };
         
         measureChartStore.setData(updatedData);
-        legendStore.setVisibleItems(items);
-
     }
 
     $: {
@@ -345,7 +381,7 @@
                         dataset.label === 'Median (50th Percentile)' ||
                         dataset.label.includes('th Percentile')
                     )) || (
-                        !$legendStore.visibleItems.has(dataset.label) && 
+                        !Array.from($visibleTrusts).includes(dataset.label) && 
                         !dataset.alwaysVisible
                     )
                 }))
@@ -380,7 +416,6 @@
             visibleTrusts.set(new Set());
         }
         
-        legendStore.clearVisibleItems();
         measureChartStore.updateVisibleItems(new Set());
         organisationSearchStore.updateSelection([]);
 
@@ -412,16 +447,8 @@
         }
     }
 
-    $: if ($selectedMode === 'percentiles' && $visibleTrusts) {
-        legendStore.setVisibleItems([
-            'Median (50th Percentile)',
-            'Percentile Range',
-            ...Array.from($visibleTrusts)
-        ]);
-    }
-
     function customTooltipFormatter(d) {
-        const label = d.dataset.label || 'No label';
+        const label = d.dataset.name || d.dataset.label || 'No label';
         const date = d3.timeFormat('%b %Y')(d.date);
         const value = (d.value).toFixed(1) + '%';
         const index = d.index;
@@ -438,7 +465,7 @@
                 { label: 'Value', value }
             );
         } else if ($selectedMode === 'percentiles') {
-            if (d.dataset.label === 'Median (50th Percentile)') {
+            if (d.dataset.label === 'Median (50th Percentile)' || d.dataset.name === 'Median (50th Percentile)') {
                 tooltipContent.push(
                     { label: 'Date', value: date },
                     { label: 'Value', value }
@@ -459,6 +486,12 @@
     function formatNumber(value) {
         if (value == null || isNaN(value)) return value;
         return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    function handlePercentileToggle() {
+        showPercentiles.update(v => !v);
+        const updatedData = updatePercentilesVisibility(!$showPercentiles);
+        measureChartStore.setData(updatedData);
     }
 </script>
 
@@ -501,7 +534,7 @@
                                         type="checkbox"
                                         class="sr-only peer"
                                         checked={$showPercentiles}
-                                        on:change={() => showPercentiles.update(v => !v)}
+                                        on:change={handlePercentileToggle}
                                     />
                                     <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                                 </label>
@@ -527,7 +560,7 @@
         </div>
     </div>
 
-    <div class="lg:col-span-3 relative h-[350px]">
+    <div class="lg:col-span-4 relative h-[350px]">
         <div class="chart-container absolute inset-0">
             {#if $orgdataStore.length === 0}
                 <p class="text-center text-gray-500 pt-8">No data available.</p>
@@ -538,30 +571,9 @@
                     yAxisLabel="%"
                     formatTooltipContent={customTooltipFormatter}
                     store={measureChartStore}
+                    {chartOptions}
                 />
             {/if}
         </div>
     </div>
-
-    {#if showLegend}
-        <div class="legend-container lg:h-[350px] overflow-y-auto bg-white">
-            <ChartLegend 
-                items={legendItems}
-                isPercentileMode={$selectedMode === 'percentiles'}
-                onChange={handleLegendChange}
-            />
-        </div>
-    {/if}
 </div>
-
-<style>
-    .legend-container {
-        padding: 0.5rem;
-    }
-
-    @media (max-width: 1024px) {
-        .legend-container {
-            max-height: 200px;
-        }
-    }
-</style>

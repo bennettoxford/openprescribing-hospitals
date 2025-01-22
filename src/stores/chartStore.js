@@ -66,13 +66,19 @@ export function createChartStore(initialConfig = {}) {
             update(state => ({ ...state, config }));
         },
         updateVisibleItems: (items) => {
-            update(state => ({
-                ...state,
-                config: {
-                    ...state.config,
-                    visibleItems: new Set(items)
-                }
-            }));
+            update(state => {
+                const updatedData = {
+                    ...state.data,
+                    datasets: state.data.datasets.map(dataset => ({
+                        ...dataset,
+                        visible: items.has(dataset.label)
+                    }))
+                };
+                return {
+                    ...state,
+                    data: updatedData
+                };
+            });
         }
     };
 
