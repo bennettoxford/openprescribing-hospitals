@@ -59,6 +59,19 @@ export function getOrAssignColor(orgName, index = null) {
     return colorMap.get(orgName);
 }
 
+export function getDatasetVisibility(dataset, mode, visibleTrusts, showPercentiles) {
+    if (mode === 'percentiles') {
+        if (dataset.isPercentile) {
+            return !(!showPercentiles);
+        }
+        if (dataset.isTrust) {
+            return visibleTrusts.has(dataset.label);
+        }
+        return !dataset.hidden;
+    }
+    return !dataset.hidden;
+}
+
 export const filteredData = derived(
   [selectedMode, orgdata, regiondata, icbdata, percentiledata, visibleTrusts, visibleICBs, visibleRegions, showPercentiles],
   ([$selectedMode, $orgdata, $regiondata, $icbdata, $percentiledata, $visibleTrusts, $visibleICBs, $visibleRegions, $showPercentiles]) => {
@@ -138,61 +151,63 @@ export const filteredData = derived(
         labels = Object.keys(groupedPercentiles).sort(sortDates);
 
         const percentileRanges = [
-          { range: [45, 55], opacity: 0.5 },
-          { range: [35, 65], opacity: 0.4 },
-          { range: [25, 75], opacity: 0.3 },
+          { range: [45, 55], opacity: 0.8 },
+          { range: [35, 65], opacity: 0.6 },
+          { range: [25, 75], opacity: 0.4 },
           { range: [15, 85], opacity: 0.2 },
           { range: [5, 95], opacity: 0.1 }
         ];
 
         datasets = [
-          ...($showPercentiles ? [
-            {
-              label: 'Median (50th Percentile)',
-              data: labels.map(month => groupedPercentiles[month][50] !== undefined ? groupedPercentiles[month][50] : null),
-              color: '#DC3220',
+          {
+            label: 'Median (50th Percentile)',
+            data: labels.map(month => groupedPercentiles[month]?.[50] ?? null),
+            color: '#DC3220',
+            strokeWidth: 2,
+            fill: false,
+            alwaysVisible: true,
+            isPercentile: true,
+            hidden: !$showPercentiles
+          },
+          ...percentileRanges.map(({ range: [lower, upper], opacity }) => ({
+            label: `${lower}th-${upper}th Percentile`,
+            data: labels.map(month => ({
+              lower: groupedPercentiles[month]?.[lower] ?? null,
+              upper: groupedPercentiles[month]?.[upper] ?? null
+            })),
+            color: '#005AB5',
+            strokeWidth: 0,
+            fill: true,
+            fillOpacity: opacity,
+            alwaysVisible: true,
+            isPercentile: true,
+            isRange: true,
+            hidden: !$showPercentiles
+          })),
+          ...Array.from($visibleTrusts || []).map(org => {
+            const orgDataPoints = $orgdata[org]?.data?.reduce((acc, d) => {
+              acc[d.month] = d;
+              return acc;
+            }, {}) || {};
+
+            return {
+              label: org,
+              data: labels.map(date => orgDataPoints[date]?.quantity ?? null),
+              numerator: labels.map(date => orgDataPoints[date]?.numerator ?? null),
+              denominator: labels.map(date => orgDataPoints[date]?.denominator ?? null),
+              color: getOrAssignColor(org),
               strokeWidth: 2,
-              fill: false,
-              alwaysVisible: true
-            },
-            ...percentileRanges.map(({ range: [lower, upper], opacity }) => ({
-              label: `${lower}th-${upper}th Percentile`,
-              data: labels.map(month => ({
-                lower: groupedPercentiles[month][lower] !== undefined ? groupedPercentiles[month][lower] : null,
-                upper: groupedPercentiles[month][upper] !== undefined ? groupedPercentiles[month][upper] : null
-              })),
-              color: '#005AB5',
-              strokeWidth: 0,
-              fill: true,
-              fillOpacity: opacity,
-              alwaysVisible: true
-            }))
-          ] : []),
-          ...Array.from($visibleTrusts).map(org => {
-            if ($orgdata[org] && $orgdata[org].data) {
-              return {
-                label: org,
-                data: labels.map(date => {
-                  const dataPoint = $orgdata[org].data.find(d => d.month === date);
-                  return dataPoint ? dataPoint.quantity : null;
-                }),
-                numerator: labels.map(date => {
-                  const dataPoint = $orgdata[org].data.find(d => d.month === date);
-                  return dataPoint ? dataPoint.numerator : null;
-                }),
-                denominator: labels.map(date => {
-                  const dataPoint = $orgdata[org].data.find(d => d.month === date);
-                  return dataPoint ? dataPoint.denominator : null;
-                }),
-                color: getOrAssignColor(org),
-                strokeWidth: 2,
-                isTrust: true,
-                isOrganisation: true
-              };
-            }
-            return null;
+              isTrust: true,
+              isOrganisation: true,
+              spanGaps: true,
+              hidden: false
+            };
           }).filter(Boolean)
-        ];
+        ].filter(Boolean);
+        datasets = datasets.map(dataset => ({
+            ...dataset,
+            hidden: !getDatasetVisibility(dataset, $selectedMode, $visibleTrusts, $showPercentiles)
+        }));
         break;
       case 'national':
         if ($regiondata.length > 0) {
@@ -261,4 +276,17 @@ export function getTooltipContent(d) {
         <div class="text-sm text-gray-600">${date}</div>
         <div class="text-sm">${value}</div>
     `;
+}
+
+export function updatePercentilesVisibility(showPercentiles) {
+    const currentData = get(filteredData);
+    if (!currentData) return currentData;
+
+    return {
+        ...currentData,
+        datasets: currentData.datasets.map(dataset => ({
+            ...dataset,
+            hidden: !getDatasetVisibility(dataset, get(selectedMode), get(visibleTrusts), showPercentiles)
+        }))
+    };
 }
