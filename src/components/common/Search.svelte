@@ -285,9 +285,11 @@
                             {#if item.type === 'vtm'}
                                 <li class="group">
                                     <div 
-                                        class="pt-2 pb-1 px-3 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
+                                        class="pt-2 pb-1 px-3 flex items-center justify-between relative transition-colors duration-150 ease-in-out"
                                         class:bg-oxford-50={selectedItems.includes(`${item.code}|vtm`)}
-                                        on:click={() => handleSelect(item)}
+                                        class:cursor-pointer={isAdvancedMode}
+                                        class:hover:bg-gray-50={isAdvancedMode}
+                                        on:click={() => isAdvancedMode ? handleSelect(item) : null}
                                     >
                                         <div class="flex-1">
                                             <div class="flex items-center gap-2">
@@ -440,7 +442,7 @@
                                         <span class="text-xs text-gray-500 mt-1">
                                             Code: {code}
                                         </span>
-                                        {#if type === 'vtm'}
+                                        {#if type === 'vtm' && isAdvancedMode}
                                             <button 
                                                 on:click={() => toggleVTMExpand(item)}
                                                 class="flex items-center gap-1.5 mt-2 text-sm text-gray-500 hover:text-gray-700 transition-colors duration-150"
