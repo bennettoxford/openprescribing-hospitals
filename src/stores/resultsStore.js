@@ -10,7 +10,8 @@ export const resultsStore = writable({
     dateRange: null,
     productData: {},
     organisationData: {},
-    visibleItems: new Set()
+    visibleItems: new Set(),
+    isAdvancedMode: false
 });
 
 function processAnalysisData(data) {
@@ -93,7 +94,8 @@ export function updateResults(data, options = {}) {
         organisationData,
         quantityType: options.quantityType || store.quantityType,
         searchType: options.searchType || store.searchType,
-        dateRange: calculateDateRange(data)
+        dateRange: calculateDateRange(data),
+        isAdvancedMode: options.isAdvancedMode
     }));
 }
 
@@ -123,7 +125,8 @@ export function clearResults() {
         quantityType: null,
         searchType: null,
         dateRange: null,
-        visibleItems: new Set()
+        visibleItems: new Set(),
+        isAdvancedMode: false
     });
 }
 

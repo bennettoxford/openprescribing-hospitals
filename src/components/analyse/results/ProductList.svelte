@@ -2,6 +2,7 @@
     import { createEventDispatcher, onMount } from 'svelte';
     import { slide } from 'svelte/transition';
     import { resultsStore } from '../../../stores/resultsStore';
+    import { analyseOptions } from '../../../stores/analyseOptionsStore';
 
     export let vmps = [];
     
@@ -11,6 +12,7 @@
 
     $: currentSearchType = $resultsStore.searchType;
     $: quantityType = $resultsStore.quantityType;
+    $: isAdvancedMode = $analyseOptions.isAdvancedMode;
 
     onMount(() => {
         initializeCheckedVMPs();
@@ -122,7 +124,9 @@
 </script>
 
 <div class="p-4">
-    <h3 class="text-xl font-semibold mb-4">Products included</h3>
+    <h3 class="text-xl font-semibold mb-4">
+        {isAdvancedMode ? 'Products included in analysis' : 'Product included in analysis'}
+    </h3>
     
     <div class="mb-4 text-sm text-gray-700">
         <p class="mb-2">This table shows all products returned in your analysis. Use the checkboxes to select or deselect products.</p>
@@ -153,9 +157,11 @@
                         <th class="py-3 px-6 text-left">
                             Route of Administration
                         </th>
+                        {#if isAdvancedMode}
                         <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('selected')}>
                             Select <span class="text-gray-400">{getSortIndicator('selected')}</span>
                         </th>
+                        {/if}
                     </tr>
                 </thead>
                 <tbody class="text-gray-600 text-sm">
@@ -181,16 +187,19 @@
                                     <span class="text-gray-400">-</span>
                                 {/if}
                             </td>
+                            {#if isAdvancedMode}
                             <td class="py-3 px-6 text-left">
+                                
                                 <input 
                                     type="checkbox" 
                                     checked={checkedVMPs[vmp.vmp] ?? false}
-                                    on:change={() => updateCheckedVMPs(vmp)}
-                                    disabled={vmp.unit === 'nan'}
-                                    class="form-checkbox h-5 w-5 text-blue-600"
-                                    class:cursor-not-allowed={vmp.unit === 'nan'}
-                                >
-                            </td>
+                                        on:change={() => updateCheckedVMPs(vmp)}
+                                        disabled={vmp.unit === 'nan'}
+                                        class="form-checkbox h-5 w-5 text-blue-600"
+                                        class:cursor-not-allowed={vmp.unit === 'nan'}
+                                    >
+                                </td>
+                            {/if}
                         </tr>
                     {/each}
                 </tbody>

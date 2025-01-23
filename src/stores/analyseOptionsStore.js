@@ -9,7 +9,8 @@ const createAnalyseOptionsStore = () => {
         searchType: 'vmp',
         vmpNames: [],
         vtmNames: [],
-        ingredientNames: []
+        ingredientNames: [],
+        isAdvancedMode: false
     });
 
     const runAnalysis = (options) => {
@@ -29,6 +30,12 @@ const createAnalyseOptionsStore = () => {
             organisationSearchStore.setItems(organisations);
             organisationSearchStore.setAvailableItems(organisations);
             organisationSearchStore.setFilterType('trust');
+        },
+        setAdvancedMode: (isAdvanced) => {
+            update(store => ({
+                ...store,
+                isAdvancedMode: isAdvanced
+            }));
         }
     };
 };

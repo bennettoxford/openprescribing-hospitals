@@ -23,11 +23,11 @@
     $: selectedVMPs = $analyseOptions.selectedVMPs;
     $: quantityType = $analyseOptions.quantityType;
     $: searchType = $analyseOptions.searchType;
+    $: isAdvancedMode = $analyseOptions.isAdvancedMode;
 
     export let odsData = null;
     export let mindate = null;
     export let maxdate = null;
-    export let isAdvancedMode = false;
 
     onMount(async () => {
         try {
@@ -131,6 +131,10 @@
     }
 
     function handleVMPSelection(event) {
+        if (!isAdvancedMode && event.detail.items.length > 1) {
+            // If not in advanced mode, only allow one product to be selected
+            event.detail.items = [event.detail.items[0]]; // Keep only the first selected item
+        }
         analyseOptions.update(options => ({
             ...options,
             selectedVMPs: event.detail.items
@@ -176,16 +180,16 @@
     }
 
     function toggleAdvancedMode() {
-        isAdvancedMode = !isAdvancedMode;
+        analyseOptions.setAdvancedMode(!$analyseOptions.isAdvancedMode);
 
         const currentOrgSelections = $organisationSearchStore.selectedItems;
 
-        resetSelections(isAdvancedMode ? '--' : 'VMP Quantity');
+        resetSelections($analyseOptions.isAdvancedMode ? '--' : 'VMP Quantity');
 
         if (currentOrgSelections && currentOrgSelections.length > 0) {
             organisationSearchStore.updateSelection(currentOrgSelections);
         }
-        dispatch('advancedModeChange', isAdvancedMode);
+        dispatch('advancedModeChange', $analyseOptions.isAdvancedMode);
     }
 
     function handleClearAnalysis() {
