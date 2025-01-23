@@ -116,33 +116,41 @@
 
     function handleSelect(item) {
         const itemWithType = `${item.code}|${item.type}`;
-        if (item.type === 'vtm') {
-            if (!selectedItems.includes(itemWithType)) {
-                const vmpCodes = item.vmps.map(vmp => `${vmp.code}|vmp`);
-                selectedItems = selectedItems.filter(i => !vmpCodes.includes(i));
-                selectedItems = [...selectedItems, itemWithType];
-                selectedItemsData[itemWithType] = item;
+        if (!isAdvancedMode) {
+            if (selectedItems.includes(itemWithType)) {
+                selectedItems = [];
+                selectedItemsData = {};
             } else {
-                selectedItems = selectedItems.filter(i => i !== itemWithType);
-                delete selectedItemsData[itemWithType];
+                selectedItems = [itemWithType];
+                selectedItemsData[itemWithType] = item;
             }
         } else {
-            const parentVtm = filteredItems.find(vtm => 
-                vtm.type === 'vtm' && vtm.vmps?.some(vmp => vmp.code === item.code)
-            );
-            if (!parentVtm || !selectedItems.includes(`${parentVtm.code}|vtm`)) {
+            if (item.type === 'vtm') {
                 if (!selectedItems.includes(itemWithType)) {
+                    const vmpCodes = item.vmps.map(vmp => `${vmp.code}|vmp`);
+                    selectedItems = selectedItems.filter(i => !vmpCodes.includes(i));
                     selectedItems = [...selectedItems, itemWithType];
+                    selectedItemsData[itemWithType] = item;
                 } else {
                     selectedItems = selectedItems.filter(i => i !== itemWithType);
+                    delete selectedItemsData[itemWithType];
+                }
+            } else {
+                const parentVtm = filteredItems.find(vtm => 
+                    vtm.type === 'vtm' && vtm.vmps?.some(vmp => vmp.code === item.code)
+                );
+                if (!parentVtm || !selectedItems.includes(`${parentVtm.code}|vtm`)) {
+                    if (!selectedItems.includes(itemWithType)) {
+                        selectedItems = [...selectedItems, itemWithType];
+                    } else {
+                        selectedItems = selectedItems.filter(i => i !== itemWithType);
+                    }
                 }
             }
         }
         
         dispatch('selectionChange', { items: selectedItems });
-       
         fetchVmpCount();
-        
         filteredItems = lastSearchResults;
     }
 
