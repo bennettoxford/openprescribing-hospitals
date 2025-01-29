@@ -322,11 +322,7 @@
                                                 <span class="font-medium text-sm">{item.name}</span>
                                             </div>
                                             <div class="flex items-center gap-2 mt-0.5">
-                                                {#if isAdvancedMode && type === 'product'}
-                                                    <span class="text-xs text-gray-500">
-                                                        Code: {item.code}
-                                                    </span>
-                                                {:else if isAdvancedMode && type === 'ingredient'}
+                                                {#if isAdvancedMode}
                                                     <span class="text-xs text-gray-500">
                                                         Code: {item.code}
                                                     </span>
@@ -356,11 +352,7 @@
                                                     <div>
                                                         <span class="text-sm">{vmp.name}</span>
                                                         <div class="mt-0.5">
-                                                            {#if isAdvancedMode && type === 'product'}
-                                                                <span class="text-xs text-gray-500">
-                                                                    Code: {vmp.code}
-                                                                </span>
-                                                            {:else if isAdvancedMode && type === 'ingredient'}
+                                                            {#if isAdvancedMode}
                                                                 <span class="text-xs text-gray-500">
                                                                     Code: {vmp.code}
                                                                 </span>
@@ -389,11 +381,7 @@
                                             <span class="text-xs text-gray-400">(No products)</span>
                                         {/if}
                                         <div class="flex items-center gap-2 mt-0.5">
-                                            {#if isAdvancedMode && type === 'product'}
-                                                <span class="text-xs text-gray-500">
-                                                    Code: {item.code}
-                                                </span>
-                                            {:else if isAdvancedMode && type === 'ingredient'}
+                                            {#if isAdvancedMode}
                                                 <span class="text-xs text-gray-500">
                                                     Code: {item.code}
                                                 </span>
@@ -449,9 +437,11 @@
                                               data?.display_name || 
                                               item).replace(/\([^)]*\)/g, '').trim()}
                                         </span>
+                                        {#if isAdvancedMode}
                                         <span class="text-xs text-gray-500 mt-1">
                                             Code: {code}
                                         </span>
+                                        {/if}
                                         {#if type === 'vtm' && isAdvancedMode}
                                             <button 
                                                 on:click={() => toggleVTMExpand(item)}
