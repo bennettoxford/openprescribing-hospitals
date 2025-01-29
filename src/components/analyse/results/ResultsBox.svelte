@@ -13,7 +13,6 @@
     import { chartConfig } from '../../../utils/chartConfig.js';
     import ModeSelector from '../../common/ModeSelector.svelte';
     import { createChartStore } from '../../../stores/chartStore';
-    import { timeFormat } from 'd3-time-format';
 
     export let className = '';
     export let isAnalysisRunning;
@@ -723,9 +722,14 @@
         handleUpdateData(analysisData);
     }
 
+    function formatDate(date) {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const d = new Date(date);
+        return `${months[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
     function customTooltipFormatter(d) {
         const label = d.dataset.label || 'No label';
-        const formatDate = timeFormat('%b %Y');
         const date = formatDate(d.date);
         const value = d.value;
         const chartConfig = $resultsChartStore.config;
