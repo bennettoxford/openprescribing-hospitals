@@ -68,6 +68,11 @@
         if (sortColumn === 'selected') {
             return sortDirection * (checkedVMPs[b.vmp] - checkedVMPs[a.vmp]);
         }
+        if (sortColumn === 'routes') {
+            const aRoutes = (a.routes || []).join(', ');
+            const bRoutes = (b.routes || []).join(', ');
+            return sortDirection * aRoutes.localeCompare(bRoutes, undefined, {numeric: true, sensitivity: 'base'});
+        }
         let aValue = a[sortColumn] || '';
         let bValue = b[sortColumn] || '';
         return sortDirection * aValue.localeCompare(bValue, undefined, {numeric: true, sensitivity: 'base'});
@@ -155,8 +160,8 @@
                             <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('unit')}>
                                 Unit <span class="text-gray-400">{getSortIndicator('unit')}</span>
                             </th>
-                            <th class="py-3 px-6 text-left">
-                                Route of Administration
+                            <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('routes')}>
+                                Route of Administration <span class="text-gray-400">{getSortIndicator('routes')}</span>
                             </th>
                             {#if isAdvancedMode}
                             <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('selected')}>
