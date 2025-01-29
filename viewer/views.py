@@ -319,6 +319,8 @@ def filtered_quantities(request):
                 'ingredient_codes': vmp['ingredient_codes'],
                 'organisation__ods_code': None,
                 'organisation__ods_name': None,
+                'organisation__region': None,
+                'organisation__icb': None,
                 'data': []
             }
             response_data.append(response_item)
@@ -345,6 +347,8 @@ def filtered_quantities(request):
                     'ingredient_codes': [ing.code for ing in item.vmp.ingredients.all()],
                     'organisation__ods_code': item.organisation.ods_code,
                     'organisation__ods_name': item.organisation.ods_name,
+                    'organisation__region': item.organisation.region,
+                    'organisation__icb': item.organisation.icb,
                     'data': item.data
                 }
                 response_data.append(response_item)
