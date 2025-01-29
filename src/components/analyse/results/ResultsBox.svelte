@@ -26,7 +26,9 @@
 
     let viewModes = [
         { value: 'total', label: 'Total' },
-        { value: 'organisation', label: 'NHS Trust' }
+        { value: 'organisation', label: 'NHS Trust' },
+        { value: 'region', label: 'Region' },
+        { value: 'icb', label: 'ICB' }
     ];
 
     const resultsChartStore = createChartStore({
@@ -371,6 +373,77 @@
             maxValue = Math.max(...Object.values(ingredientData)
                 .flatMap(ingredient => ingredient.data)
                 .filter(v => v !== null && !isNaN(v)));
+        } else if ($modeSelectorStore.selectedMode === 'region') {
+            const regionData = {};
+            data.forEach(item => {
+                const region = item.organisation__region || 'Unknown Region';
+                
+                if (!regionData[region]) {
+                    regionData[region] = {
+                        data: new Array(allDates.length).fill(0)
+                    };
+                }
+                
+                item.data.forEach(([date, value]) => {
+                    const dateIndex = allDates.indexOf(date);
+                    if (dateIndex !== -1) {
+                        const numValue = parseFloat(value);
+                        if (!isNaN(numValue)) {
+                            regionData[region].data[dateIndex] += numValue;
+                        }
+                    }
+                });
+            });
+
+            datasets = Object.entries(regionData)
+                .filter(([_, { data }]) => data.some(v => v > 0))
+                .map(([region, { data }], index) => ({
+                    label: region,
+                    data: data,
+                    color: getConsistentColor(region, index),
+                    strokeOpacity: 1,
+                    isRegion: true
+                }));
+
+            maxValue = Math.max(...Object.values(regionData)
+                .flatMap(region => region.data)
+                .filter(v => v !== null && !isNaN(v)));
+
+        } else if ($modeSelectorStore.selectedMode === 'icb') {
+            const icbData = {};
+            data.forEach(item => {
+                const icb = item.organisation__icb || 'Unknown ICB';
+                
+                if (!icbData[icb]) {
+                    icbData[icb] = {
+                        data: new Array(allDates.length).fill(0)
+                    };
+                }
+                
+                item.data.forEach(([date, value]) => {
+                    const dateIndex = allDates.indexOf(date);
+                    if (dateIndex !== -1) {
+                        const numValue = parseFloat(value);
+                        if (!isNaN(numValue)) {
+                            icbData[icb].data[dateIndex] += numValue;
+                        }
+                    }
+                });
+            });
+
+            datasets = Object.entries(icbData)
+                .filter(([_, { data }]) => data.some(v => v > 0))
+                .map(([icb, { data }], index) => ({
+                    label: icb,
+                    data: data,
+                    color: getConsistentColor(icb, index),
+                    strokeOpacity: 1,
+                    isICB: true
+                }));
+
+            maxValue = Math.max(...Object.values(icbData)
+                .flatMap(icb => icb.data)
+                .filter(v => v !== null && !isNaN(v)));
         }
 
         if (maxValue === undefined) {
@@ -572,6 +645,16 @@
         const uniqueOrgs = new Set(selectedData.map(item => item.organisation__ods_code));
         if (uniqueOrgs.size > 1) {
             viewModes.push({ value: 'organisation', label: 'NHS Trust' });
+        }
+
+        const uniqueICBs = new Set(selectedData.map(item => item.organisation__icb).filter(Boolean));
+        if (uniqueICBs.size > 1) {
+            viewModes.push({ value: 'icb', label: 'ICB' });
+        }
+
+        const uniqueRegions = new Set(selectedData.map(item => item.organisation__region).filter(Boolean));
+        if (uniqueRegions.size > 1) {
+            viewModes.push({ value: 'region', label: 'Region' });
         }
 
         if (vmps.length > 1) {
