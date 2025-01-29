@@ -4,11 +4,12 @@
 
 <html>
     <head>
-        <title>OpenPrescribing Hospitals · {% block title %}{% endblock %}</title>
+        <title>{% block title %}{% endblock %} | OpenPrescribing Hospitals</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         {% vite_hmr_client %}
         {% vite_asset 'src/main.js' %}
+        <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
         {% block head %}
         {% endblock %}
     </head>
