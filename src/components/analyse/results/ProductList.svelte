@@ -2,6 +2,7 @@
     import { createEventDispatcher, onMount } from 'svelte';
     import { slide } from 'svelte/transition';
     import { resultsStore } from '../../../stores/resultsStore';
+    import { analyseOptions } from '../../../stores/analyseOptionsStore';
 
     export let vmps = [];
     
@@ -11,6 +12,7 @@
 
     $: currentSearchType = $resultsStore.searchType;
     $: quantityType = $resultsStore.quantityType;
+    $: isAdvancedMode = $analyseOptions.isAdvancedMode;
 
     onMount(() => {
         initializeCheckedVMPs();
@@ -65,6 +67,11 @@
         // For non-'nan' units, apply the regular sorting
         if (sortColumn === 'selected') {
             return sortDirection * (checkedVMPs[b.vmp] - checkedVMPs[a.vmp]);
+        }
+        if (sortColumn === 'routes') {
+            const aRoutes = (a.routes || []).join(', ');
+            const bRoutes = (b.routes || []).join(', ');
+            return sortDirection * aRoutes.localeCompare(bRoutes, undefined, {numeric: true, sensitivity: 'base'});
         }
         let aValue = a[sortColumn] || '';
         let bValue = b[sortColumn] || '';
@@ -122,7 +129,9 @@
 </script>
 
 <div class="p-4">
-    <h3 class="text-xl font-semibold mb-4">Products included</h3>
+    <h3 class="text-xl font-semibold mb-4">
+        {isAdvancedMode ? 'Products included in analysis' : 'Product included in analysis'}
+    </h3>
     
     <div class="mb-4 text-sm text-gray-700">
         <p class="mb-2">This table shows all products returned in your analysis. Use the checkboxes to select or deselect products.</p>
@@ -133,68 +142,85 @@
         Selected: <span class="font-semibold">{selectedCount}</span> out of <span class="font-semibold">{vmps.length}</span>
     </p>
     
-    <div class="overflow-x-auto">
-        <div class="max-h-96 overflow-y-auto relative">
-            <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
-                <thead class="bg-gray-200 text-gray-600 text-sm leading-normal sticky top-0 z-10">
-                    <tr>
-                        <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('vmp')}>
-                            Product <span class="text-gray-400">{getSortIndicator('vmp')}</span>
-                        </th>
-                        <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('vtm')}>
-                            Product Group <span class="text-gray-400">{getSortIndicator('vtm')}</span>
-                        </th>
-                        <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('ingredients')}>
-                            Ingredient <span class="text-gray-400">{getSortIndicator('ingredients')}</span>
-                        </th>
-                        <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('unit')}>
-                            Unit <span class="text-gray-400">{getSortIndicator('unit')}</span>
-                        </th>
-                        <th class="py-3 px-6 text-left">
-                            Route of Administration
-                        </th>
-                        <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('selected')}>
-                            Select <span class="text-gray-400">{getSortIndicator('selected')}</span>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="text-gray-600 text-sm">
-                    {#each sortedVMPs as vmp}
-                        <tr class="border-b border-gray-200" 
-                            class:hover:bg-gray-100={vmp.unit !== 'nan'}
-                            class:bg-red-100={vmp.unit === 'nan'}
-                        >
-                            <td class="py-3 px-6 text-left">{vmp.vmp}</td>
-                            <td class="py-3 px-6 text-left">{vmp.vtm || '-'}</td>
-                            <td class="py-3 px-6 text-left">
-                                {#if vmp.ingredients && vmp.ingredients.length > 0}
-                                    {vmp.ingredients.join(', ')}
-                                {:else}
-                                    <span class="text-gray-400">-</span>
-                                {/if}
-                            </td>
-                            <td class="py-3 px-6 text-left">{vmp.unit === 'nan' ? '-' : vmp.unit}</td>
-                            <td class="py-3 px-6 text-left">
-                                {#if vmp.routes && vmp.routes.length > 0}
-                                    {vmp.routes.join(', ')}
-                                {:else}
-                                    <span class="text-gray-400">-</span>
-                                {/if}
-                            </td>
-                            <td class="py-3 px-6 text-left">
-                                <input 
-                                    type="checkbox" 
-                                    checked={checkedVMPs[vmp.vmp] ?? false}
-                                    on:change={() => updateCheckedVMPs(vmp)}
-                                    disabled={vmp.unit === 'nan'}
-                                    class="form-checkbox h-5 w-5 text-blue-600"
-                                    class:cursor-not-allowed={vmp.unit === 'nan'}
-                                >
-                            </td>
+    <div class="overflow-visible">
+        <div class="relative max-h-96 overflow-y-auto">
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
+                    <thead class="bg-gray-200 text-gray-600 text-sm leading-normal sticky top-0 z-10">
+                        <tr>
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('vmp')}>
+                                Product {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('vmp')}</span>{/if}
+                            </th>
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('vtm')}>
+                                Product Group {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('vtm')}</span>{/if}
+                            </th>
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('ingredients')}>
+                                Ingredient {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('ingredients')}</span>{/if}
+                            </th>
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('unit')}>
+                                Unit {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('unit')}</span>{/if}
+                            </th>
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('routes')}>
+                                Route of Administration {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('routes')}</span>{/if}
+                            </th>
+                            {#if isAdvancedMode}
+                            <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('selected')}>
+                                Select <span class="text-gray-400">{getSortIndicator('selected')}</span>
+                            </th>
+                            {/if}
                         </tr>
-                    {/each}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody class="text-gray-600 text-sm">
+                        {#each sortedVMPs as vmp}
+                            <tr class="border-b border-gray-200" 
+                                class:hover:bg-gray-100={vmp.unit !== 'nan'}
+                                class:bg-red-100={vmp.unit === 'nan'}
+                            >
+                                <td class="py-3 px-6 text-left">{vmp.vmp}</td>
+                                <td class="py-3 px-6 text-left">{vmp.vtm || '-'}</td>
+                                <td class="py-3 px-6 text-left">
+                                    {#if vmp.ingredients && vmp.ingredients.length > 0}
+                                        {vmp.ingredients.join(', ')}
+                                    {:else}
+                                        <span class="text-gray-400">-</span>
+                                    {/if}
+                                </td>
+                                <td class="py-3 px-6 text-left">{vmp.unit === 'nan' ? '-' : vmp.unit}</td>
+                                <td class="py-3 px-6 text-left">
+                                    {#if vmp.routes && vmp.routes.length > 0}
+                                        {vmp.routes.join(', ')}
+                                    {:else}
+                                        <span class="text-gray-400">-</span>
+                                    {/if}
+                                </td>
+                                {#if isAdvancedMode}
+                                <td class="py-3 px-6 text-left">
+                                    <div class="relative inline-block group">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={checkedVMPs[vmp.vmp] ?? false}
+                                            on:change={() => updateCheckedVMPs(vmp)}
+                                            disabled={vmp.unit === 'nan' || (checkedVMPs[vmp.vmp] && Object.values(checkedVMPs).filter(Boolean).length === 1)}
+                                            class="form-checkbox h-5 w-5 text-blue-600"
+                                            class:cursor-not-allowed={vmp.unit === 'nan' || (checkedVMPs[vmp.vmp] && Object.values(checkedVMPs).filter(Boolean).length === 1)}
+                                        >
+                                        {#if checkedVMPs[vmp.vmp] && Object.values(checkedVMPs).filter(Boolean).length === 1}
+                                            <div class="absolute z-[9999] scale-0 transition-all duration-100 origin-right transform 
+                                                        group-hover:scale-100 w-[200px] right-[calc(100%+0.5rem)] top-1/2 -translate-y-1/2
+                                                        rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 p-4">
+                                                <p class="text-sm text-gray-500">
+                                                    At least one product must remain selected for analysis
+                                                </p>
+                                            </div>
+                                        {/if}
+                                    </div>
+                                </td>
+                                {/if}
+                            </tr>
+                        {/each}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 

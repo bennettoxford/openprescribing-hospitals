@@ -23,11 +23,11 @@
     $: selectedVMPs = $analyseOptions.selectedVMPs;
     $: quantityType = $analyseOptions.quantityType;
     $: searchType = $analyseOptions.searchType;
+    $: isAdvancedMode = $analyseOptions.isAdvancedMode;
 
     export let odsData = null;
     export let mindate = null;
     export let maxdate = null;
-    export let isAdvancedMode = false;
 
     onMount(async () => {
         try {
@@ -131,6 +131,10 @@
     }
 
     function handleVMPSelection(event) {
+        if (!isAdvancedMode && event.detail.items.length > 1) {
+            // If not in advanced mode, only allow one product to be selected
+            event.detail.items = [event.detail.items[0]]; // Keep only the first selected item
+        }
         analyseOptions.update(options => ({
             ...options,
             selectedVMPs: event.detail.items
@@ -176,16 +180,16 @@
     }
 
     function toggleAdvancedMode() {
-        isAdvancedMode = !isAdvancedMode;
+        analyseOptions.setAdvancedMode(!$analyseOptions.isAdvancedMode);
 
         const currentOrgSelections = $organisationSearchStore.selectedItems;
 
-        resetSelections(isAdvancedMode ? '--' : 'VMP Quantity');
+        resetSelections($analyseOptions.isAdvancedMode ? '--' : 'VMP Quantity');
 
         if (currentOrgSelections && currentOrgSelections.length > 0) {
             organisationSearchStore.updateSelection(currentOrgSelections);
         }
-        dispatch('advancedModeChange', isAdvancedMode);
+        dispatch('advancedModeChange', $analyseOptions.isAdvancedMode);
     }
 
     function handleClearAnalysis() {
@@ -193,10 +197,45 @@
         dispatch('analysisClear');
     }
 </script>
-
+<div class="border-b border-gray-200">
+  <nav class="flex space-x-0 w-full" aria-label="Tabs">
+    <div class="flex items-center gap-2 w-full">
+      <button
+        class={`py-2 border-b-2 font-medium text-sm flex-1 text-center ${
+          !isAdvancedMode
+            ? 'border-oxford-500 text-oxford-600'
+            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+        }`}
+        on:click={() => {
+          if (isAdvancedMode) toggleAdvancedMode();
+        }}
+      >
+        <span class="text-sm px-2">
+          Single product search
+        </span>
+      </button>
+      <button
+        class={`py-2 border-b-2 font-medium text-sm flex-1 text-center ${
+          isAdvancedMode
+            ? 'border-oxford-500 text-oxford-600'
+            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+        }`}
+        on:click={() => {
+          if (!isAdvancedMode) toggleAdvancedMode();
+        }}
+      >
+        <span class="text-sm">
+          Multi-product search
+        </span>
+      </button>
+    </div>
+  </nav>
+</div>
+ <!-- Header -->
+ 
 <div class="p-4 sm:p-6 bg-white rounded-lg w-full">
   <div class="grid gap-8">
-    <!-- Header -->
+    <!-- Tabs -->
     <div>
       <p class="text-sm text-oxford">
         {#if isAdvancedMode}
@@ -207,6 +246,8 @@
         {/if}
       </p>
     </div>
+
+   
 
     <!-- Selection Grid - Now always single column -->
     <div class="grid gap-6">
@@ -309,16 +350,8 @@
     </div>
     {/if}
     <!-- Analysis Controls -->
-    <div class="mt-8 bg-gray-50 rounded-lg p-4 sm:p-6">
+    <div class="mt-2 pt-4 border-t border-gray-200">
       <div class="flex flex-col gap-4">
-        <!-- Mode Switch -->
-        <button 
-          class="text-sm text-oxford-600 hover:text-oxford-700 flex items-center gap-2"
-          on:click={toggleAdvancedMode}
-        >
-          <span class="underline">Switch to {isAdvancedMode ? 'basic' : 'advanced'} mode</span>
-        </button>
-
         <!-- Error Message -->
         {#if errorMessage}
           <div class="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -327,20 +360,23 @@
         {/if}
 
         <!-- Action Buttons -->
-        <div class="flex gap-2 justify-end">
-          <button
-            on:click={handleClearAnalysis}
-            class="px-4 sm:px-6 py-2 sm:py-2.5 bg-white text-gray-700 font-medium rounded-md hover:bg-gray-100 transition-colors duration-200 border border-gray-200"
-          >
-            Clear Analysis
-          </button>
+        <div class="flex gap-2 justify-between">
           <button
             on:click={runAnalysis}
             disabled={isAnalysisRunning}
-            class="px-4 sm:px-6 py-2 sm:py-2.5 bg-oxford-50 text-oxford-600 font-medium rounded-md hover:bg-oxford-100 transition-colors duration-200
+            class="w-64 px-6 sm:px-8 py-2 sm:py-2.5 bg-oxford-50 text-oxford-600 font-semibold rounded-md hover:bg-oxford-100 transition-colors duration-200
                  disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
           >
             {isAnalysisRunning ? 'Running Analysis...' : 'Run Analysis'}
+          </button>
+          <button
+            on:click={handleClearAnalysis}
+            title="Clear Analysis"
+            class="p-2 sm:p-2.5 bg-white text-gray-700 font-normal rounded-md hover:bg-gray-100 transition-colors duration-200 border border-gray-200"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+            </svg>
           </button>
         </div>
       </div>
