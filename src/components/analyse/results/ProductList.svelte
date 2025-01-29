@@ -148,20 +148,20 @@
                 <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
                     <thead class="bg-gray-200 text-gray-600 text-sm leading-normal sticky top-0 z-10">
                         <tr>
-                            <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('vmp')}>
-                                Product <span class="text-gray-400">{getSortIndicator('vmp')}</span>
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('vmp')}>
+                                Product {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('vmp')}</span>{/if}
                             </th>
-                            <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('vtm')}>
-                                Product Group <span class="text-gray-400">{getSortIndicator('vtm')}</span>
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('vtm')}>
+                                Product Group {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('vtm')}</span>{/if}
                             </th>
-                            <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('ingredients')}>
-                                Ingredient <span class="text-gray-400">{getSortIndicator('ingredients')}</span>
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('ingredients')}>
+                                Ingredient {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('ingredients')}</span>{/if}
                             </th>
-                            <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('unit')}>
-                                Unit <span class="text-gray-400">{getSortIndicator('unit')}</span>
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('unit')}>
+                                Unit {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('unit')}</span>{/if}
                             </th>
-                            <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('routes')}>
-                                Route of Administration <span class="text-gray-400">{getSortIndicator('routes')}</span>
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('routes')}>
+                                Route of Administration {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('routes')}</span>{/if}
                             </th>
                             {#if isAdvancedMode}
                             <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('selected')}>
