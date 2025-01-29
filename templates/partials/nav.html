@@ -85,9 +85,10 @@
               <form method="post" action="{% url 'viewer:logout' %}">
                 {% csrf_token %}
                 <button type="submit" class="
-                  relative inline-flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-2 -ml-2 w-full text-left
-                  hover:text-bn-strawberry-700
-                  focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
+                  relative inline-flex h-full items-center transition-colors duration-200 rounded px-2 py-2 -ml-2 w-full text-left
+                  text-red-600
+                  hover:text-red-700 hover:bg-red-50
+                  focus:text-red-700 focus:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500
                 ">
                   Logout
                 </button>
@@ -190,8 +191,9 @@
             <form method="post" action="{% url 'viewer:logout' %}" class="block">
               {% csrf_token %}
               <button type="submit" class="
-                w-full text-left px-4 py-2 text-oxford hover:text-bn-strawberry-700 hover:bg-slate-50
-                focus:outline-none focus:text-bn-strawberry-700 focus:bg-slate-50
+                w-full text-left px-4 py-2 text-red-600
+                hover:text-red-700 hover:bg-red-50
+                focus:outline-none focus:text-red-700 focus:bg-red-50
               ">
                 Logout
               </button>
