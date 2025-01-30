@@ -25,6 +25,7 @@
     let searchTerm = '';
     let filteredOrganisations = [];
     let searchableOrgs = [];
+    let showScrollButton = false;
 
     function unescapeUnicode(str) {
         return str.replace(/\\u([a-fA-F0-9]{4})/g, function(match, grp) {
@@ -113,6 +114,17 @@
         isOrganisationDropdownOpen = event.detail.isOpen;
     }
 
+    function handleScroll() {
+        showScrollButton = window.scrollY > 500;
+    }
+
+    function scrollToTop() {
+        const divider = document.querySelector('#chart-divider');
+        if (divider) {
+            divider.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
     onMount(() => {
         try {
             const unescapedData = unescapeUnicode(orgData);
@@ -144,6 +156,11 @@
             error = `Error parsing JSON data: ${e.message}`;
             console.error(error);
         }
+        
+        window.addEventListener('scroll', handleScroll);
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+        };
     });
    
     $: {
@@ -237,6 +254,18 @@
                 />
             </LazyLoad>
         {/each}
+    {/if}
+
+    {#if showScrollButton}
+        <button
+            on:click={scrollToTop}
+            class="fixed bottom-8 right-8 bg-oxford-50 text-oxford-600 hover:bg-oxford-100 rounded-full p-3 shadow-lg transition-all duration-200 z-50"
+            aria-label="Scroll to top"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+            </svg>
+        </button>
     {/if}
 </div>
 
