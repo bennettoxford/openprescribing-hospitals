@@ -11,7 +11,6 @@
 
 <script>
     import { onMount } from 'svelte';
-    import * as d3 from 'd3';
     import { createChartStore } from '../../stores/chartStore.js';
     import { 
         selectedMode, 
@@ -449,7 +448,8 @@
 
     function customTooltipFormatter(d) {
         const label = d.dataset.name || d.dataset.label || 'No label';
-        const date = d3.timeFormat('%b %Y')(d.date);
+        const date = new Date(d.date);
+        const formattedDate = date.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
         const value = (d.value).toFixed(1) + '%';
         const index = d.index;
 
@@ -459,7 +459,7 @@
 
         if ($selectedMode === 'region' || $selectedMode === 'icb' || $selectedMode === 'national') {
             tooltipContent.push(
-                { label: 'Date', value: date },
+                { label: 'Date', value: formattedDate },
                 { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index]) },
                 { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index]) },
                 { label: 'Value', value }
@@ -467,12 +467,12 @@
         } else if ($selectedMode === 'percentiles') {
             if (d.dataset.label === 'Median (50th Percentile)' || d.dataset.name === 'Median (50th Percentile)') {
                 tooltipContent.push(
-                    { label: 'Date', value: date },
+                    { label: 'Date', value: formattedDate },
                     { label: 'Value', value }
                 );
             } else if (d.dataset.isTrust || d.dataset.isOrganisation) {
                 tooltipContent.push(
-                    { label: 'Date', value: date },
+                    { label: 'Date', value: formattedDate },
                     { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index]) },
                     { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index]) },
                     { label: 'Value', value }

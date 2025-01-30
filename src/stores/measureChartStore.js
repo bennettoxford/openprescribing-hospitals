@@ -268,12 +268,13 @@ export function formatTooltipValue(value, numerator, denominator) {
 }
 
 export function getTooltipContent(d) {
-    const date = d3.timeFormat('%B %Y')(d.date);
+    const date = new Date(d.date);
+    const formattedDate = date.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
     const value = formatTooltipValue(d.value * 100, d.dataset.numerator?.[d.index], d.dataset.denominator?.[d.index]);
     
     return `
         <div class="font-medium">${d.dataset.label}</div>
-        <div class="text-sm text-gray-600">${date}</div>
+        <div class="text-sm text-gray-600">${formattedDate}</div>
         <div class="text-sm">${value}</div>
     `;
 }
