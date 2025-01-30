@@ -147,43 +147,37 @@
     });
    
     $: {
-
-        let filtered = parsedOrgData;
-        if (searchTerm) {
-            filtered = filterOrganisations(filtered, searchTerm.split(' '));
+        if (filteredOrganisations.length > 0) {
+            filteredOrganisations = [...filteredOrganisations].sort((a, b) => {
+                switch (sortType) {
+                    case 'missing_months':
+                        const aMissing = calculateMissingMonths(a);
+                        const bMissing = calculateMissingMonths(b);
+                        if (aMissing !== bMissing) {
+                            return bMissing - aMissing; // More missing months first
+                        }
+                        break;
+                        
+                    case 'missing_latest':
+                        const latestMonth = months[months.length - 1];
+                        const aSubmitted = a.data[latestMonth]?.has_submitted;
+                        const bSubmitted = b.data[latestMonth]?.has_submitted;
+                        if (aSubmitted !== bSubmitted) {
+                            return aSubmitted ? 1 : -1; // Non-submitted first
+                        }
+                        break;
+                        
+                    case 'missing_proportion':
+                        const aProportion = calculateMissingDataProportion(a);
+                        const bProportion = calculateMissingDataProportion(b);
+                        if (aProportion !== bProportion) {
+                            return bProportion - aProportion; // Larger proportions first
+                        }
+                        break;
+                }
+                return a.name.localeCompare(b.name);
+            });
         }
-        
-        filtered.sort((a, b) => {
-            switch (sortType) {
-                case 'missing_months':
-                    const aMissing = calculateMissingMonths(a);
-                    const bMissing = calculateMissingMonths(b);
-                    if (aMissing !== bMissing) {
-                        return bMissing - aMissing; // More missing months first
-                    }
-                    break;
-                    
-                case 'missing_latest':
-                    const latestMonth = months[months.length - 1];
-                    const aSubmitted = a.data[latestMonth]?.has_submitted;
-                    const bSubmitted = b.data[latestMonth]?.has_submitted;
-                    if (aSubmitted !== bSubmitted) {
-                        return aSubmitted ? 1 : -1; // Non-submitted first
-                    }
-                    break;
-                    
-                case 'missing_proportion':
-                    const aProportion = calculateMissingDataProportion(a);
-                    const bProportion = calculateMissingDataProportion(b);
-                    if (aProportion !== bProportion) {
-                        return bProportion - aProportion; // Larger proportions first
-                    }
-                    break;
-            }
-            return a.name.localeCompare(b.name);
-        });
-        
-        filteredOrganisations = filtered;
     }
 </script>
 
