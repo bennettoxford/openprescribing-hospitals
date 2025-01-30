@@ -21,7 +21,6 @@
   "dependencies": {
     "@highcharts/svelte": "^1.1.1",
     "@tailwindcss/typography": "^0.5.15",
-    "d3": "^7.9.0",
     "date-fns": "^3.6.0",
     "highcharts": "^12.1.2",
     "postcss-nesting": "^13.0.0",
