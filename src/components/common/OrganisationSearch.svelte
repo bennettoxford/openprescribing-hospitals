@@ -138,11 +138,11 @@
     }
 
     function selectAll() {
-        const availableItems = $source.availableItems || [];
+        const availableItems = Array.from($source.availableItems || []);
         source.updateSelection(availableItems);
         dispatch('selectionChange', {
             selectedItems: availableItems,
-            source: 'search'
+            source: 'selectAll'
         });
     }
 </script>
