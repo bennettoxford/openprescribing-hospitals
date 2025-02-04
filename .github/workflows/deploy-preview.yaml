@@ -21,6 +21,7 @@ jobs:
         with:
           deploy_pr_preview: "true"
           token: ${{ secrets.DIGITAL_OCEAN_API_TOKEN }}
+          app_name: "openprescribing-hospitals"
       - uses: actions/github-script@v7
         env:
           BUILD_LOGS: ${{ steps.deploy.outputs.build_logs }}
