@@ -57,9 +57,25 @@ class AnalyseView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
       
-        ods_data = Organisation.objects.values('ods_name', 'ods_code').distinct().order_by('ods_name')
-        ods_data = [f"{org['ods_code']} | {org['ods_name']}" for org in ods_data]
-        context['ods_data'] = json.dumps(ods_data, default=str)
+        all_orgs = Organisation.objects.all().order_by('ods_name')
+        predecessor_map = {}
+        org_list = []
+
+        for org in all_orgs:
+            org_name = org.ods_name
+            org_list.append(org_name)
+            
+            if org.successor:
+                successor_name = org.successor.ods_name
+                if successor_name not in predecessor_map:
+                    predecessor_map[successor_name] = []
+                predecessor_map[successor_name].append(org_name)
+
+        context['org_data'] = json.dumps({
+            'items': org_list,
+            'predecessorMap': predecessor_map
+        }, default=str)
+        
         return context
 
 @method_decorator(login_required, name='dispatch')
@@ -308,7 +324,6 @@ def filtered_quantities(request):
     if not all([search_items, ods_names, quantity_type]) or quantity_type == '--':
         return Response({"error": "Missing required parameters"}, status=400)
 
-    ods_codes = [item.split("|")[0].strip() for item in ods_names]
 
     vmp_ids = set()
     query = Q()
@@ -367,7 +382,7 @@ def filtered_quantities(request):
         if quantity_model:
             quantity_data = quantity_model.objects.filter(
                 vmp_id__in=vmp_ids,
-                organisation__ods_code__in=ods_codes
+                organisation__ods_name__in=ods_names
             ).select_related('organisation')
 
             for item in quantity_data:
