@@ -22,7 +22,7 @@
 
   export let minDate;
   export let maxDate;
-  export let odsData;
+  export let orgData;
 
   $: isResultsBoxPopulated = analysisData && analysisData.length > 0;
 
@@ -77,11 +77,14 @@
   window.addEventListener('resize', checkScreenSize);
   onMount(() => {
     checkScreenSize();
-    if (odsData) {
+    if (orgData) {
         try {
-            const parsedData = typeof odsData === 'string' ? JSON.parse(odsData) : odsData;
-            organisationSearchStore.setItems(parsedData);
-            organisationSearchStore.setAvailableItems(parsedData);
+            const parsedData = typeof orgData === 'string' ? JSON.parse(orgData) : orgData;
+            const predecessorMap = new Map(Object.entries(parsedData.predecessorMap));
+            
+            organisationSearchStore.setItems(parsedData.items);
+            organisationSearchStore.setAvailableItems(parsedData.items);
+            organisationSearchStore.setPredecessorMap(predecessorMap);
             organisationSearchStore.setFilterType('trust');
         } catch (error) {
             console.error('Error parsing ODS data:', error);
@@ -105,7 +108,7 @@
                         {isAdvancedMode}
                         {minDate}
                         {maxDate}
-                        {odsData}
+                        {orgData}
                         on:analysisStart={handleAnalysisStart}
                         on:analysisComplete={handleAnalysisComplete}
                         on:analysisError={handleAnalysisError}

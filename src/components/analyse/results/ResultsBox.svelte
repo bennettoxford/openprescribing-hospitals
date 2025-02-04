@@ -13,6 +13,7 @@
     import { chartConfig } from '../../../utils/chartConfig.js';
     import ModeSelector from '../../common/ModeSelector.svelte';
     import { createChartStore } from '../../../stores/chartStore';
+    import { organisationSearchStore } from '../../../stores/organisationSearchStore';
 
     export let className = '';
     export let isAnalysisRunning;
@@ -143,12 +144,11 @@
             const orgData = {};
             data.forEach(item => {
                 const org = item.organisation__ods_name || 'Unknown';
-                const orgCode = item.organisation__ods_code;
-                
-                if (!orgData[orgCode]) {
-                    orgData[orgCode] = {
+                if (!orgData[org]) {
+                    orgData[org] = {
                         name: org,
-                        data: new Array(allDates.length).fill(0)
+                        data: new Array(allDates.length).fill(0),
+                        isPredecessor: false
                     };
                 }
                 
@@ -157,23 +157,39 @@
                     if (dateIndex !== -1) {
                         const numValue = parseFloat(value);
                         if (!isNaN(numValue)) {
-                            orgData[orgCode].data[dateIndex] += numValue;
+                            orgData[org].data[dateIndex] += numValue;
                         }
                     }
                 });
             });
 
+            for (const [org, orgInfo] of Object.entries(orgData)) {
+                for (const [successor, predecessors] of $organisationSearchStore.predecessorMap.entries()) {
+                    if (predecessors.includes(org)) {
+                        orgData[org].isPredecessor = true;
+        
+                        if (orgData[successor]) {
+                            orgData[successor].data = orgData[successor].data.map(
+                                (value, index) => value + (orgData[org].data[index] || 0)
+                            );
+                        }
+                    }
+                }
+            }
+
             datasets = Object.entries(orgData)
+                .filter(([_, { isPredecessor }]) => !isPredecessor)
                 .filter(([_, { data }]) => data.some(v => v > 0))
-                .map(([orgCode, { name, data }], index) => ({
+                .map(([org, { name, data }], index) => ({
                     label: name,
                     data: data,
-                    color: getConsistentColor(orgCode, index),
+                    color: getConsistentColor(org, index),
                     strokeOpacity: 1,
                     isOrganisation: true
                 }));
 
             maxValue = Math.max(...Object.values(orgData)
+                .filter(org => !org.isPredecessor)
                 .flatMap(org => org.data)
                 .filter(v => v !== null && !isNaN(v)));
 
@@ -374,11 +390,25 @@
                 .filter(v => v !== null && !isNaN(v)));
         } else if ($modeSelectorStore.selectedMode === 'region') {
             const regionData = {};
+            
             data.forEach(item => {
-                const region = item.organisation__region || 'Unknown Region';
+                const orgName = item.organisation__ods_name;
+                let targetRegion = item.organisation__region;
                 
-                if (!regionData[region]) {
-                    regionData[region] = {
+                for (const [successor, predecessors] of $organisationSearchStore.predecessorMap.entries()) {
+                    if (predecessors.includes(orgName)) {
+                        const successorData = data.find(d => d.organisation__ods_name === successor);
+                        if (successorData) {
+                            targetRegion = successorData.organisation__region;
+                        }
+                        break;
+                    }
+                }
+                
+                if (!targetRegion) return;
+                
+                if (!regionData[targetRegion]) {
+                    regionData[targetRegion] = {
                         data: new Array(allDates.length).fill(0)
                     };
                 }
@@ -388,7 +418,7 @@
                     if (dateIndex !== -1) {
                         const numValue = parseFloat(value);
                         if (!isNaN(numValue)) {
-                            regionData[region].data[dateIndex] += numValue;
+                            regionData[targetRegion].data[dateIndex] += numValue;
                         }
                     }
                 });
@@ -411,10 +441,23 @@
         } else if ($modeSelectorStore.selectedMode === 'icb') {
             const icbData = {};
             data.forEach(item => {
-                const icb = item.organisation__icb || 'Unknown ICB';
+                const orgName = item.organisation__ods_name;
+                let targetICB = item.organisation__icb;
+
+                for (const [successor, predecessors] of $organisationSearchStore.predecessorMap.entries()) {
+                    if (predecessors.includes(orgName)) {
+                        const successorData = data.find(d => d.organisation__ods_name === successor);
+                        if (successorData) {
+                            targetICB = successorData.organisation__icb;
+                        }
+                        break;
+                    }
+                }
                 
-                if (!icbData[icb]) {
-                    icbData[icb] = {
+                if (!targetICB) return;
+                
+                if (!icbData[targetICB]) {
+                    icbData[targetICB] = {
                         data: new Array(allDates.length).fill(0)
                     };
                 }
@@ -424,7 +467,7 @@
                     if (dateIndex !== -1) {
                         const numValue = parseFloat(value);
                         if (!isNaN(numValue)) {
-                            icbData[icb].data[dateIndex] += numValue;
+                            icbData[targetICB].data[dateIndex] += numValue;
                         }
                     }
                 });
@@ -640,14 +683,43 @@
             { value: 'total', label: 'Total' }
         ];
 
-        // Only add organisation mode if there are multiple organisations
-        const uniqueOrgs = new Set(selectedData.map(item => item.organisation__ods_code));
-        if (uniqueOrgs.size > 1) {
+        const organisationsWithData = new Set(
+            selectedData
+                .filter(item => {
+                    const org = item.organisation__ods_name;
+                    const isPredecessor = Array.from($organisationSearchStore.predecessorMap.values())
+                        .some(predecessors => predecessors.includes(org));
+                    
+                    return !isPredecessor && 
+                        item.data && 
+                        item.data.some(([_, value]) => value && !isNaN(parseFloat(value)));
+                })
+                .map(item => item.organisation__ods_code)
+        );
+
+        if (organisationsWithData.size > 1) {
             viewModes.push({ value: 'organisation', label: 'NHS Trust' });
         }
 
-        const uniqueICBs = new Set(selectedData.map(item => item.organisation__icb).filter(Boolean));
-        if (uniqueICBs.size > 1) {
+        const mappedICBs = new Set(
+            selectedData.map(item => {
+                const orgName = item.organisation__ods_name;
+                let targetICB = item.organisation__icb;
+                
+                for (const [successor, predecessors] of $organisationSearchStore.predecessorMap.entries()) {
+                    if (predecessors.includes(orgName)) {
+                        const successorData = selectedData.find(d => d.organisation__ods_name === successor);
+                        if (successorData) {
+                            targetICB = successorData.organisation__icb;
+                        }
+                        break;
+                    }
+                }
+                return targetICB;
+            }).filter(Boolean)
+        );
+
+        if (mappedICBs.size > 1) {
             viewModes.push({ value: 'icb', label: 'ICB' });
         }
 
@@ -659,7 +731,6 @@
         if (vmps.length > 1) {
             viewModes.push({ value: 'product', label: 'Product' });
         }
-
 
         const uniqueVtms = new Set(vmps.map(vmp => vmp.vtm).filter(vtm => vtm && vtm !== '-' && vtm !== 'nan'));
         if (uniqueVtms.size > 1) {

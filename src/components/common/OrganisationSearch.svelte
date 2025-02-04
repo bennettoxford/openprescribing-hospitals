@@ -43,19 +43,27 @@
             .trim();
     }
 
-    $: filteredItems = items
-        .filter(item => 
-            item && 
-            typeof item === 'string' && 
-            normalizeString(item).includes(normalizeString(searchTerm))
-        )
+    $: hierarchicalItems = items.filter(item => {
+        return !Array.from($source.predecessorMap.values()).flat().includes(item);
+    }).map(item => ({
+        name: item,
+        predecessors: $source.predecessorMap.get(item) || []
+    }));
+
+    $: filteredItems = hierarchicalItems
+        .filter(item => {
+            const matchesMain = normalizeString(item.name).includes(normalizeString(searchTerm));
+            const matchesPredecessor = item.predecessors.some(pred => 
+                normalizeString(pred).includes(normalizeString(searchTerm))
+            );
+            return matchesMain || matchesPredecessor;
+        })
         .sort((a, b) => {
-            if (isItemSelected(a) === isItemSelected(b)) {
+            if (isItemSelected(a.name) === isItemSelected(b.name)) {
                 return 0;
             }
-            return isItemSelected(a) ? -1 : 1;
+            return isItemSelected(a.name) ? -1 : 1;
         });
-
 
     $: isItemSelected = (item) => {
         const selected = $source.selectedItems || [];
@@ -67,11 +75,13 @@
             return;
         }
 
+        const relatedOrgs = source.getRelatedOrgs(item);
         let newSelectedItems;
+
         if (selectedItems.includes(item)) {
-            newSelectedItems = selectedItems.filter(i => i !== item);
+            newSelectedItems = selectedItems.filter(i => !relatedOrgs.includes(i));
         } else {
-            newSelectedItems = [...selectedItems, item];
+            newSelectedItems = [...new Set([...selectedItems, ...relatedOrgs])];
         }
         
         source.updateSelection(newSelectedItems);
@@ -211,31 +221,39 @@
         {#if isOpen}
             <div class="absolute top-[calc(100%_-_1px)] left-0 right-0 bg-white border border-gray-300 rounded-md rounded-t-none shadow-lg z-50 flex flex-col max-h-72"
                  class:absolute={overlayMode}>
-                <ul 
-                    class="flex-grow overflow-y-auto divide-y divide-gray-200"
+                <ul class="flex-grow overflow-y-auto divide-y divide-gray-200"
                     bind:this={listContainer}
-                    on:scroll={updateScrollButtonVisibility}
-                >
+                    on:scroll={updateScrollButtonVisibility}>
                     {#each filteredItems as item}
-                        <div
-                            class="p-2 transition duration-150 ease-in-out relative
-                                   {!isItemAvailable(item) ? 'text-gray-400 cursor-not-allowed' : 'cursor-pointer'}
-                                   {isItemSelected(item) ? 'bg-oxford-100 text-oxford-500' : ''}
-                                   {isItemSelected(item) ? 'hover:bg-oxford-200' : isItemAvailable(item) ? 'hover:bg-gray-100' : ''}"
-                            on:click={() => { 
-                                if (isItemAvailable(item)) {
-                                    toggleItem(item);
-                                }
-                            }}
-                        >
+                        <div class="p-2 transition duration-150 ease-in-out relative
+                                  {!isItemAvailable(item.name) ? 'text-gray-400 cursor-not-allowed' : 'cursor-pointer'}
+                                  {isItemSelected(item.name) ? 'bg-oxford-100 text-oxford-500' : ''}
+                                  {isItemSelected(item.name) ? 'hover:bg-oxford-200' : isItemAvailable(item.name) ? 'hover:bg-gray-100' : ''}"
+                             on:click={() => toggleItem(item.name)}>
                             <div class="flex items-center justify-between">
-                                <span>{item}</span>
-                                {#if isItemSelected(item)}
+                                <div class="flex items-center gap-2">
+                                    <span>{item.name}</span>
+                                </div>
+                                {#if isItemSelected(item.name)}
                                     <span class="ml-auto text-sm font-medium">Selected</span>
-                                {:else if !isItemAvailable(item)}
-                                    <span class="ml-auto text-sm italic">(excluded)</span>
                                 {/if}
                             </div>
+                            {#if item.predecessors.length > 0}
+                                {#each item.predecessors as predecessor}
+                                    <div class="mt-1 pl-6 transition duration-150 ease-in-out relative text-sm
+                                              {!isItemAvailable(predecessor) ? 'text-gray-400 cursor-not-allowed' : ''}
+                                              {isItemSelected(predecessor) ? 'text-oxford-500' : ''}"
+                                         on:click|stopPropagation={() => toggleItem(predecessor)}>
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center">
+                                                <span class="mr-2">↳</span>
+                                                <span>{predecessor}</span>
+                                                <span class="mx-2 text-xs">(predecessor)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {/each}
+                            {/if}
                         </div>
                     {/each}
                 </ul>

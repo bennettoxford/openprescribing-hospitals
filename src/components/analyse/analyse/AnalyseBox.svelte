@@ -25,17 +25,19 @@
     $: searchType = $analyseOptions.searchType;
     $: isAdvancedMode = $analyseOptions.isAdvancedMode;
 
-    export let odsData = null;
+    export let orgData = null;
     export let mindate = null;
     export let maxdate = null;
 
     onMount(async () => {
         try {
-            if (odsData) {
+            if (orgData) {
                 try {
-                    const parsedData = typeof odsData === 'string' ? JSON.parse(odsData) : odsData;
-                    organisationSearchStore.setItems(parsedData);
-                    organisationSearchStore.updateSelection(parsedData);
+                    const parsedData = typeof orgData === 'string' ? JSON.parse(orgData) : orgData;
+                    organisationSearchStore.setItems(parsedData.items);
+                    organisationSearchStore.setAvailableItems(parsedData.items);
+                    // Set all organizations as selected by default
+                    organisationSearchStore.updateSelection(parsedData.items);
                 } catch (error) {
                     console.error('Error parsing ODS data:', error);
                 }

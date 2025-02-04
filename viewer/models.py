@@ -178,6 +178,14 @@ class Organisation(models.Model):
     def get_all_predecessor_codes(self):
         """Returns a list of ods_codes for all predecessors of this organisation"""
         return list(self.predecessors.all().values_list('ods_code', flat=True))
+    
+    def get_all_predecessor_names(self):
+        """Returns a list of ods_names for all predecessors of this organisation"""
+        return list(self.predecessors.all().values_list('ods_name', flat=True))
+    
+    def get_all_predecessors(self):
+        """Returns a list of Organisation objects for all predecessors of this organisation"""
+        return list(self.predecessors.all())
 
 
 class SCMDQuantity(models.Model):

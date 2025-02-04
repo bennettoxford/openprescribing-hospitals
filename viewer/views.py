@@ -57,9 +57,25 @@ class AnalyseView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
       
-        ods_data = Organisation.objects.values('ods_name', 'ods_code').distinct().order_by('ods_name')
-        ods_data = [f"{org['ods_code']} | {org['ods_name']}" for org in ods_data]
-        context['ods_data'] = json.dumps(ods_data, default=str)
+        all_orgs = Organisation.objects.all().order_by('ods_name')
+        predecessor_map = {}
+        org_list = []
+
+        for org in all_orgs:
+            org_name = org.ods_name
+            org_list.append(org_name)
+            
+            if org.successor:
+                successor_name = org.successor.ods_name
+                if successor_name not in predecessor_map:
+                    predecessor_map[successor_name] = []
+                predecessor_map[successor_name].append(org_name)
+
+        context['org_data'] = json.dumps({
+            'items': org_list,
+            'predecessorMap': predecessor_map
+        }, default=str)
+        
         return context
 
 @method_decorator(login_required, name='dispatch')
@@ -183,40 +199,73 @@ class MeasureItemView(TemplateView):
         return context
 
     def get_org_data(self, org_measures):
-        # Get all active orgs (those with no successor)
-        all_orgs = Organisation.objects.filter(
+        total_orgs = Organisation.objects.count()
+
+        current_orgs = Organisation.objects.filter(
             successor__isnull=True
         ).values('ods_code', 'ods_name').order_by('ods_name')
         
-        # Create a set of orgs that are included in the measure
         measure_orgs = set(org_measures.values_list('organisation__ods_code', flat=True).distinct())
         
-        org_measures_dict = {}
+        predecessor_map = {}
+        predecessor_to_successor = {}
+ 
+        for org in Organisation.objects.exclude(successor__isnull=True).values(
+            'ods_code', 'ods_name', 'successor__ods_code', 'successor__ods_name'
+        ):
+            successor_name = org['successor__ods_name']
+            predecessor_name = org['ods_name']
+            
+            
+            if successor_name not in predecessor_map:
+                predecessor_map[successor_name] = []
+            predecessor_map[successor_name].append(predecessor_name)
+            predecessor_to_successor[predecessor_name] = successor_name
        
-        for org in all_orgs:
-            org_key = f"{org['ods_code']} | {org['ods_name']}"
-            org_measures_dict[org_key] = {
-                'available': org['ods_code'] in measure_orgs,
+        org_data = {
+            'data': {},
+            'predecessor_map': predecessor_map
+        }
+        
+        available_orgs = set()
+        
+        for org in current_orgs:
+            org_name = org['ods_name']
+            is_available = org['ods_code'] in measure_orgs
+            org_data['data'][org_name] = {
+                'available': is_available,
                 'data': []
             }
+            if is_available:
+                available_orgs.add(org_name)
+        
+        for successor, predecessors in predecessor_map.items():
+            if successor in org_data['data'] and org_data['data'][successor]['available']:
+                for predecessor in predecessors:
+                    org_data['data'][predecessor] = {
+                        'available': True,
+                        'data': []
+                    }
+                    available_orgs.add(predecessor)
         
         for measure in org_measures.values(
             'organisation__ods_code', 'organisation__ods_name', 'month', 'quantity', 'numerator', 'denominator'
         ):
-            org_key = f"{measure['organisation__ods_code']} | {measure['organisation__ods_name']}"
-            org_measures_dict[org_key]['data'].append({
-                'month': measure['month'],
-                'quantity': measure['quantity'],
-                'numerator': measure['numerator'],
-                'denominator': measure['denominator']
-            })
-
+            org_name = measure['organisation__ods_name']
+            if org_name in org_data['data']:
+                org_data['data'][org_name]['data'].append({
+                    'month': measure['month'],
+                    'quantity': measure['quantity'],
+                    'numerator': measure['numerator'],
+                    'denominator': measure['denominator']
+                })
+        
         return {
             "trusts_included": {
-                "included": len(measure_orgs),
-                "total": len(all_orgs)
+                "included": len(available_orgs),  # Updated to use total available orgs including predecessors
+                "total": total_orgs
             },
-            "org_data": json.dumps(org_measures_dict, cls=DjangoJSONEncoder),
+            "org_data": json.dumps(org_data, cls=DjangoJSONEncoder),
         }
 
     def get_aggregated_data(self, aggregated_measures):
@@ -275,7 +324,6 @@ def filtered_quantities(request):
     if not all([search_items, ods_names, quantity_type]) or quantity_type == '--':
         return Response({"error": "Missing required parameters"}, status=400)
 
-    ods_codes = [item.split("|")[0].strip() for item in ods_names]
 
     vmp_ids = set()
     query = Q()
@@ -334,7 +382,7 @@ def filtered_quantities(request):
         if quantity_model:
             quantity_data = quantity_model.objects.filter(
                 vmp_id__in=vmp_ids,
-                organisation__ods_code__in=ods_codes
+                organisation__ods_name__in=ods_names
             ).select_related('organisation')
 
             for item in quantity_data:

@@ -148,6 +148,7 @@
                 searchableOrgs = prepareOrganisationsForSearch(parsedOrgData);
                 organisationSearchStore.setItems(searchableOrgs);
                 organisationSearchStore.setAvailableItems(searchableOrgs);
+                organisationSearchStore.setPredecessorMap(buildPredecessorMap(parsedOrgData));
                 organisationSearchStore.updateSelection(searchableOrgs);
             }
             
@@ -195,6 +196,16 @@
                 return a.name.localeCompare(b.name);
             });
         }
+    }
+
+    function buildPredecessorMap(orgData) {
+        const predecessorMap = new Map();
+        orgData.forEach(org => {
+            if (org.predecessors && org.predecessors.length > 0) {
+                predecessorMap.set(org.name, org.predecessors.map(p => p.name));
+            }
+        });
+        return predecessorMap;
     }
 </script>
 
