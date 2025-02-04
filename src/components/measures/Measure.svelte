@@ -96,7 +96,8 @@
 
     onMount(() => {
         const parsedOrgData = JSON.parse(orgdata);
-        orgdataStore.set(parsedOrgData);
+
+        orgdataStore.set(parsedOrgData.data || {});
         
         measureChartStore.setDimensions({
             height: 350,
@@ -104,12 +105,20 @@
         });
         
         // Get all trusts and available trusts
-        trusts = Object.keys(parsedOrgData);
-        const availableTrusts = trusts.filter(trust => parsedOrgData[trust].available);
+        trusts = Object.keys(parsedOrgData.data || {});
+
+        const availableTrusts = trusts.filter(trust => parsedOrgData.data[trust].available);
         
         organisationSearchStore.setItems(trusts);
         organisationSearchStore.setAvailableItems(availableTrusts);
         organisationSearchStore.setFilterType('trust');
+        
+        try {
+            const predecessorMapObj = new Map(Object.entries(parsedOrgData.predecessor_map || {}));
+            organisationSearchStore.setPredecessorMap(predecessorMapObj);
+        } catch (error) {
+            organisationSearchStore.setPredecessorMap(new Map());
+        }
         
         const parsedIcbData = JSON.parse(icbdata);
         icbStore.set(parsedIcbData);
@@ -322,13 +331,21 @@
                     { label: '35th-65th percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.6 },
                     { label: '45th-55th percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.8 }
                 ] : [],
-                ...Array.from($visibleTrusts || []).map(trust => ({
-                    label: trust,
-                    color: getOrAssignColor(trust),
-                    visible: true,
-                    selectable: true
-                }))
-            ] :
+                ...Array.from($visibleTrusts || [])
+                    .filter(trust => {
+                        const isPredecessor = Array.from($organisationSearchStore.predecessorMap.entries())
+                            .some(([successor, predecessors]) => predecessors.includes(trust));
+                        return !isPredecessor;
+                    })
+                    .map(trust => {
+                        return {
+                            label: trust,
+                            color: getOrAssignColor(trust),
+                            visible: true,
+                            selectable: true
+                        };
+                    })
+            ].filter(Boolean) :
         $selectedMode === 'icb' ?
             Array.from($visibleICBs).map(icb => ({
                 label: icb,

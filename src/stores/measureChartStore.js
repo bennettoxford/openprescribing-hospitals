@@ -1,5 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
 import { regionColors, percentilesLegend } from '../utils/chartConfig.js';
+import { organisationSearchStore } from '../stores/organisationSearchStore';
 
 export const orgdata = writable([]);
 export const regiondata = writable([]);
@@ -60,12 +61,14 @@ export function getOrAssignColor(orgName, index = null) {
 }
 
 export function getDatasetVisibility(dataset, mode, visibleTrusts, showPercentiles) {
+    const visibleTrustsSet = visibleTrusts instanceof Set ? visibleTrusts : new Set(visibleTrusts);
+    
     if (mode === 'percentiles') {
         if (dataset.isPercentile) {
             return !(!showPercentiles);
         }
         if (dataset.isTrust) {
-            return visibleTrusts.has(dataset.label);
+            return visibleTrustsSet.has(dataset.label);
         }
         return !dataset.hidden;
     }
@@ -158,6 +161,12 @@ export const filteredData = derived(
           { range: [5, 95], opacity: 0.1 }
         ];
 
+        const visibleNonPredecessors = Array.from($visibleTrusts).filter(trust => {
+            const isPredecessor = Array.from(get(organisationSearchStore).predecessorMap.entries())
+                .some(([successor, predecessors]) => predecessors.includes(trust));
+            return !isPredecessor;
+        });
+
         datasets = [
           {
             label: 'Median (50th Percentile)',
@@ -184,7 +193,7 @@ export const filteredData = derived(
             isRange: true,
             hidden: !$showPercentiles
           })),
-          ...Array.from($visibleTrusts || []).map(org => {
+          ...visibleNonPredecessors.map(org => {
             const orgDataPoints = $orgdata[org]?.data?.reduce((acc, d) => {
               acc[d.month] = d;
               return acc;
@@ -202,11 +211,14 @@ export const filteredData = derived(
               spanGaps: true,
               hidden: false
             };
-          }).filter(Boolean)
+          })
         ].filter(Boolean);
+
+        const visibleNonPredecessorsSet = new Set(visibleNonPredecessors);
+
         datasets = datasets.map(dataset => ({
             ...dataset,
-            hidden: !getDatasetVisibility(dataset, $selectedMode, $visibleTrusts, $showPercentiles)
+            hidden: !getDatasetVisibility(dataset, $selectedMode, visibleNonPredecessorsSet, $showPercentiles)
         }));
         break;
       case 'national':
