@@ -146,20 +146,20 @@ DJANGO_VITE = {
 if DEBUG:
 
     CSP_DEFAULT_SRC = ("'self'",)
-    CSP_SCRIPT_SRC = ("'self' 'unsafe-inline' http://localhost:5173 http://localhost:3000",)
-    CSP_SCRIPT_SRC_ELEM = ("'self' 'unsafe-inline' http://localhost:5173 http://localhost:3000",)
+    CSP_SCRIPT_SRC = ("'self' 'unsafe-inline' http://localhost:5173 http://localhost:3000 https://plausible.io")
+    CSP_SCRIPT_SRC_ELEM = ("'self' 'unsafe-inline' http://localhost:5173 http://localhost:3000 https://plausible.io",)
     CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
     CSP_IMG_SRC = ("'self'", "data:")
     CSP_FONT_SRC = ("'self'",)
-    CSP_CONNECT_SRC = ("'self' http://localhost:5173 ws://localhost:5173 http://localhost:3000 ws://localhost:3000",)
+    CSP_CONNECT_SRC = ("'self' http://localhost:5173 ws://localhost:5173 http://localhost:3000 ws://localhost:3000 https://plausible.io")
 
 else:
     CSP_DEFAULT_SRC = ("'self'",)
-    CSP_SCRIPT_SRC = ("'self'",)
+    CSP_SCRIPT_SRC = ("'self'", "https://plausible.io")
     CSP_STYLE_SRC = ("'self'",)
     CSP_IMG_SRC = ("'self'", "data:")
     CSP_FONT_SRC = ("'self'",)
-    CSP_CONNECT_SRC = ("'self'",)
+    CSP_CONNECT_SRC = ("'self'", "https://plausible.io")
 
 def immutable_file_test(path, url):
     # Match filename with 12 hex digits before the extension
