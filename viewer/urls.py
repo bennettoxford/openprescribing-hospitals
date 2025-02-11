@@ -13,6 +13,7 @@ from .views import (
     FAQView,
     search_items,
     ProductDetailsView,
+    AboutView,
 )
 
 
@@ -32,4 +33,5 @@ urlpatterns = [
     path('faq/', FAQView.as_view(), name='faq'),
     path("api/search/", search_items, name="search_items"),
     path('products/', ProductDetailsView.as_view(), name='product_details'),
+    path('about/', AboutView.as_view(), name='about'),
 ]

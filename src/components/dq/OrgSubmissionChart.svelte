@@ -80,7 +80,7 @@
                 style: {
                     fontSize: '14px',
                     fontWeight: '600',
-                    color: '#1a1a1a'
+                    color: '#4B5563'
                 },
                 margin: 5
             },
