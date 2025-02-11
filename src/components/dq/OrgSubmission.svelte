@@ -210,14 +210,14 @@
                         on:dropdownToggle={handleOrganisationDropdownToggle}
                     />
                 {:else}
-                    <div class="text-sm text-gray-500">Loading organisations...</div>
+                    <div class="text-sm text-gray-600">Loading organisations...</div>
                 {/if}
             </div>
 
             <div class="flex-shrink-0">
                 <select 
                     bind:value={sortType}
-                    class="w-full lg:w-auto inline-flex items-center justify-center px-4 py-2 text-sm font-medium 
+                    class="w-full lg:w-auto inline-flex items-center justify-center px-4 py-2 text-gray-600
                            bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 
                            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 
                            transition-all duration-200 h-[38px]"
@@ -241,7 +241,7 @@
                 </svg>
             </div>
             <h3 class="text-lg font-medium text-gray-900 mb-2">No organisations selected</h3>
-            <p class="text-gray-500 mb-4">Use the search box above to select NHS Trusts and view their submission history.</p>
+            <p class="text-gray-600 mb-4">Use the search box above to select NHS Trusts and view their submission history.</p>
         </div>
     {:else}
 
