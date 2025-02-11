@@ -607,6 +607,9 @@ def search_items(request):
 @method_decorator(login_required, name='dispatch')
 class FAQView(TemplateView):
     template_name = "faq.html"
+@method_decorator(login_required, name='dispatch')
+class AboutView(TemplateView):
+    template_name = "about.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

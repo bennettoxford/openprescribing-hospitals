@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}About{% endblock %}
+
+{% block content %}
+<div class="container xl:max-w-screen-xl pb-4">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+        <div class="mb-10">
+            <h1 class="text-4xl font-bold text-oxford">
+                About OpenPrescribing Hospitals
+            </h1>
+        </div>
+
+        <div class="mb-10 text-gray-600 flex flex-col gap-4">
+            <p>
+                OpenPrescribing Hospitals is an openly available platform developed by the <a href="https://www.bennett.ox.ac.uk/" class="link-oxford">
+                Bennett Institute for Applied Data Science</a> at the University of Oxford.
+            </p>
+            <p>
+                It supports healthcare professionals, researchers or members of the public wishing to explore and analyse the 
+                <a href="https://opendata.nhsbsa.net/dataset/secondary-care-medicines-data-indicative-price" class="link-oxford">
+                Secondary Care Medicines Dataset</a> published by the NHS, which contains medicines usage data (based on stock control data) 
+                across different hospital trusts in England.
+            </p>
+            <p>
+                To find out more about our team and work, please see the <a href="https://www.bennett.ox.ac.uk/" class="link-oxford">Bennett Institute website</a>.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+            <div class="md:col-span-2 group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-8 border border-gray-100">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-oxford-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-oxford-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+                        </svg>
+                    </div>
+                    <h2 id="data-sources" class="text-2xl font-semibold text-oxford">Data Sources</h2>
+                </div>
+                <div class="text-gray-600">
+                    <p class="mb-6">
+                        The data available through the OpenPrescribing Hospitals platform is a curated aggregation of multiple open data sources. This involves locating, 
+                        downloading, normalising, interpreting and combining of each data source, which requires domain knowledge and technical skills to implement. 
+                    </p>
+                    <p class="mb-8">
+                        These data sources, themselves aggregated and curated from raw data, are described in detail below.
+                    </p>
+                    <div class="space-y-6">
+                        <div class="bg-oxford-50/50 p-6 rounded-lg border border-oxford-100">
+                            <h3 id="data-source-scmd" class="text-lg font-semibold text-oxford-800 mb-3">Hospital stock control data</h3>
+                            <p>
+                                The primary data source used on the platform is hospital stock control data from the <a href="https://opendata.nhsbsa.net/dataset/secondary-care-medicines-data-indicative-price" class="link-oxford">
+                                Secondary Care Medicines Dataset</a>. This dataset is formed of monthly files collated by <a href="https://www.rx-info.co.uk/" class="link-oxford">
+                                Rx-info</a> and hosted on the <a href="https://opendata.nhsbsa.net/dataset/secondary-care-medicines-data-indicative-price" class="link-oxford">
+                                Health Service Business Services Authority (NHSBSA) Open Data Portal</a> and is used under the terms of the Open Government Licence. Rx-info compile this data from the individual hospital 
+                                Trusts and pharmacy stock management systems. This is a tremendous amount of work – bringing together up to 14 data feeds for each Trust – which makes development of this platform possible. 
+                                More information on this data source can be found in the <a href="https://github.com/NHSBSA-Open-Data/ODP/raw/refs/heads/Files-for-ODP-links/Secondary%20Care%20Medicines%20Data%20Release%20Guidance%20v0.4.docx" class="link-oxford">
+                                SCMD dataset guidance</a>.
+                            </p>
+                        </div>
+
+                        <div class="bg-oxford-50/50 p-6 rounded-lg border border-oxford-100">
+                            <h3 id="data-source-dmd" class="text-lg font-semibold text-oxford-800 mb-3">Medicines and devices data (dm+d)</h3>
+                            <p class="mb-4">
+                                Further information about medicines and devices within the SCMD is available in the <a href="https://www.nhsbsa.nhs.uk/pharmacies-gp-practices-and-appliance-contractors/dictionary-medicines-and-devices-dmd" class="link-oxford">
+                                dictionary of medicines and devices (dm+d)</a>. We have described this data source in our blog, <a href="https://www.bennett.ox.ac.uk/blog/2019/08/what-is-the-dm-d-the-nhs-dictionary-of-medicines-and-devices/" class="link-oxford">
+                                What is the dm+d?</a>
+                            </p>
+                            <p>
+                                The dm+d is <a href="https://isd.digital.nhs.uk/trud/" class="link-oxford">
+                                updated weekly</a> and published by the NHS Business Service Authority. Indication of the therapeutic classification for medicines (see the <a href="/about/#data-source-atc-ddd" class="link-oxford">
+                                Anatomical Therapeutic Chemical</a> below) within the dm+d is published as a supplementary file. The dm+d is used under the terms of the Open Government Licence. 
+                            </p>
+                        </div>
+
+                        <div class="bg-oxford-50/50 p-6 rounded-lg border border-oxford-100">
+                            <h3 id="data-source-organisation" class="text-lg font-semibold text-oxford-800 mb-3">Organisation data</h3>
+                            <p>
+                                Information about organisations included in the SCMD is available through the <a href="https://digital.nhs.uk/services/organisation-data-service" class="link-oxford">
+                                Organisation Data Service (ODS)</a>, which is used under the terms of the Open Government Licence.
+                            </p>
+                        </div>
+
+                        <div class="bg-oxford-50/50 p-6 rounded-lg border border-oxford-100">
+                            <h3 id="data-source-atc-ddd" class="text-lg font-semibold text-oxford-800 mb-3">Anatomical Therapeutic Chemical (ATC) and Daily Defined Dose (DDD)</h3>
+                            <p class="mb-4">
+                                The <a href="https://atcddd.fhi.no/atc/structure_and_principles/" class="link-oxford">Anatomical Therapeutic Chemical (ATC)</a>  system is a method to classify medicinal substances according to their main therapeutic, pharmacological and chemical properties.
+                            </p>
+                            <p class="mb-4">
+                                <a href="https://atcddd.fhi.no/ddd/definition_and_general_considera/" class="link-oxford">Daily Defined Dose (DDD)</a> is a unit of measure for medicines consumption that enables comparison of usage across groups of medicines, which is defined in combination with the ATC.
+                            </p>
+                            <p>
+                                Both the ATC and DDD are maintained and made available with some conditions by the <a href="https://orders.atcddd.fhi.no/terms-of-use" class="link-oxford">
+                                Collaborating Centre for Drug Statistics Methodology</a>.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-8 border border-gray-100">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-oxford-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-oxford-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+                        </svg>
+                    </div>
+                    <h2 id="funding" class="text-2xl font-semibold text-oxford">Funding</h2>
+                </div>
+                <div class="text-gray-600 space-y-4">
+                    <p>
+                        The development of the OpenPrescribing Hospitals software has been funded through the Primary Care and Medicines Analytics Unit (PCMAU). 
+                    </p>
+                    <p>
+                        The PCMAU is a partnership between the Bennett Institute of Applied Data Science and the Primary Care and Medicines Directorates in NHS England. 
+                        It was set up to provide NHS teams with the analytical tools and support they needed to tackle the biggest questions in medicines and primary care. These goals are met by developing tools, delivering one off analyses, and providing education and training.
+                    </p>
+                </div>
+            </div>
+
+            <div class="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-8 border border-gray-100">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-oxford-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-oxford-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+                        </svg>
+                    </div>
+                    <h2 id="citation" class="text-2xl font-semibold text-oxford">Citation</h2>
+                </div>
+                <div class="text-gray-600 space-y-4">
+                    <p>
+                        You are welcome to use data or graphs from this site in your academic output with attribution. Please cite <span class="text-oxford-600 font-semibold">OpenPrescribing.net,
+                        Bennett Institute for Applied Data Science, University of Oxford, 2025</span> as the source for academic attribution.
+                    </p>
+                    <p>
+                        If you use data or images from this site online or in a report, please link back to us. Your readers will then be able to see 
+                        live updates to the data you are interested in, and explore other queries for themselves.
+                    </p>
+                </div>
+            </div>
+
+            <div class="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-8 border border-gray-100 md:col-span-2">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-oxford-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-oxford-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                        </svg>
+                    </div>
+                    <h2 id="code-and-contributions" class="text-2xl font-semibold text-oxford">Code and contributions</h2>
+                </div>
+                <div class="text-gray-600">
+                    <p>
+                        The code that runs this site is available under the MIT Licence at 
+                        <a href="https://github.com/bennettoxford/openprescribing-hospitals" class="link-oxford">
+                            https://github.com/bennettoxford/openprescribing-hospitals</a>. We welcome contributions and issues.
+                    </p>
+                </div>
+            </div>
+
+            <div class="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-8 border border-gray-100 md:col-span-2">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-oxford-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-oxford-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                        </svg>
+                    </div>
+                    <h2 id="feedback" class="text-2xl font-semibold text-oxford">Feedback</h2>
+                </div>
+                <div class="text-gray-600 space-y-4">
+                    <p>
+                        We want to build a community around OpenPrescribing Hospitals. We know lots about software, academic research and primary care 
+                        medicines data but hospital medicines data is somewhat new to us. We'd like to hear your ideas or feedback on the platform.
+                        your ideas. 
+                    </p>
+                    <p>
+                        We put a very high value on close skill-sharing between software developers, researchers, and clinicians with 
+                        "domain knowledge". So if you're a doctor (maybe a clinical pharmacologist), a nurse (with a close interest in prescribing), 
+                        a pharmacist (working in a hospital), or anyone else with a close working interest in this data, please 
+                        <a href="{% url 'viewer:contact' %}" class="link-oxford">contact us</a> and let's 
+                        build ever more glorious open tools together!
+                    </p> 
+                </div>
+            </div>
+
+            
+        </div>
+    </div>
+</div>
+{% endblock %}
