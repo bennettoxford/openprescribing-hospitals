@@ -5,10 +5,7 @@ WITH measure_vmps AS (
             WHEN (
                 vtm.vtm = '773245005' -- VTM for doxazosin
                 AND
-                ofr.name IN (
-                    'tabletmodified-release.oral', -- only oral MR formulations in numerator
-                    'capsulemodified-release.oral'
-                )
+                ofr.name = 'tabletmodified-release.oral' -- only oral MR tablet formulations in numerator
             ) THEN 'numerator'
             ELSE 'denominator'
         END as vmp_type
@@ -27,7 +24,5 @@ JOIN viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
 JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
 WHERE 
     vtm.vtm = '773245005' -- VTM for doxazosin
-    AND (
-        descr LIKE 'tablet%.oral' OR -- any oral tablet/capsule formulations in denominator
-        descr LIKE 'capsule%.oral'
-    )
+    AND 
+    descr IN ('tabletmodified-release.oral', 'tablet.oral') -- oral tablet/MR tablet formulations in denominator
