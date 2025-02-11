@@ -25,4 +25,4 @@ JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
 WHERE 
     vtm.vtm = '773245005' -- VTM for doxazosin
     AND 
-    descr IN ('tabletmodified-release.oral', 'tablet.oral') -- oral tablet/MR tablet formulations in denominator
+    ofr.name IN ('tabletmodified-release.oral', 'tablet.oral') -- oral tablet/MR tablet formulations in denominator
