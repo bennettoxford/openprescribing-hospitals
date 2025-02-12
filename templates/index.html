@@ -54,12 +54,10 @@
                         </div>
                     </div>
                     <p class="text-gray-600 text-sm leading-relaxed flex-grow">View the data submission history for each NHS Trust in England over time and identify gaps in reporting.</p>
-                    {% if user.is_authenticated %}
                         <a href="{% url 'viewer:submission_history' %}" 
                            class="inline-flex w-full justify-center items-center px-4 py-2 bg-oxford-50 text-oxford-600 rounded-lg hover:bg-oxford-100 transition-colors duration-200 font-medium mt-6">
                             View History
                         </a>
-                    {% endif %}
                 </div>
             </div>
 
@@ -79,7 +77,13 @@
                            class="inline-flex w-full justify-center items-center px-4 py-2 bg-oxford-50 text-oxford-600 rounded-lg hover:bg-oxford-100 transition-colors duration-200 font-medium mt-6">
                             View Measures
                         </a>
+                    {% else %}
+                        <div 
+                           class="inline-flex w-full justify-center items-center px-4 py-2 bg-oxford-100 text-oxford-600 rounded-lg font-medium mt-6">
+                            Coming Soon
+                        </div>
                     {% endif %}
+
                 </div>
             </div>
 
@@ -99,6 +103,11 @@
                            class="inline-flex w-full justify-center items-center px-4 py-2 bg-oxford-50 text-oxford-600 rounded-lg hover:bg-oxford-100 transition-colors duration-200 font-medium mt-6">
                             Start Analysing
                         </a>
+                    {% else %}
+                        <div 
+                           class="inline-flex w-full justify-center items-center px-4 py-2 bg-oxford-100 text-oxford-600 rounded-lg font-medium mt-6">
+                            Coming Soon
+                        </div>
                     {% endif %}
                 </div>
             </div>
