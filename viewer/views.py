@@ -410,7 +410,7 @@ def filtered_quantities(request):
         print(f"Error processing request: {str(e)}")
         return Response({"error": "An error occurred while processing the request"}, status=500)
 
-@method_decorator(login_required, name='dispatch')
+
 class OrgsSubmittingDataView(TemplateView):
     template_name = 'org_submissions.html'
 
@@ -655,7 +655,7 @@ def search_items(request):
     
     return JsonResponse({'results': []})
 
-@method_decorator(login_required, name='dispatch')
+
 class FAQView(TemplateView):
     template_name = "faq.html"
 
@@ -724,7 +724,7 @@ class FAQView(TemplateView):
         
         return context
 
-@method_decorator(login_required, name='dispatch')
+
 class AboutView(TemplateView):
     template_name = "about.html"
 
