@@ -35,6 +35,7 @@
     let selectedRegions = new Set();
     let selectedICBs = new Set();
     let isFilterOpen = false;
+    let expandedRegions = new Set();
 
     function unescapeUnicode(str) {
         return str.replace(/\\u([a-fA-F0-9]{4})/g, function(match, grp) {
@@ -128,7 +129,18 @@
         const filterContainer = document.querySelector('.filter-container');
         if (isFilterOpen && filterContainer && !filterContainer.contains(event.target)) {
             isFilterOpen = false;
+            expandedRegions.clear();
+            expandedRegions = expandedRegions;
         }
+    }
+
+    function toggleRegionExpansion(region) {
+        if (expandedRegions.has(region)) {
+            expandedRegions.delete(region);
+        } else {
+            expandedRegions.add(region);
+        }
+        expandedRegions = expandedRegions;
     }
 
     onMount(() => {
@@ -309,94 +321,113 @@
                                 <div class="transition duration-150 ease-in-out">
                                     <div class="flex items-center justify-between cursor-pointer p-2
                                                 {selectedRegions.has(region.region) ? 'bg-oxford-100 text-oxford-500 hover:bg-oxford-200' : 'hover:bg-gray-100'}"
-                                         on:click={() => {
-                                             if (selectedRegions.has(region.region)) {
-                                                 selectedRegions.delete(region.region);
-                                             } else {
-                                                 selectedRegions.add(region.region);
-                                                 region.icbs.forEach(icb => selectedICBs.delete(icb));
-                                             }
-                                             selectedRegions = selectedRegions;
+                                         on:click={(e) => {
+                                             if (!e.target.closest('.expand-button')) {
+                                                 if (selectedRegions.has(region.region)) {
+                                                     selectedRegions.delete(region.region);
+                                                 } else {
+                                                     selectedRegions.add(region.region);
+                                                     region.icbs.forEach(icb => selectedICBs.delete(icb));
+                                                 }
+                                                 selectedRegions = selectedRegions;
 
-                                             let availableOrgs = [];
-                                             selectedRegions.forEach(region => {
-                                                 const orgsInRegion = parsedOrgData
-                                                     .filter(org => org.region === region)
-                                                     .map(org => org.name);
-                                                 availableOrgs.push(...orgsInRegion);
-                                             });
-                                             
-                                             selectedICBs.forEach(icb => {
-                                                 const orgsInICB = parsedOrgData
-                                                     .filter(org => org.icb === icb)
-                                                     .map(org => org.name);
-                                                 availableOrgs.push(...orgsInICB);
-                                             });
-                                             
-                                             if (selectedRegions.size === 0 && selectedICBs.size === 0) {
-                                                 availableOrgs = searchableOrgs;
+                                                 let availableOrgs = [];
+                                                 selectedRegions.forEach(region => {
+                                                     const orgsInRegion = parsedOrgData
+                                                         .filter(org => org.region === region)
+                                                         .map(org => org.name);
+                                                     availableOrgs.push(...orgsInRegion);
+                                                 });
+                                                 
+                                                 selectedICBs.forEach(icb => {
+                                                     const orgsInICB = parsedOrgData
+                                                         .filter(org => org.icb === icb)
+                                                         .map(org => org.name);
+                                                     availableOrgs.push(...orgsInICB);
+                                                 });
+                                                 
+                                                 if (selectedRegions.size === 0 && selectedICBs.size === 0) {
+                                                     availableOrgs = searchableOrgs;
+                                                 }
+                                                 
+                                                 const uniqueAvailableOrgs = [...new Set(availableOrgs)];
+                                                 organisationSearchStore.setAvailableItems(uniqueAvailableOrgs);
+                                                 organisationSearchStore.updateSelection(uniqueAvailableOrgs);
                                              }
-                                             
-                                             const uniqueAvailableOrgs = [...new Set(availableOrgs)];
-                                             organisationSearchStore.setAvailableItems(uniqueAvailableOrgs);
-                                             organisationSearchStore.updateSelection(uniqueAvailableOrgs);
                                          }}>
-                                        <div class="flex items-center gap-2">
-                                            <span class="font-medium">{region.region}</span>
+                                        <div class="flex items-center gap-2 w-full">
+                                            <button
+                                                class="expand-button p-1 hover:bg-gray-200 rounded-full transition-colors"
+                                                on:click|stopPropagation={() => toggleRegionExpansion(region.region)}
+                                                aria-label={expandedRegions.has(region.region) ? "Collapse region" : "Expand region"}
+                                            >
+                                                <svg 
+                                                    class="w-4 h-4 transform transition-transform duration-200 {expandedRegions.has(region.region) ? 'rotate-90' : ''}"
+                                                    fill="none" 
+                                                    stroke="currentColor" 
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </button>
+                                            <span>{region.region}</span>
+                                            <span class="text-sm text-gray-500 ml-auto">({region.icbs.length} ICBs)</span>
                                         </div>
                                         {#if selectedRegions.has(region.region)}
-                                            <span class="ml-auto text-sm font-medium">Selected</span>
+                                            <span class="ml-2 text-sm font-medium">Selected</span>
                                         {/if}
                                     </div>
                                     
-                                    {#each region.icbs as icb}
-                                        <div class="mt-1 pl-6 transition duration-150 ease-in-out relative p-2
-                                                  {selectedRegions.has(region.region) ? 'text-gray-400 cursor-not-allowed' : 
-                                                   selectedICBs.has(icb) ? 'bg-oxford-100 text-oxford-500 hover:bg-oxford-200' : 'cursor-pointer hover:bg-gray-100'}"
-                                             on:click={() => {
-                                                 if (!selectedRegions.has(region.region)) {
-                                                     if (selectedICBs.has(icb)) {
-                                                         selectedICBs.delete(icb);
-                                                     } else {
-                                                         selectedICBs.add(icb);
+                                    {#if expandedRegions.has(region.region)}
+                                        {#each region.icbs as icb}
+                                            <div class="mt-1 pl-6 transition duration-150 ease-in-out relative p-2
+                                                      {selectedRegions.has(region.region) ? 'text-gray-400 cursor-not-allowed' : 
+                                                       selectedICBs.has(icb) ? 'bg-oxford-100 text-oxford-500 hover:bg-oxford-200' : 'cursor-pointer hover:bg-gray-100'}"
+                                                 on:click={() => {
+                                                     if (!selectedRegions.has(region.region)) {
+                                                         if (selectedICBs.has(icb)) {
+                                                             selectedICBs.delete(icb);
+                                                         } else {
+                                                             selectedICBs.add(icb);
+                                                         }
+                                                         selectedICBs = selectedICBs;
+                                                         
+                                                         let availableOrgs = [];
+                                                         selectedRegions.forEach(region => {
+                                                             const orgsInRegion = parsedOrgData
+                                                                 .filter(org => org.region === region)
+                                                                 .map(org => org.name);
+                                                             availableOrgs.push(...orgsInRegion);
+                                                         });
+                                                         
+                                                         selectedICBs.forEach(icb => {
+                                                             const orgsInICB = parsedOrgData
+                                                                 .filter(org => org.icb === icb)
+                                                                 .map(org => org.name);
+                                                             availableOrgs.push(...orgsInICB);
+                                                         });
+                                                         
+                                                         if (selectedRegions.size === 0 && selectedICBs.size === 0) {
+                                                             availableOrgs = searchableOrgs;
+                                                         }
+                                                         
+                                                         const uniqueAvailableOrgs = [...new Set(availableOrgs)];
+                                                         organisationSearchStore.setAvailableItems(uniqueAvailableOrgs);
+                                                         organisationSearchStore.updateSelection(uniqueAvailableOrgs);
                                                      }
-                                                     selectedICBs = selectedICBs;
-                                                     
-                                                     let availableOrgs = [];
-                                                     selectedRegions.forEach(region => {
-                                                         const orgsInRegion = parsedOrgData
-                                                             .filter(org => org.region === region)
-                                                             .map(org => org.name);
-                                                         availableOrgs.push(...orgsInRegion);
-                                                     });
-                                                     
-                                                     selectedICBs.forEach(icb => {
-                                                         const orgsInICB = parsedOrgData
-                                                             .filter(org => org.icb === icb)
-                                                             .map(org => org.name);
-                                                         availableOrgs.push(...orgsInICB);
-                                                     });
-                                                     
-                                                     if (selectedRegions.size === 0 && selectedICBs.size === 0) {
-                                                         availableOrgs = searchableOrgs;
-                                                     }
-                                                     
-                                                     const uniqueAvailableOrgs = [...new Set(availableOrgs)];
-                                                     organisationSearchStore.setAvailableItems(uniqueAvailableOrgs);
-                                                     organisationSearchStore.updateSelection(uniqueAvailableOrgs);
-                                                 }
-                                             }}>
-                                            <div class="flex items-center justify-between">
-                                                <div class="flex items-center text-sm">
-                                                    <span class="mr-2">↳</span>
-                                                    <span>{icb}</span>
+                                                 }}>
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center text-sm">
+                                                        <span class="mr-2">↳</span>
+                                                        <span>{icb}</span>
+                                                    </div>
+                                                    {#if selectedICBs.has(icb) && !selectedRegions.has(region.region)}
+                                                        <span class="ml-auto text-sm font-medium">Selected</span>
+                                                    {/if}
                                                 </div>
-                                                {#if selectedICBs.has(icb) && !selectedRegions.has(region.region)}
-                                                    <span class="ml-auto text-sm font-medium">Selected</span>
-                                                {/if}
                                             </div>
-                                        </div>
-                                    {/each}
+                                        {/each}
+                                    {/if}
                                 </div>
                             {/each}
                         </div>
