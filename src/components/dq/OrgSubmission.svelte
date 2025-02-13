@@ -318,7 +318,7 @@
                                 rounded-md rounded-t-none shadow-lg z-[996] flex flex-col max-h-72">
                         <div class="overflow-y-auto divide-y divide-gray-200">
                             {#each parsedRegionsHierarchy as region}
-                                <div class="transition duration-150 ease-in-out">
+                                <div class="transition duration-150 ease-in-out divide-y divide-gray-200">
                                     <div class="flex items-center justify-between cursor-pointer p-2
                                                 {selectedRegions.has(region.region) ? 'bg-oxford-100 text-oxford-500 hover:bg-oxford-200' : 'hover:bg-gray-100'}"
                                          on:click={(e) => {
@@ -380,7 +380,7 @@
                                     
                                     {#if expandedRegions.has(region.region)}
                                         {#each region.icbs as icb}
-                                            <div class="mt-1 pl-6 transition duration-150 ease-in-out relative p-2
+                                            <div class="pl-6 transition duration-150 ease-in-out relative p-2
                                                       {selectedRegions.has(region.region) ? 'text-gray-400 cursor-not-allowed' : 
                                                        selectedICBs.has(icb) ? 'bg-oxford-100 text-oxford-500 hover:bg-oxford-200' : 'cursor-pointer hover:bg-gray-100'}"
                                                  on:click={() => {
