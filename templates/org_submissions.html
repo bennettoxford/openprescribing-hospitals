@@ -59,10 +59,13 @@
 
         <div class="border-b border-gray-200 mb-6" id="chart-divider"></div>
 
-        <org-submission 
-            orgData="{{ org_data_json|escapejs }}"
-            latestDates="{{ latest_dates|escapejs }}"
-        ></org-submission>
+        <div class="w-full">
+            <org-submission 
+                orgData="{{ org_data_json|escapejs }}"
+                latestDates="{{ latest_dates|escapejs }}"
+                regionsHierarchy="{{ regions_hierarchy|escapejs }}"
+            ></org-submission>
+        </div>
     </div>
 </div>
 

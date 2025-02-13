@@ -417,6 +417,23 @@ class OrgsSubmittingDataView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
+        regions_with_icbs = {}
+        for org in Organisation.objects.filter(successor__isnull=True).order_by('region', 'icb'):
+            if org.region not in regions_with_icbs:
+                regions_with_icbs[org.region] = set()
+            if org.icb:
+                regions_with_icbs[org.region].add(org.icb)
+        
+        hierarchy = [
+            {
+                'region': region,
+                'icbs': sorted(list(icbs))
+            }
+            for region, icbs in sorted(regions_with_icbs.items())
+        ]
+        
+        context['regions_hierarchy'] = json.dumps(hierarchy)
+        
         # Get latest dates for each file type
         latest_dates = {}
         for file_type in ['final']:
@@ -485,6 +502,24 @@ class OrgsSubmittingDataView(TemplateView):
         latest_date = max(all_dates) if all_dates else None
         for org_entry in restructured_data:
             org_entry['latest_submission'] = org_entry['data'].get(latest_date, False)
+
+        for org_entry in restructured_data:
+            org = Organisation.objects.filter(ods_name=org_entry['name']).first()
+            if org.successor:
+                org_entry['region'] = org.successor.region
+                org_entry['icb'] = org.successor.icb
+            else:
+                org_entry['region'] = org.region
+                org_entry['icb'] = org.icb
+            
+            for pred in org_entry['predecessors']:
+                pred_org = Organisation.objects.filter(ods_name=pred['name']).first()
+                if pred_org.successor:
+                    pred['region'] = pred_org.successor.region
+                    pred['icb'] = pred_org.successor.icb
+                else:
+                    pred['region'] = pred_org.region
+                    pred['icb'] = pred_org.icb
 
         context['org_data_json'] = mark_safe(json.dumps(restructured_data))
 
