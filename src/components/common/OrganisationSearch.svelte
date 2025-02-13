@@ -93,11 +93,9 @@
 
     function deselectAll() {
         source.updateSelection([]);
-        dispatch('clearAll');
         dispatch('selectionChange', {
             selectedItems: [],
-            source: 'search',
-            usedOrganisationSelection: showOrganisationSelection
+            source: 'clearAll'
         });
     }
 
@@ -219,7 +217,8 @@
         </div>
 
         {#if isOpen}
-            <div class="absolute top-[calc(100%_-_1px)] left-0 right-0 bg-white border border-gray-300 rounded-md rounded-t-none shadow-lg z-50 flex flex-col max-h-72"
+            <div class="absolute top-[calc(100%_-_1px)] left-0 right-0 bg-white border border-gray-300 
+                        rounded-md rounded-t-none shadow-lg z-[996] flex flex-col max-h-72"
                  class:absolute={overlayMode}>
                 <ul class="flex-grow overflow-y-auto divide-y divide-gray-200"
                     bind:this={listContainer}

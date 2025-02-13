@@ -6,7 +6,9 @@ function createOrganisationSearchStore() {
         selectedItems: [],
         filterType: 'trust',
         availableItems: new Set(),
-        predecessorMap: new Map()
+        predecessorMap: new Map(),
+        selectedRegion: 'all',
+        selectedICB: 'all'
     });
 
     return {
@@ -45,6 +47,12 @@ function createOrganisationSearchStore() {
             }
             
             return Array.from(related);
+        },
+        setRegion: (region) => {
+            update(store => ({ ...store, selectedRegion: region, selectedICB: 'all' }));
+        },
+        setICB: (icb) => {
+            update(store => ({ ...store, selectedICB: icb }));
         }
     };
 }

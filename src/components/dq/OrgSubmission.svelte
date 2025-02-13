@@ -3,7 +3,9 @@
     shadow: 'none',
     props: {
         orgdata: { type: 'String' },
-        latestDates: { type: 'String' }
+        latestDates: { type: 'String' },
+        regions: { type: 'String' },
+        regionsHierarchy: { type: 'String' }
     }
   }} />
 
@@ -16,9 +18,13 @@
 
     export let orgData = '{}';
     export let latestDates = '{}';
+    export let regions = '[]';
+    export let regionsHierarchy = '[]';
 
     let parsedOrgData = [];
     let parsedLatestDates = {};
+    let parsedRegions = [];
+    let parsedRegionsHierarchy = [];
     let months = [];
     let error = null;
     let sortType = 'missing_latest';
@@ -26,6 +32,10 @@
     let filteredOrganisations = [];
     let searchableOrgs = [];
     let showScrollButton = false;
+    let selectedRegions = new Set();
+    let selectedICBs = new Set();
+    let isFilterOpen = false;
+    let expandedRegions = new Set();
 
     function unescapeUnicode(str) {
         return str.replace(/\\u([a-fA-F0-9]{4})/g, function(match, grp) {
@@ -84,30 +94,16 @@
 
     function handleSearchSelect(event) {
         const { selectedItems, source } = event.detail;
-        const itemsArray = Array.isArray(selectedItems) ? selectedItems : [];
-        organisationSearchStore.updateSelection(itemsArray);
         
-        if (itemsArray.length === 0 || source === 'clearAll') {
+
+        if (source === 'clearAll') {
+            organisationSearchStore.updateSelection([]);
+            
             filteredOrganisations = [];
-            return;
+        } else {
+            const itemsArray = Array.isArray(selectedItems) ? selectedItems : [];
+            organisationSearchStore.updateSelection(itemsArray);
         }
-        
-        if (source === 'selectAll') {
-            filteredOrganisations = parsedOrgData;
-            return;
-        }
-        
-        filteredOrganisations = parsedOrgData.filter(org => {
-            if (itemsArray.includes(org.name)) {
-                return true;
-            }
-            
-            const hasPredecessorSelected = org.predecessors?.some(pred => 
-                itemsArray.includes(pred.name)
-            );
-            
-            return hasPredecessorSelected;
-        });
     }
 
     function handleOrganisationDropdownToggle(event) {
@@ -125,11 +121,35 @@
         }
     }
 
+    function toggleFilter() {
+        isFilterOpen = !isFilterOpen;
+    }
+
+    function handleClickOutside(event) {
+        const filterContainer = document.querySelector('.filter-container');
+        if (isFilterOpen && filterContainer && !filterContainer.contains(event.target)) {
+            isFilterOpen = false;
+            expandedRegions.clear();
+            expandedRegions = expandedRegions;
+        }
+    }
+
+    function toggleRegionExpansion(region) {
+        if (expandedRegions.has(region)) {
+            expandedRegions.delete(region);
+        } else {
+            expandedRegions.add(region);
+        }
+        expandedRegions = expandedRegions;
+    }
+
     onMount(() => {
         try {
             const unescapedData = unescapeUnicode(orgData);
             parsedOrgData = JSON.parse(unescapedData);
             parsedLatestDates = JSON.parse(unescapeUnicode(latestDates));
+            parsedRegions = JSON.parse(unescapeUnicode(regions));
+            parsedRegionsHierarchy = JSON.parse(unescapeUnicode(regionsHierarchy));
             
             const allMonths = new Set();
             function collectMonths(org) {
@@ -159,42 +179,69 @@
         }
         
         window.addEventListener('scroll', handleScroll);
+        document.addEventListener('click', handleClickOutside);
         return () => {
             window.removeEventListener('scroll', handleScroll);
+            document.removeEventListener('click', handleClickOutside);
         };
     });
    
     $: {
-        if (filteredOrganisations.length > 0) {
-            filteredOrganisations = [...filteredOrganisations].sort((a, b) => {
-                switch (sortType) {
-                    case 'missing_months':
-                        const aMissing = calculateMissingMonths(a);
-                        const bMissing = calculateMissingMonths(b);
-                        if (aMissing !== bMissing) {
-                            return bMissing - aMissing; // More missing months first
-                        }
-                        break;
-                        
-                    case 'missing_latest':
-                        const latestMonth = months[months.length - 1];
-                        const aSubmitted = a.data[latestMonth]?.has_submitted;
-                        const bSubmitted = b.data[latestMonth]?.has_submitted;
-                        if (aSubmitted !== bSubmitted) {
-                            return aSubmitted ? 1 : -1; // Non-submitted first
-                        }
-                        break;
-                        
-                    case 'missing_proportion':
-                        const aProportion = calculateMissingDataProportion(a);
-                        const bProportion = calculateMissingDataProportion(b);
-                        if (aProportion !== bProportion) {
-                            return bProportion - aProportion; // Larger proportions first
-                        }
-                        break;
+        if (parsedOrgData.length > 0) {
+            let orgs = parsedOrgData;
+            
+            const hasRegionFilters = selectedRegions.size > 0 || selectedICBs.size > 0;
+            const hasSearchFilters = $organisationSearchStore.selectedItems.length > 0;
+            
+            if (!hasSearchFilters) {
+                filteredOrganisations = [];
+            } else {
+                if (hasRegionFilters || hasSearchFilters) {
+                    orgs = orgs.filter(org => {
+                        const passesRegionFilter = !hasRegionFilters || 
+                            selectedRegions.has(org.region) || 
+                            selectedICBs.has(org.icb);
+                            
+                        const passesSearchFilter = !hasSearchFilters || 
+                            $organisationSearchStore.selectedItems.includes(org.name) ||
+                            org.predecessors?.some(pred => 
+                                $organisationSearchStore.selectedItems.includes(pred.name)
+                            );
+                            
+                        return passesRegionFilter && passesSearchFilter;
+                    });
                 }
-                return a.name.localeCompare(b.name);
-            });
+
+                filteredOrganisations = [...orgs].sort((a, b) => {
+                    switch (sortType) {
+                        case 'missing_months':
+                            const aMissing = calculateMissingMonths(a);
+                            const bMissing = calculateMissingMonths(b);
+                            if (aMissing !== bMissing) {
+                                return bMissing - aMissing;
+                            }
+                            break;
+                            
+                        case 'missing_latest':
+                            const latestMonth = months[months.length - 1];
+                            const aSubmitted = a.data[latestMonth]?.has_submitted;
+                            const bSubmitted = b.data[latestMonth]?.has_submitted;
+                            if (aSubmitted !== bSubmitted) {
+                                return aSubmitted ? 1 : -1;
+                            }
+                            break;
+                            
+                        case 'missing_proportion':
+                            const aProportion = calculateMissingDataProportion(a);
+                            const bProportion = calculateMissingDataProportion(b);
+                            if (aProportion !== bProportion) {
+                                return bProportion - aProportion;
+                            }
+                            break;
+                    }
+                    return a.name.localeCompare(b.name);
+                });
+            }
         }
     }
 
@@ -210,7 +257,185 @@
 </script>
 
 <div class="flex flex-col w-full">
-    <div class="max-w-7xl mx-auto w-full">
+    <div class="w-full">
+        <div class="filter-container relative mb-4">
+            <div class="flex flex-col">
+                <div class="flex flex-col gap-2">
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm font-medium text-gray-700">
+                            Filter by Region/ICB
+                        </label>
+                        <button 
+                            class="text-red-600 hover:text-red-800 font-medium text-sm"
+                            on:click={() => {
+                                if (selectedRegions.size > 0 || selectedICBs.size > 0) {
+                                    selectedRegions.clear();
+                                    selectedICBs.clear();
+                                    selectedRegions = selectedRegions;
+                                    selectedICBs = selectedICBs;
+                                    
+                                    organisationSearchStore.setAvailableItems(searchableOrgs);
+                                    organisationSearchStore.updateSelection(searchableOrgs);
+                                    filteredOrganisations = parsedOrgData;
+                                }
+                            }}
+                        >
+                            Clear Filters
+                        </button>
+                    </div>
+                    <div class="flex">
+                        <button
+                            on:click={toggleFilter}
+                            class="flex-grow p-2 text-left border border-gray-300 rounded-l-md
+                                   bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 
+                                   focus:ring-black transition-all duration-200 relative
+                                   {isFilterOpen ? 'rounded-bl-none z-[997]' : ''}"
+                        >
+                            <span class="text-gray-600">Select regions and ICBs...</span>
+                        </button>
+
+                        <div class="flex items-center gap-2 bg-gray-50 px-3 border border-l-0 border-gray-300 
+                                    rounded-r-md {isFilterOpen ? 'rounded-br-none' : ''} min-w-[120px]">
+                            <div class="flex flex-col items-center text-xs text-gray-500 py-1 w-full">
+                                <span class="font-medium">
+                                    {(() => {
+                                        const totalICBs = parsedRegionsHierarchy.reduce((total, region) => total + region.icbs.length, 0);
+                                        const selectedRegionICBs = Array.from(selectedRegions).reduce((count, region) => {
+                                            const regionData = parsedRegionsHierarchy.find(r => r.region === region);
+                                            return count + (regionData?.icbs.length || 0);
+                                        }, 0);
+                                        return `${selectedRegionICBs + selectedICBs.size}/${totalICBs}`;
+                                    })()}
+                                </span>
+                                <span>ICBs</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {#if isFilterOpen}
+                    <div class="absolute top-[calc(100%_-_1px)] left-0 right-0 bg-white border border-gray-300 
+                                rounded-md rounded-t-none shadow-lg z-[996] flex flex-col max-h-72">
+                        <div class="overflow-y-auto divide-y divide-gray-200">
+                            {#each parsedRegionsHierarchy as region}
+                                <div class="transition duration-150 ease-in-out divide-y divide-gray-200">
+                                    <div class="flex items-center justify-between cursor-pointer p-2
+                                                {selectedRegions.has(region.region) ? 'bg-oxford-100 text-oxford-500 hover:bg-oxford-200' : 'hover:bg-gray-100'}"
+                                         on:click={(e) => {
+                                             if (!e.target.closest('.expand-button')) {
+                                                 if (selectedRegions.has(region.region)) {
+                                                     selectedRegions.delete(region.region);
+                                                 } else {
+                                                     selectedRegions.add(region.region);
+                                                     region.icbs.forEach(icb => selectedICBs.delete(icb));
+                                                 }
+                                                 selectedRegions = selectedRegions;
+
+                                                 let availableOrgs = [];
+                                                 selectedRegions.forEach(region => {
+                                                     const orgsInRegion = parsedOrgData
+                                                         .filter(org => org.region === region)
+                                                         .map(org => org.name);
+                                                     availableOrgs.push(...orgsInRegion);
+                                                 });
+                                                 
+                                                 selectedICBs.forEach(icb => {
+                                                     const orgsInICB = parsedOrgData
+                                                         .filter(org => org.icb === icb)
+                                                         .map(org => org.name);
+                                                     availableOrgs.push(...orgsInICB);
+                                                 });
+                                                 
+                                                 if (selectedRegions.size === 0 && selectedICBs.size === 0) {
+                                                     availableOrgs = searchableOrgs;
+                                                 }
+                                                 
+                                                 const uniqueAvailableOrgs = [...new Set(availableOrgs)];
+                                                 organisationSearchStore.setAvailableItems(uniqueAvailableOrgs);
+                                                 organisationSearchStore.updateSelection(uniqueAvailableOrgs);
+                                             }
+                                         }}>
+                                        <div class="flex items-center gap-2 w-full">
+                                            <button
+                                                class="expand-button p-1 hover:bg-gray-200 rounded-full transition-colors"
+                                                on:click|stopPropagation={() => toggleRegionExpansion(region.region)}
+                                                aria-label={expandedRegions.has(region.region) ? "Collapse region" : "Expand region"}
+                                            >
+                                                <svg 
+                                                    class="w-4 h-4 transform transition-transform duration-200 {expandedRegions.has(region.region) ? 'rotate-90' : ''}"
+                                                    fill="none" 
+                                                    stroke="currentColor" 
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </button>
+                                            <span>{region.region}</span>
+                                            <span class="text-sm text-gray-500 ml-auto">({region.icbs.length} ICBs)</span>
+                                        </div>
+                                        {#if selectedRegions.has(region.region)}
+                                            <span class="ml-2 text-sm font-medium">Selected</span>
+                                        {/if}
+                                    </div>
+                                    
+                                    {#if expandedRegions.has(region.region)}
+                                        {#each region.icbs as icb}
+                                            <div class="pl-6 transition duration-150 ease-in-out relative p-2
+                                                      {selectedRegions.has(region.region) ? 'text-gray-400 cursor-not-allowed' : 
+                                                       selectedICBs.has(icb) ? 'bg-oxford-100 text-oxford-500 hover:bg-oxford-200' : 'cursor-pointer hover:bg-gray-100'}"
+                                                 on:click={() => {
+                                                     if (!selectedRegions.has(region.region)) {
+                                                         if (selectedICBs.has(icb)) {
+                                                             selectedICBs.delete(icb);
+                                                         } else {
+                                                             selectedICBs.add(icb);
+                                                         }
+                                                         selectedICBs = selectedICBs;
+                                                         
+                                                         let availableOrgs = [];
+                                                         selectedRegions.forEach(region => {
+                                                             const orgsInRegion = parsedOrgData
+                                                                 .filter(org => org.region === region)
+                                                                 .map(org => org.name);
+                                                             availableOrgs.push(...orgsInRegion);
+                                                         });
+                                                         
+                                                         selectedICBs.forEach(icb => {
+                                                             const orgsInICB = parsedOrgData
+                                                                 .filter(org => org.icb === icb)
+                                                                 .map(org => org.name);
+                                                             availableOrgs.push(...orgsInICB);
+                                                         });
+                                                         
+                                                         if (selectedRegions.size === 0 && selectedICBs.size === 0) {
+                                                             availableOrgs = searchableOrgs;
+                                                         }
+                                                         
+                                                         const uniqueAvailableOrgs = [...new Set(availableOrgs)];
+                                                         organisationSearchStore.setAvailableItems(uniqueAvailableOrgs);
+                                                         organisationSearchStore.updateSelection(uniqueAvailableOrgs);
+                                                     }
+                                                 }}>
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center text-sm">
+                                                        <span class="mr-2">↳</span>
+                                                        <span>{icb}</span>
+                                                    </div>
+                                                    {#if selectedICBs.has(icb) && !selectedRegions.has(region.region)}
+                                                        <span class="ml-auto text-sm font-medium">Selected</span>
+                                                    {/if}
+                                                </div>
+                                            </div>
+                                        {/each}
+                                    {/if}
+                                </div>
+                            {/each}
+                        </div>
+                    </div>
+                {/if}
+            </div>
+        </div>
+
         <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 lg:gap-12 mb-4">
             <div class="w-full lg:max-w-[600px] relative z-50">
                 {#if searchableOrgs.length > 0}
@@ -225,7 +450,7 @@
                 {/if}
             </div>
 
-            <div class="flex-shrink-0">
+            <div class="flex flex-col lg:flex-row gap-4">
                 <select 
                     bind:value={sortType}
                     class="w-full lg:w-auto inline-flex items-center justify-center px-4 py-2 text-gray-600
@@ -284,5 +509,29 @@
     :global(.tooltip-row) {
         line-height: 1.1;
         margin-bottom: 1px;
+    }
+    
+    select option {
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+    
+    select option[value^="region::"] {
+        font-weight: 600;
+        color: #1a1a1a;
+        background-color: #f3f4f6;
+    }
+    
+    select option[value^="icb::"] {
+        color: #4b5563;
+        padding-left: 1.5rem;
+        border-left: 2px solid transparent;
+    }
+    
+    select option:hover {
+        background-color: #e5e7eb;
+    }
+
+    .filter-container {
+        z-index: 997;
     }
 </style>
