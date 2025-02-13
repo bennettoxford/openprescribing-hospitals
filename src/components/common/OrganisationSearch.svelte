@@ -93,11 +93,9 @@
 
     function deselectAll() {
         source.updateSelection([]);
-        dispatch('clearAll');
         dispatch('selectionChange', {
             selectedItems: [],
-            source: 'search',
-            usedOrganisationSelection: showOrganisationSelection
+            source: 'clearAll'
         });
     }
 
