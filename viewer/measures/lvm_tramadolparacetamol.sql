@@ -2,7 +2,7 @@ WITH measure_vmps AS (
     SELECT DISTINCT
         vmp.id,
         CASE 
-            WHEN vtm.vtm IN ('413396001') THEN 'numerator'  -- VTM for tramadol + paracetamol
+            WHEN vtm.vtm IN ('777074005') THEN 'numerator'  -- VTM for tramadol + paracetamol
             ELSE 'denominator'
         END as vmp_type
     FROM viewer_vmp vmp
@@ -14,4 +14,4 @@ SELECT
 FROM viewer_vmp vmp
 JOIN measure_vmps mv ON mv.id = vmp.id
 JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
-WHERE vtm.vtm IN ('413396001') -- VTM for tramadol + paracetamol
+WHERE vtm.vtm IN ('777074005') -- VTM for tramadol + paracetamol
