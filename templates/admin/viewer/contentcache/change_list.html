@@ -1,0 +1,15 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+
+{% block content %}
+<div id="content-main">
+  <div class="module">
+    <h2>Content Cache Management</h2>
+    <p>Refresh or clear the cached blog posts and papers from Bennett Institute.</p>
+    <div style="margin-bottom: 10px;">
+      <a href="{% url 'admin:refresh-content-cache' %}" class="button" style="margin-right: 10px;">Refresh Content Cache</a>
+      <a href="{% url 'admin:clear-content-cache' %}" class="button" style="background-color: #ba2121;">Clear Content Cache</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
