@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@highcharts/svelte": "^1.1.1",
+    "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/typography": "^0.5.15",
     "date-fns": "^3.6.0",
     "highcharts": "^12.1.2",
