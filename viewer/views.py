@@ -21,6 +21,8 @@ from django.contrib.postgres.aggregates import ArrayAgg
 import os
 import re
 from django.utils.text import slugify
+from django.core.cache import cache
+
 
 from .forms import LoginForm
 from .models import (
@@ -900,5 +902,41 @@ class ProductDetailsView(TemplateView):
             'search_term': search_term
         })
 
+        return context
+
+class BlogListView(TemplateView):
+    template_name = "blog_list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        cached_data = cache.get('bennett_blog_data')
+        if cached_data is not None:
+            context.update(cached_data)
+            return context
+        
+        context.update({
+            'all_posts': [],
+            'posts_by_tag': {},
+            'error': 'No cached data available. Please run refresh_content_cache management command.'
+        })
+        return context
+
+class PapersListView(TemplateView):
+    template_name = "papers_list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        cached_data = cache.get('bennett_papers_data')
+        if cached_data is not None:
+            context.update(cached_data)
+            return context
+        
+        context.update({
+            'all_papers': [],
+            'papers_by_status': {},
+            'error': 'No cached data available. Please run refresh_content_cache management command.'
+        })
         return context
 

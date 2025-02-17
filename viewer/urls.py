@@ -14,6 +14,8 @@ from .views import (
     search_items,
     ProductDetailsView,
     AboutView,
+    BlogListView,
+    PapersListView,
 )
 
 
@@ -34,4 +36,6 @@ urlpatterns = [
     path("api/search/", search_items, name="search_items"),
     path('products/', ProductDetailsView.as_view(), name='product_details'),
     path('about/', AboutView.as_view(), name='about'),
+    path('blog/', BlogListView.as_view(), name='blog_list'),
+    path('papers/', PapersListView.as_view(), name='papers_list'),
 ]
