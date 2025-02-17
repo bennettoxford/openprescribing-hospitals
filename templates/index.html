@@ -3,7 +3,8 @@
 
 {% block title %}Home{% endblock %}
 {% block full_width_content %}
-<div class="isolate sm:bg-bn-blush-50 relative overflow-hidden">
+<!-- Hero Section -->
+<section class="isolate bg-gradient-to-b from-bn-blush-50 to-white relative overflow-hidden">
     <div class="hidden sm:block absolute inset-x-0 -z-10 overflow-hidden opacity-25">
         <svg class="relative -z-10 max-w-none -top-1/2" viewBox="0 0 1155 678">
             <path fill="url(#45de2b6b-92d5-4d68-a6a0-9b9b2abad533)" d="M317.219 518.975L203.852 678 0 438.341l317.219 80.634 204.172-286.402c1.307 132.337 45.083 346.658 209.733 145.248C936.936 126.058 882.053-94.234 1031.02 41.331c119.18 108.451 130.68 295.337 121.53 375.223L855 299l21.173 362.054-558.954-142.079z" />
@@ -16,32 +17,26 @@
         </svg>
     </div>
 
-    <div class="bg-bn-blush-50 sm:bg-transparent relative px-6 lg:px-8 backdrop-blur-3xl">
-        <div class="mx-auto max-w-2xl py-16 sm:py-24">
-            <div class="grid gap-y-6 text-center text-lg leading-relaxed text-oxford-800">
-                <h1 class="text-4xl font-bold tracking-tight text-oxford-900 sm:text-6xl">
+    <div class="relative px-6 lg:px-8 backdrop-blur-3xl">
+        <div class="mx-auto max-w-5xl py-20 sm:py-28">
+            <div class="text-center">
+                <h1 class="text-4xl font-bold tracking-tight text-oxford-900 sm:text-6xl mb-6">
                     OpenPrescribing Hospitals
                 </h1>
                 
-                <h2 class="text-xl sm:text-2xl text-oxford-600 font-medium">
-                    Explore hospital medicines data from NHS Trusts in England
-                </h2>
-                
-                <a href="{% url 'viewer:about' %}" 
-                   class="inline-flex mx-auto items-center px-6 py-3 bg-oxford-600 text-white rounded-lg hover:bg-oxford-700 transition-colors duration-200 font-medium mt-4">
-                    What is OpenPrescribing Hospitals?
-                </a>
-                
+                <p class="text-xl sm:text-2xl text-oxford-600 font-medium mb-8 max-w-3xl mx-auto">
+                    Explore, analyse and compare hospital medicines data from NHS Trusts across England
+                </p>
+            
             </div>
         </div>
     </div>
-</div>
+</section>
 
-<div class="px-6 lg:px-8 mb-16">
-    <div class="mx-auto mt-16 max-w-7xl mb-4 px-8 sm:px-12">
-        
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+<!-- Features Section -->
+<section class="py-16 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div class="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden border border-gray-100 hover:border-oxford-100">
                 <div class="flex flex-col h-full p-6">
                     <div class="flex items-center justify-between mb-4">
@@ -82,7 +77,6 @@
                             Coming Soon
                         </div>
                     {% endif %}
-
                 </div>
             </div>
 
@@ -112,33 +106,66 @@
             </div>
         </div>
     </div>
-</div>
-
-{% if not user.is_authenticated %}
-
-    <div class="relative">
-        <div class="px-6 lg:px-8">
-            <div class="relative mx-auto max-w-3xl pb-16">
-                <div class="bg-oxford-50 border-2 border-oxford-200 rounded-xl p-8 shadow-sm">
-                    <div class="text-center">
-                        <div class="inline-flex items-center gap-2 mb-6">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-oxford-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-                            </svg>
-                            <p class="text-2xl font-bold text-oxford-900">
-                                Under Development
-                            </p>
-                        </div>
-                        <p class="text-gray-600 text-lg mb-4">
-                            OpenPrescribing Hospitals is currently under development and conducting user testing. If you are interested in accessing the platform, please <a class="font-semibold text-oxford-600 hover:text-oxford-700 underline decoration-1 underline-offset-2" href="{% url 'viewer:contact' %}" target="_blank">contact us</a>.
-                        </p>
-                        <p class="text-gray-600 text-lg">
-                            Follow our <a href="https://www.bennett.ox.ac.uk/blog/series/openprescribing-hospitals/" class="font-semibold text-oxford-600 hover:text-oxford-700 underline decoration-1 underline-offset-2" target="_blank">blog</a> for updates on our progress or sign up to our <a href="https://openprescribing.us16.list-manage.com/subscribe?u=e88ddd909a00ef5c60300273b&id=b2b7873a73" class="font-semibold text-oxford-600 hover:text-oxford-700 underline decoration-1 underline-offset-2" target="_blank">newsletter</a>.
-                        </p>
+</section>
+<!-- Latest Updates Section -->
+{% if latest_posts %}
+<section class="py-16 bg-white">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="bg-white rounded-xl">
+            <div class="mb-8">
+                <h2 class="text-2xl font-semibold text-oxford-900">Latest Updates</h2>
+                <p class="mt-2 text-gray-600">Our latest blog posts and research papers</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {% for post in latest_posts %}
+                    <div class="group bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden border border-gray-100 hover:border-oxford-100">
+                        {% if post.type == 'blog' %}
+                            {% include "partials/blog_card.html" with post=post small=True show_type_banner=True %}
+                        {% else %}
+                            {% include "partials/paper_card.html" with paper=post small=True show_type_banner=True %}
+                        {% endif %}
                     </div>
-                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="mt-8 text-center space-x-4">
+                <a href="{% url 'viewer:blog_list' %}" class="inline-flex items-center px-4 py-2 bg-oxford-50 text-oxford-600 rounded-lg hover:bg-oxford-100 transition-colors duration-200 font-medium">
+                    View all blogs
+                </a>
+                <a href="{% url 'viewer:papers_list' %}" class="inline-flex items-center px-4 py-2 bg-oxford-50 text-oxford-600 rounded-lg hover:bg-oxford-100 transition-colors duration-200 font-medium">
+                    View all research
+                </a>
             </div>
         </div>
     </div>
+</section>
 {% endif %}
+
+<!-- Development Notice Section -->
+{% if not user.is_authenticated %}
+<section class="py-16 bg-gray-50">
+    <div class="max-w-3xl mx-auto px-6 lg:px-8">
+        <div class="bg-oxford-50 border-2 border-oxford-200 rounded-xl p-8 shadow-sm">
+            <div class="text-center">
+                <div class="inline-flex items-center gap-2 mb-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-oxford-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                    </svg>
+                    <p class="text-2xl font-bold text-oxford-900">
+                        Under Development
+                    </p>
+                </div>
+                <p class="text-gray-600 text-lg mb-4">
+                    OpenPrescribing Hospitals is currently under development and conducting user testing. If you are interested in accessing the platform, please <a class="font-semibold text-oxford-600 hover:text-oxford-700 underline decoration-1 underline-offset-2" href="{% url 'viewer:contact' %}" target="_blank">contact us</a>.
+                </p>
+                <p class="text-gray-600 text-lg">
+                    Follow our <a href="https://www.bennett.ox.ac.uk/blog/series/openprescribing-hospitals/" class="font-semibold text-oxford-600 hover:text-oxford-700 underline decoration-1 underline-offset-2" target="_blank">blog</a> for updates on our progress or sign up to our <a href="https://openprescribing.us16.list-manage.com/subscribe?u=e88ddd909a00ef5c60300273b&id=b2b7873a73" class="font-semibold text-oxford-600 hover:text-oxford-700 underline decoration-1 underline-offset-2" target="_blank">newsletter</a>.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
 {% endblock %}
