@@ -84,10 +84,31 @@
             </a>
           </li>
           <li>
-            <a class="relative inline-flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-2 -ml-2
+            <a class="
+              relative inline-flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-2 -ml-2
               hover:text-bn-strawberry-700
-              focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500" 
-              href="https://openprescribing.net">
+              focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
+            " href="{% url 'viewer:blog_list' %}">
+              Blog
+            </a>
+          </li>
+          <li>
+            <a class="
+              relative inline-flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-2 -ml-2
+              hover:text-bn-strawberry-700
+              focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
+            " href="{% url 'viewer:papers_list' %}">
+              Research
+            </a>
+          </li>
+          <li>
+            <a class="
+              relative inline-flex h-full items-center text-oxford transition-colors duration-200 rounded px-2 py-2 -ml-2
+              hover:text-bn-strawberry-700
+              focus:text-bn-strawberry-700 focus:outline-none focus:ring-2 focus:ring-oxford-500
+            " href="https://openprescribing.net" 
+             target="_blank" 
+             rel="noopener noreferrer">
               OpenPrescribing
             </a>
           </li>
@@ -204,6 +225,18 @@
         </button>
         
         <div class="absolute right-0 top-full mt-1 py-2 w-48 bg-white rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+          <a href="{% url 'viewer:blog_list' %}" class="
+            block px-4 py-2 text-oxford hover:text-bn-strawberry-700 hover:bg-slate-50
+            focus:outline-none focus:text-bn-strawberry-700 focus:bg-slate-50
+          ">
+            Blog
+          </a>
+          <a href="{% url 'viewer:papers_list' %}" class="
+            block px-4 py-2 text-oxford hover:text-bn-strawberry-700 hover:bg-slate-50
+            focus:outline-none focus:text-bn-strawberry-700 focus:bg-slate-50
+          ">
+            Research
+          </a>
           <a href="{% url 'viewer:contact' %}" class="
             block px-4 py-2 text-oxford hover:text-bn-strawberry-700 hover:bg-slate-50
             focus:outline-none focus:text-bn-strawberry-700 focus:bg-slate-50

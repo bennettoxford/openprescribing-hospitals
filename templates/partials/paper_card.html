@@ -1,0 +1,106 @@
+<article class="bg-white rounded-lg {% if small %}shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 hover:border-oxford-100{% else %}shadow-md overflow-hidden{% endif %} h-full flex flex-col relative">
+    {% if small %}
+    <a href="https://www.bennett.ox.ac.uk{{ paper.permalink }}" 
+       class="absolute inset-0 z-10"
+       target="_blank" 
+       rel="noopener noreferrer">
+       <span class="sr-only">View {{ paper.title }}</span>
+    </a>
+    {% endif %}
+    
+    {% if show_type_banner %}
+    <div class="absolute top-2 right-2 z-20 bg-oxford-50 text-oxford-700 text-xs font-medium px-3 py-1.5 inline-flex items-center gap-1.5 rounded-full shadow-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+        </svg>
+        Research Paper
+    </div>
+    {% endif %}
+    
+    {% if small %}
+    <div class="aspect-w-16 aspect-h-9">
+        {% if paper.image %}
+            <img src="{{ paper.image }}" alt="{{ paper.title }}" class="w-full h-full object-cover">
+        {% else %}
+            <div class="w-full h-full bg-gray-100 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                </svg>
+            </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <div class="{% if small %}p-3{% else %}p-6 flex-1 flex flex-col h-full{% endif %}">
+        <div class="flex items-center justify-between {% if small %}mb-1{% endif %}">
+            <time class="text-{% if small %}xs{% else %}sm{% endif %} text-gray-500">{{ paper.date }}</time>
+        </div>
+        
+        {% if not small %}
+        <div class="mt-1 relative">
+            <div class="flex overflow-x-auto pb-1 gap-1 scrollbar-hide pr-8" style="-ms-overflow-style: none; scrollbar-width: none;">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                    {% if paper.status == 'published' %}bg-green-100 text-green-800
+                    {% elif paper.status == 'preprint' %}bg-blue-100 text-blue-800
+                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {{ paper.status|title }}
+                </span>
+                
+                {% if paper.tags %}
+                    {% for tag in paper.tags %}
+                        <span class="inline-flex flex-shrink-0 items-center px-1.5 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 whitespace-nowrap">
+                            {{ tag }}
+                        </span>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            {% if paper.tags and paper.tags|length > 3 %}
+                <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white via-white/90 to-transparent pointer-events-none"></div>
+                <div class="absolute right-0 top-0 bottom-0 flex items-center justify-end pr-1 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <h3 class="{% if small %}text-base font-medium text-oxford-900{% else %} mt-2 text-xl font-semibold text-gray-900{% endif %}">
+            <span class="relative z-20 {% if small %}pointer-events-none{% endif %}">
+                {{ paper.title }}
+            </span>
+        </h3>
+        
+        <p class="mt-3 text-gray-600 text-sm flex-1 {% if small %}line-clamp-3{% else %}line-clamp-4{% endif %}">
+            {{ paper.description }}
+        </p>
+        
+        <div class="{% if not small %}mt-auto{% endif %}">
+            {% if paper.journal and not small %}
+            <div class="mt-4 text-sm text-gray-500">
+                {{ paper.journal }}
+            </div>
+            {% endif %}
+            
+            {% if paper.doi and not small %}
+            <div class="mb-4">
+                <a href="https://doi.org/{{ paper.doi }}" 
+                   class="text-sm text-oxford-600 hover:text-oxford-800 relative z-20"
+                   target="_blank" 
+                   rel="noopener noreferrer">
+                    DOI: {{ paper.doi }}
+                </a>
+            </div>
+            {% endif %}
+            
+            {% if not small %}
+            <a href="https://www.bennett.ox.ac.uk{{ paper.permalink }}" 
+               class="inline-flex items-center px-4 py-2 bg-oxford-50 text-oxford-600 rounded-lg hover:bg-oxford-100 transition-colors duration-200 font-medium"
+               target="_blank" 
+               rel="noopener noreferrer">
+                Read full {% if paper.status == 'published' %}paper{% elif paper.status == 'preprint' %}preprint{% else %}paper{% endif %}
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</article> 
