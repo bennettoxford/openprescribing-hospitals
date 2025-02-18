@@ -378,7 +378,7 @@ class Measure(models.Model):
     
     name = models.CharField(max_length=255, unique=True)
     short_name = models.CharField(max_length=255, null=True)
-    slug = models.SlugField(unique=True, null=True)
+    slug = models.SlugField(unique=True)
     description = models.TextField(null=True)
     why_it_matters = models.TextField()
     how_is_it_calculated = models.TextField(null=True)
@@ -392,8 +392,6 @@ class Measure(models.Model):
     next_review = models.DateField(null=True)
 
     def save(self, *args, **kwargs):
-        if not self.slug and self.short_name:
-            self.slug = slugify(self.short_name)
         super().save(*args, **kwargs)
 
     def __str__(self):
