@@ -1,0 +1,28 @@
+name: "Low value prescribing - doxazosin modified release"
+short_name: "Doxazosin modified release"
+slug: "lvp_doxazosin_mr"
+description: "Doxazosin modified release tablets as a percentage of all doxazosin tablets issued."
+why_it_matters: |
+  [NHS England guidance states](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/#doxazosin-prolonged-release-also-known-as-doxazosin-modified-release-2017):
+
+  > Doxazosin is an alpha-adrenoceptor blocking drug that can be used to treat hypertension and benign prostatic hyperplasia. There are two oral forms of the medication (immediate release and prolonged release) and both are taken once daily.
+  >
+  > Prolonged-release doxazosin [costs approximately six times more than doxazosin immediate release](https://openprescribing.net/tariff/?codes=0205040D0AAAAAA&codes=0205040D0AAABAB&codes=0205040D0AAAQAQ&codes=0205040D0AAACAC&%20codes=0205040D0AAARAR&codes=0205040D0AABBBB).
+  >
+  > NICE guidance on hypertension recognises that doxazosin should be used in treatment but does not identify any benefits of prolonged release over immediate release.
+  >
+  > NICE guidance recommends doxazosin as an option in men with moderate to severe lower urinary tract symptoms. It does not identify benefits of prolonged release over immediate release.
+  >
+  > Due to the significant extra cost of prolonged-release doxazosin and the availability of once daily immediate-release doxazosin, the joint clinical working group considered prolonged-release doxazosin suitable for inclusion in this guidance.
+
+  For guidance on when prescribing may be appropriate in some exceptional circumstances, please see the [full NHS England guidance document](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/#items-where-prescribing-may-be-appropriate-in-some-exceptional-circumstances).
+how_is_it_calculated: "We divide the number of doxazosin modified release by the total number of doxazosin tablets and then multiply that by 100 to obtain the % each month."
+tags:
+  - lowvalueprescribing
+  - value
+sql_file: "lvp_doxazosin_mr.sql"
+quantity_type: "ingredient_quantity"
+authored_by: "example1"
+checked_by: "example2"
+date_reviewed: "2024-03-05"
+next_review: "2026-03-05"
