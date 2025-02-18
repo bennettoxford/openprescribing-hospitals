@@ -36,9 +36,9 @@ from .models import (
     PrecomputedPercentile,
     OrgSubmissionCache,
     DataStatus,
-    MeasureReason,
     SCMDQuantity,
-    DDDQuantity
+    DDDQuantity,
+    MeasureTag
 )
 
 
@@ -87,19 +87,19 @@ class MeasuresListView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        measures = Measure.objects.select_related('reason').order_by('draft', 'name')
-        measure_reasons = MeasureReason.objects.all()
+        measures = Measure.objects.prefetch_related('tags').order_by('draft', 'name')
+        measure_tags = MeasureTag.objects.all()
         
         markdowner = Markdown()
         for measure in measures:
             measure.why_it_matters = markdowner.convert(measure.why_it_matters)
         
-        for reason in measure_reasons:
-            if reason.description:
-                reason.description = markdowner.convert(reason.description)
+        for tag in measure_tags:
+            if tag.description:
+                tag.description = markdowner.convert(tag.description)
         
         context["measures"] = measures
-        context["measure_reasons"] = measure_reasons
+        context["measure_tags"] = measure_tags
         return context
 
 
@@ -132,7 +132,7 @@ class MeasureItemView(TemplateView):
         return context
 
     def get_measure(self, slug):
-        return Measure.objects.select_related('reason').get(slug=slug)
+        return Measure.objects.prefetch_related('tags').get(slug=slug)
 
     def get_measure_context(self, measure):
         markdowner = Markdown()
@@ -165,16 +165,23 @@ class MeasureItemView(TemplateView):
             for vmp in measure_vmps
             if vmp['type'] == 'numerator'
         ]
-        
+
+        tags_data = [
+            {
+                'name': tag.name,
+                'description': markdowner.convert(tag.description) if tag.description else None,
+                'colour': tag.colour
+            }
+            for tag in measure.tags.all()
+        ]
+    
         return {
             "measure_name": measure.name,
             "measure_name_short": measure.short_name,
             "why_it_matters": markdowner.convert(measure.why_it_matters),
             "how_is_it_calculated": markdowner.convert(measure.how_is_it_calculated),
             "measure_description": markdowner.convert(measure.description),
-            "reason": measure.reason.reason if measure.reason else None,
-            "reason_description": markdowner.convert(measure.reason.description) if measure.reason else None,
-            "reason_colour": measure.reason.colour if measure.reason else None,
+            "tags": tags_data,
             "denominator_vmps": json.dumps(denominator_vmps, cls=DjangoJSONEncoder),
             "numerator_vmps": json.dumps(numerator_vmps, cls=DjangoJSONEncoder),
         }

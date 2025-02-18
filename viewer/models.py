@@ -340,13 +340,13 @@ class DDDQuantity(models.Model):
                 }
         return None
 
-class MeasureReason(models.Model):
-    reason = models.CharField(max_length=255)
+class MeasureTag(models.Model):
+    name = models.CharField(max_length=255)
     description = models.TextField(null=True)
     colour = models.CharField(max_length=255, null=True)
 
     def __str__(self):
-        return f"{self.reason}"
+        return f"{self.name}"
 
 class MeasureVMP(models.Model):
     TYPES = [
@@ -382,7 +382,7 @@ class Measure(models.Model):
     description = models.TextField(null=True)
     why_it_matters = models.TextField()
     how_is_it_calculated = models.TextField(null=True)
-    reason = models.ForeignKey(MeasureReason, on_delete=models.CASCADE, related_name="measures", null=True)
+    tags = models.ManyToManyField(MeasureTag, related_name="measures")
     draft = models.BooleanField(default=True)
     vmps = models.ManyToManyField(VMP, through='MeasureVMP', related_name='measures')
     quantity_type = models.CharField(max_length=20, choices=QUANTITY_TYPES, default='dose')
