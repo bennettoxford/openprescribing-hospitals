@@ -387,6 +387,10 @@ class Measure(models.Model):
     draft = models.BooleanField(default=True)
     vmps = models.ManyToManyField(VMP, through='MeasureVMP', related_name='measures')
     quantity_type = models.CharField(max_length=20, choices=QUANTITY_TYPES, default='dose')
+    authored_by = models.CharField(max_length=255, null=True)
+    checked_by = models.CharField(max_length=255, null=True)
+    date_reviewed = models.DateField(null=True)
+    next_review = models.DateField(null=True)
 
     def save(self, *args, **kwargs):
         if not self.slug and self.short_name:
