@@ -340,13 +340,13 @@ class DDDQuantity(models.Model):
                 }
         return None
 
-class MeasureReason(models.Model):
-    reason = models.CharField(max_length=255)
+class MeasureTag(models.Model):
+    name = models.CharField(max_length=255)
     description = models.TextField(null=True)
     colour = models.CharField(max_length=255, null=True)
 
     def __str__(self):
-        return f"{self.reason}"
+        return f"{self.name}"
 
 class MeasureVMP(models.Model):
     TYPES = [
@@ -378,19 +378,20 @@ class Measure(models.Model):
     
     name = models.CharField(max_length=255, unique=True)
     short_name = models.CharField(max_length=255, null=True)
-    slug = models.SlugField(unique=True, null=True)
+    slug = models.SlugField(unique=True)
     description = models.TextField(null=True)
     why_it_matters = models.TextField()
     how_is_it_calculated = models.TextField(null=True)
-    sql_file = models.CharField(max_length=255)
-    reason = models.ForeignKey(MeasureReason, on_delete=models.CASCADE, related_name="measures", null=True)
+    tags = models.ManyToManyField(MeasureTag, related_name="measures")
     draft = models.BooleanField(default=True)
     vmps = models.ManyToManyField(VMP, through='MeasureVMP', related_name='measures')
     quantity_type = models.CharField(max_length=20, choices=QUANTITY_TYPES, default='dose')
+    authored_by = models.CharField(max_length=255, null=True)
+    checked_by = models.CharField(max_length=255, null=True)
+    date_reviewed = models.DateField(null=True)
+    next_review = models.DateField(null=True)
 
     def save(self, *args, **kwargs):
-        if not self.slug and self.short_name:
-            self.slug = slugify(self.short_name)
         super().save(*args, **kwargs)
 
     def __str__(self):
