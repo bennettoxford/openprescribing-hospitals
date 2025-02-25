@@ -43,22 +43,26 @@
                     </div>
                 </div>
                 <div class="px-6 pb-4">
-                    {% if measure.reason %}
+                    {% if measure.tags.all %}
                     <div class="inline-block">
                         <span class="text-sm font-medium text-gray-500 mr-2">Tags:</span>
-                        <span class="inline-flex items-center text-sm font-normal px-3 py-1 rounded-full cursor-help relative group"
-                              style="background-color: {{ measure.reason.colour }}20; color: {{ measure.reason.colour }};">
-                            <span class="w-2 h-2 rounded-full mr-2" style="background-color: {{ measure.reason.colour }}"></span>
-                            {{ measure.reason.reason }}
+                        {% for tag in measure.tags.all %}
+                        <span class="inline-flex items-center text-sm font-normal px-3 py-1 rounded-full cursor-help relative group mr-2"
+                              style="background-color: {{ tag.colour }}20; color: {{ tag.colour }};">
+                            <span class="w-2 h-2 rounded-full mr-2" style="background-color: {{ tag.colour }}"></span>
+                            {{ tag.name }}
                             <!-- Tooltip -->
+                            {% if tag.description %}
                             <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-4 bg-white rounded-lg shadow-lg 
                                       invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-300
                                       text-sm text-gray-600 z-10">
-                                {{ measure.reason.description|safe }}
+                                {{ tag.description|safe }}
                                 <!-- Arrow -->
                                 <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white transform rotate-45"></div>
                             </div>
+                            {% endif %}
                         </span>
+                        {% endfor %}
                     </div>
                     {% endif %}
                 </div>

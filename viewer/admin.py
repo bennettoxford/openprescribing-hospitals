@@ -7,7 +7,7 @@ from .models import (
     Dose,
     IngredientQuantity,
     Measure,
-    MeasureReason,
+    MeasureTag,
     Route,
 )
 
@@ -80,14 +80,14 @@ class IngredientQuantityAdmin(admin.ModelAdmin):
 
 @admin.register(Measure)
 class MeasureAdmin(admin.ModelAdmin):
-    list_display = ("name", "reason")
-    search_fields = ("name", "reason")
+    list_display = ("name", "draft")
+    search_fields = ("name", "tags")
 
 
-@admin.register(MeasureReason)
-class MeasureReasonAdmin(admin.ModelAdmin):
-    list_display = ("reason", "colour")
-    search_fields = ("reason", "colour")
+@admin.register(MeasureTag)
+class MeasureTagAdmin(admin.ModelAdmin):
+    list_display = ("name", "colour")
+    search_fields = ("name", "colour")
 
 
 @admin.register(Route)

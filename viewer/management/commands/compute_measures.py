@@ -22,16 +22,16 @@ class Command(BaseCommand):
     help = 'Populates MeasureVMP instances for a given measure based on SQL file'
 
     def add_arguments(self, parser):
-        parser.add_argument('measure_name', type=str, help='Short name of the measure')
+        parser.add_argument('measure', type=str, help='slug of the measure')
 
     def handle(self, *args, **kwargs):
-        measure_name = kwargs.get('measure_name')
+        measure_slug = kwargs.get('measure')
         
         try:
-            measure = Measure.objects.get(short_name=measure_name)
+            measure = Measure.objects.get(slug=measure_slug)
         except Measure.DoesNotExist:
             self.stdout.write(
-                self.style.ERROR(f'Measure with short name "{measure_name}" does not exist')
+                self.style.ERROR(f'Measure with slug "{measure_slug}" does not exist')
             )
             return
 
@@ -39,7 +39,7 @@ class Command(BaseCommand):
             PrecomputedMeasure.objects.filter(measure=measure).delete()
             PrecomputedMeasureAggregated.objects.filter(measure=measure).delete()
             PrecomputedPercentile.objects.filter(measure=measure).delete()
-            self.stdout.write(f"Deleted existing precomputed data for measure: {measure.name}")
+            self.stdout.write(f"Deleted existing precomputed data for measure: {measure.slug}")
 
         delete_existing_precomputed_data(measure)
 
