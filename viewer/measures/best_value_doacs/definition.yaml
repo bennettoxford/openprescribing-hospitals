@@ -1,0 +1,22 @@
+name: Direct Oral Anticoagulants (DOACs) not prescribed as rivaroxaban or apixaban tablets # Full name of the measure/indicator
+short_name: Best Value DOACs # Abbreviated name or acronym
+description: Percentage of DOACs that are not rivaroxaban or apixaban tablets. # Brief 1-2 sentence description of what this measure identifies
+why_it_matters: |
+    In September 2024 the NHS in England released [updated commissioning regulations for DOACs](https://www.england.nhs.uk/long-read/commissioning-recommendations-for-national-procurement-for-doacs/), which state:
+
+    For patients commencing treatment for atrial fibrillation (AF): subject to the criteria specified in the relevant NICE technology appraisal guidance, clinicians should use the best value DOAC that is clinically appropriate for the patient. Apixaban and rivaroxaban (prescribed generically) are currently the joint best value DOACs.
+
+    The [NHS England National Medicines Optimisation Opportunities for 2024/25](https://www.england.nhs.uk/long-read/national-medicines-optimisation-opportunities-2023-24/#9-identifying-patients-with-atrial-fibrillation-and-using-best-value-direct-acting-oral-anticoagulants) also identify using best value direct-acting oral anticoagulants as an area for improvement.
+
+    **Please note:** OpenPrescribing Hospitals measures have a consistent way of visualising measures, where 'lower is better' and therefore in this case we show the proportion of DOACs which are NOT prescribed as rivaroxaban or apixaban tablets.  There are also other oral formulations of DOACs recently introduced onto the market. We do not consider these to be as cost-effective, and they are not considered as first-line in this measure. Rivaroxaban 15mg/20mg treatment initiation packs have been excluded from the measure as it is not possible to allocate a defined daily dose for comparison.
+how_is_it_calculated: >
+    We divide the combined number of defined daily doses (DDDs) of DOACs that are not rivaroxaban or apixaban tablets by the total number of DDDs of all DOACs and then multiply that by 100 to obtain a percentage each month.
+tags:
+    # List relevant categories (e.g. Safety, Prescribing, Monitoring)
+    - Safety
+quantity_type: ddd # Type of measurement (e.g. dose, ingredient, ddd)
+authored_by: Chris Wood # Name of original author
+checked_by: TBC # Name of clinical/technical reviewer
+date_reviewed: 2025-02-25 # Date of last review (YYYY-MM-DD)
+next_review: 2026-02-25 # Date of next scheduled review (YYYY-MM-DD)
+draft: true # true/false - indicates if measure is in draft
