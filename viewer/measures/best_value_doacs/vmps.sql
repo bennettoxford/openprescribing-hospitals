@@ -4,7 +4,7 @@ WITH measure_vmps AS (
         CASE 
             WHEN vtm.vtm IN (
                 '775732007', -- VTM code for edoxaban
-                '13568411000001104'  -- 13568411000001103 is the VTM code for dabigatran - this has been manually changed to account for data upload issue - needs to be fixed before launching
+                '13568411000001103'  -- VTM code for dabigatran
             )
             OR (
                 vtm.vtm IN (
@@ -35,6 +35,6 @@ WHERE vtm.vtm IN (
     '774624002', -- VTM code for apixaban
     '777455008', -- VTM code for rivaroxaban
     '775732007', -- VTM code for edoxaban
-    '13568411000001104'  -- 13568411000001103 is the VTM code for dabigatran - this has been manually changed to account for data upload issue - needs to be fixed before launching
+    '13568411000001103'  -- VTM code for dabigatran
 )
 AND vmp != '34819111000001102' -- exclude Rivaroxaban 15mg tablets and Rivaroxaban 20mg tablets from the measure as no DDD
