@@ -55,7 +55,26 @@
           verticalAlign: 'top',
           x: -10,
           y: 10
+        },
+        theme: {
+          fill: '#2563eb',
+          stroke: '#1e40af',
+          r: 4,
+          states: {
+            hover: {
+              fill: '#1d4ed8',
+              stroke: '#1e3a8a'
+            }
+          },
+          style: {
+            color: '#ffffff',
+            fontWeight: 'bold'
+          }
         }
+      },
+      selectionMarkerFill: 'rgba(37, 99, 235, 0.4)',
+      style: {
+        cursor: 'crosshair'
       },
       events: {
         selection: (event) => {
