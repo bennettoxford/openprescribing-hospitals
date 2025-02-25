@@ -95,20 +95,100 @@ class MeasureAdmin(admin.ModelAdmin):
         ]
         return custom_urls + urls
     
-    def import_all_measures_view(self, request):
+    def _execute_command_with_output_capture(self, command_name, *args):
+        """Helper method to execute a command and capture its output."""
+        from io import StringIO
+        import sys
+        import traceback
+
+        stdout_backup, stderr_backup = sys.stdout, sys.stderr
+        stdout_capture, stderr_capture = StringIO(), StringIO()
+        sys.stdout, sys.stderr = stdout_capture, stderr_capture
+        
+        result = {
+            'success': False,
+            'stdout': '',
+            'stderr': '',
+            'exception': None,
+            'traceback': None
+        }
+        
         try:
-            call_command('import_measures')
+            call_command(command_name, *args)
+            result['stdout'] = stdout_capture.getvalue()
+            result['stderr'] = stderr_capture.getvalue()
+            result['success'] = True
+        except Exception as e:
+            result['exception'] = e
+            result['traceback'] = traceback.format_exc()
+            result['success'] = False
+        finally:
+            sys.stdout, sys.stderr = stdout_backup, stderr_backup
+            
+        return result
+    
+    def _process_command_result(self, request, result, context='', level_override=None):
+        """Process command execution results and show appropriate messages."""
+        if not result['success']:
+            self.message_user(
+                request,
+                f"Error {context}: {str(result['exception'])}\n\nDetails: {result['traceback']}",
+                level=messages.ERROR
+            )
+            return False
+            
+        if result['stderr']:
+            self.message_user(
+                request,
+                f"Errors occurred {context}: {result['stderr']}",
+                level=messages.ERROR
+            )
+            return False
+            
+        stdout = result['stdout']
+        
+        if "ERROR" in stdout:
+            error_lines = [line for line in stdout.split('\n') if "ERROR" in line]
+            error_message = "\n".join(error_lines)
+            self.message_user(
+                request,
+                f"Errors {context}: {error_message}",
+                level=messages.ERROR
+            )
+            return False
+            
+        if "Invalid measure definition" in stdout or "tags do not exist" in stdout:
+            validation_lines = [line for line in stdout.split('\n') 
+                               if "Invalid measure definition" in line or "tags do not exist" in line]
+            validation_message = "\n".join(validation_lines)
+            self.message_user(
+                request,
+                f"Validation errors {context}: {validation_message}",
+                level=messages.ERROR
+            )
+            return False
+            
+        if "WARNING" in stdout:
+            warning_lines = [line for line in stdout.split('\n') if "WARNING" in line]
+            warning_message = "\n".join(warning_lines)
+            self.message_user(
+                request,
+                f"Warnings {context}: {warning_message}",
+                level=messages.WARNING
+            )            
+        return True
+
+    def import_all_measures_view(self, request):
+        result = self._execute_command_with_output_capture('import_measures')
+        success = self._process_command_result(request, result, context='during import')
+        
+        if success and not "WARNING" in result['stdout']:
             self.message_user(
                 request,
                 "Successfully imported all measures from YAML files",
                 level=messages.SUCCESS
             )
-        except Exception as e:
-            self.message_user(
-                request,
-                f"Error importing measures: {str(e)}",
-                level=messages.ERROR
-            )
+            
         return redirect('..')
     
     def changelist_view(self, request, extra_context=None):
@@ -121,16 +201,14 @@ class MeasureAdmin(admin.ModelAdmin):
         error_count = 0
         
         for measure in queryset:
-            try:
-                call_command('import_measures', measure.slug)
+            result = self._execute_command_with_output_capture('import_measures', measure.slug)
+            context = f"importing measure {measure.slug}"
+            success = self._process_command_result(request, result, context=context)
+            
+            if success:
                 success_count += 1
-            except Exception as e:
+            else:
                 error_count += 1
-                self.message_user(
-                    request, 
-                    f"Error importing measure {measure.slug}: {str(e)}", 
-                    level=messages.ERROR
-                )
         
         if success_count:
             self.message_user(
