@@ -7,9 +7,9 @@ WITH measure_vmps AS (
         END as vmp_type
     FROM viewer_vmp vmp
 )
-SELECT 
+SELECT DISTINCT
     vmp.id as vmp_id,
     mv.vmp_type
 FROM viewer_vmp vmp
-JOIN measure_vmps mv ON mv.id = vmp.id
+LEFT JOIN measure_vmps mv ON mv.id = vmp.id
 WHERE vmp.code IN ('41791911000001107', '41792011000001100')
