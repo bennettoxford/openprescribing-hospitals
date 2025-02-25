@@ -1,5 +1,6 @@
 <script>
   import { createEventDispatcher } from 'svelte';
+  import { onMount } from 'svelte';
 
   import * as Highcharts from 'highcharts';
   import HCMore from 'highcharts/highcharts-more';
@@ -55,7 +56,26 @@
           verticalAlign: 'top',
           x: -10,
           y: 10
+        },
+        theme: {
+          fill: '#2563eb',
+          stroke: '#1e40af',
+          r: 4,
+          states: {
+            hover: {
+              fill: '#1d4ed8',
+              stroke: '#1e3a8a'
+            }
+          },
+          style: {
+            color: '#ffffff',
+            fontWeight: 'bold'
+          }
         }
+      },
+      selectionMarkerFill: 'rgba(37, 99, 235, 0.4)',
+      style: {
+        cursor: 'crosshair'
       },
       events: {
         selection: (event) => {
@@ -337,9 +357,29 @@
     finalChartOptions.yAxis.min = $store.zoomState.yDomain[0];
     finalChartOptions.yAxis.max = $store.zoomState.yDomain[1];
   }
+
+  let isTouchDevice = false;
+  
+  onMount(() => {
+    isTouchDevice = ('ontouchstart' in window) || 
+                   (navigator.maxTouchPoints > 0) || 
+                   (navigator.msMaxTouchPoints > 0);
+  });
 </script>
 
 <div class="relative w-full" style="height: {dimensions.height}px">
+  <div class="px-3 py-1 text-sm text-gray-700 flex justify-end">
+    <div class="flex items-center gap-3">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z" />
+      </svg>
+      {#if isTouchDevice}
+        <span>Pinch to zoom, two-finger drag to pan</span>
+      {:else}
+        <span>Click and drag to zoom, <kbd class="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs">Shift</kbd> + drag to pan</span>
+      {/if}
+    </div>
+  </div>
   <Chart options={finalChartOptions} highcharts={Highcharts} />
 </div>
 
