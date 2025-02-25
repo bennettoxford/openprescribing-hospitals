@@ -112,7 +112,10 @@ class MeasureItemView(TemplateView):
             slug = kwargs.get("slug")
             measure = self.get_measure(slug)
             if measure.draft:
-                return redirect('viewer:measures_list')
+                if request.user.is_authenticated:
+                    return super().dispatch(request, *args, **kwargs)
+                else:
+                    return redirect('viewer:measures_list')
         except Exception:
             pass
         
