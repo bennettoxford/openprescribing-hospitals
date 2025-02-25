@@ -1,8 +1,8 @@
 WITH measure_vmps AS (
     SELECT DISTINCT
         vmp.id,
-        CASE (
-            WHEN ofr.name LIKE '.intravenous' 
+        CASE 
+            WHEN ofr.name LIKE '%.intravenous' 
                 AND (
                     atc.code LIKE 'J01%'
                     OR 
@@ -34,7 +34,7 @@ LEFT JOIN viewer_vmp_atcs vmp_atcs ON vmp_atcs.vmp_id = vmp.id
 LEFT JOIN viewer_atc atc ON atc.id = vmp_atcs.atc_id
 LEFT JOIN viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
 LEFT JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
-WHERE (ofr.name LIKE '.intravenous' OR ofr.name LIKE '.oral')
+WHERE (ofr.name LIKE '%.intravenous' OR ofr.name LIKE '%.oral')
 AND (
     atc.code LIKE 'J01%'
     OR 
