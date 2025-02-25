@@ -24,7 +24,7 @@ WITH measure_vmps AS (
     LEFT JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
 
 )
-SELECT 
+SELECT DISTINCT
     vmp.id as vmp_id,
     mv.vmp_type
 FROM viewer_vmp vmp
