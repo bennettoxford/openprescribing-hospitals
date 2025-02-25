@@ -8,18 +8,18 @@ WITH measure_vmps AS (
             ELSE 'denominator'
         END as vmp_type
     FROM viewer_vmp vmp
-    JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
-    JOIN viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
-    JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
+    LEFT JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
+    LEFT JOIN viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
+    LEFT JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
 )
-SELECT 
+SELECT DISTINCT
     vmp.id as vmp_id,
     mv.vmp_type
 FROM viewer_vmp vmp
-JOIN measure_vmps mv ON mv.id = vmp.id
-JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
-JOIN viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
-JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
+LEFT JOIN measure_vmps mv ON mv.id = vmp.id
+LEFT JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
+LEFT JOIN viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
+LEFT JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
 WHERE 
     (
         '22209111000001100' IN (vtm.vtm, vtm.vtmidprev) -- VTM for perindopril arginine

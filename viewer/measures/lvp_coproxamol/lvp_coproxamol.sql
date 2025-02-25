@@ -6,12 +6,12 @@ WITH measure_vmps AS (
             ELSE 'denominator'
         END as vmp_type
     FROM viewer_vmp vmp
-    JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
+    LEFT JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
 )
-SELECT 
+SELECT DISTINCT
     vmp.id as vmp_id,
     mv.vmp_type
 FROM viewer_vmp vmp
-JOIN measure_vmps mv ON mv.id = vmp.id
-JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
+LEFT JOIN measure_vmps mv ON mv.id = vmp.id
+LEFT JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
 WHERE '18037311000001104' IN (vtm.vtm, vtm.vtmidprev) -- VTM for co-proxamol
