@@ -1,0 +1,26 @@
+name: Low value prescribing - perindopril arginine # Full name of the measure/indicator
+short_name: Low value prescribing - perindopril arginine # Abbreviated name or acronym
+description: Percentage of perindopril arginine of all perindopril. # Brief 1-2 sentence description of what this measure identifies
+why_it_matters: |
+    [NHS England guidance](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/) identifies a number of items which provide low value when prescribed. This guidance has mainly been aimed at primary care but we think it is important to also monitor a selection of these in hospitals - read more about why [in our blog](#).
+
+    [NHS England guidance states](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/#perindopril-arginine-2017):
+    > Perindopril is an ACE inhibitor used in heart failure, hypertension, diabetic nephropathy, and prophylaxis of cardiovascular events. The perindopril arginine salt version is more stable in extremes of climate than the perindopril erbumine salt, which gives it a longer shelf-life. However, perindopril arginine is significantly more expensive than perindopril erbumine and a PrescQIPP CIC review of the topic found no clinical advantage for the arginine salt.
+    >
+    > NICE guidance on hypertension in adults recommends that prescribing costs are minimised.
+    >
+    > Due to the significant extra costs of the arginine salt and the availability of the erbumine salt, the joint clinical working group considered perindopril arginine suitable for inclusion in this guidance.
+
+    For guidance on when prescribing may be appropriate in some exceptional circumstances, please see the [full NHS England guidance document](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/#items-where-prescribing-may-be-appropriate-in-some-exceptional-circumstances).
+how_is_it_calculated: >
+    We divide the number of defined daily doses (DDDs) of perindopril arginine tablets by the total number of DDDs of perindopril arginine and perindopril erbumine tablets and then multiply that by 100 to obtain a percentage each month.
+tags:
+    # List relevant categories (e.g. Safety, Prescribing, Monitoring)
+    - Low value prescribing
+    - Value
+quantity_type: ddd # Type of measurement (e.g. dose, ingredient, ddd)
+authored_by: Chris Wood # Name of original author
+checked_by: TBC # Name of clinical/technical reviewer
+date_reviewed: 2025-02-25 # Date of last review (YYYY-MM-DD)
+next_review: 2026-02-25 # Date of next scheduled review (YYYY-MM-DD)
+draft: true # true/false - indicates if measure is in draft
