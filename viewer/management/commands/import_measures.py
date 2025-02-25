@@ -67,10 +67,10 @@ class Command(BaseCommand):
                     'why_it_matters': data['why_it_matters'],
                     'how_is_it_calculated': data['how_is_it_calculated'],
                     'quantity_type': data.get('quantity_type', 'dose'),
-                    'authored_by': data.get('authored_by', ''),
-                    'checked_by': data.get('checked_by', ''),
-                    'date_reviewed': data.get('date_reviewed', ''),
-                    'next_review': data.get('next_review', ''),
+                    'authored_by': data.get('authored_by', None),
+                    'checked_by': data.get('checked_by', None),
+                    'date_reviewed': data.get('date_reviewed', None),
+                    'next_review': data.get('next_review', None),
                     'draft': data.get('draft', True)
                 }
             )
@@ -102,6 +102,12 @@ def validate_date_format(date_val):
     return False
 
 def validate_review_dates(data):
+    # Skip validation if either field is missing
+    
+    if 'date_reviewed' not in data or 'next_review' not in data:
+        return True
+    
+    # Skip validation if either field is empty
     if not data.get('date_reviewed') or not data.get('next_review'):
         return True
         
@@ -143,14 +149,14 @@ def validate_measure_yaml(data):
                  error='Tags must be a non-empty list of strings'),
         'quantity_type': And(str, lambda qt: qt in ['dose', 'ingredient', 'ddd'],
                            error='quantity_type must be one of: dose, ingredient, ddd'),
-        'authored_by': And(str),
-        'checked_by': And(str),
-        'date_reviewed': And(
+        Optional('authored_by'): And(str),
+        Optional('checked_by'): And(str),
+        Optional('date_reviewed'): And(
             Or(str, date), 
             validate_date_format,
             error='date_reviewed must be in format YYYY-MM-DD or a valid date object'
         ),
-        'next_review': And(
+        Optional('next_review'): And(
             Or(str, date), 
             validate_date_format,
             error='next_review must be in format YYYY-MM-DD or a valid date object'
