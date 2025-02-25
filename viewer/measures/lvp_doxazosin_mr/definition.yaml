@@ -18,7 +18,7 @@ why_it_matters: |
 
     For guidance on when prescribing may be appropriate in some exceptional circumstances, please see the [full NHS England guidance document](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/#items-where-prescribing-may-be-appropriate-in-some-exceptional-circumstances).
 how_is_it_calculated: >
-    We divide the number of daily defined doses (DDDs) of doxazosin modified release tablets by the total number of DDDs of doxazosin immediate release and modified release tablets and then multiply that by 100 to obtain a percentage each month.
+    We divide the number of defined daily doses (DDDs) of doxazosin modified release tablets by the total number of DDDs of doxazosin immediate release and modified release tablets and then multiply that by 100 to obtain a percentage each month.
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Low value prescribing
