@@ -13,7 +13,7 @@ how_is_it_calculated: >
     We divide the combined number of defined daily doses (DDDs) of DOACs that are not rivaroxaban or apixaban tablets by the total number of DDDs of all DOACs and then multiply that by 100 to obtain a percentage each month.
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
-    - Safety
+    - Value
 quantity_type: ddd # Type of measurement (e.g. dose, ingredient, ddd)
 authored_by: Chris Wood # Name of original author
 checked_by: TBC # Name of clinical/technical reviewer
