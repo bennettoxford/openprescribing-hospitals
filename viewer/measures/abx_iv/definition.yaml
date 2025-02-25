@@ -16,7 +16,7 @@ why_it_matters: |
 
 how_is_it_calculated: |
     We divide the combined number of daily defined doses (DDDs) of intravenous antibiotics by the total number of DDDs of all oral and intravenous antibiotics and then multiply that by 100 to obtain a percentage each month. 
-    We use ATC code J01 “Antibacterials for systemic use” to determine antibiotic products to include in the measure. 
+    We use ATC code J01 'Antibacterials for systemic use' to determine antibiotic products to include in the measure. 
     We use dm+d route data to determine the route of administration.
     Teicoplanin and vancomycin injections are licensed for both the oral and intravenous route. We treat them as intravenous antibiotics in this measure as this represents the majority of the indications for use.
 
