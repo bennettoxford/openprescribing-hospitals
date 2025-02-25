@@ -23,7 +23,7 @@ WITH measure_vmps AS (
     LEFT JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
     WHERE vmp != '34819111000001102' -- exclude Rivaroxaban 15mg tablets and Rivaroxaban 20mg tablets from the measure as no DDD
 )
-SELECT 
+SELECT DISTINCT
     vmp.id as vmp_id,
     mv.vmp_type
 FROM viewer_vmp vmp
