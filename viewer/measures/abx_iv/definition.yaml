@@ -1,0 +1,31 @@
+name: Intravenous antibiotics # Full name of the measure/indicator
+short_name: IV antibiotics # Abbreviated name or acronym
+description: Percentage of intravenous antibiotics of all oral and intravenous antibiotics # Brief 1-2 sentence description of what this measure identifies
+why_it_matters: |
+    [NHS England Medicines Optimisation Opportunities 24/25](https://www.england.nhs.uk/long-read/national-medicines-optimisation-opportunities-2023-24/#16-switching-intravenous-antibiotics-to-oral) states:
+    When treating infections in NHS hospitals, inpatients are often treated with intravenous (IV) antibiotics. Intravenous antibiotics can sometimes be used for longer than necessary due to barriers to meeting, or being assessed to have met, the [criteria](https://www.gov.uk/government/publications/antimicrobial-intravenous-to-oral-switch-criteria-for-early-switch/national-antimicrobial-intravenous-to-oral-switch-ivos-criteria-for-early-switch) for switching from IV to oral.
+
+    Switching patients from IV to oral antibiotics when they have met the [criteria](https://www.gov.uk/government/publications/antimicrobial-intravenous-to-oral-switch-criteria-for-early-switch/national-antimicrobial-intravenous-to-oral-switch-ivos-criteria-for-early-switch) for switching can have a number of benefits including:
+    - Reduction in avoidable healthcare-associated bloodstream infections
+    - Reduced length-of-stay
+    - Reduced adverse events
+    - Reduced exposure to broad-spectrum antibiotics
+    - Freeing up nursing time
+    - Improved patient experience
+    - Reduction in medicines expenditure
+
+how_is_it_calculated: |
+    We divide the combined number of daily defined doses (DDDs) of intravenous antibiotics by the total number of DDDs of all oral and intravenous antibiotics and then multiply that by 100 to obtain a percentage each month. 
+    We use ATC code J01 “Antibacterials for systemic use” to determine antibiotic products to include in the measure. 
+    We use dm+d route data to determine the route of administration.
+    Teicoplanin and vancomycin injections are licensed for both the oral and intravenous route. We treat them as intravenous antibiotics in this measure as this represents the majority of the indications for use.
+
+tags:
+    # List relevant categories (e.g. Safety, Prescribing, Monitoring)
+    - Antimicrobial stewardship
+quantity_type: ddd # Type of measurement (e.g. dose, ingredient, ddd)
+authored_by: Chris Wood # Name of original author
+checked_by: TBC # Name of clinical/technical reviewer
+date_reviewed: 2025-02-25 # Date of last review (YYYY-MM-DD)
+next_review: 2026-02-25 # Date of next scheduled review (YYYY-MM-DD)
+draft: false # true/false - indicates if measure is in draft
