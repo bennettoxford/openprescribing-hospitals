@@ -28,91 +28,100 @@
             </ol>
         </nav>
 
-        <div class="overflow-hidden bg-white rounded-lg shadow-md p-8 space-y-8">
-            <div class="flex items-start justify-between mb-4">
-                <div>
-                    <h1 class="text-2xl font-extrabold text-gray-900 sm:text-4xl">{{ measure_name }}</h1>
-                    {% if tags %}
-                    <div class="inline-block mt-4">
-                        <span class="text-sm font-medium text-gray-500 mr-2">Tags:</span>
-                        {% for tag in tags %}
-                        <span class="inline-flex items-center text-sm font-normal px-3 py-1 rounded-full cursor-help relative group mr-2"
-                              style="background-color: {{ tag.colour }}20; color: {{ tag.colour }};">
-                            <span class="w-2 h-2 rounded-full mr-2" style="background-color: {{ tag.colour }}"></span>
-                            {{ tag.name }}
-                            <!-- Tooltip -->
-                            {% if tag.description %}
-                            <div class="absolute top-full left-1/2 -translate-x-1/2 mb-2 w-48 p-4 bg-white rounded-lg shadow-lg 
-                                      invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-300
-                                      text-sm text-gray-600 z-10">
-                                {{ tag.description|safe }}
-                                <!-- Arrow -->
-                                <div class="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white transform rotate-45"></div>
-                            </div>
-                            {% endif %}
-                        </span>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% if error %}
-                <div class="mt-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded" role="alert">
-                    <p class="font-bold">Error</p>
-                    <p>{{ error }}</p>
-                </div>
-            {% else %}
-            
-            <div class="space-y-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">What is this measure?</h2>
-                <div class="markdown-content">
-                    {{ measure_description|safe }}
-                </div>
-            </div>
-
-            <div>
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Why does it matter?</h2>
-                <div class="markdown-content">
-                    {{ why_it_matters|safe }}
-                </div>
-            </div>
-            <span class="block w-full h-px bg-gray-300 my-8"></span>
-            <div class="mb-8">
-                <div id="measure-chart">
-                    <measure-component 
-                        orgdata="{{ org_data }}"
-                        regiondata="{{ region_data }}"
-                        icbdata="{{ icb_data }}"
-                        percentiledata="{{ percentile_data }}"
-                    ></measure-component>
-                </div>
-            </div>
-
-            <span class="block w-full h-px bg-gray-300 my-8"></span>
-
-            <div>
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">How is it calculated?</h2>
-                <div class="markdown-content">
-                    {{ how_is_it_calculated|safe }}
-                </div>
-                <div class="mt-4">
-                    <collapsible-section 
-                        title="Products included in this measure" 
-                        description="All products below are included in the denominator of this measure. A subset of these products are included in the numerator."
-                        items="{{ denominator_vmps}}"
-                        numeratorItems="{{ numerator_vmps }}"
-                        previewCount="1"
-                    ></collapsible-section>
-                </div>
-            </div>
-            <div>
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Which NHS Trusts are included?</h2>
-                <div class="[&_p]:text-lg [&_p]:text-gray-900 [&_p]:mb-8 [&_a]:underline [&_a]:font-semibold">
-                    <p>Trusts are only included in this measure if they have issued any products included in the denominator for this measure.</p>
-                    <p>For this measure, {{ trusts_included.included }}/{{ trusts_included.total }} Trusts are included. A full list of Trusts included is available on the <a href="{% url 'viewer:submission_history' %}" target="_blank" class="underline font-semibold">Submission History</a> page.</p>
-                </div>
+        <div class="overflow-hidden bg-white rounded-lg shadow-md">
+            {% if is_draft %}
+            <div class="w-full">
+                <span class="flex items-center justify-center w-full px-3 py-1 text-sm font-medium bg-amber-50 text-amber-800">
+                    <span class="mr-1.5">🚧</span> In development
+                </span>
             </div>
             {% endif %}
+            <div class="p-8 space-y-8">
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <h1 class="text-2xl font-extrabold text-gray-900 sm:text-4xl">{{ measure_name }}</h1>
+                        {% if tags %}
+                        <div class="inline-block mt-4">
+                            <span class="text-sm font-medium text-gray-500 mr-2">Tags:</span>
+                            {% for tag in tags %}
+                            <span class="inline-flex items-center text-sm font-normal px-3 py-1 rounded-full cursor-help relative group mr-2"
+                                  style="background-color: {{ tag.colour }}20; color: {{ tag.colour }};">
+                                <span class="w-2 h-2 rounded-full mr-2" style="background-color: {{ tag.colour }}"></span>
+                                {{ tag.name }}
+                                <!-- Tooltip -->
+                                {% if tag.description %}
+                                <div class="absolute top-full left-1/2 -translate-x-1/2 mb-2 w-48 p-4 bg-white rounded-lg shadow-lg 
+                                          invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-300
+                                          text-sm text-gray-600 z-10">
+                                    {{ tag.description|safe }}
+                                    <!-- Arrow -->
+                                    <div class="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white transform rotate-45"></div>
+                                </div>
+                                {% endif %}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if error %}
+                    <div class="mt-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded" role="alert">
+                        <p class="font-bold">Error</p>
+                        <p>{{ error }}</p>
+                    </div>
+                {% else %}
+                
+                <div class="space-y-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">What is this measure?</h2>
+                    <div class="markdown-content">
+                        {{ measure_description|safe }}
+                    </div>
+                </div>
+
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Why does it matter?</h2>
+                    <div class="markdown-content">
+                        {{ why_it_matters|safe }}
+                    </div>
+                </div>
+                <span class="block w-full h-px bg-gray-300 my-8"></span>
+                <div class="mb-8">
+                    <div id="measure-chart">
+                        <measure-component 
+                            orgdata="{{ org_data }}"
+                            regiondata="{{ region_data }}"
+                            icbdata="{{ icb_data }}"
+                            percentiledata="{{ percentile_data }}"
+                        ></measure-component>
+                    </div>
+                </div>
+
+                <span class="block w-full h-px bg-gray-300 my-8"></span>
+
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">How is it calculated?</h2>
+                    <div class="markdown-content">
+                        {{ how_is_it_calculated|safe }}
+                    </div>
+                    <div class="mt-4">
+                        <collapsible-section 
+                            title="Products included in this measure" 
+                            description="All products below are included in the denominator of this measure. A subset of these products are included in the numerator."
+                            items="{{ denominator_vmps}}"
+                            numeratorItems="{{ numerator_vmps }}"
+                            previewCount="1"
+                        ></collapsible-section>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Which NHS Trusts are included?</h2>
+                    <div class="[&_p]:text-lg [&_p]:text-gray-900 [&_p]:mb-8 [&_a]:underline [&_a]:font-semibold">
+                        <p>Trusts are only included in this measure if they have issued any products included in the denominator for this measure.</p>
+                        <p>For this measure, {{ trusts_included.included }}/{{ trusts_included.total }} Trusts are included. A full list of Trusts included is available on the <a href="{% url 'viewer:submission_history' %}" target="_blank" class="underline font-semibold">Submission History</a> page.</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>

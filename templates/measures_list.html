@@ -28,56 +28,69 @@
         <!-- Measures Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {% for measure in measures %}
-            <div class="bg-white rounded-xl shadow-sm {% if not measure.draft %}hover:shadow-md transition-all duration-300{% endif %} flex flex-col h-full border border-gray-100 {% if measure.draft %}opacity-50{% endif %}">
-                <div class="py-2 px-4 border-b border-gray-100 h-[5rem] flex items-center">
-                    <h3 class="text-xl font-semibold text-gray-900 line-clamp-2 leading-tight">
-                        {{ measure.short_name }}
-                        {% if measure.draft %}
-                        <span class="ml-2 text-sm font-normal text-gray-500">(In development)</span>
-                        {% endif %}
-                    </h3>
-                </div>
-                <div class="p-4 text-gray-600 flex-grow">
-                    <div class="prose prose-sm max-w-none line-clamp-3">
-                        {{ measure.description|safe }}
-                    </div>
-                </div>
-                <div class="px-6 pb-4">
-                    {% if measure.tags.all %}
-                    <div class="inline-block">
-                        <span class="text-sm font-medium text-gray-500 mr-2">Tags:</span>
-                        {% for tag in measure.tags.all %}
-                        <span class="inline-flex items-center text-sm font-normal px-3 py-1 rounded-full cursor-help relative group mr-2"
-                              style="background-color: {{ tag.colour }}20; color: {{ tag.colour }};">
-                            <span class="w-2 h-2 rounded-full mr-2" style="background-color: {{ tag.colour }}"></span>
-                            {{ tag.name }}
-                            <!-- Tooltip -->
-                            {% if tag.description %}
-                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-4 bg-white rounded-lg shadow-lg 
-                                      invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-300
-                                      text-sm text-gray-600 z-10">
-                                {{ tag.description|safe }}
-                                <!-- Arrow -->
-                                <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white transform rotate-45"></div>
+            <div class="flex flex-col h-full {% if measure.draft and not request.user.is_authenticated %}opacity-50{% endif %}">
+                <div class="relative h-full">
+                    <div class="bg-white rounded-xl shadow-sm {% if not measure.draft or request.user.is_authenticated %}hover:shadow-md transition-all duration-300{% endif %} flex flex-col h-full border border-gray-100">
+                        <div class="{% if measure.draft %}bg-amber-50{% endif %} py-2 px-4 border-b border-gray-100 flex items-center rounded-t-xl relative h-[5rem]">
+                            {% if measure.draft %}
+                            <div class="absolute top-0 left-0 right-0 flex items-center justify-center py-1 text-xs font-medium text-amber-800">
+                                <span class="mr-1">🚧</span> In development
                             </div>
                             {% endif %}
-                        </span>
-                        {% endfor %}
+                            <h3 class="text-xl font-semibold text-gray-900 line-clamp-2 leading-tight w-full">
+                                {{ measure.short_name }}
+                            </h3>
+                        </div>
+                        <div class="p-4 text-gray-600 flex-grow">
+                            <div class="prose prose-sm max-w-none line-clamp-3">
+                                {{ measure.description|safe }}
+                            </div>
+                        </div>
+                        <div class="px-6 pb-4">
+                            {% if measure.tags.all %}
+                            <div class="inline-block">
+                                <span class="text-sm font-medium text-gray-500 mr-2">Tags:</span>
+                                {% for tag in measure.tags.all %}
+                                <span class="inline-flex items-center text-sm font-normal px-3 py-1 rounded-full cursor-help relative group mr-2"
+                                      style="background-color: {{ tag.colour }}20; color: {{ tag.colour }};">
+                                    <span class="w-2 h-2 rounded-full mr-2" style="background-color: {{ tag.colour }}"></span>
+                                    {{ tag.name }}
+                                    <!-- Tooltip -->
+                                    {% if tag.description %}
+                                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-4 bg-white rounded-lg shadow-lg 
+                                              invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-300
+                                              text-sm text-gray-600 z-10">
+                                        {{ tag.description|safe }}
+                                        <!-- Arrow -->
+                                        <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white transform rotate-45"></div>
+                                    </div>
+                                    {% endif %}
+                                </span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="p-6 pt-2">
+                            {% if measure.draft %}
+                                {% if request.user.is_authenticated %}
+                                    <a href="{% url 'viewer:measure_item' measure.slug %}" 
+                                        class="inline-flex w-full justify-center items-center px-4 py-2 bg-oxford-50 text-oxford-600 rounded-lg hover:bg-oxford-100 transition-colors duration-200 font-medium">
+                                        View measure
+                                    </a>
+                                {% else %}
+                                    <button disabled 
+                                        class="inline-flex w-full justify-center items-center px-4 py-2 bg-gray-50 text-gray-400 rounded-lg cursor-not-allowed font-medium">
+                                        View measure
+                                    </button>
+                                {% endif %}
+                            {% else %}
+                                <a href="{% url 'viewer:measure_item' measure.slug %}" 
+                                   class="inline-flex w-full justify-center items-center px-4 py-2 bg-oxford-50 text-oxford-600 rounded-lg hover:bg-oxford-100 transition-colors duration-200 font-medium">
+                                    View measure
+                                </a>
+                            {% endif %}
+                        </div>
                     </div>
-                    {% endif %}
-                </div>
-                <div class="p-6 pt-2">
-                    {% if measure.draft %}
-                        <button disabled 
-                            class="inline-flex w-full justify-center items-center px-4 py-2 bg-gray-50 text-gray-400 rounded-lg cursor-not-allowed font-medium">
-                            View measure
-                        </button>
-                    {% else %}
-                        <a href="{% url 'viewer:measure_item' measure.slug %}" 
-                           class="inline-flex w-full justify-center items-center px-4 py-2 bg-oxford-50 text-oxford-600 rounded-lg hover:bg-oxford-100 transition-colors duration-200 font-medium">
-                            View measure
-                        </a>
-                    {% endif %}
                 </div>
             </div>
             {% endfor %}

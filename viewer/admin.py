@@ -1,4 +1,8 @@
 from django.contrib import admin
+from django.core.management import call_command
+from django.contrib import messages
+from django.urls import path
+from django.shortcuts import redirect
 from .models import (
     VTM,
     VMP,
@@ -10,8 +14,6 @@ from .models import (
     MeasureTag,
     Route,
 )
-
-# Register your models here.
 
 
 @admin.register(VTM)
@@ -80,8 +82,111 @@ class IngredientQuantityAdmin(admin.ModelAdmin):
 
 @admin.register(Measure)
 class MeasureAdmin(admin.ModelAdmin):
-    list_display = ("name", "draft")
-    search_fields = ("name", "tags")
+    list_display = ("name", "slug", "draft")
+    search_fields = ("name", "slug")
+    list_filter = ("draft", "tags")
+    actions = ['import_measure', 'get_measure_vmps', 'compute_measure']
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('import-all-measures/', self.admin_site.admin_view(self.import_all_measures_view), 
+                 name='import-all-measures'),
+        ]
+        return custom_urls + urls
+    
+    def import_all_measures_view(self, request):
+        try:
+            call_command('import_measures')
+            self.message_user(
+                request,
+                "Successfully imported all measures from YAML files",
+                level=messages.SUCCESS
+            )
+        except Exception as e:
+            self.message_user(
+                request,
+                f"Error importing measures: {str(e)}",
+                level=messages.ERROR
+            )
+        return redirect('..')
+    
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['show_import_all_button'] = True
+        return super().changelist_view(request, extra_context=extra_context)
+    
+    def import_measure(self, request, queryset):
+        success_count = 0
+        error_count = 0
+        
+        for measure in queryset:
+            try:
+                call_command('import_measures', measure.slug)
+                success_count += 1
+            except Exception as e:
+                error_count += 1
+                self.message_user(
+                    request, 
+                    f"Error importing measure {measure.slug}: {str(e)}", 
+                    level=messages.ERROR
+                )
+        
+        if success_count:
+            self.message_user(
+                request, 
+                f"Successfully imported {success_count} measure(s)", 
+                level=messages.SUCCESS
+            )
+    import_measure.short_description = "Import selected measures from YAML"
+    
+    def get_measure_vmps(self, request, queryset):
+        success_count = 0
+        error_count = 0
+        
+        for measure in queryset:
+            try:
+                call_command('get_measure_vmps', measure.slug)
+                success_count += 1
+            except Exception as e:
+                error_count += 1
+                self.message_user(
+                    request, 
+                    f"Error getting VMPs for measure {measure.slug}: {str(e)}", 
+                    level=messages.ERROR
+                )
+        
+        if success_count:
+            self.message_user(
+                request, 
+                f"Successfully retrieved VMPs for {success_count} measure(s)", 
+                level=messages.SUCCESS
+            )
+    get_measure_vmps.short_description = "Get VMPs for selected measures"
+    
+    def compute_measure(self, request, queryset):
+        success_count = 0
+        error_count = 0
+        
+        for measure in queryset:
+            try:
+                call_command('compute_measures', measure.slug)
+                success_count += 1
+            except Exception as e:
+                error_count += 1
+                self.message_user(
+                    request, 
+                    f"Error computing measure {measure.slug}: {str(e)}", 
+                    level=messages.ERROR
+                )
+        
+        if success_count:
+            self.message_user(
+                request, 
+                f"Successfully computed {success_count} measure(s)", 
+                level=messages.SUCCESS
+            )
+    compute_measure.short_description = "Compute selected measures"
 
 
 @admin.register(MeasureTag)
