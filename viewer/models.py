@@ -463,3 +463,11 @@ class PrecomputedPercentile(models.Model):
 class DataStatus(models.Model):
     year_month = models.DateField()
     file_type = models.CharField(max_length=255)
+
+class ContentCache(models.Model):
+    last_updated = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        managed = False
+        verbose_name = "Content Cache"
+        verbose_name_plural = "Content Cache"
