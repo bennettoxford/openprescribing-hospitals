@@ -21,6 +21,8 @@ from django.contrib.postgres.aggregates import ArrayAgg
 import os
 import re
 from django.utils.text import slugify
+from django.core.cache import cache
+
 
 from .forms import LoginForm
 from .models import (
@@ -47,6 +49,24 @@ class IndexView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
+        latest_posts = []
+
+        cached_blog_data = cache.get('bennett_blog_data')
+        if cached_blog_data is not None and 'all_posts' in cached_blog_data:
+            latest_posts.extend([{**post, 'type': 'blog'} for post in cached_blog_data['all_posts']])
+        
+        cached_papers_data = cache.get('bennett_papers_data')
+        if cached_papers_data is not None and 'all_papers' in cached_papers_data:
+            latest_posts.extend([{**paper, 'type': 'paper'} for paper in cached_papers_data['all_papers']])
+
+
+        latest_posts.sort(
+            key=lambda x: datetime.strptime(x['date'], '%d %B %Y'),
+            reverse=True
+        )
+        
+        context['latest_posts'] = latest_posts[:3]
         return context
 
 class LoginView(AuthLoginView):
@@ -900,5 +920,41 @@ class ProductDetailsView(TemplateView):
             'search_term': search_term
         })
 
+        return context
+
+class BlogListView(TemplateView):
+    template_name = "blog_list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        cached_data = cache.get('bennett_blog_data')
+        if cached_data is not None:
+            context.update(cached_data)
+            return context
+        
+        context.update({
+            'all_posts': [],
+            'posts_by_tag': {},
+            'error': 'No cached data available. Please run refresh_content_cache management command.'
+        })
+        return context
+
+class PapersListView(TemplateView):
+    template_name = "papers_list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        cached_data = cache.get('bennett_papers_data')
+        if cached_data is not None:
+            context.update(cached_data)
+            return context
+        
+        context.update({
+            'all_papers': [],
+            'papers_by_status': {},
+            'error': 'No cached data available. Please run refresh_content_cache management command.'
+        })
         return context
 

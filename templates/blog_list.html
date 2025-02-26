@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+
+{% block content %}
+<div class="container xl:max-w-screen-xl pt-2 md:pt-6 pb-4">
+    <div class="max-w-7xl mx-auto px-0 sm:px-6 lg:px-8 py-12">
+        <h1 class="text-4xl font-bold text-oxford mb-6">Blog</h1>
+
+        {% if all_posts %}
+            {# Latest Posts Section #}
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold text-oxford mb-6">Latest Posts</h2>
+                <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
+                    {% for post in all_posts|slice:":3" %}
+                        <div class="h-full">
+                            {% include "partials/blog_card.html" with post=post small=False %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            {# All Posts Section #}
+            <section>
+                <h2 class="text-2xl font-semibold text-oxford mb-6">All Posts</h2>
+                <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                    {% for post in all_posts %}
+                        {% include "partials/blog_card.html" with post=post %}
+                    {% endfor %}
+                </div>
+            </section>
+        {% else %}
+            <p class="text-gray-600">No blog posts found.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

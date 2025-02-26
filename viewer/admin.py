@@ -13,6 +13,7 @@ from .models import (
     Measure,
     MeasureTag,
     Route,
+    ContentCache,
 )
 
 
@@ -277,3 +278,86 @@ class MeasureTagAdmin(admin.ModelAdmin):
 class RouteAdmin(admin.ModelAdmin):
     list_display = ("code", "name")
     search_fields = ("code", "name")
+
+
+class ContentCacheAdmin(admin.ModelAdmin):
+    """Admin interface for managing content cache"""
+    list_display = ('last_updated',)
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return False
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('', self.admin_site.admin_view(self.custom_changelist_view), name='viewer_contentcache_changelist'),
+            path('refresh-content-cache/', 
+                 self.admin_site.admin_view(self.refresh_content_cache_view),
+                 name='refresh-content-cache'),
+            path('clear-content-cache/', 
+                 self.admin_site.admin_view(self.clear_content_cache_view),
+                 name='clear-content-cache'),
+        ]
+        return custom_urls + urls
+    
+    def refresh_content_cache_view(self, request):
+        try:
+            call_command('refresh_content_cache')
+            self.message_user(
+                request,
+                "Successfully refreshed content cache",
+                level=messages.SUCCESS
+            )
+        except Exception as e:
+            self.message_user(
+                request,
+                f"Error refreshing content cache: {str(e)}",
+                level=messages.ERROR
+            )
+        return redirect('..')
+    
+    def clear_content_cache_view(self, request):
+        try:
+            from django.core.cache import cache
+            cache.delete('bennett_blog_data')
+            cache.delete('bennett_papers_data')
+            self.message_user(
+                request,
+                "Successfully cleared content cache",
+                level=messages.SUCCESS
+            )
+        except Exception as e:
+            self.message_user(
+                request,
+                f"Error clearing content cache: {str(e)}",
+                level=messages.ERROR
+            )
+        return redirect('..')
+    
+    def custom_changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['title'] = "Content Cache"
+        
+        self.message_user(
+            request, 
+            "Use the 'Refresh Content Cache' button to update blog posts and papers from Bennett Institute.",
+            level=messages.INFO
+        )
+        
+        from django.template.response import TemplateResponse
+        context = {
+            'opts': self.model._meta,
+            'app_label': self.model._meta.app_label,
+            'title': 'Content Cache',
+            'refresh_url': 'refresh-content-cache/',
+            'clear_url': 'clear-content-cache/',
+            **self.admin_site.each_context(request),
+            **(extra_context or {}),
+        }
+        return TemplateResponse(request, 'admin/viewer/contentcache/change_list.html', context)
+
+
+admin.site.register(ContentCache, ContentCacheAdmin)
