@@ -6,7 +6,7 @@ title: Data contents
 
 Stock control data is information collected from hospital pharmacy systems that is used to track and manage medicines use within hospitals. These systems support management of inventory levels, monitoring of medication usage and tracking of costs. 
 
-Unlike primary care prescribing data, hospital stock control data is not based on individual patient prescriptions. The data represents medication distribution within hospitals, such as issuing of medicines to wards or clinical areas, rather than actual patient-level prescribing. 
+Unlike primary care prescribing data, hospital stock control data is not based solely on individual patient prescriptions. Instead, it reflects how medications are distributed within hospitals. This can include medications supplied directly to patients – for example, upon discharge or via outpatient pharmacies – but also includes medications distributed to wards and clinical areas. Since not all medications issued from the stocks are ultimately administered, the data does not specifically detail the actual number of patients receiving the medication.
 
 ### Which medicines and devices are included?
 
