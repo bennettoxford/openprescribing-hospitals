@@ -21,7 +21,7 @@ WITH measure_vmps AS (
     LEFT JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
     LEFT JOIN viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
     LEFT JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
-    WHERE vmp != '34819111000001102' -- exclude Rivaroxaban 15mg tablets and Rivaroxaban 20mg tablets from the measure as no DDD
+    WHERE vmp.id != '34819111000001102' -- exclude Rivaroxaban 15mg tablets and Rivaroxaban 20mg tablets from the measure as no DDD
 )
 SELECT DISTINCT
     vmp.id as vmp_id,
@@ -37,4 +37,4 @@ WHERE vtm.vtm IN (
     '775732007', -- VTM code for edoxaban
     '13568411000001103'  -- VTM code for dabigatran
 )
-AND vmp != '34819111000001102' -- exclude Rivaroxaban 15mg tablets and Rivaroxaban 20mg tablets from the measure as no DDD
+AND vmp.id != '34819111000001102' -- exclude Rivaroxaban 15mg tablets and Rivaroxaban 20mg tablets from the measure as no DDD
