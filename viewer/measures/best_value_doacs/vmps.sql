@@ -17,9 +17,9 @@ SELECT DISTINCT
         ELSE 'denominator'
     END as vmp_type
 FROM viewer_vmp vmp
-LEFT JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
-LEFT JOIN viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
-LEFT JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
+INNER JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
+INNER JOIN viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
+INNER JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
 WHERE vtm.vtm IN (
     '774624002', -- VTM code for apixaban
     '777455008', -- VTM code for rivaroxaban
