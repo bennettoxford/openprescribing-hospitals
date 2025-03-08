@@ -140,6 +140,8 @@
             selectedItems: newSelectedItems,
             source: 'search'
         });
+        
+        isOpen = true;
     }
 
     function deselectAll() {
@@ -260,7 +262,13 @@
                             {isOpen ? 'rounded-tr-md' : 'rounded-r-md'} 
                             {disabled ? 'bg-gray-100' : ''} min-w-[120px]">
                     <div class="flex flex-col items-center text-xs text-gray-500 py-1 w-full">
-                        <span class="font-medium">{selectedItems.filter(item => isItemAvailable(item)).length}/{availableItems.length}</span>
+                        <span class="font-medium">
+                            {(() => {
+                                const selectedCount = groupedItems.selectedCount || 0;
+                                const totalAvailable = groupedItems.selectedCount + groupedItems.unselectedCount;
+                                return `${selectedCount}/${totalAvailable}`;
+                            })()}
+                        </span>
                         <span>{counterText}</span>
                     </div>
                 </div>
@@ -281,24 +289,37 @@
                                 class="w-full py-1.5 px-2 text-left flex justify-between items-center hover:bg-gray-100 transition-colors"
                                 on:click={() => toggleSection('selected')}
                             >
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-                    </div>
-                    
-                    {#if !selectedSectionCollapsed && groupedItems.selected.length > 0}
-                        {#each groupedItems.selected as item}
-                            <div 
-                                role="button"
-                                tabindex="0"
-                                class="p-2 transition duration-150 ease-in-out relative cursor-pointer
-                                      bg-oxford-100 text-oxford-500 hover:bg-oxford-200"
-                                on:click={() => toggleItem(item.name)}
-                                on:keypress={(e) => e.key === 'Enter' && toggleItem(item.name)}
-                            >
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-2">
-                                        <span>{item.name}</span>
+                                <span class="text-sm font-medium text-gray-700">
+                                    Selected {selectedItems.filter(item => isItemAvailable(item)).length === availableItems.length 
+                                        ? "(all selected)" 
+                                        : `(${groupedItems.selectedCount}/${groupedItems.selectedCount + groupedItems.unselectedCount})`}
+                                </span>
+                                <svg 
+                                    class="w-3.5 h-3.5 text-gray-500 transform transition-transform duration-200 {selectedSectionCollapsed ? '' : 'rotate-180'}"
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        {#if !selectedSectionCollapsed}
+                            {#each groupedItems.selected as item}
+                                <div 
+                                    role="button"
+                                    tabindex="0"
+                                    class="p-2 transition duration-150 ease-in-out relative cursor-pointer
+                                          bg-oxford-100 text-oxford-500 hover:bg-oxford-200"
+                                    on:click|stopPropagation={() => toggleItem(item.name)}
+                                    on:keypress={(e) => e.key === 'Enter' && toggleItem(item.name)}
+                                >
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <span>{item.name}</span>
+                                        </div>
+                                        <span class="ml-auto text-sm font-medium">Selected</span>
                                     </div>
                                     
                                     {#if item.predecessors.length > 0}
@@ -320,22 +341,24 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    {/each}
-                                {/if}
-                            </div>
-                        {/each}
+                                        {/each}
+                                    {/if}
+                                </div>
+                            {/each}
+                        {/if}
                     {/if}
                     
                     {#if groupedItems.unselected.length > 0}
-                        <div class="sticky top-0 z-10 bg-white border-b border-gray-100">
+                        <div class="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 shadow-sm">
                             <button 
-                                class="w-full py-1.5 px-2 text-left flex justify-between items-center hover:bg-gray-50 transition-colors"
+                                class="w-full py-1.5 px-2 text-left flex justify-between items-center hover:bg-gray-100 transition-colors"
                                 on:click={() => toggleSection('unselected')}
                             >
-                                <span class="text-sm text-gray-600">Unselected Trusts ({groupedItems.unselectedCount})</span>
+                                <span class="text-sm font-medium text-gray-700">
+                                    Not selected ({groupedItems.unselectedCount}/{groupedItems.selectedCount + groupedItems.unselectedCount})
+                                </span>
                                 <svg 
-                                    class="w-3.5 h-3.5 text-gray-400 transform transition-transform duration-200 {unselectedSectionCollapsed ? '' : 'rotate-180'}"
+                                    class="w-3.5 h-3.5 text-gray-500 transform transition-transform duration-200 {unselectedSectionCollapsed ? '' : 'rotate-180'}"
                                     fill="none" 
                                     stroke="currentColor" 
                                     viewBox="0 0 24 24"
@@ -351,7 +374,7 @@
                                     role="button"
                                     tabindex="0"
                                     class="p-2 transition duration-150 ease-in-out relative cursor-pointer hover:bg-gray-100"
-                                    on:click={() => toggleItem(item.name)}
+                                    on:click|stopPropagation={() => toggleItem(item.name)}
                                     on:keypress={(e) => e.key === 'Enter' && toggleItem(item.name)}
                                 >
                                     <div class="flex items-center justify-between">
@@ -387,14 +410,16 @@
                     {/if}
                     
                     {#if groupedItems.unselectable.length > 0}
-                        <div class="sticky top-0 z-10 bg-white border-b border-gray-100">
+                        <div class="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 shadow-sm">
                             <button 
-                                class="w-full py-1.5 px-2 text-left flex justify-between items-center hover:bg-gray-50 transition-colors"
+                                class="w-full py-1.5 px-2 text-left flex justify-between items-center hover:bg-gray-100 transition-colors"
                                 on:click={() => toggleSection('unselectable')}
                             >
-                                <span class="text-sm text-gray-400">Unselectable Trusts ({groupedItems.unselectableCount})</span>
+                                <span class="text-sm font-medium text-gray-700">
+                                    Not included ({groupedItems.unselectableCount})
+                                </span>
                                 <svg 
-                                    class="w-3.5 h-3.5 text-gray-400 transform transition-transform duration-200 {unselectableSectionCollapsed ? '' : 'rotate-180'}"
+                                    class="w-3.5 h-3.5 text-gray-500 transform transition-transform duration-200 {unselectableSectionCollapsed ? '' : 'rotate-180'}"
                                     fill="none" 
                                     stroke="currentColor" 
                                     viewBox="0 0 24 24"
