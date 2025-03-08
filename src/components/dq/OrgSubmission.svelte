@@ -449,6 +449,16 @@
                                 </div>
                             {/each}
                         </div>
+                        <div class="py-2 px-3 border-t border-gray-200 flex justify-end bg-gray-50">
+                            <button
+                                on:click={() => {
+                                    isFilterOpen = false;
+                                }}
+                                class="inline-flex justify-center items-center px-3 py-1.5 bg-oxford-50 text-oxford-600 rounded-md hover:bg-oxford-100 transition-colors duration-200 font-medium text-sm border border-oxford-200"
+                            >
+                                Done
+                            </button>
+                        </div>
                     </div>
                 {/if}
             </div>
