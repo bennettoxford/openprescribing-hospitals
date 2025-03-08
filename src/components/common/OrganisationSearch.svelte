@@ -256,23 +256,39 @@
                         </div>
                     {/each}
                 </ul>
-                {#if showScrollTop}
-                    <button
-                        on:click={() => {
-                            if (listContainer) {
-                                listContainer.scrollTo({ top: 0 });
-                            }
-                        }}
-                        class="p-2 bg-gray-100 border-t border-gray-200 flex items-center justify-center hover:bg-oxford-50 active:bg-oxford-100 cursor-pointer transition-colors duration-150 gap-2"
-                    >
-                        <span class="text-sm font-medium text-gray-700">
-                            Click to scroll to top
-                        </span>
-                        <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                        </svg>
-                    </button>
-                {/if}
+                
+                <div class="py-2 px-3 border-t border-gray-200 flex bg-gray-50">
+                    <div class="w-20"></div>
+                    
+                    <div class="flex-grow flex justify-center">
+                        {#if showScrollTop}
+                            <button
+                                on:click={() => {
+                                    if (listContainer) {
+                                        listContainer.scrollTo({ top: 0 });
+                                    }
+                                }}
+                                class="inline-flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-oxford-600 transition-colors"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                                </svg>
+                                Scroll to top
+                            </button>
+                        {/if}
+                    </div>
+                    
+                    <div class="w-20 flex justify-end">
+                        <button
+                            on:click={() => {
+                                isOpen = false;
+                            }}
+                            class="inline-flex justify-center items-center px-3 py-1.5 bg-oxford-50 text-oxford-600 rounded-md hover:bg-oxford-100 transition-colors duration-200 font-medium text-sm border border-oxford-200"
+                        >
+                            Done
+                        </button>
+                    </div>
+                </div>
             </div>
         {/if}
     </div>
