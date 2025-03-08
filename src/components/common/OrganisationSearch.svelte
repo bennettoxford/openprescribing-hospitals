@@ -35,6 +35,49 @@
     $: availableItems = Array.from($source.availableItems || []);
     $: showOrganisationSelection = $source.usedOrganisationSelection;
 
+    let selectedSectionCollapsed = false;
+    let unselectedSectionCollapsed = false;
+    let unselectableSectionCollapsed = true;
+ 
+    $: groupedItems = (() => {
+        const selected = [];
+        const unselected = [];
+        const unselectable = [];
+        
+        function countTotal(items) {
+            return items.reduce((count, item) => count + 1 + (item.predecessors?.length || 0), 0);
+        }
+        
+        filteredItems.forEach(item => {
+            if (isItemSelected(item.name)) {
+                selected.push(item);
+            } else if (isItemAvailable(item.name)) {
+                unselected.push(item);
+            } else {
+                unselectable.push(item);
+            }
+        });
+        
+        return { 
+            selected, 
+            unselected, 
+            unselectable,
+            selectedCount: countTotal(selected),
+            unselectedCount: countTotal(unselected),
+            unselectableCount: countTotal(unselectable)
+        };
+    })();
+    
+    function toggleSection(section) {
+        if (section === 'selected') {
+            selectedSectionCollapsed = !selectedSectionCollapsed;
+        } else if (section === 'unselected') {
+            unselectedSectionCollapsed = !unselectedSectionCollapsed;
+        } else if (section === 'unselectable') {
+            unselectableSectionCollapsed = !unselectableSectionCollapsed;
+        }
+    }
+
     function normalizeString(str) {
         return str
             .toLowerCase()
@@ -228,42 +271,166 @@
             <div class="absolute top-[calc(100%_-_1px)] left-0 right-0 bg-white border border-gray-300 
                         rounded-md rounded-t-none shadow-lg z-[996] flex flex-col max-h-72"
                  class:absolute={overlayMode}>
-                <ul class="flex-grow overflow-y-auto divide-y divide-gray-200"
+                <div class="flex-grow overflow-y-auto divide-y divide-gray-200"
                     bind:this={listContainer}
                     on:scroll={updateScrollButtonVisibility}>
-                    {#each filteredItems as item}
-                        <div class="p-2 transition duration-150 ease-in-out relative
-                                  {!isItemAvailable(item.name) ? 'text-gray-400 cursor-not-allowed' : 'cursor-pointer'}
-                                  {isItemSelected(item.name) ? 'bg-oxford-100 text-oxford-500' : ''}
-                                  {isItemSelected(item.name) ? 'hover:bg-oxford-200' : isItemAvailable(item.name) ? 'hover:bg-gray-100' : ''}"
-                             on:click={() => toggleItem(item.name)}>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    <span>{item.name}</span>
-                                </div>
-                                {#if isItemSelected(item.name)}
-                                    <span class="ml-auto text-sm font-medium">Selected</span>
-                                {/if}
-                            </div>
-                            {#if item.predecessors.length > 0}
-                                {#each item.predecessors as predecessor}
-                                    <div class="mt-1 pl-6 transition duration-150 ease-in-out relative text-sm
-                                              {!isItemAvailable(predecessor) ? 'text-gray-400 cursor-not-allowed' : ''}
-                                              {isItemSelected(predecessor) ? 'text-oxford-500' : ''}"
-                                         on:click|stopPropagation={() => toggleItem(predecessor)}>
-                                        <div class="flex items-center justify-between">
-                                            <div class="flex items-center">
-                                                <span class="mr-2">↳</span>
-                                                <span>{predecessor}</span>
-                                                <span class="mx-2 text-xs">(predecessor)</span>
+                    
+                    {#if groupedItems.selected.length > 0}
+                        <div class="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 shadow-sm">
+                            <button 
+                                class="w-full py-1.5 px-2 text-left flex justify-between items-center hover:bg-gray-100 transition-colors"
+                                on:click={() => toggleSection('selected')}
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    {#if !selectedSectionCollapsed && groupedItems.selected.length > 0}
+                        {#each groupedItems.selected as item}
+                            <div 
+                                role="button"
+                                tabindex="0"
+                                class="p-2 transition duration-150 ease-in-out relative cursor-pointer
+                                      bg-oxford-100 text-oxford-500 hover:bg-oxford-200"
+                                on:click={() => toggleItem(item.name)}
+                                on:keypress={(e) => e.key === 'Enter' && toggleItem(item.name)}
+                            >
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <span>{item.name}</span>
+                                    </div>
+                                    
+                                    {#if item.predecessors.length > 0}
+                                        {#each item.predecessors as predecessor}
+                                            <div 
+                                                role="button"
+                                                tabindex="0"
+                                                class="mt-1 pl-6 transition duration-150 ease-in-out relative text-sm
+                                                      {!isItemAvailable(predecessor) ? 'text-gray-400 cursor-not-allowed' : ''}
+                                                      {isItemSelected(predecessor) ? 'text-oxford-500' : ''}"
+                                                on:click|stopPropagation={() => toggleItem(predecessor)}
+                                                on:keypress|stopPropagation={(e) => e.key === 'Enter' && toggleItem(predecessor)}
+                                            >
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center">
+                                                        <span class="mr-2">↳</span>
+                                                        <span>{predecessor}</span>
+                                                        <span class="mx-2 text-xs">(predecessor)</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                {/each}
-                            {/if}
+                                    {/each}
+                                {/if}
+                            </div>
+                        {/each}
+                    {/if}
+                    
+                    {#if groupedItems.unselected.length > 0}
+                        <div class="sticky top-0 z-10 bg-white border-b border-gray-100">
+                            <button 
+                                class="w-full py-1.5 px-2 text-left flex justify-between items-center hover:bg-gray-50 transition-colors"
+                                on:click={() => toggleSection('unselected')}
+                            >
+                                <span class="text-sm text-gray-600">Unselected Trusts ({groupedItems.unselectedCount})</span>
+                                <svg 
+                                    class="w-3.5 h-3.5 text-gray-400 transform transition-transform duration-200 {unselectedSectionCollapsed ? '' : 'rotate-180'}"
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
                         </div>
-                    {/each}
-                </ul>
+                        
+                        {#if !unselectedSectionCollapsed}
+                            {#each groupedItems.unselected as item}
+                                <div 
+                                    role="button"
+                                    tabindex="0"
+                                    class="p-2 transition duration-150 ease-in-out relative cursor-pointer hover:bg-gray-100"
+                                    on:click={() => toggleItem(item.name)}
+                                    on:keypress={(e) => e.key === 'Enter' && toggleItem(item.name)}
+                                >
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <span>{item.name}</span>
+                                        </div>
+                                    </div>
+
+                                    {#if item.predecessors.length > 0}
+                                        {#each item.predecessors as predecessor}
+                                            <div 
+                                                role="button"
+                                                tabindex="0"
+                                                class="mt-1 pl-6 transition duration-150 ease-in-out relative text-sm
+                                                      {!isItemAvailable(predecessor) ? 'text-gray-400 cursor-not-allowed' : ''}
+                                                      {isItemSelected(predecessor) ? 'text-oxford-500' : ''}"
+                                                on:click|stopPropagation={() => toggleItem(predecessor)}
+                                                on:keypress|stopPropagation={(e) => e.key === 'Enter' && toggleItem(predecessor)}
+                                            >
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center">
+                                                        <span class="mr-2">↳</span>
+                                                        <span>{predecessor}</span>
+                                                        <span class="mx-2 text-xs">(predecessor)</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {/each}
+                                    {/if}
+                                </div>
+                            {/each}
+                        {/if}
+                    {/if}
+                    
+                    {#if groupedItems.unselectable.length > 0}
+                        <div class="sticky top-0 z-10 bg-white border-b border-gray-100">
+                            <button 
+                                class="w-full py-1.5 px-2 text-left flex justify-between items-center hover:bg-gray-50 transition-colors"
+                                on:click={() => toggleSection('unselectable')}
+                            >
+                                <span class="text-sm text-gray-400">Unselectable Trusts ({groupedItems.unselectableCount})</span>
+                                <svg 
+                                    class="w-3.5 h-3.5 text-gray-400 transform transition-transform duration-200 {unselectableSectionCollapsed ? '' : 'rotate-180'}"
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        {#if !unselectableSectionCollapsed}
+                            {#each groupedItems.unselectable as item}
+                                <div class="p-2 transition duration-150 ease-in-out relative text-gray-400 cursor-not-allowed">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <span>{item.name}</span>
+                                        </div>
+                                    </div>
+       
+                                    {#if item.predecessors.length > 0}
+                                        {#each item.predecessors as predecessor}
+                                            <div class="mt-1 pl-6 transition duration-150 ease-in-out relative text-sm text-gray-400 cursor-not-allowed">
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center">
+                                                        <span class="mr-2">↳</span>
+                                                        <span>{predecessor}</span>
+                                                        <span class="mx-2 text-xs">(predecessor)</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {/each}
+                                    {/if}
+                                </div>
+                            {/each}
+                        {/if}
+                    {/if}
+                </div>
                 
                 <div class="py-2 px-3 border-t border-gray-200 flex bg-gray-50">
                     <div class="w-20"></div>
@@ -302,13 +469,3 @@
     </div>
 </div>
 
-<style>
-    .unavailable {
-        color: #999;
-        cursor: not-allowed;
-    }
-
-    .text-gray-400 {
-        cursor: not-allowed;
-    }
-</style>
