@@ -381,7 +381,15 @@
                                                 </svg>
                                             </button>
                                             <span>{region.region}</span>
-                                            <span class="text-sm text-gray-500 ml-auto">({region.icbs.length} ICBs)</span>
+                                            <span class="text-sm text-gray-500 ml-auto">
+                                                ({(() => {
+                                                    if (selectedRegions.has(region.region)) {
+                                                        return `${region.icbs.length}/${region.icbs.length}`;
+                                                    }
+                                                    const selectedCount = region.icbs.filter(icb => selectedICBs.has(icb)).length;
+                                                    return `${selectedCount}/${region.icbs.length}`;
+                                                })()} ICBs)
+                                            </span>
                                         </div>
                                         {#if selectedRegions.has(region.region)}
                                             <span class="ml-2 text-sm font-medium">Selected</span>
