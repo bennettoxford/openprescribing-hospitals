@@ -59,10 +59,18 @@
             return matchesMain || matchesPredecessor;
         })
         .sort((a, b) => {
-            if (isItemSelected(a.name) === isItemSelected(b.name)) {
-                return 0;
+            if (isItemSelected(a.name) !== isItemSelected(b.name)) {
+                return isItemSelected(a.name) ? -1 : 1;
             }
-            return isItemSelected(a.name) ? -1 : 1;
+            
+            const aSelectable = isItemAvailable(a.name);
+            const bSelectable = isItemAvailable(b.name);
+            
+            if (!isItemSelected(a.name) && !isItemSelected(b.name) && aSelectable !== bSelectable) {
+                return aSelectable ? -1 : 1;
+            }
+        
+            return a.name.localeCompare(b.name);
         });
 
     $: isItemSelected = (item) => {
