@@ -123,6 +123,16 @@
 
     function toggleFilter() {
         isFilterOpen = !isFilterOpen;
+
+        if (isFilterOpen && selectedICBs.size > 0) {
+            parsedRegionsHierarchy.forEach(region => {
+                const hasSelectedICBs = region.icbs.some(icb => selectedICBs.has(icb));
+                if (hasSelectedICBs) {
+                    expandedRegions.add(region.region);
+                }
+            });
+            expandedRegions = expandedRegions;
+        }
     }
 
     function handleClickOutside(event) {
