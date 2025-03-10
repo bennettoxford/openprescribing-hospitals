@@ -38,7 +38,13 @@
     let selectedSectionCollapsed = false;
     let unselectedSectionCollapsed = false;
     let unselectableSectionCollapsed = true;
- 
+
+    $: if (!isOpen) {
+        selectedSectionCollapsed = false;
+        unselectedSectionCollapsed = false;
+        unselectableSectionCollapsed = true;
+    }
+
     $: groupedItems = (() => {
         const selected = [];
         const unselected = [];
