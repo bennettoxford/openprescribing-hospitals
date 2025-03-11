@@ -26,4 +26,4 @@ WHERE vtm.vtm IN (
     '775732007', -- VTM code for edoxaban
     '13568411000001103'  -- VTM code for dabigatran
 )
-AND vmp.id != '34819111000001102' -- exclude Rivaroxaban 15mg tablets and Rivaroxaban 20mg tablets from the measure as no DDD
+AND vmp.id != '34819111000001102' -- exclude "Rivaroxaban 15mg tablets and Rivaroxaban 20mg tablets" (initiation pack) from the measure as no DDD
