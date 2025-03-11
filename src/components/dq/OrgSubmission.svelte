@@ -123,6 +123,16 @@
 
     function toggleFilter() {
         isFilterOpen = !isFilterOpen;
+
+        if (isFilterOpen && selectedICBs.size > 0) {
+            parsedRegionsHierarchy.forEach(region => {
+                const hasSelectedICBs = region.icbs.some(icb => selectedICBs.has(icb));
+                if (hasSelectedICBs) {
+                    expandedRegions.add(region.region);
+                }
+            });
+            expandedRegions = expandedRegions;
+        }
     }
 
     function handleClickOutside(event) {
@@ -371,7 +381,15 @@
                                                 </svg>
                                             </button>
                                             <span>{region.region}</span>
-                                            <span class="text-sm text-gray-500 ml-auto">({region.icbs.length} ICBs)</span>
+                                            <span class="text-sm text-gray-500 ml-auto">
+                                                ({(() => {
+                                                    if (selectedRegions.has(region.region)) {
+                                                        return `${region.icbs.length}/${region.icbs.length}`;
+                                                    }
+                                                    const selectedCount = region.icbs.filter(icb => selectedICBs.has(icb)).length;
+                                                    return `${selectedCount}/${region.icbs.length}`;
+                                                })()} ICBs)
+                                            </span>
                                         </div>
                                         {#if selectedRegions.has(region.region)}
                                             <span class="ml-2 text-sm font-medium">Selected</span>
@@ -430,6 +448,16 @@
                                     {/if}
                                 </div>
                             {/each}
+                        </div>
+                        <div class="py-2 px-3 border-t border-gray-200 flex justify-end bg-gray-50">
+                            <button
+                                on:click={() => {
+                                    isFilterOpen = false;
+                                }}
+                                class="inline-flex justify-center items-center px-3 py-1.5 bg-oxford-50 text-oxford-600 rounded-md hover:bg-oxford-100 transition-colors duration-200 font-medium text-sm border border-oxford-200"
+                            >
+                                Done
+                            </button>
                         </div>
                     </div>
                 {/if}
