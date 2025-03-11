@@ -7,4 +7,4 @@ python manage.py migrate
 
 # Start server using gunicorn
 echo "Starting server..."
-exec gunicorn --bind 0.0.0.0:8000 --timeout 90 demo.wsgi:application
+exec gunicorn --bind 0.0.0.0:8000 --timeout 180 demo.wsgi:application
