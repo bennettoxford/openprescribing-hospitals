@@ -1,11 +1,8 @@
 SELECT DISTINCT
     vmp.id as vmp_id,
     CASE 
-        WHEN (
-            vtm.vtm = '773245005' -- VTM for doxazosin
-            AND
-            ofr.name = 'tabletmodified-release.oral' -- only oral MR tablet formulations in numerator
-        ) THEN 'numerator'
+        WHEN  ofr.name = 'tabletmodified-release.oral' -- only oral MR tablet formulations in numerator
+        THEN 'numerator'
         ELSE 'denominator'
     END as vmp_type
 FROM viewer_vmp vmp
