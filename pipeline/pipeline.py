@@ -5,6 +5,7 @@ from import_unit_conversion import import_unit_conversion_flow
 from import_organisations import import_organisations
 from import_org_ae_status import import_ae_status
 from import_adm_route_mapping import import_adm_route_mapping_flow
+from import_dmd import import_dmd
 from import_atc_ddd import import_ddd_atc_flow
 @flow(name="SCMD Import Pipeline")
 def scmd_pipeline():
@@ -16,6 +17,7 @@ def scmd_pipeline():
     import_ae_status()
     import_adm_route_mapping_flow()
     import_ddd_atc_flow()
+    import_dmd()
     logger.info("SCMD Import Pipeline completed")
     
 if __name__ == "__main__":
