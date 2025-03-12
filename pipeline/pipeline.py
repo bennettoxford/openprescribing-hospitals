@@ -7,6 +7,7 @@ from import_scmd import scmd_import
 from import_org_ae_status import import_ae_status
 from import_adm_route_mapping import import_adm_route_mapping_flow
 from import_dmd import import_dmd
+from import_dmd_supp import import_dmd_supp_flow
 from process_scmd import process_scmd
 from calculate_doses import calculate_doses
 from calculate_ingredient_quantity import calculate_ingredient_quantity
@@ -24,6 +25,7 @@ def scmd_pipeline():
     import_adm_route_mapping_flow()
     import_ddd_atc_flow()
     import_dmd()
+    import_dmd_supp_flow()
     scmd_import()
     process_scmd()
     calculate_doses()
