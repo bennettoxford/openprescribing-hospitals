@@ -9,6 +9,7 @@ from import_adm_route_mapping import import_adm_route_mapping_flow
 from import_dmd import import_dmd
 from process_scmd import process_scmd
 from calculate_doses import calculate_doses
+from calculate_ingredient_quantity import calculate_ingredient_quantity
 from import_atc_ddd import import_ddd_atc_flow
 @flow(name="SCMD Import Pipeline")
 def scmd_pipeline():
@@ -24,6 +25,7 @@ def scmd_pipeline():
     scmd_import()
     process_scmd()
     calculate_doses()
+    calculate_ingredient_quantity()
     logger.info("SCMD Import Pipeline completed")
     
 if __name__ == "__main__":
