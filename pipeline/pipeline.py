@@ -11,6 +11,8 @@ from process_scmd import process_scmd
 from calculate_doses import calculate_doses
 from calculate_ingredient_quantity import calculate_ingredient_quantity
 from import_atc_ddd import import_ddd_atc_flow
+from vmp_ddd_mapping import create_vmp_ddd_mapping
+
 @flow(name="SCMD Import Pipeline")
 def scmd_pipeline():
     logger = get_run_logger()
@@ -26,6 +28,7 @@ def scmd_pipeline():
     process_scmd()
     calculate_doses()
     calculate_ingredient_quantity()
+    create_vmp_ddd_mapping()
     logger.info("SCMD Import Pipeline completed")
     
 if __name__ == "__main__":
