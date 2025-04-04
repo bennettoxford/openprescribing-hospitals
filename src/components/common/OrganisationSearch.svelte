@@ -270,8 +270,8 @@
                     <div class="flex flex-col items-center text-xs text-gray-500 py-1 w-full">
                         <span class="font-medium">
                             {(() => {
-                                const selectedCount = groupedItems.selectedCount || 0;
-                                const totalAvailable = groupedItems.selectedCount + groupedItems.unselectedCount;
+                                const selectedCount = selectedItems.filter(item => isItemAvailable(item)).length;
+                                const totalAvailable = Array.from($source.availableItems).length;
                                 return `${selectedCount}/${totalAvailable}`;
                             })()}
                         </span>
