@@ -40,7 +40,8 @@ from .models import (
     DataStatus,
     SCMDQuantity,
     DDDQuantity,
-    MeasureTag
+    MeasureTag,
+    Dose
 )
 
 
@@ -862,6 +863,7 @@ class ProductDetailsView(TemplateView):
             example_ddd = None
             example_month = None
             example_ingredients = []
+            example_dose = None
 
             if valid_quantity and valid_quantity.data:
                 example_month = valid_quantity.data[0][0]
@@ -870,6 +872,18 @@ class ProductDetailsView(TemplateView):
                     'quantity': valid_quantity.data[0][1],
                     'unit': valid_quantity.data[0][2]
                 }
+
+                dose_quantity = Dose.objects.filter(
+                    vmp=vmp,
+                    organisation=valid_quantity.organisation,
+                    data__0__0=example_month
+                ).first()
+
+                if dose_quantity and dose_quantity.data:
+                    example_dose = {
+                        'quantity': dose_quantity.data[0][1],
+                        'unit': dose_quantity.data[0][2]
+                    }
 
                 ingredient_quantities = IngredientQuantity.objects.filter(
                     vmp=vmp,
@@ -911,7 +925,8 @@ class ProductDetailsView(TemplateView):
                 'example_quantity': example_quantity,
                 'example_ingredient': example_ingredient,
                 'example_ddd': example_ddd,
-                'example_ingredients': example_ingredients
+                'example_ingredients': example_ingredients,
+                'example_dose': example_dose
             })
         
         context.update({
