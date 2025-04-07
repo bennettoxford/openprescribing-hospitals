@@ -15,14 +15,9 @@ class VTM(models.Model):
             models.Index(fields=["vtm"]),
         ]
 
-class Route(models.Model):
+class WHORoute(models.Model):
     code = models.CharField(max_length=30, unique=True)
     name = models.CharField(max_length=255, unique=True)
-
-    def save(self, *args, **kwargs):
-        if not self.slug and self.name:
-            self.slug = slugify(self.name)
-        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -35,14 +30,13 @@ class Route(models.Model):
 class VMP(models.Model):
     code = models.CharField(max_length=30, unique=True)
     name = models.CharField(max_length=255)
-    form = models.CharField(max_length=255, null=True)
     vtm = models.ForeignKey(
         VTM, on_delete=models.CASCADE, related_name="vmps", null=True
     )
     ingredients = models.ManyToManyField(
         "Ingredient", related_name="vmps")
     ont_form_routes = models.ManyToManyField("OntFormRoute", related_name="vmps")
-    routes = models.ManyToManyField("Route", related_name="vmps")
+    who_routes = models.ManyToManyField("WHORoute", related_name="vmps")
     atcs = models.ManyToManyField("ATC", related_name="vmps")
 
     def __str__(self):
@@ -58,15 +52,15 @@ class DDD(models.Model):
     vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name="ddds")
     ddd = models.FloatField()
     unit_type = models.CharField(max_length=255)
-    route = models.ForeignKey(Route, on_delete=models.CASCADE, related_name="ddds")
+    who_route = models.ForeignKey(WHORoute, on_delete=models.CASCADE, related_name="ddds")
 
     def __str__(self):
-        return f"{self.vmp.name} - {self.ddd} {self.unit_type} - {self.route.name}"
+        return f"{self.vmp.name} - {self.ddd} {self.unit_type} - {self.who_route.name}"
     
     class Meta:
         indexes = [
             models.Index(fields=["vmp"]),
-            models.Index(fields=["vmp", "route"]),
+            models.Index(fields=["vmp", "who_route"]),
         ]
 
 class ATC(models.Model):
@@ -108,6 +102,9 @@ class ATC(models.Model):
             self.level = 2
             parent_code = None
         
+        else:
+            parent_code = None
+        
         # If we have a parent code, try to find the parent
         if parent_code:
             try:
@@ -137,6 +134,7 @@ class ATC(models.Model):
 
 class OntFormRoute(models.Model):
     name = models.CharField(max_length=255)
+    who_route = models.ForeignKey(WHORoute, on_delete=models.CASCADE, related_name="ont_form_routes", null=True)
 
     def __str__(self):
         return f"{self.name}"
@@ -461,7 +459,7 @@ class PrecomputedPercentile(models.Model):
         return f"{self.measure.name} - {self.month} - {self.percentile}th percentile"
 
 class DataStatus(models.Model):
-    year_month = models.DateField()
+    year_month = models.DateField(unique=True)
     file_type = models.CharField(max_length=255)
 
 class ContentCache(models.Model):

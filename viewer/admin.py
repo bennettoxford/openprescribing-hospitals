@@ -12,7 +12,7 @@ from .models import (
     IngredientQuantity,
     Measure,
     MeasureTag,
-    Route,
+    WHORoute,
     ContentCache,
 )
 
@@ -274,8 +274,8 @@ class MeasureTagAdmin(admin.ModelAdmin):
     search_fields = ("name", "colour")
 
 
-@admin.register(Route)
-class RouteAdmin(admin.ModelAdmin):
+@admin.register(WHORoute)
+class WHORouteAdmin(admin.ModelAdmin):
     list_display = ("code", "name")
     search_fields = ("code", "name")
 
