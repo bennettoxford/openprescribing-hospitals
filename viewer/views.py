@@ -818,7 +818,8 @@ class ProductDetailsView(TemplateView):
         vmps = VMP.objects.select_related('vtm').prefetch_related(
             'ingredients',
             'ddds',
-            'routes'
+            'ont_form_routes',
+            'who_routes'
         )
         
         if search_term:
@@ -838,7 +839,6 @@ class ProductDetailsView(TemplateView):
         
         products = []
         for vmp in vmps:
-
             ingredient_names = ", ".join([i.name for i in vmp.ingredients.all()])
 
             ddd_value = None
@@ -847,7 +847,7 @@ class ProductDetailsView(TemplateView):
                 ddd_value = {
                     'ddd': ddd.ddd,
                     'unit_type': ddd.unit_type,
-                    'route': ddd.route.name
+                    'route': ddd.who_route.name
                 }
 
             valid_quantity = SCMDQuantity.objects.filter(
@@ -861,6 +861,7 @@ class ProductDetailsView(TemplateView):
             example_ingredient = None
             example_ddd = None
             example_month = None
+            example_ingredients = []
 
             if valid_quantity and valid_quantity.data:
                 example_month = valid_quantity.data[0][0]
@@ -876,7 +877,6 @@ class ProductDetailsView(TemplateView):
                     data__0__0=example_month
                 ).select_related('ingredient')
 
-                example_ingredients = []
                 if ingredient_quantities:
                     for ing_quantity in ingredient_quantities:
                         if ing_quantity.data:
@@ -904,7 +904,8 @@ class ProductDetailsView(TemplateView):
                 'vmp_code': vmp.code,
                 'vtm_name': vmp.vtm.name if vmp.vtm else None,
                 'vtm_code': vmp.vtm.vtm if vmp.vtm else None,
-                'routes': [route.name for route in vmp.routes.all()],
+                'routes': [route.name for route in vmp.ont_form_routes.all()],
+                'who_routes': [route.name for route in vmp.who_routes.all()],
                 'ingredient_names': ingredient_names,
                 'ddd_value': ddd_value,
                 'example_quantity': example_quantity,

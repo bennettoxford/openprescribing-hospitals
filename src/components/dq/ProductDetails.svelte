@@ -90,6 +90,7 @@
           <th class="px-6 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-[300px] min-w-[200px]">VMP</th>
           <th class="px-6 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-[300px] min-w-[200px]">VTM</th>
           <th class="px-6 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-[150px] min-w-[120px]">Routes</th>
+          <th class="px-6 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-[150px] min-w-[120px]">WHO Routes</th>
           <th class="px-6 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-[150px] min-w-[120px]">VMP Quantity</th>
           <th class="px-6 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-[150px] min-w-[120px]">Ingredient Quantity</th>
           <th class="px-6 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-[150px] min-w-[120px]">DDD Quantity</th>
@@ -119,6 +120,9 @@
             </td>
             <td class="px-6 py-4 text-sm max-w-[150px] min-w-[120px] break-words">
               {product.routes?.join(', ') || 'N/A'}
+            </td>
+            <td class="px-6 py-4 text-sm max-w-[150px] min-w-[120px] break-words">
+              {product.who_routes?.join(', ') || 'N/A'}
             </td>
             <td class="px-6 py-4 text-sm max-w-[150px] min-w-[120px] break-words">{formatQuantity(product.example_quantity)}</td>
             <td class="px-6 py-4 max-w-[150px] min-w-[120px]">
