@@ -74,7 +74,6 @@ class LoginView(AuthLoginView):
     template_name = 'login.html'
     form_class = LoginForm
 
-@method_decorator(login_required, name='dispatch')
 class AnalyseView(TemplateView):
     template_name = "analyse.html"
 
