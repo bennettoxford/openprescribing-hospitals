@@ -383,7 +383,7 @@ def filtered_quantities(request):
         base_vmps = VMP.objects.filter(
             id__in=vmp_ids
         ).select_related('vtm').annotate(
-            route_list=ArrayAgg('routes__name', distinct=True),
+            route_list=ArrayAgg('who_routes__name', distinct=True),
             ingredient_names=ArrayAgg('ingredients__name', distinct=True),
             ingredient_codes=ArrayAgg('ingredients__code', distinct=True)
         ).values(
@@ -425,7 +425,7 @@ def filtered_quantities(request):
                     'vmp__code': item.vmp.code,
                     'vmp__name': item.vmp.name,
                     'vmp__vtm__name': item.vmp.vtm.name if item.vmp.vtm else None,
-                    'routes': [route.name for route in item.vmp.routes.all()],
+                    'routes': [route.name for route in item.vmp.who_routes.all()],
                     'ingredient_names': [ing.name for ing in item.vmp.ingredients.all()],
                     'ingredient_codes': [ing.code for ing in item.vmp.ingredients.all()],
                     'organisation__ods_code': item.organisation.ods_code,
