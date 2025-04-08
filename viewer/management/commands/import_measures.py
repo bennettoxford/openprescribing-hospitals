@@ -41,7 +41,7 @@ class Command(BaseCommand):
                 continue
                             
             try:
-                with open(yaml_file) as f:
+                with open(yaml_file, 'r', encoding='utf-8') as f:
                     data = yaml.safe_load(f)
             except yaml.YAMLError as e:
                 self.stdout.write(

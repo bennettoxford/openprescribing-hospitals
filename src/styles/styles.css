@@ -24,6 +24,15 @@
   .markdown-content {
     @apply max-w-none [&_p]:text-lg [&_p]:text-gray-900 [&_p]:mb-8 [&_a]:underline [&_a]:link-oxford;
   }
+  .markdown-content ul {
+    @apply list-disc pl-12 mb-8 text-lg text-gray-900 ml-4;
+  }
+  .markdown-content ol {
+    @apply list-decimal pl-12 mb-8 text-lg text-gray-900 ml-4;
+  }
+  .markdown-content li {
+    @apply mb-2 last:mb-0;
+  }
   .markdown-content blockquote {
     @apply px-6 py-2 border-l-4 border-gray-300 my-4;
   }
