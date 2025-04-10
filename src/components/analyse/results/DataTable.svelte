@@ -5,6 +5,7 @@
 
 <script>
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
+    import { formatNumber } from '../../../utils/utils';
 
     export let data = [];
     export let quantityType = 'VMP Quantity';
@@ -125,10 +126,6 @@
     }
 
     $: groupedData = processData(data, quantityType, searchType, selectedPeriod);
-
-    function formatNumber(number) {
-        return Math.round(number).toLocaleString('en-GB');
-    }
 
     function formatDate(dateStr) {
         if (!dateStr) return '';

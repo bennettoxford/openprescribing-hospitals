@@ -14,6 +14,7 @@
     import ModeSelector from '../../common/ModeSelector.svelte';
     import { createChartStore } from '../../../stores/chartStore';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
+    import { formatNumber } from '../../../utils/utils';
 
     export let className = '';
     export let isAnalysisRunning;
@@ -31,6 +32,7 @@
         { value: 'icb', label: 'ICB' }
     ];
 
+ 
     const resultsChartStore = createChartStore({
         mode: 'trust',
         yAxisLabel: 'units',
@@ -71,18 +73,6 @@
         return colorMappings.get(key);
     }
 
-    function formatAxisValue(value, maxValue) {
-        if (value === 0) return '0';
-        
-        if (maxValue >= 1000000) {
-            return `${(value / 1000000).toFixed(1)}m`;
-        } else if (maxValue >= 1000) {
-            return `${(value / 1000).toFixed(1)}k`;
-        }
-        
-        return value.toFixed(0);
-    }
-
     let datasets = [];
 
     function processChartData(data) {
@@ -119,20 +109,6 @@
             ...($resultsChartStore.config || {}),
             yAxisLabel: combinedUnits || 'units'
         });
-
-        function formatLargeNumber(value) {
-            if (value === 0) return `0 ${combinedUnits}`;
-            
-            const unit = maxValue >= 1000000 ? 'm' : 
-                        maxValue >= 1000 ? 'k' : 
-                        '';
-            
-            const scaledValue = unit === 'm' ? value / 1000000 :
-                               unit === 'k' ? value / 1000 :
-                               value;
-            
-            return `${scaledValue.toFixed(1).replace(/\.0$/, '')}${unit} ${combinedUnits}`;
-        }
 
         const allDates = [...new Set(data.flatMap(item => 
             item.data.map(([date]) => date)
@@ -522,16 +498,9 @@
                     }
                 }
                 
-                // Format with k/m suffix if needed
-                if (maxValue >= 1000000) {
-                    return `${(value / 1000000).toFixed(Math.min(decimals, 1))}m`;
-                } else if (maxValue >= 1000) {
-                    return `${(value / 1000).toFixed(Math.min(decimals, 1))}k`;
-                }
-                
-                return value.toFixed(decimals);
+                return formatNumber(value, { maxDecimals: decimals });
             },
-            tooltipValueFormat: value => formatLargeNumber(value, combinedUnits)
+            tooltipValueFormat: value => formatNumber(value, { showUnit: true, unit: combinedUnits })
         };
 
         const chartData = {
@@ -830,36 +799,19 @@
         const tooltipContent = [
             { text: label, class: 'font-medium' },
             { label: 'Date', value: date },
-            { label: 'Value', value: `${formatLargeNumber(value)} ${unit}` }
+            { label: 'Value', value: `${formatNumber(value)} ${unit}` }
         ];
 
         if (d.dataset.isOrganisation || d.dataset.isProduct || d.dataset.isProductGroup) {
             if (d.dataset.numerator !== undefined && d.dataset.denominator !== undefined) {
                 tooltipContent.push(
-                    { label: 'Numerator', value: formatNumber(d.dataset.numerator[d.index]) },
-                    { label: 'Denominator', value: formatNumber(d.dataset.denominator[d.index]) }
+                    { label: 'Numerator', value: formatNumber(d.dataset.numerator[d.index], { addCommas: true }) },
+                    { label: 'Denominator', value: formatNumber(d.dataset.denominator[d.index], { addCommas: true }) }
                 );
             }
         }
 
         return tooltipContent;
-    }
-
-    function formatLargeNumber(value) {
-        if (value === 0) return '0';
-        
-        if (value >= 1000000) {
-            return `${(value / 1000000).toFixed(1)}m`;
-        } else if (value >= 1000) {
-            return `${(value / 1000).toFixed(1)}k`;
-        }
-        
-        return value.toFixed(1);
-    }
-
-    function formatNumber(value) {
-        if (value == null || isNaN(value)) return 'N/A';
-        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
     function hasChartableData(data) {
