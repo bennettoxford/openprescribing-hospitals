@@ -36,8 +36,6 @@
                     const parsedData = typeof orgData === 'string' ? JSON.parse(orgData) : orgData;
                     organisationSearchStore.setItems(parsedData.items);
                     organisationSearchStore.setAvailableItems(parsedData.items);
-                    // Set all organizations as selected by default
-                    organisationSearchStore.updateSelection(parsedData.items);
                 } catch (error) {
                     console.error('Error parsing ODS data:', error);
                 }
