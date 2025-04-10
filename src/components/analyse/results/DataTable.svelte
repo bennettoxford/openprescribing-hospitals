@@ -256,7 +256,7 @@
                                 <tr class="border-b border-gray-200 hover:bg-gray-100">
                                     <td class="py-3 px-6 text-left">{unitData.unit}</td>
                                     <td class="py-3 px-6 text-right">
-                                        {formatNumber(unitData.quantity)}
+                                        {formatNumber(unitData.quantity, unitData.unit)}
                                     </td>
                                 </tr>
                             {/each}
