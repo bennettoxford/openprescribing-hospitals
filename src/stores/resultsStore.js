@@ -32,7 +32,6 @@ function processAnalysisData(data) {
                     code: item.vmp__code,
                     name: item.vmp__name,
                     vtm: item.vmp__vtm__name,
-                    routes: item.routes || [],
                     ingredients: item.ingredient_names || [],
                     ingredient_codes: item.ingredient_codes || [],
                     organisations: {}
@@ -68,7 +67,6 @@ function processAnalysisData(data) {
                     code: item.vmp__code,
                     name: item.vmp__name,
                     vtm: item.vmp__vtm__name,
-                    routes: item.routes || [],
                     ingredients: item.ingredient_names || [],
                     ingredient_codes: item.ingredient_codes || [],
                     data: timeSeriesData

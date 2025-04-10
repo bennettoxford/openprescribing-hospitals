@@ -291,42 +291,6 @@
                 .flatMap(unit => unit.data)
                 .filter(v => v !== null && !isNaN(v)));
 
-        } else if ($modeSelectorStore.selectedMode === 'route') {
-            const routeData = {};
-            data.forEach(item => {
-                const routes = item.routes || ['Unknown'];
-                routes.forEach(route => {
-                    if (!routeData[route]) {
-                        routeData[route] = {
-                            data: new Array(allDates.length).fill(0)
-                        };
-                    }
-                    
-                    item.data.forEach(([date, value]) => {
-                        const dateIndex = allDates.indexOf(date);
-                        if (dateIndex !== -1) {
-                            const numValue = parseFloat(value);
-                            if (!isNaN(numValue)) {
-                                routeData[route].data[dateIndex] += numValue / routes.length;
-                            }
-                        }
-                    });
-                });
-            });
-
-            datasets = Object.entries(routeData)
-                .filter(([_, { data }]) => data.some(v => v > 0))
-                .map(([route, { data }], index) => ({
-                    label: route,
-                    data: data,
-                    color: getConsistentColor(route, index),
-                    strokeOpacity: 1,
-                    isRoute: true
-                }));
-
-            maxValue = Math.max(...Object.values(routeData)
-                .flatMap(route => route.data)
-                .filter(v => v !== null && !isNaN(v)));
         } else if ($modeSelectorStore.selectedMode === 'ingredient') {
             const ingredientData = {};
             data.forEach(item => {
@@ -536,7 +500,6 @@
                         code: item.vmp__code,
                         vtm: item.vmp__vtm__name,
                         ingredients: item.ingredient_names || [],
-                        routes: item.routes || [],
                         units: new Set(),
                         searchType: data.searchType || $analyseOptions.searchType
                     };
@@ -556,7 +519,6 @@
                 .map(vmp => ({
                     ...vmp,
                     unit: vmp.units.size > 0 ? Array.from(vmp.units).join(', ') : 'nan',
-                    routes: Array.isArray(vmp.routes) ? vmp.routes : []
                 }));
 
             filteredData = selectedData;
@@ -592,7 +554,6 @@
                     name: item.vmp__name,
                     code: item.vmp__code,
                     vtm: item.vmp__vtm__name,
-                    routes: item.routes || [],
                     ingredients: item.ingredient_names || [],
                     data: Array.isArray(item.data) ? item.data.map(([date, quantity, unit]) => ({
                         date,
@@ -720,14 +681,6 @@
         );
         if (uniqueUnits.size > 1) {
             viewModes.push({ value: 'unit', label: 'Unit' });
-        }
-
-        const uniqueRoutes = new Set(
-            vmps.flatMap(vmp => vmp.routes)
-                .filter(route => route && route !== '-' && route !== 'nan')
-        );
-        if (uniqueRoutes.size > 1) {
-            viewModes.push({ value: 'route', label: 'Route' });
         }
     }
 
