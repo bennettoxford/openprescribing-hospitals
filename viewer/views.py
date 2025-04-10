@@ -407,7 +407,7 @@ def filtered_quantities(request):
         quantity_model = {
             "VMP Quantity": SCMDQuantity,
             "Ingredient Quantity": IngredientQuantity,
-            "DDD": DDDQuantity
+            "Daily Defined Doses": DDDQuantity
         }.get(quantity_type)
 
         if quantity_model:
