@@ -686,25 +686,6 @@
 
     }
 
-    function handleVisibilityChange(items) {
-        updateVisibleItems(items);
-    }
-
-    $: legendItems = $modeSelectorStore.selectedMode === 'organisation' ? 
-        datasets?.map((dataset, index) => ({
-            label: dataset.label,
-            color: dataset.color
-        })) || [] :
-        $modeSelectorStore.selectedMode === 'product' ?
-        datasets?.map((dataset, index) => ({
-            label: dataset.label,
-            color: dataset.color
-        })) || [] :
-        datasets?.map(dataset => ({
-            label: dataset.label,
-            color: dataset.color
-        })) || [];
-
     function handleModeChange() {
         const dataToProcess = filteredData.length > 0 ? filteredData : selectedData;
         processChartData(
@@ -860,11 +841,3 @@
         </div>
     </div>
 {/if}
-
-<style>
-    @media (max-width: 1024px) {
-        .legend-container {
-            max-height: 200px;
-        }
-    }
-</style>
