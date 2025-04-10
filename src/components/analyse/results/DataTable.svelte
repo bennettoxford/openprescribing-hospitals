@@ -230,6 +230,18 @@
                                     {formatNumber(group.total)}
                                 </td>
                             </tr>
+                        {:else if !$analyseOptions.isAdvancedMode}
+                            <tr class="border-b border-gray-200 hover:bg-gray-100">
+                                <td class="py-3 px-6 text-left">
+                                    {group.key}
+                                </td>
+                                <td class="py-3 px-6 text-left">
+                                    {group.units[0]?.unit || '-'}
+                                </td>
+                                <td class="py-3 px-6 text-right">
+                                    {formatNumber(group.units[0]?.quantity || 0, group.units[0]?.unit)}
+                                </td>
+                            </tr>
                         {:else}
                             <tr class="border-b border-gray-200 hover:bg-gray-100 font-bold">
                                 <td class="py-3 px-6 text-left" rowspan={group.units.length + 1}>
