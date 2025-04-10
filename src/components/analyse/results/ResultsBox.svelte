@@ -785,7 +785,7 @@
                             />
                         </div>
                         <div class="grid grid-cols-1 gap-4">
-                            <div class="relative h-[400px]">
+                            <div class="relative h-[400px] mb-36 sm:mb-0">
                                 <Chart 
                                     store={resultsChartStore} 
                                     data={filteredData.length > 0 ? filteredData : selectedData}
@@ -793,14 +793,33 @@
                                 />
                             </div>
                         </div>
-                        </section>
-                        <section class="p-4">
-                            <DataTable 
-                                data={filteredData} 
-                                quantityType={$analyseOptions.quantityType} 
-                                searchType={$analyseOptions.searchType} 
-                            />
-                        </section>
+                    </section>
+
+                    <section class="bg-amber-50 border-l-4 border-amber-400 p-4 mx-4 mb-4 mt-2 relative z-10">
+                      <div class="flex flex-col sm:flex-row">
+                        <div class="flex-shrink-0 mb-2 sm:mb-0">
+                          <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                          </svg>
+                        </div>
+                        <div class="sm:ml-3">
+                          <p class="text-sm text-amber-700">
+                            Individual NHS Trust data submissions may be incomplete or inconsistent. 
+                            <a href="/submission-history/" class="font-medium underline hover:text-amber-800">
+                              View Submission History
+                            </a> to understand data quality issues for individual NHS Trusts.
+                          </p>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section class="p-4">
+                        <DataTable 
+                            data={filteredData} 
+                            quantityType={$analyseOptions.quantityType} 
+                            searchType={$analyseOptions.searchType} 
+                        />
+                    </section>
                     {:else}
                         <div class="flex items-center justify-center h-[500px] p-6">
                             <div class="text-center space-y-6">
