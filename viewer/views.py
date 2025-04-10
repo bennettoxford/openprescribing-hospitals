@@ -347,7 +347,6 @@ class MeasureItemView(TemplateView):
             "percentile_data": json.dumps(percentiles_list, cls=DjangoJSONEncoder),
         }
 
-@login_required
 @csrf_protect
 @api_view(["POST"])
 def filtered_quantities(request):
@@ -422,7 +421,6 @@ def filtered_quantities(request):
                     'vmp__code': item.vmp.code,
                     'vmp__name': item.vmp.name,
                     'vmp__vtm__name': item.vmp.vtm.name if item.vmp.vtm else None,
-                    'routes': [route.name for route in item.vmp.who_routes.all()],
                     'ingredient_names': [ing.name for ing in item.vmp.ingredients.all()],
                     'ingredient_codes': [ing.code for ing in item.vmp.ingredients.all()],
                     'organisation__ods_code': item.organisation.ods_code,
@@ -565,7 +563,6 @@ class OrgsSubmittingDataView(TemplateView):
         return context
 
 
-@login_required
 @api_view(["POST"])
 def filtered_vmp_count(request):
     search_items = request.data.get("names", [])
@@ -620,7 +617,6 @@ class ContactView(TemplateView):
         context = super().get_context_data(**kwargs)
         return context
     
-@login_required
 @api_view(["GET"])
 def search_items(request):
     search_type = request.GET.get('type', 'product')

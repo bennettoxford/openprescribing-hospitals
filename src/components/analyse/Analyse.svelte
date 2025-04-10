@@ -23,6 +23,7 @@
   export let minDate;
   export let maxDate;
   export let orgData;
+  export let isAuthenticated;
 
   $: isResultsBoxPopulated = analysisData && analysisData.length > 0;
 
@@ -109,6 +110,7 @@
                         {minDate}
                         {maxDate}
                         {orgData}
+                        {isAuthenticated}
                         on:analysisStart={handleAnalysisStart}
                         on:analysisComplete={handleAnalysisComplete}
                         on:analysisError={handleAnalysisError}

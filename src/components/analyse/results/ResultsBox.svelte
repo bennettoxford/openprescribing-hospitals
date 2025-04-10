@@ -682,6 +682,8 @@
         if (uniqueUnits.size > 1) {
             viewModes.push({ value: 'unit', label: 'Unit' });
         }
+
+
     }
 
     function handleVisibilityChange(items) {
