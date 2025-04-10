@@ -159,7 +159,7 @@
         isOrganisationDropdownOpen = event.detail.isOpen;
     }
 
-    function resetSelections(newQuantityType, clearOrgs = false) {
+    function resetSelections(newQuantityType) {
         const allOrgs = $organisationSearchStore.availableItems;
         
         analyseOptions.update(options => ({
@@ -169,9 +169,7 @@
             quantityType: newQuantityType
         }));
         
-        if (clearOrgs) {
-            organisationSearchStore.updateSelection(allOrgs);
-        }
+        organisationSearchStore.updateSelection([]);
 
         errorMessage = '';
 
