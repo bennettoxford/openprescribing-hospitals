@@ -26,10 +26,7 @@
     let filteredData = [];
 
     let viewModes = [
-        { value: 'total', label: 'Total' },
-        { value: 'organisation', label: 'NHS Trust' },
-        { value: 'region', label: 'Region' },
-        { value: 'icb', label: 'ICB' }
+        { value: 'total', label: 'Total' }
     ];
 
  
@@ -631,31 +628,33 @@
             viewModes.push({ value: 'organisation', label: 'NHS Trust' });
         }
 
-        const mappedICBs = new Set(
-            selectedData.map(item => {
-                const orgName = item.organisation__ods_name;
-                let targetICB = item.organisation__icb;
-                
-                for (const [successor, predecessors] of $organisationSearchStore.predecessorMap.entries()) {
-                    if (predecessors.includes(orgName)) {
-                        const successorData = selectedData.find(d => d.organisation__ods_name === successor);
-                        if (successorData) {
-                            targetICB = successorData.organisation__icb;
+        if ($resultsStore.isAdvancedMode) {
+            const mappedICBs = new Set(
+                selectedData.map(item => {
+                    const orgName = item.organisation__ods_name;
+                    let targetICB = item.organisation__icb;
+                    
+                    for (const [successor, predecessors] of $organisationSearchStore.predecessorMap.entries()) {
+                        if (predecessors.includes(orgName)) {
+                            const successorData = selectedData.find(d => d.organisation__ods_name === successor);
+                            if (successorData) {
+                                targetICB = successorData.organisation__icb;
+                            }
+                            break;
                         }
-                        break;
                     }
-                }
-                return targetICB;
-            }).filter(Boolean)
-        );
+                    return targetICB;
+                }).filter(Boolean)
+            );
 
-        if (mappedICBs.size > 1) {
-            viewModes.push({ value: 'icb', label: 'ICB' });
-        }
+            if (mappedICBs.size > 1) {
+                viewModes.push({ value: 'icb', label: 'ICB' });
+            }
 
-        const uniqueRegions = new Set(selectedData.map(item => item.organisation__region).filter(Boolean));
-        if (uniqueRegions.size > 1) {
-            viewModes.push({ value: 'region', label: 'Region' });
+            const uniqueRegions = new Set(selectedData.map(item => item.organisation__region).filter(Boolean));
+            if (uniqueRegions.size > 1) {
+                viewModes.push({ value: 'region', label: 'Region' });
+            }
         }
 
         if (vmps.length > 1) {
