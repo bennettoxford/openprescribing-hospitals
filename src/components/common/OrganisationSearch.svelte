@@ -12,6 +12,9 @@
     export let source;
     export let overlayMode = false;
     export let disabled = false;
+    export let maxItems = null;
+    export let hideSelectAll = false;
+    export let showTitle = true;
 
     $: placeholderText = disabled ? 
         'Selection disabled' :
@@ -127,8 +130,15 @@
         return Array.isArray(selected) ? (selected.includes(item) && isItemAvailable(item)) : false;
     };
 
+    $: limitReached = maxItems && selectedItems.length >= maxItems;
+
     function toggleItem(item) {
         if (!isItemAvailable(item)) {
+            return;
+        }
+
+        if (limitReached && !selectedItems.includes(item)) {
+            dispatch('maxItemsReached', { maxItems });
             return;
         }
 
@@ -206,32 +216,52 @@
 
     function selectAll() {
         const availableItems = Array.from($source.availableItems || []);
-        source.updateSelection(availableItems);
-        dispatch('selectionChange', {
-            selectedItems: availableItems,
-            source: 'selectAll'
+        
+        const itemsToSelect = maxItems ? availableItems.slice(0, maxItems) : availableItems;
+        
+        dispatch('selectAll', {
+            availableItems: availableItems,
+            itemsToSelect: itemsToSelect
         });
+        
+        if (!hideSelectAll) {
+            source.updateSelection(itemsToSelect);
+            dispatch('selectionChange', {
+                selectedItems: itemsToSelect,
+                source: 'selectAll'
+            });
+        }
     }
 </script>
 
 <div class="dropdown relative w-full h-full flex flex-col">
     <div class="flex flex-col">
         <div class="flex flex-col gap-2">
-            <div class="flex justify-between items-center">
-                <label class="text-sm font-medium {disabled ? 'text-gray-400' : 'text-gray-700'}">
-                    Select {$source.filterType === 'icb' ? 'ICB' : 
-                           $source.filterType === 'region' ? 'Region' : 
-                           'NHS Trust'}
-                </label>
-                <div class="flex items-center gap-2 text-sm">
-                    <button 
-                        class="text-blue-600 hover:text-blue-800 font-medium {disabled ? 'opacity-50 cursor-not-allowed' : ''}" 
-                        on:click={selectAll}
-                        disabled={disabled}
-                    >
-                        Select All
-                    </button>
-                    <span class="text-gray-300">|</span>
+            {#if showTitle}
+                <div class="flex items-center">
+                    <label class="text-sm font-medium {disabled ? 'text-gray-400' : 'text-gray-700'}">
+                        Select {$source.filterType === 'icb' ? 'ICB' : 
+                               $source.filterType === 'region' ? 'Region' : 
+                               'NHS Trust'}
+                        {#if maxItems}
+                            <span class="text-xs text-gray-500 ml-1">(max {maxItems})</span>
+                        {/if}
+                    </label>
+                </div>
+            {/if}
+
+            <div class="flex justify-end">
+                <div class="flex items-center gap-1 text-sm">
+                    {#if !hideSelectAll}
+                        <button 
+                            class="text-blue-600 hover:text-blue-800 font-medium {disabled ? 'opacity-50 cursor-not-allowed' : ''}" 
+                            on:click={selectAll}
+                            disabled={disabled}
+                        >
+                            Select All
+                        </button>
+                        <span class="text-gray-300">|</span>
+                    {/if}
                     <button 
                         class="text-red-600 hover:text-red-800 font-medium {disabled ? 'opacity-50 cursor-not-allowed' : ''}" 
                         on:click={deselectAll}
@@ -241,6 +271,7 @@
                     </button>
                 </div>
             </div>
+
             <div class="flex">
                 <div class="relative flex-grow">
                     <input
@@ -379,14 +410,19 @@
                                 <div 
                                     role="button"
                                     tabindex="0"
-                                    class="p-2 transition duration-150 ease-in-out relative cursor-pointer hover:bg-gray-100"
+                                    class="p-2 transition duration-150 ease-in-out relative 
+                                           {limitReached ? 'cursor-not-allowed text-gray-400 bg-gray-50' : 'cursor-pointer hover:bg-gray-100'}"
                                     on:click|stopPropagation={() => toggleItem(item.name)}
                                     on:keypress={(e) => e.key === 'Enter' && toggleItem(item.name)}
+                                    title={limitReached ? `Maximum of ${maxItems} NHS Trusts can be selected` : ''}
                                 >
                                     <div class="flex items-center justify-between">
                                         <div class="flex items-center gap-2">
                                             <span>{item.name}</span>
                                         </div>
+                                        {#if limitReached}
+                                            <span class="text-xs text-gray-500">Max limit reached</span>
+                                        {/if}
                                     </div>
 
                                     {#if item.predecessors.length > 0}
@@ -395,10 +431,11 @@
                                                 role="button"
                                                 tabindex="0"
                                                 class="mt-1 pl-6 transition duration-150 ease-in-out relative text-sm
-                                                      {!isItemAvailable(predecessor) ? 'text-gray-400 cursor-not-allowed' : ''}
+                                                      {!isItemAvailable(predecessor) || limitReached ? 'text-gray-400 cursor-not-allowed' : ''}
                                                       {isItemSelected(predecessor) ? 'text-oxford-500' : ''}"
                                                 on:click|stopPropagation={() => toggleItem(predecessor)}
                                                 on:keypress|stopPropagation={(e) => e.key === 'Enter' && toggleItem(predecessor)}
+                                                title={limitReached ? `Maximum of ${maxItems} NHS Trusts can be selected` : ''}
                                             >
                                                 <div class="flex items-center justify-between">
                                                     <div class="flex items-center">
