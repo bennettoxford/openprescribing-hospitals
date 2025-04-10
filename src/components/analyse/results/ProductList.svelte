@@ -125,7 +125,7 @@
 
 <div class="p-4">
     <h3 class="text-xl font-semibold mb-4">
-        {isAdvancedMode ? 'Products included in analysis' : 'Product included in analysis'}
+        Products included in analysis
     </h3>
     
     <div class="mb-4 text-sm text-gray-700">
