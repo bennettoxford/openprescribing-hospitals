@@ -68,11 +68,7 @@
         if (sortColumn === 'selected') {
             return sortDirection * (checkedVMPs[b.vmp] - checkedVMPs[a.vmp]);
         }
-        if (sortColumn === 'routes') {
-            const aRoutes = (a.routes || []).join(', ');
-            const bRoutes = (b.routes || []).join(', ');
-            return sortDirection * aRoutes.localeCompare(bRoutes, undefined, {numeric: true, sensitivity: 'base'});
-        }
+        
         let aValue = a[sortColumn] || '';
         let bValue = b[sortColumn] || '';
         return sortDirection * aValue.localeCompare(bValue, undefined, {numeric: true, sensitivity: 'base'});
@@ -120,17 +116,16 @@
     $: missingVMPs = vmps.filter(vmp => vmp.unit === 'nan').map(vmp => vmp.vmp);
     $: hasMissingVMPs = missingVMPs.length > 0;
 
-    $: hasMultipleRoutes = vmps.some(vmp => vmp.routes && vmp.routes.length > 1);
     $: hasMultipleIngredients = vmps.some(vmp => vmp.ingredients && vmp.ingredients.length > 1);
     
-    $: hasWarnings = showUnitWarning || showUnitIngredientWarning || hasMultipleRoutes || hasMultipleIngredients;
+    $: hasWarnings = isAdvancedMode && (showUnitWarning || showUnitIngredientWarning || hasMultipleIngredients);
 
     let showWarnings = false;
 </script>
 
 <div class="p-4">
     <h3 class="text-xl font-semibold mb-4">
-        {isAdvancedMode ? 'Products included in analysis' : 'Product included in analysis'}
+        Products included in analysis
     </h3>
     
     <div class="mb-4 text-sm text-gray-700">
@@ -160,9 +155,6 @@
                             <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('unit')}>
                                 Unit {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('unit')}</span>{/if}
                             </th>
-                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('routes')}>
-                                Route of Administration {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('routes')}</span>{/if}
-                            </th>
                             {#if isAdvancedMode}
                             <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('selected')}>
                                 Select <span class="text-gray-400">{getSortIndicator('selected')}</span>
@@ -186,13 +178,6 @@
                                     {/if}
                                 </td>
                                 <td class="py-3 px-6 text-left">{vmp.unit === 'nan' ? '-' : vmp.unit}</td>
-                                <td class="py-3 px-6 text-left">
-                                    {#if vmp.routes && vmp.routes.length > 0}
-                                        {vmp.routes.join(', ')}
-                                    {:else}
-                                        <span class="text-gray-400">-</span>
-                                    {/if}
-                                </td>
                                 {#if isAdvancedMode}
                                 <td class="py-3 px-6 text-left">
                                     <div class="relative inline-block group">
@@ -257,16 +242,6 @@
                         {#if showUnitIngredientWarning}
                             <li class="text-yellow-700">
                                 This list contains multiple unit-ingredient combinations. Please review carefully.
-                            </li>
-                        {/if}
-                        {#if hasMultipleRoutes}
-                            <li class="text-yellow-700">
-                                Some products have multiple routes of administration. Breakdowns by route will show the quantity split equally between each route of administration for these products:
-                                <ul class="list-disc list-inside ml-4 mt-1">
-                                    {#each vmps.filter(vmp => vmp.routes && vmp.routes.length > 1) as vmp}
-                                        <li>{vmp.vmp}: {vmp.routes.join(', ')}</li>
-                                    {/each}
-                                </ul>
                             </li>
                         {/if}
                         {#if hasMultipleIngredients}

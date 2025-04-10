@@ -74,7 +74,6 @@ class LoginView(AuthLoginView):
     template_name = 'login.html'
     form_class = LoginForm
 
-@method_decorator(login_required, name='dispatch')
 class AnalyseView(TemplateView):
     template_name = "analyse.html"
 
@@ -348,7 +347,6 @@ class MeasureItemView(TemplateView):
             "percentile_data": json.dumps(percentiles_list, cls=DjangoJSONEncoder),
         }
 
-@login_required
 @csrf_protect
 @api_view(["POST"])
 def filtered_quantities(request):
@@ -383,12 +381,11 @@ def filtered_quantities(request):
         base_vmps = VMP.objects.filter(
             id__in=vmp_ids
         ).select_related('vtm').annotate(
-            route_list=ArrayAgg('who_routes__name', distinct=True),
             ingredient_names=ArrayAgg('ingredients__name', distinct=True),
             ingredient_codes=ArrayAgg('ingredients__code', distinct=True)
         ).values(
             'id', 'code', 'name', 'vtm__name',
-            'route_list', 'ingredient_names', 'ingredient_codes'
+            'ingredient_names', 'ingredient_codes'
         )
 
         response_data = []
@@ -397,7 +394,6 @@ def filtered_quantities(request):
                 'vmp__code': vmp['code'],
                 'vmp__name': vmp['name'],
                 'vmp__vtm__name': vmp['vtm__name'],
-                'routes': [route for route in vmp['route_list'] if route],
                 'ingredient_names': vmp['ingredient_names'],
                 'ingredient_codes': vmp['ingredient_codes'],
                 'organisation__ods_code': None,
@@ -425,7 +421,6 @@ def filtered_quantities(request):
                     'vmp__code': item.vmp.code,
                     'vmp__name': item.vmp.name,
                     'vmp__vtm__name': item.vmp.vtm.name if item.vmp.vtm else None,
-                    'routes': [route.name for route in item.vmp.who_routes.all()],
                     'ingredient_names': [ing.name for ing in item.vmp.ingredients.all()],
                     'ingredient_codes': [ing.code for ing in item.vmp.ingredients.all()],
                     'organisation__ods_code': item.organisation.ods_code,
@@ -568,7 +563,6 @@ class OrgsSubmittingDataView(TemplateView):
         return context
 
 
-@login_required
 @api_view(["POST"])
 def filtered_vmp_count(request):
     search_items = request.data.get("names", [])
@@ -623,7 +617,6 @@ class ContactView(TemplateView):
         context = super().get_context_data(**kwargs)
         return context
     
-@login_required
 @api_view(["GET"])
 def search_items(request):
     search_type = request.GET.get('type', 'product')

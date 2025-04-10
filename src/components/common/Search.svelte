@@ -297,6 +297,8 @@
                                         class="pt-2 pb-1 px-3 flex items-center justify-between relative transition-colors duration-150 ease-in-out"
                                         class:bg-oxford-50={selectedItems.includes(`${item.code}|vtm`)}
                                         class:cursor-pointer={isAdvancedMode}
+                                        class:cursor-not-allowed={!isAdvancedMode}
+                                        class:opacity-60={!isAdvancedMode}
                                         class:hover:bg-gray-50={isAdvancedMode}
                                         on:click={() => isAdvancedMode ? handleSelect(item) : null}
                                     >

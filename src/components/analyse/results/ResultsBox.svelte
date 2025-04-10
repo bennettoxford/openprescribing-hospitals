@@ -14,6 +14,7 @@
     import ModeSelector from '../../common/ModeSelector.svelte';
     import { createChartStore } from '../../../stores/chartStore';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
+    import { formatNumber } from '../../../utils/utils';
 
     export let className = '';
     export let isAnalysisRunning;
@@ -25,12 +26,10 @@
     let filteredData = [];
 
     let viewModes = [
-        { value: 'total', label: 'Total' },
-        { value: 'organisation', label: 'NHS Trust' },
-        { value: 'region', label: 'Region' },
-        { value: 'icb', label: 'ICB' }
+        { value: 'total', label: 'Total' }
     ];
 
+ 
     const resultsChartStore = createChartStore({
         mode: 'trust',
         yAxisLabel: 'units',
@@ -71,18 +70,6 @@
         return colorMappings.get(key);
     }
 
-    function formatAxisValue(value, maxValue) {
-        if (value === 0) return '0';
-        
-        if (maxValue >= 1000000) {
-            return `${(value / 1000000).toFixed(1)}m`;
-        } else if (maxValue >= 1000) {
-            return `${(value / 1000).toFixed(1)}k`;
-        }
-        
-        return value.toFixed(0);
-    }
-
     let datasets = [];
 
     function processChartData(data) {
@@ -119,20 +106,6 @@
             ...($resultsChartStore.config || {}),
             yAxisLabel: combinedUnits || 'units'
         });
-
-        function formatLargeNumber(value) {
-            if (value === 0) return `0 ${combinedUnits}`;
-            
-            const unit = maxValue >= 1000000 ? 'm' : 
-                        maxValue >= 1000 ? 'k' : 
-                        '';
-            
-            const scaledValue = unit === 'm' ? value / 1000000 :
-                               unit === 'k' ? value / 1000 :
-                               value;
-            
-            return `${scaledValue.toFixed(1).replace(/\.0$/, '')}${unit} ${combinedUnits}`;
-        }
 
         const allDates = [...new Set(data.flatMap(item => 
             item.data.map(([date]) => date)
@@ -315,42 +288,6 @@
                 .flatMap(unit => unit.data)
                 .filter(v => v !== null && !isNaN(v)));
 
-        } else if ($modeSelectorStore.selectedMode === 'route') {
-            const routeData = {};
-            data.forEach(item => {
-                const routes = item.routes || ['Unknown'];
-                routes.forEach(route => {
-                    if (!routeData[route]) {
-                        routeData[route] = {
-                            data: new Array(allDates.length).fill(0)
-                        };
-                    }
-                    
-                    item.data.forEach(([date, value]) => {
-                        const dateIndex = allDates.indexOf(date);
-                        if (dateIndex !== -1) {
-                            const numValue = parseFloat(value);
-                            if (!isNaN(numValue)) {
-                                routeData[route].data[dateIndex] += numValue / routes.length;
-                            }
-                        }
-                    });
-                });
-            });
-
-            datasets = Object.entries(routeData)
-                .filter(([_, { data }]) => data.some(v => v > 0))
-                .map(([route, { data }], index) => ({
-                    label: route,
-                    data: data,
-                    color: getConsistentColor(route, index),
-                    strokeOpacity: 1,
-                    isRoute: true
-                }));
-
-            maxValue = Math.max(...Object.values(routeData)
-                .flatMap(route => route.data)
-                .filter(v => v !== null && !isNaN(v)));
         } else if ($modeSelectorStore.selectedMode === 'ingredient') {
             const ingredientData = {};
             data.forEach(item => {
@@ -522,16 +459,9 @@
                     }
                 }
                 
-                // Format with k/m suffix if needed
-                if (maxValue >= 1000000) {
-                    return `${(value / 1000000).toFixed(Math.min(decimals, 1))}m`;
-                } else if (maxValue >= 1000) {
-                    return `${(value / 1000).toFixed(Math.min(decimals, 1))}k`;
-                }
-                
-                return value.toFixed(decimals);
+                return formatNumber(value, { maxDecimals: decimals });
             },
-            tooltipValueFormat: value => formatLargeNumber(value, combinedUnits)
+            tooltipValueFormat: value => formatNumber(value, { showUnit: true, unit: combinedUnits })
         };
 
         const chartData = {
@@ -567,7 +497,6 @@
                         code: item.vmp__code,
                         vtm: item.vmp__vtm__name,
                         ingredients: item.ingredient_names || [],
-                        routes: item.routes || [],
                         units: new Set(),
                         searchType: data.searchType || $analyseOptions.searchType
                     };
@@ -587,7 +516,6 @@
                 .map(vmp => ({
                     ...vmp,
                     unit: vmp.units.size > 0 ? Array.from(vmp.units).join(', ') : 'nan',
-                    routes: Array.isArray(vmp.routes) ? vmp.routes : []
                 }));
 
             filteredData = selectedData;
@@ -623,7 +551,6 @@
                     name: item.vmp__name,
                     code: item.vmp__code,
                     vtm: item.vmp__vtm__name,
-                    routes: item.routes || [],
                     ingredients: item.ingredient_names || [],
                     data: Array.isArray(item.data) ? item.data.map(([date, quantity, unit]) => ({
                         date,
@@ -701,31 +628,33 @@
             viewModes.push({ value: 'organisation', label: 'NHS Trust' });
         }
 
-        const mappedICBs = new Set(
-            selectedData.map(item => {
-                const orgName = item.organisation__ods_name;
-                let targetICB = item.organisation__icb;
-                
-                for (const [successor, predecessors] of $organisationSearchStore.predecessorMap.entries()) {
-                    if (predecessors.includes(orgName)) {
-                        const successorData = selectedData.find(d => d.organisation__ods_name === successor);
-                        if (successorData) {
-                            targetICB = successorData.organisation__icb;
+        if ($resultsStore.isAdvancedMode) {
+            const mappedICBs = new Set(
+                selectedData.map(item => {
+                    const orgName = item.organisation__ods_name;
+                    let targetICB = item.organisation__icb;
+                    
+                    for (const [successor, predecessors] of $organisationSearchStore.predecessorMap.entries()) {
+                        if (predecessors.includes(orgName)) {
+                            const successorData = selectedData.find(d => d.organisation__ods_name === successor);
+                            if (successorData) {
+                                targetICB = successorData.organisation__icb;
+                            }
+                            break;
                         }
-                        break;
                     }
-                }
-                return targetICB;
-            }).filter(Boolean)
-        );
+                    return targetICB;
+                }).filter(Boolean)
+            );
 
-        if (mappedICBs.size > 1) {
-            viewModes.push({ value: 'icb', label: 'ICB' });
-        }
+            if (mappedICBs.size > 1) {
+                viewModes.push({ value: 'icb', label: 'ICB' });
+            }
 
-        const uniqueRegions = new Set(selectedData.map(item => item.organisation__region).filter(Boolean));
-        if (uniqueRegions.size > 1) {
-            viewModes.push({ value: 'region', label: 'Region' });
+            const uniqueRegions = new Set(selectedData.map(item => item.organisation__region).filter(Boolean));
+            if (uniqueRegions.size > 1) {
+                viewModes.push({ value: 'region', label: 'Region' });
+            }
         }
 
         if (vmps.length > 1) {
@@ -753,33 +682,8 @@
             viewModes.push({ value: 'unit', label: 'Unit' });
         }
 
-        const uniqueRoutes = new Set(
-            vmps.flatMap(vmp => vmp.routes)
-                .filter(route => route && route !== '-' && route !== 'nan')
-        );
-        if (uniqueRoutes.size > 1) {
-            viewModes.push({ value: 'route', label: 'Route' });
-        }
-    }
 
-    function handleVisibilityChange(items) {
-        updateVisibleItems(items);
     }
-
-    $: legendItems = $modeSelectorStore.selectedMode === 'organisation' ? 
-        datasets?.map((dataset, index) => ({
-            label: dataset.label,
-            color: dataset.color
-        })) || [] :
-        $modeSelectorStore.selectedMode === 'product' ?
-        datasets?.map((dataset, index) => ({
-            label: dataset.label,
-            color: dataset.color
-        })) || [] :
-        datasets?.map(dataset => ({
-            label: dataset.label,
-            color: dataset.color
-        })) || [];
 
     function handleModeChange() {
         const dataToProcess = filteredData.length > 0 ? filteredData : selectedData;
@@ -830,36 +734,19 @@
         const tooltipContent = [
             { text: label, class: 'font-medium' },
             { label: 'Date', value: date },
-            { label: 'Value', value: `${formatLargeNumber(value)} ${unit}` }
+            { label: 'Value', value: `${formatNumber(value)} ${unit}` }
         ];
 
         if (d.dataset.isOrganisation || d.dataset.isProduct || d.dataset.isProductGroup) {
             if (d.dataset.numerator !== undefined && d.dataset.denominator !== undefined) {
                 tooltipContent.push(
-                    { label: 'Numerator', value: formatNumber(d.dataset.numerator[d.index]) },
-                    { label: 'Denominator', value: formatNumber(d.dataset.denominator[d.index]) }
+                    { label: 'Numerator', value: formatNumber(d.dataset.numerator[d.index], { addCommas: true }) },
+                    { label: 'Denominator', value: formatNumber(d.dataset.denominator[d.index], { addCommas: true }) }
                 );
             }
         }
 
         return tooltipContent;
-    }
-
-    function formatLargeNumber(value) {
-        if (value === 0) return '0';
-        
-        if (value >= 1000000) {
-            return `${(value / 1000000).toFixed(1)}m`;
-        } else if (value >= 1000) {
-            return `${(value / 1000).toFixed(1)}k`;
-        }
-        
-        return value.toFixed(1);
-    }
-
-    function formatNumber(value) {
-        if (value == null || isNaN(value)) return 'N/A';
-        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
     function hasChartableData(data) {
@@ -897,7 +784,7 @@
                             />
                         </div>
                         <div class="grid grid-cols-1 gap-4">
-                            <div class="relative h-[400px]">
+                            <div class="relative h-[400px] mb-36 sm:mb-0">
                                 <Chart 
                                     store={resultsChartStore} 
                                     data={filteredData.length > 0 ? filteredData : selectedData}
@@ -905,14 +792,33 @@
                                 />
                             </div>
                         </div>
-                        </section>
-                        <section class="p-4">
-                            <DataTable 
-                                data={filteredData} 
-                                quantityType={$analyseOptions.quantityType} 
-                                searchType={$analyseOptions.searchType} 
-                            />
-                        </section>
+                    </section>
+
+                    <section class="bg-amber-50 border-l-4 border-amber-400 p-4 mx-4 mb-4 mt-2 relative z-10">
+                      <div class="flex flex-col sm:flex-row">
+                        <div class="flex-shrink-0 mb-2 sm:mb-0">
+                          <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                          </svg>
+                        </div>
+                        <div class="sm:ml-3">
+                          <p class="text-sm text-amber-700">
+                            Individual NHS Trust data submissions may be incomplete or inconsistent. 
+                            <a href="/submission-history/" class="font-medium underline hover:text-amber-800">
+                              View Submission History
+                            </a> to understand data quality issues for individual NHS Trusts.
+                          </p>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section class="p-4">
+                        <DataTable 
+                            data={filteredData} 
+                            quantityType={$analyseOptions.quantityType} 
+                            searchType={$analyseOptions.searchType} 
+                        />
+                    </section>
                     {:else}
                         <div class="flex items-center justify-center h-[500px] p-6">
                             <div class="text-center space-y-6">
@@ -953,11 +859,3 @@
         </div>
     </div>
 {/if}
-
-<style>
-    @media (max-width: 1024px) {
-        .legend-container {
-            max-height: 200px;
-        }
-    }
-</style>

@@ -236,7 +236,6 @@
             isOrganisation: this.series.options.isOrganisation,
             isProductGroup: this.series.options.isProductGroup,
             isUnit: this.series.options.isUnit,
-            isRoute: this.series.options.isRoute,
             isIngredient: this.series.options.isIngredient,
             numerator: this.series.options.numerator,
             denominator: this.series.options.denominator
@@ -307,7 +306,6 @@
       isOrganisation: dataset.isOrganisation,
       isProductGroup: dataset.isProductGroup,
       isUnit: dataset.isUnit,
-      isRoute: dataset.isRoute,
       isIngredient: dataset.isIngredient,
       numerator: dataset.numerator,
       denominator: dataset.denominator,
