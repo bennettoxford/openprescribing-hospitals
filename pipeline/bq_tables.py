@@ -390,7 +390,7 @@ DOSE_TABLE_SPEC = TableSpec(
     project_id=PROJECT_ID,
     dataset_id=DATASET_ID,
     table_id=DOSE_TABLE_ID,
-    description="SCMD quantity converted to doses",
+    description="SCMD quantity converted to doses, using basis unit conversions for calculations",
     schema=[
         bigquery.SchemaField(
             "year_month", "DATE", description="Year and month of the data"
@@ -403,16 +403,36 @@ DOSE_TABLE_SPEC = TableSpec(
         ),
         bigquery.SchemaField("ods_code", "STRING", description="ODS code"),
         bigquery.SchemaField("ods_name", "STRING", description="Organisation name"),
-        bigquery.SchemaField("scmd_quantity", "FLOAT", description="SCMD quantity"),
+        bigquery.SchemaField("scmd_quantity", "FLOAT", description="Original SCMD quantity"),
+        bigquery.SchemaField("scmd_quantity_unit_name", "STRING", description="Original SCMD quantity unit"),
         bigquery.SchemaField(
-            "scmd_quantity_basis",
+            "scmd_basis_unit",
             "STRING",
-            description="Unit of measure ID for SCMD quantity",
+            description="Basis unit for the SCMD quantity",
         ),
         bigquery.SchemaField(
-            "scmd_quantity_basis_name",
+            "scmd_basis_unit_name",
             "STRING",
             description="Unit of measure name for SCMD quantity",
+        ),
+        bigquery.SchemaField(
+            "scmd_quantity_in_basis_units",
+            "FLOAT",
+            description="SCMD quantity converted to basis units",
+        ),
+        bigquery.SchemaField("udfs", "FLOAT", description="Unit dose form size"),
+        bigquery.SchemaField("udfs_uom", "STRING", description="Unit dose form size unit of measure"),
+        bigquery.SchemaField(
+            "udfs_basis_quantity", "FLOAT", description="Unit dose form size converted to basis units"
+        ),
+        bigquery.SchemaField(
+            "udfs_basis_uom", "STRING", description="Basis unit for the unit dose form size"
+        ),
+        bigquery.SchemaField(
+            "unit_dose_uom", "STRING", description="Unit dose unit of measure"
+        ),
+        bigquery.SchemaField(
+            "unit_dose_basis_uom", "STRING", description="Basis unit for the unit dose"
         ),
         bigquery.SchemaField(
             "dose_quantity", "FLOAT", description="Calculated number of doses"
@@ -422,7 +442,7 @@ DOSE_TABLE_SPEC = TableSpec(
         ),
         bigquery.SchemaField("df_ind", "STRING", description="Dose form indicator"),
         bigquery.SchemaField(
-            "logic", "STRING", description="Logic used for dose calculation"
+            "logic", "STRING", description="Logic used for dose calculation including unit conversion details"
         ),
     ],
     partition_field="year_month",
