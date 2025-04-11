@@ -8,15 +8,18 @@ WITH combined_data AS (
     processed.ods_code,
     processed.vmp_code,
     processed.vmp_name,
-    processed.normalised_uom_id AS unit_of_measure_id,
-    processed.normalised_uom_name AS unit_of_measure_name,
-    processed.normalised_quantity AS total_quanity_in_vmp_unit,
+    processed.uom_id,
+    processed.uom_name,
+    processed.normalised_uom_id,
+    processed.normalised_uom_name,
+    processed.quantity,
+    processed.normalised_quantity,
     org.ods_name,
     dmd.vtm,
     dmd.vtm_name,
     dmd.df_ind,
-    dmd.udfs AS converted_udfs,
-    dmd.udfs_uom AS udfs_basis,
+    dmd.udfs,
+    dmd.udfs_uom,
     dmd.unit_dose_uom,
     dmd.dform_form,
     dmd.vmp_name AS dmd_vmp_name
@@ -26,25 +29,50 @@ WITH combined_data AS (
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_TABLE_ID }}` AS dmd
     ON processed.vmp_code = dmd.vmp_code
 ),
+unit_converted_data AS (
+  SELECT
+    cd.*,
+    conv1.conversion_factor AS norm_to_udfs_conversion,
+    conv2.conversion_factor AS udfs_to_base_conversion,
+    conv2.basis AS udfs_basis_unit,
+    conv3.conversion_factor AS unit_dose_to_base_conversion,
+    conv3.basis AS unit_dose_basis_unit
+  FROM combined_data cd
+  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` conv1
+    ON cd.normalised_uom_name = conv1.unit AND cd.udfs_uom = conv1.basis
+  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` conv2
+    ON cd.udfs_uom = conv2.unit
+  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` conv3
+    ON cd.unit_dose_uom = conv3.unit
+),
 processed_data AS (
   SELECT
     year_month,
     ods_code,
     vmp_code,
     vmp_name,
-    unit_of_measure_name as uom_name,
-    unit_of_measure_name as uom,
-    total_quanity_in_vmp_unit as quantity,
+    uom_id,
+    uom_name,
+    normalised_uom_id,
+    normalised_uom_name,
+    quantity,
+    normalised_quantity,
     ods_name,
     vtm,
     vtm_name,
     df_ind,
-    converted_udfs AS udfs,
-    udfs_basis AS udfs_uom,
+    udfs,
+    udfs_uom,
+    udfs * COALESCE(udfs_to_base_conversion, 1.0) AS udfs_basis_quantity,
+    COALESCE(udfs_basis_unit, udfs_uom) AS udfs_basis_uom,
     unit_dose_uom,
+    COALESCE(unit_dose_basis_unit, unit_dose_uom) AS unit_dose_basis_uom,
     dform_form,
-    dmd_vmp_name
-  FROM combined_data
+    dmd_vmp_name,
+    COALESCE(norm_to_udfs_conversion, 1.0) AS norm_to_udfs_conversion,
+    COALESCE(udfs_to_base_conversion, 1.0) AS udfs_to_base_conversion,
+    COALESCE(unit_dose_to_base_conversion, 1.0) AS unit_dose_to_base_conversion
+  FROM unit_converted_data
 ),
 calculated_doses AS (
   SELECT 
@@ -52,21 +80,34 @@ calculated_doses AS (
     CASE 
       WHEN df_ind = 'Discrete' THEN
         CASE
-          WHEN uom = udfs_uom THEN quantity / udfs
-          WHEN uom = unit_dose_uom THEN quantity
+          WHEN normalised_uom_name = udfs_basis_uom THEN 
+            normalised_quantity / udfs_basis_quantity
+          WHEN normalised_uom_name = unit_dose_uom THEN 
+            normalised_quantity
+
+          WHEN normalised_uom_name != udfs_uom AND norm_to_udfs_conversion != 1.0 THEN
+            (normalised_quantity * norm_to_udfs_conversion) / udfs
           ELSE NULL
         END
       ELSE NULL
-    END AS number_of_doses,
+    END AS dose_quantity,
     CASE 
-      WHEN df_ind = 'Discrete' AND (uom = udfs_uom OR uom = unit_dose_uom) THEN unit_dose_uom
+      WHEN df_ind = 'Discrete' AND 
+           (normalised_uom_name = udfs_basis_uom OR 
+            normalised_uom_name = unit_dose_uom OR 
+            (normalised_uom_name != udfs_uom AND norm_to_udfs_conversion != 1.0))
+      THEN unit_dose_uom
       ELSE NULL
     END AS dose_unit,
     CASE 
       WHEN df_ind = 'Discrete' THEN
         CASE
-          WHEN uom = udfs_uom THEN 'Quantity / udfs'
-          WHEN uom = unit_dose_uom THEN 'Quantity'
+          WHEN normalised_uom_name = udfs_basis_uom THEN 
+            'Quantity in basis units / udfs in basis units'
+          WHEN normalised_uom_name = unit_dose_uom THEN 
+            'Direct quantity'
+          WHEN normalised_uom_name != udfs_uom AND norm_to_udfs_conversion != 1.0 THEN
+            'Converted quantity (factor: ' || CAST(norm_to_udfs_conversion AS STRING) || ') / udfs'
           ELSE 'Not calculated: Discrete but SCMD quantity basis != udfs basis or unit dose form size'
         END
       ELSE 'Not calculated: not a discrete form'
@@ -80,9 +121,17 @@ SELECT
   ods_code,
   ods_name,
   quantity AS scmd_quantity,
-  uom AS scmd_quantity_basis,
-  uom_name AS scmd_quantity_basis_name,
-  number_of_doses AS dose_quantity,
+  uom_name AS scmd_quantity_unit_name,
+  normalised_uom_id AS scmd_basis_unit,
+  normalised_uom_name AS scmd_basis_unit_name,
+  normalised_quantity AS scmd_quantity_in_basis_units,
+  udfs,
+  udfs_uom,
+  udfs_basis_quantity,
+  udfs_basis_uom,
+  unit_dose_uom,
+  unit_dose_basis_uom,
+  dose_quantity,
   dose_unit,
   df_ind,
   logic
