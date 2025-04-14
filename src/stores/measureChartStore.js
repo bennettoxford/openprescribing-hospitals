@@ -169,7 +169,7 @@ export const filteredData = derived(
 
         datasets = [
           {
-            label: 'Median (50th Percentile)',
+            label: 'Median (50th percentile)',
             data: labels.map(month => groupedPercentiles[month]?.[50] ?? null),
             color: '#DC3220',
             strokeWidth: 2,
@@ -179,7 +179,7 @@ export const filteredData = derived(
             hidden: !$showPercentiles
           },
           ...percentileRanges.map(({ range: [lower, upper], opacity }) => ({
-            label: `${lower}th-${upper}th Percentile`,
+            label: `${lower}th-${upper}th percentiles`,
             data: labels.map(month => ({
               lower: groupedPercentiles[month]?.[lower] ?? null,
               upper: groupedPercentiles[month]?.[upper] ?? null

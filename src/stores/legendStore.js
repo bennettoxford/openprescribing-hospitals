@@ -39,7 +39,7 @@ function createLegendStore() {
             update(state => {
                 const newVisible = new Set(items);
                 if (state.isPercentileMode) {
-                    newVisible.add('Median (50th Percentile)');
+                    newVisible.add('Median (50th percentile)');
                     newVisible.add('Percentile Range');
                 }
                 return { ...state, visibleItems: newVisible };

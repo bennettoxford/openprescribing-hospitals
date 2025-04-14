@@ -185,8 +185,8 @@
                     datasets: $filteredData.datasets.map(dataset => ({
                         ...dataset,
                         hidden: (!$showPercentiles && (
-                            dataset.label === 'Median (50th Percentile)' ||
-                            dataset.label.includes('th Percentile')
+                            dataset.label === 'Median (50th percentile)' ||
+                            dataset.label.includes('th percentile')
                         )) || (
                             !Array.from($visibleTrusts).includes(dataset.label) && 
                             !dataset.alwaysVisible
@@ -254,8 +254,8 @@
                         datasets: $filteredData.datasets.map(dataset => ({
                             ...dataset,
                             hidden: (!$showPercentiles && (
-                                dataset.label === 'Median (50th Percentile)' ||
-                                dataset.label.includes('th Percentile')
+                                dataset.label === 'Median (50th percentile)' ||
+                                dataset.label.includes('th percentile')
                             )) || (
                                 !Array.from($visibleTrusts).includes(dataset.label) && 
                                 !dataset.alwaysVisible
@@ -326,11 +326,11 @@
             [
                 ...$showPercentiles ? [
                     { label: 'Median (50th percentile)', color: '#DC3220', visible: true, selectable: false },
-                    { label: '5th-95th percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.1 },
-                    { label: '15th-85th percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.2 },
-                    { label: '25th-75th percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.4 },
-                    { label: '35th-65th percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.6 },
-                    { label: '45th-55th percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.8 }
+                    { label: '5th-95th percentiles', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.1 },
+                    { label: '15th-85th percentiles', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.2 },
+                    { label: '25th-75th percentiles', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.4 },
+                    { label: '35th-65th percentiles', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.6 },
+                    { label: '45th-55th percentiles', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.8 }
                 ] : [],
                 ...Array.from($visibleTrusts || [])
                     .filter(trust => {
@@ -375,8 +375,8 @@
                 ...dataset,
                 hidden: $selectedMode === 'percentiles' ?
                     (!$showPercentiles && (
-                        dataset.label === 'Median (50th Percentile)' ||
-                        dataset.label.includes('th Percentile')
+                        dataset.label === 'Median (50th percentile)' ||
+                        dataset.label.includes('th percentile')
                     )) || (
                         !Array.from($visibleTrusts).includes(dataset.label) && 
                         !dataset.alwaysVisible
@@ -395,8 +395,8 @@
                 datasets: $filteredData.datasets.map(dataset => ({
                     ...dataset,
                     hidden: (!$showPercentiles && (
-                        dataset.label === 'Median (50th Percentile)' ||
-                        dataset.label.includes('th Percentile')
+                        dataset.label === 'Median (50th percentile)' ||
+                        dataset.label.includes('th percentile')
                     )) || (
                         !Array.from($visibleTrusts).includes(dataset.label) && 
                         !dataset.alwaysVisible
@@ -483,7 +483,7 @@
                 { label: 'Value', value }
             );
         } else if ($selectedMode === 'percentiles') {
-            if (d.dataset.label === 'Median (50th Percentile)' || d.dataset.name === 'Median (50th Percentile)') {
+            if (d.dataset.label === 'Median (50th percentile)' || d.dataset.name === 'Median (50th percentile)') {
                 tooltipContent.push(
                     { label: 'Date', value: formattedDate },
                     { label: 'Value', value }
