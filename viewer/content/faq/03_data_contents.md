@@ -32,3 +32,25 @@ There are multiple reasons your hospital may not be present in the data presente
 
 * **Data is reported at the level of individual NHS Trusts**. NHS Trusts can be made up of multiple sites. If you can't find your hospital, try searching for it by its NHS Trust name.
 * **NHS Trusts sometimes undergo organisational change, such as mergers or acquisitions**. The hospital you are looking for could be included in the dataset under a different name to what you might expect. Data for NHS Trusts which are now part of another NHS Trust is aggregated into the successor organisation. You can find all NHS Trusts historically included in the SCMD, with an indication of their current NHS Trust on the [Submission History page](https://hospitals.openprescribing.net/submission-history/).
+
+
+### Why are there negative values for some products?
+
+The SCMD contains pharmacy stock control data representing medication distribution within hospitals, such as issuing of medicines to wards or clinical areas, rather than actual patient-level prescribing. Not all of the stock that is issued within hospitals eventually ends up being used. In some hospitals, when this is the case and where their stock control system supports it, historical stock issues can be updated. This is known as _Backtracking_. Where supply made in a previous month is returned in a subsequent month, and the quantity returned is greater than the quantity issued in that month, the quantity reported will be negative.
+
+
+You can read about this in our blog, [More about hospital stock control data](https://www.bennett.ox.ac.uk/blog/2025/02/more-about-hospital-stock-control-data/).
+
+### What is a VMP?
+
+VMP is short for Virtual Medicinal Product. This is a component of the [dictionary of medicines and devices (dm+d)](https://www.bennett.ox.ac.uk/blog/2019/08/what-is-the-dm-d-the-nhs-dictionary-of-medicines-and-devices/), the standard dictionary for medicines and devices used across the NHS and contains standardised codes, descriptions and metadata for individual items. VMPs describe a general class of medicines or device that may be available as an actual product. All of the data within the SCMD is reported at the level of VMPs. We commonly refer to these as _products_. 
+
+You can read more about VMPs in our blogs, [Understanding the secondary care medicines dataset](https://www.bennett.ox.ac.uk/blog/2025/02/understanding-the-secondary-care-medicines-dataset/) and [Getting more from the secondary care medicines data using the dictionary of medicines and devices](https://www.bennett.ox.ac.uk/blog/2025/03/getting-more-from-the-secondary-care-medicines-data-using-the-dictionary-of-medicines-and-devices/).
+
+### What is a DDD?
+
+Defined Daily Dose (DDD) is a unit of measure for medicines consumption that enables comparison of usage across groups of medicines. They are defined and maintained by the World Health Organization (WHO), who define them as:
+
+> Defined Daily Dose (DDD): The assumed average maintenance dose per day for a drug used for its main indication in adults
+
+*Source: [World Health Organization](https://www.who.int/tools/atc-ddd-toolkit/about-ddd)*
