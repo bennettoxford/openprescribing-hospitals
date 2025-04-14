@@ -50,7 +50,7 @@
         return parsedNumeratorItems.some(numItem => numItem.code === item.code);
     }
 
-    $: displayedItems = isExpanded ? sortedItems : sortedItems.slice(0, previewCount);
+    $: displayedItems = isExpanded || sortedItems.length <= previewCount ? sortedItems : sortedItems.slice(0, previewCount);
     $: remainingCount = sortedItems.length - previewCount;
 </script>
 
@@ -59,6 +59,7 @@
         <div class="flex justify-between items-center mb-2">
             <h3 class="text-lg font-semibold text-gray-800">{title}</h3>
             
+            {#if sortedItems.length > previewCount}
             <button 
                 on:click={toggleExpanded}
                 class="text-sm text-oxford-600 hover:text-oxford-800 font-medium flex items-center gap-1"
@@ -68,6 +69,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                 </svg>
             </button>
+            {/if}
         </div>
 
         {#if description}
