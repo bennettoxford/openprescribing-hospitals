@@ -38,6 +38,7 @@ class VMP(models.Model):
     ont_form_routes = models.ManyToManyField("OntFormRoute", related_name="vmps")
     who_routes = models.ManyToManyField("WHORoute", related_name="vmps")
     atcs = models.ManyToManyField("ATC", related_name="vmps")
+    bnf_code = models.CharField(max_length=20, null=True)
 
     def __str__(self):
         return f"{self.name} ({self.code})"
