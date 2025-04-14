@@ -78,13 +78,8 @@
                     </div>
                 </div>
 
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Why does it matter?</h2>
-                    <div class="markdown-content">
-                        {{ why_it_matters|safe }}
-                    </div>
-                </div>
                 <span class="block w-full h-px bg-gray-300 my-8"></span>
+                
                 <div class="mb-8">
                     <div id="measure-chart">
                         <measure-component 
@@ -95,9 +90,9 @@
                         ></measure-component>
                     </div>
                 </div>
-
+                
                 <span class="block w-full h-px bg-gray-300 my-8"></span>
-
+                
                 <div>
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">How is it calculated?</h2>
                     <div class="markdown-content">
@@ -113,6 +108,14 @@
                         ></collapsible-section>
                     </div>
                 </div>
+
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Why does it matter?</h2>
+                    <div class="markdown-content">
+                        {{ why_it_matters|safe }}
+                    </div>
+                </div>
+
                 <div>
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">Which NHS Trusts are included?</h2>
                     <div class="[&_p]:text-lg [&_p]:text-gray-900 [&_p]:mb-8 [&_a]:underline [&_a]:font-semibold">
