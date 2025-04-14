@@ -15,7 +15,7 @@
     export let description = '';
     export let items = '[]';
     export let numeratorItems = '[]';
-    export let previewCount = 1;
+    export let previewCount = 3;
 
     let isExpanded = false;
     let parsedItems = [];
