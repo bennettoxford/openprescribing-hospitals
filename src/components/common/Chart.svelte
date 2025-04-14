@@ -220,6 +220,37 @@
       snap: 10,
       distance: 20,
       hideDelay: 0,
+      positioner: function (labelWidth, labelHeight, point) {
+        const chart = this.chart;
+        const plotLeft = chart.plotLeft;
+        const plotRight = chart.plotLeft + chart.plotWidth;
+        const plotTop = chart.plotTop;
+        const plotBottom = chart.plotTop + chart.plotHeight;
+        
+        let x = point.plotX + plotLeft - (labelWidth / 2);
+        let y = point.plotY + plotTop;
+
+      
+        if (x + labelWidth > plotRight) {
+          x = plotRight - labelWidth - 10;
+        }
+        
+        if (x < plotLeft) {
+          x = plotLeft + 10;
+        }
+
+        if (y + labelHeight > plotBottom) {
+          y = y - labelHeight - 10;
+        } else {
+          y = y + 10;
+        }
+        y = Math.max(plotTop, Math.min(plotBottom - labelHeight, y));
+
+        return {
+          x: x,
+          y: y
+        };
+      },
       formatter: function() {
         if (!formatTooltipContent) return false;
         
