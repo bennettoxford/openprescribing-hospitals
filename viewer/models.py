@@ -338,6 +338,38 @@ class DDDQuantity(models.Model):
                 }
         return None
 
+
+class IndicativeCost(models.Model):
+    vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name="indicative_costs")
+    organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name="indicative_costs")
+    data = ArrayField(
+        ArrayField(
+            models.CharField(max_length=255, null=True),
+            size=2,  # [year_month, quantity]
+        ),
+        null=True,
+        help_text="Array of [year_month, quantity] entries"
+    )
+    
+    class Meta:
+        unique_together = ('vmp', 'organisation')
+        indexes = [
+            models.Index(fields=["vmp", "organisation"]),
+        ]
+
+    def __str__(self):
+        return f"{self.vmp.name} - {self.organisation.ods_name}"
+
+    def get_quantity_for_month(self, year_month):
+        """Get quantity and unit for a specific month"""
+        date_str = year_month.strftime('%Y-%m-%d')
+        for entry in self.data:
+            if entry[0] == date_str:
+                return {
+                    'quantity': float(entry[1]) if entry[1] else None
+                }
+        return None
+    
 class MeasureTag(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(null=True)
