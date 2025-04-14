@@ -236,7 +236,7 @@
 
 <div class="dropdown relative w-full h-full flex flex-col">
     <div class="flex flex-col">
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col">
             {#if showTitle}
                 <div class="flex items-center">
                     <label class="text-sm font-medium {disabled ? 'text-gray-400' : 'text-gray-700'}">
