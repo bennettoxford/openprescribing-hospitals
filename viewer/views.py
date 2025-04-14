@@ -101,7 +101,6 @@ class AnalyseView(TemplateView):
         
         return context
 
-@method_decorator(login_required, name='dispatch')
 class MeasuresListView(TemplateView):
     template_name = "measures_list.html"
 
@@ -123,7 +122,6 @@ class MeasuresListView(TemplateView):
         return context
 
 
-@method_decorator(login_required, name='dispatch')
 class MeasureItemView(TemplateView):
     template_name = "measure_item.html"
 

@@ -66,17 +66,10 @@
                         </div>
                     </div>
                     <p class="text-gray-600 text-sm leading-relaxed flex-grow">Explore a curated set of measures that highlight variation in medicines issued across NHS Trusts.</p>
-                    {% if user.is_authenticated %}
                         <a href="{% url 'viewer:measures_list' %}" 
-                           class="inline-flex w-full justify-center items-center px-4 py-2 bg-oxford-50 text-oxford-600 rounded-lg hover:bg-oxford-100 transition-colors duration-200 font-medium mt-6">
+                            class="inline-flex w-full justify-center items-center px-4 py-2 bg-oxford-50 text-oxford-600 rounded-lg hover:bg-oxford-100 transition-colors duration-200 font-medium mt-6">
                             View Measures
                         </a>
-                    {% else %}
-                        <div 
-                           class="inline-flex w-full justify-center items-center px-4 py-2 bg-oxford-100 text-oxford-600 rounded-lg font-medium mt-6">
-                            Coming Soon
-                        </div>
-                    {% endif %}
                 </div>
             </div>
 
