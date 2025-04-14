@@ -28,9 +28,10 @@
         <!-- Measures Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {% for measure in measures %}
-            <div class="flex flex-col h-full {% if measure.draft and not request.user.is_authenticated %}opacity-50{% endif %}">
+            {% if not measure.draft or request.user.is_authenticated %}
+            <div class="flex flex-col h-full">
                 <div class="relative h-full">
-                    <div class="bg-white rounded-xl shadow-sm {% if not measure.draft or request.user.is_authenticated %}hover:shadow-md transition-all duration-300{% endif %} flex flex-col h-full border border-gray-100">
+                    <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col h-full border border-gray-100">
                         <div class="{% if measure.draft %}bg-amber-50{% endif %} py-2 px-4 border-b border-gray-100 flex items-center rounded-t-xl relative h-[5rem]">
                             {% if measure.draft %}
                             <div class="absolute top-0 left-0 right-0 flex items-center justify-center py-1 text-xs font-medium text-amber-800">
@@ -71,28 +72,15 @@
                             {% endif %}
                         </div>
                         <div class="p-6 pt-2">
-                            {% if measure.draft %}
-                                {% if request.user.is_authenticated %}
-                                    <a href="{% url 'viewer:measure_item' measure.slug %}" 
-                                        class="inline-flex w-full justify-center items-center px-4 py-2 bg-oxford-50 text-oxford-600 rounded-lg hover:bg-oxford-100 transition-colors duration-200 font-medium">
-                                        View measure
-                                    </a>
-                                {% else %}
-                                    <button disabled 
-                                        class="inline-flex w-full justify-center items-center px-4 py-2 bg-gray-50 text-gray-400 rounded-lg cursor-not-allowed font-medium">
-                                        View measure
-                                    </button>
-                                {% endif %}
-                            {% else %}
-                                <a href="{% url 'viewer:measure_item' measure.slug %}" 
-                                   class="inline-flex w-full justify-center items-center px-4 py-2 bg-oxford-50 text-oxford-600 rounded-lg hover:bg-oxford-100 transition-colors duration-200 font-medium">
-                                    View measure
-                                </a>
-                            {% endif %}
+                            <a href="{% url 'viewer:measure_item' measure.slug %}" 
+                                class="inline-flex w-full justify-center items-center px-4 py-2 bg-oxford-50 text-oxford-600 rounded-lg hover:bg-oxford-100 transition-colors duration-200 font-medium">
+                                View measure
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
+            {% endif %}
             {% endfor %}
         </div>
     </div>
