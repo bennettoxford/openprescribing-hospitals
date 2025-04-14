@@ -52,29 +52,25 @@
 
     $: displayedItems = isExpanded || sortedItems.length <= previewCount ? sortedItems : sortedItems.slice(0, previewCount);
     $: remainingCount = sortedItems.length - previewCount;
+    $: numeratorCount = parsedNumeratorItems.length;
+    $: denominatorCount = parsedItems.length;
 </script>
 
 <div class="border border-gray-200 rounded-lg shadow-sm my-4 overflow-hidden">
     <div class="px-4 py-3 bg-white">
         <div class="flex justify-between items-center mb-2">
             <h3 class="text-lg font-semibold text-gray-800">{title}</h3>
-            
-            {#if sortedItems.length > previewCount}
-            <button 
-                on:click={toggleExpanded}
-                class="text-sm text-oxford-600 hover:text-oxford-800 font-medium flex items-center gap-1"
-            >
-                {isExpanded ? 'Show less' : `Show all (${sortedItems.length})`}
-                <svg class:rotate-180={isExpanded} class="w-4 h-4 text-current transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-            </button>
-            {/if}
         </div>
 
-        {#if description}
-            <p class="text-sm text-gray-600 mb-4">{description}</p>
-        {/if}
+        <p class="text-sm text-gray-600 mb-4">
+
+            <span class="block mt-1">
+                There are <span class="font-semibold">{denominatorCount} products</span> included in the denominator for this measure, 
+                of which <span class="font-semibold">{numeratorCount}</span> are included in the numerator.
+            </span>
+        </p>
+     
+      
 
         <div class="overflow-x-auto">
             <div class={`overflow-y-auto transition-all duration-200 ease-in-out ${isExpanded ? 'max-h-[24rem]' : 'max-h-[20rem]'}`}>
@@ -115,8 +111,28 @@
         </div>
 
         {#if !isExpanded && remainingCount > 0}
-            <div class="mt-2 text-sm text-gray-500 text-center">
-                and {remainingCount} more items...
+            <div class="mt-2 text-center border-t border-gray-100 pt-2">
+                <button 
+                    on:click={toggleExpanded}
+                    class="text-sm text-oxford-600 hover:text-oxford-800 inline-flex items-center gap-1.5 py-1 px-3 hover:bg-oxford-50 rounded-full transition-colors"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                    <span>Show all {sortedItems.length} items</span>
+                </button>
+            </div>
+        {:else if isExpanded}
+            <div class="mt-2 text-center border-t border-gray-100 pt-2">
+                <button 
+                    on:click={toggleExpanded}
+                    class="text-sm text-oxford-600 hover:text-oxford-800 inline-flex items-center gap-1.5 py-1 px-3 hover:bg-oxford-50 rounded-full transition-colors"
+                >
+                    <svg class="w-4 h-4 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                    <span>Show fewer</span>
+                </button>
             </div>
         {/if}
     </div>
