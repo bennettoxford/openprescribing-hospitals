@@ -33,6 +33,7 @@
     import { modeSelectorStore } from '../../stores/modeSelectorStore.js';
     import { regionColors } from '../../utils/chartConfig.js';
     import { filteredData } from '../../stores/measureChartStore.js';
+    import { formatNumber } from '../../utils/utils.js';
 
     export let orgdata = '[]';
     export let regiondata = '[]';
@@ -477,8 +478,8 @@
         if ($selectedMode === 'region' || $selectedMode === 'icb' || $selectedMode === 'national') {
             tooltipContent.push(
                 { label: 'Date', value: formattedDate },
-                { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index]) },
-                { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index]) },
+                { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index], { addCommas: true }) },
+                { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index], { addCommas: true }) },
                 { label: 'Value', value }
             );
         } else if ($selectedMode === 'percentiles') {
@@ -490,19 +491,14 @@
             } else if (d.dataset.isTrust || d.dataset.isOrganisation) {
                 tooltipContent.push(
                     { label: 'Date', value: formattedDate },
-                    { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index]) },
-                    { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index]) },
+                    { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index], { addCommas: true }) },
+                    { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index], { addCommas: true }) },
                     { label: 'Value', value }
                 );
             }
         }
 
         return tooltipContent;
-    }
-
-    function formatNumber(value) {
-        if (value == null || isNaN(value)) return value;
-        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
     function handlePercentileToggle() {
