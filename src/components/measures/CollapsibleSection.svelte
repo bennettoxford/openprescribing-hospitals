@@ -78,7 +78,7 @@
                     <thead class="bg-gray-50 sticky top-0 z-10">
                         <tr>
                             <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Product Name</th>
-                            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Product Code</th>
+                            <th scope="col" class="hidden lg:table-cell px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Product Code</th>
                             <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Unit of measure</th>
                             <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Measure component</th>
                         </tr>
@@ -89,7 +89,7 @@
                             <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out"
                                 class:bg-oxford-50={inNumerator}>
                                 <td class="px-3 py-2 text-sm font-medium text-gray-900">{item.name}</td>
-                                <td class="px-3 py-2 text-sm text-gray-500">{item.code}</td>
+                                <td class="hidden lg:table-cell px-3 py-2 text-sm text-gray-500">{item.code}</td>
                                 <td class="px-3 py-2 text-sm text-gray-500">{item.unit || '-'}</td>
                                 <td class="px-3 py-2">
                                     <div class="flex flex-col gap-1">
