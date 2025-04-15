@@ -101,7 +101,7 @@
         orgdataStore.set(parsedOrgData.data || {});
         
         measureChartStore.setDimensions({
-            height: 350,
+            height: 500,
             margin: { top: 10, right: 20, bottom: 30, left: 80 }
         });
         
@@ -185,8 +185,8 @@
                     datasets: $filteredData.datasets.map(dataset => ({
                         ...dataset,
                         hidden: (!$showPercentiles && (
-                            dataset.label === 'Median (50th Percentile)' ||
-                            dataset.label.includes('th Percentile')
+                            dataset.label === 'Median (50th percentile)' ||
+                            dataset.label.includes('th percentile')
                         )) || (
                             !Array.from($visibleTrusts).includes(dataset.label) && 
                             !dataset.alwaysVisible
@@ -254,8 +254,8 @@
                         datasets: $filteredData.datasets.map(dataset => ({
                             ...dataset,
                             hidden: (!$showPercentiles && (
-                                dataset.label === 'Median (50th Percentile)' ||
-                                dataset.label.includes('th Percentile')
+                                dataset.label === 'Median (50th percentile)' ||
+                                dataset.label.includes('th percentile')
                             )) || (
                                 !Array.from($visibleTrusts).includes(dataset.label) && 
                                 !dataset.alwaysVisible
@@ -326,11 +326,11 @@
             [
                 ...$showPercentiles ? [
                     { label: 'Median (50th percentile)', color: '#DC3220', visible: true, selectable: false },
-                    { label: '5th-95th percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.1 },
-                    { label: '15th-85th percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.2 },
-                    { label: '25th-75th percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.4 },
-                    { label: '35th-65th percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.6 },
-                    { label: '45th-55th percentile', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.8 }
+                    { label: '5th-95th percentiles', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.1 },
+                    { label: '15th-85th percentiles', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.2 },
+                    { label: '25th-75th percentiles', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.4 },
+                    { label: '35th-65th percentiles', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.6 },
+                    { label: '45th-55th percentiles', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.8 }
                 ] : [],
                 ...Array.from($visibleTrusts || [])
                     .filter(trust => {
@@ -375,8 +375,8 @@
                 ...dataset,
                 hidden: $selectedMode === 'percentiles' ?
                     (!$showPercentiles && (
-                        dataset.label === 'Median (50th Percentile)' ||
-                        dataset.label.includes('th Percentile')
+                        dataset.label === 'Median (50th percentile)' ||
+                        dataset.label.includes('th percentile')
                     )) || (
                         !Array.from($visibleTrusts).includes(dataset.label) && 
                         !dataset.alwaysVisible
@@ -395,8 +395,8 @@
                 datasets: $filteredData.datasets.map(dataset => ({
                     ...dataset,
                     hidden: (!$showPercentiles && (
-                        dataset.label === 'Median (50th Percentile)' ||
-                        dataset.label.includes('th Percentile')
+                        dataset.label === 'Median (50th percentile)' ||
+                        dataset.label.includes('th percentile')
                     )) || (
                         !Array.from($visibleTrusts).includes(dataset.label) && 
                         !dataset.alwaysVisible
@@ -483,7 +483,7 @@
                 { label: 'Value', value }
             );
         } else if ($selectedMode === 'percentiles') {
-            if (d.dataset.label === 'Median (50th Percentile)' || d.dataset.name === 'Median (50th Percentile)') {
+            if (d.dataset.label === 'Median (50th percentile)' || d.dataset.name === 'Median (50th percentile)') {
                 tooltipContent.push(
                     { label: 'Date', value: formattedDate },
                     { label: 'Value', value }
@@ -508,72 +508,69 @@
     }
 </script>
 
-<div class="grid grid-cols-1 lg:grid-cols-4 gap-x-4 gap-y-2">
+<div>
+    <div class="flex flex-col md:flex-row justify-between gap-4 px-4 sm:px-8">
+        {#if showFilter}
+            <div class="w-full md:w-7/12 relative z-10">
+                <OrganisationSearch 
+                    source={organisationSearchStore}
+                    overlayMode={true}
+                    on:selectionChange={handleSelectionChange}
+                    on:clearAll={handleClearAll}
+                    disabled={$selectedMode === 'national'}
+                />
+            </div>
+        {:else}
+            <div class="w-full md:w-7/12"></div>
+        {/if}
 
-    <div class="col-span-full">
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-2">
-
-            {#if showFilter}
-                <div class="lg:col-span-3 relative z-10">
-                    <div class="w-full h-full flex items-end gap-2">
-                        <OrganisationSearch 
-                            source={organisationSearchStore}
-                            overlayMode={true}
-                            on:selectionChange={handleSelectionChange}
-                            on:clearAll={handleClearAll}
-                            disabled={$selectedMode === 'national'}
+        <div class="w-full md:w-auto flex justify-between items-end gap-4">
+            {#if $selectedMode === 'percentiles'}
+            <div class="flex flex-col items-center gap-2">
+                <span class="text-sm text-gray-600 leading-tight text-center">
+                    Show<br>percentiles
+                </span>
+                <div class="flex items-center gap-2">
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            class="sr-only peer"
+                            checked={$showPercentiles}
+                            on:change={handlePercentileToggle}
                         />
-                        {#if $selectedMode === 'percentiles'}
-                            <div class="flex items-center gap-2">
-                                <span class="text-sm text-gray-600 leading-tight text-center">
-                                    Show<br>percentiles
-                                </span>
-                                <div class="relative inline-block group">
-                                    <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
-                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
-                                    <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
-                                                group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
-                                                ring-1 ring-black ring-opacity-5 p-4">
-                                        <p class="text-sm text-gray-500">
-                                            Percentiles show variation in this measure across Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.
-                                        </p>
-                                    </div>
-                                </div>
-                                <label class="inline-flex items-center cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        class="sr-only peer"
-                                        checked={$showPercentiles}
-                                        on:change={handlePercentileToggle}
-                                    />
-                                    <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                                </label>
-                            </div>
-                        {/if}
+                        <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                    <div class="relative inline-block group">
+                        <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
+                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
+                                    group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
+                                    ring-1 ring-black ring-opacity-5 p-4">
+                            <p class="text-sm text-gray-500">
+                                Percentiles show variation in this measure across Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.
+                            </p>
+                        </div>
                     </div>
                 </div>
-            {:else}
-                <div class="lg:col-span-3"></div>
-            {/if}
-
-            <div class="lg:col-span-1 flex items-end">
-                <div class="w-full">
-                    <ModeSelector 
-                        options={modeOptions}
-                        initialMode="percentiles"
-                        label="Select Mode"
-                        onChange={handleModeChange}
-                        variant="dropdown"
-                    />
-                </div>
             </div>
+        {/if}
+            <div>
+                <ModeSelector 
+                    options={modeOptions}
+                    initialMode="percentiles"
+                    label="Select Mode"
+                    onChange={handleModeChange}
+                    variant="dropdown"
+                />
+            </div>
+
         </div>
     </div>
 
-    <div class="lg:col-span-4 relative h-[350px]">
+    <div class="lg:col-span-4 relative h-[550px]">
         <div class="chart-container absolute inset-0">
             {#if $orgdataStore.length === 0}
                 <p class="text-center text-gray-500 pt-8">No data available.</p>

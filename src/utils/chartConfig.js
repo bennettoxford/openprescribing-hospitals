@@ -29,25 +29,25 @@ export const percentilesLegend = [
         isArea: true 
     },
     { 
-        label: '35th-45th and 55th-65th percentile', 
+        label: '35th-45th and 55th-65th percentiles', 
         color: '#005AB5', 
         fillOpacity: 0.6, 
         isArea: true 
     },
     { 
-        label: '25th-35th and 65th-75th percentile', 
+        label: '25th-35th and 65th-75th percentiles', 
         color: '#005AB5', 
         fillOpacity: 0.4, 
         isArea: true 
     },
     { 
-        label: '15th-25th and 75th-85th percentile', 
+        label: '15th-25th and 75th-85th percentiles', 
         color: '#005AB5', 
         fillOpacity: 0.2, 
         isArea: true 
     },
     { 
-        label: '5th-15th and 85th-95th percentile', 
+        label: '5th-15th and 85th-95th percentiles', 
         color: '#005AB5', 
         fillOpacity: 0.1, 
         isArea: true 

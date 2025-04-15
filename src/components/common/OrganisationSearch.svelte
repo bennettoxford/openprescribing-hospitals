@@ -26,7 +26,7 @@
 
     $: counterText = $source.filterType === 'icb' ? 'ICBs' :
                      $source.filterType === 'region' ? 'regions' :
-                     'NHS Trusts';
+                     'trusts';
 
     let isOpen = false;
     let searchTerm = '';
@@ -236,7 +236,7 @@
 
 <div class="dropdown relative w-full h-full flex flex-col">
     <div class="flex flex-col">
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col">
             {#if showTitle}
                 <div class="flex items-center">
                     <label class="text-sm font-medium {disabled ? 'text-gray-400' : 'text-gray-700'}">
@@ -280,7 +280,7 @@
                         on:focus={() => !disabled && (isOpen = true)}
                         placeholder={placeholderText}
                         disabled={disabled}
-                        class="w-full p-2 border border-gray-300 rounded-l-md pr-8 
+                        class="w-full p-2 border border-gray-300 rounded-l-md
                                {isOpen ? 'rounded-bl-none' : ''} 
                                {disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}"
                     />
@@ -297,7 +297,7 @@
 
                 <div class="flex items-center gap-2 bg-gray-50 px-3 border border-l-0 border-gray-300 
                             {isOpen ? 'rounded-tr-md' : 'rounded-r-md'} 
-                            {disabled ? 'bg-gray-100' : ''} min-w-[120px]">
+                            {disabled ? 'bg-gray-100' : ''} min-w-[70px]">
                     <div class="flex flex-col items-center text-xs text-gray-500 py-1 w-full">
                         <span class="font-medium">
                             {(() => {

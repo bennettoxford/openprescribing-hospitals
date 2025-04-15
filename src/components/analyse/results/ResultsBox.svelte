@@ -471,7 +471,7 @@
 
         resultsChartStore.setData(chartData);
         resultsChartStore.setDimensions({
-            height: 400,
+            height: 600,
             margin: {
                 top: 20,
                 right: 20,
@@ -784,7 +784,7 @@
                             />
                         </div>
                         <div class="grid grid-cols-1 gap-4">
-                            <div class="relative h-[400px] mb-36 sm:mb-0">
+                            <div class="relative h-[550px] mb-6 sm:mb-0">
                                 <Chart 
                                     store={resultsChartStore} 
                                     data={filteredData.length > 0 ? filteredData : selectedData}
