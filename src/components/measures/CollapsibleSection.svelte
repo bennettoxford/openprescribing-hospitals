@@ -53,7 +53,7 @@
     $: displayedItems = isExpanded || sortedItems.length <= previewCount ? sortedItems : sortedItems.slice(0, previewCount);
     $: remainingCount = sortedItems.length - previewCount;
     $: numeratorCount = parsedNumeratorItems.length;
-    $: denominatorCount = parsedItems.length;
+    $: denominatorCount = parsedItems.length + parsedNumeratorItems.length;
 </script>
 
 <div class="border border-gray-200 rounded-lg shadow-sm my-4 overflow-hidden">
