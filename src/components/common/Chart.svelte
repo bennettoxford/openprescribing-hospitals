@@ -45,7 +45,8 @@
   $: finalChartOptions = {
     ...chartOptions,
     chart: {
-      height: dimensions.height,
+      type: 'line',
+      height: 500,
       zoomType: 'xy',
       panning: true,
       panKey: 'shift',
@@ -115,7 +116,7 @@
       align: 'right',
       verticalAlign: 'top',
       layout: 'vertical',
-      maxHeight: 300,
+      maxHeight: 400,
       navigation: {
         activeColor: '#2563eb',
         animation: true,
@@ -142,12 +143,11 @@
     responsive: {
       rules: [{
         condition: {
-          maxWidth: 500
+          maxWidth: 960
         },
         chartOptions: {
           chart: {
-            height: dimensions.height + 100,
-            marginBottom: 170,
+            height: 550,
             spacingBottom: 30
           },
           legend: {
@@ -158,8 +158,9 @@
             y: 40,
             x: 0,
             itemStyle: {
-              width: 90
+              width: 120
             },
+            itemWidth: 160,
             itemMarginTop: 4,
             itemMarginBottom: 4,
             padding: 20

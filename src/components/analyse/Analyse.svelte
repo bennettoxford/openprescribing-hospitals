@@ -146,7 +146,7 @@
             </div>
         </div>
         <div class="h-fit">
-            <div class={`bg-white rounded-lg shadow-md flex flex-col ${isResultsBoxPopulated ? 'h-auto' : 'h-fit'}`}>
+            <div class={`bg-white rounded-lg shadow-md flex flex-col ${isResultsBoxPopulated ? 'h-auto min-h-[600px]' : 'h-fit'}`}>
                 <div class="bg-gradient-to-r from-oxford-600/60 via-bn-roman-600/70 to-bn-strawberry-600/60 text-white p-2 rounded-t-lg">
                     <h2 class="text-lg font-semibold">Results</h2>
                 </div>
