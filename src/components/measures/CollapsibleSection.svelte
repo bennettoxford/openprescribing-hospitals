@@ -62,13 +62,31 @@
             <h3 class="text-lg font-semibold text-gray-800">{title}</h3>
         </div>
 
-        <p class="text-sm text-gray-600 mb-4">
-
+        <p class="text-sm text-gray-600 mb-2">
             <span class="block mt-1">
                 There are <span class="font-semibold">{denominatorCount} products</span> included in the denominator for this measure, 
                 of which <span class="font-semibold">{numeratorCount}</span> are included in the numerator.
             </span>
         </p>
+        
+        <div class="flex flex-wrap gap-2 mb-4 text-xs text-gray-600">
+            <div class="inline-flex items-center gap-1 bg-oxford-50 px-2 py-1 rounded">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24">
+                    <rect x="6" y="3" width="12" height="5" fill="#003D73" rx="1" />
+                    <rect x="6" y="16" width="12" height="5" fill="#003D73" rx="1" />
+                    <rect x="4" y="11.5" width="16" height="1" fill="#003D73" />
+                </svg>
+                <span>Numerator and denominator</span>
+            </div>
+            <div class="inline-flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24">
+                    <rect x="6" y="3" width="12" height="5" fill="none" stroke="#9CA3AF" stroke-width="1" rx="1" />
+                    <rect x="6" y="16" width="12" height="5" fill="#9CA3AF" rx="1" />
+                    <rect x="4" y="11.5" width="16" height="1" fill="#9CA3AF" />
+                </svg>
+                <span>Denominator only</span>
+            </div>
+        </div>
      
       
 
@@ -80,7 +98,6 @@
                             <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Product Name</th>
                             <th scope="col" class="hidden lg:table-cell px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Product Code</th>
                             <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Unit of measure</th>
-                            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Measure component</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -88,21 +105,26 @@
                             {@const inNumerator = isInNumerator(item)}
                             <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out"
                                 class:bg-oxford-50={inNumerator}>
-                                <td class="px-3 py-2 text-sm font-medium text-gray-900">{item.name}</td>
-                                <td class="hidden lg:table-cell px-3 py-2 text-sm text-gray-500">{item.code}</td>
-                                <td class="px-3 py-2 text-sm text-gray-500">{item.unit || '-'}</td>
-                                <td class="px-3 py-2">
-                                    <div class="flex flex-col gap-1">
+                                <td class="px-3 py-2 text-sm font-medium text-gray-900">
+                                    <div class="flex items-center gap-2">
                                         {#if inNumerator}
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-oxford-100 text-oxford-800">
-                                                Numerator
-                                            </span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24">
+                                                <rect x="6" y="3" width="12" height="5" fill="#003D73" rx="1" />
+                                                <rect x="6" y="16" width="12" height="5" fill="#003D73" rx="1" />
+                                                <rect x="4" y="11.5" width="16" height="1" fill="#003D73" />
+                                            </svg>
+                                        {:else}
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24">
+                                                <rect x="6" y="3" width="12" height="5" fill="none" stroke="#9CA3AF" stroke-width="1" rx="1" />
+                                                <rect x="6" y="16" width="12" height="5" fill="#9CA3AF" rx="1" />
+                                                <rect x="4" y="11.5" width="16" height="1" fill="#9CA3AF" />
+                                            </svg>
                                         {/if}
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                                            Denominator
-                                        </span>
+                                        <span>{item.name}</span>
                                     </div>
                                 </td>
+                                <td class="hidden lg:table-cell px-3 py-2 text-sm text-gray-500">{item.code}</td>
+                                <td class="px-3 py-2 text-sm text-gray-500">{item.unit || '-'}</td>
                             </tr>
                         {/each}
                     </tbody>
