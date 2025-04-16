@@ -54,3 +54,10 @@ Defined Daily Dose (DDD) is a unit of measure for medicines consumption that ena
 > Defined Daily Dose (DDD): The assumed average maintenance dose per day for a drug used for its main indication in adults
 
 *Source: [World Health Organization](https://www.who.int/tools/atc-ddd-toolkit/about-ddd)*
+
+### What is indicative cost?
+
+The SCMD includes the indicative cost for each medicine or device within the dataset. The indicative cost is based on the community pharmacy reimbursement prices for generic and list prices for branded medicines. This does not reflect the actual cost paid by hospitals. This, as described in the SCMD release guidance, overestimates the total spend by a factor of two:
+
+> The indicative cost in this data set will overestimate the total spend on medicines issued in hospitals. For example, the total indicative cost of medicines issued in secondary care for 2020 / 21 was £14.5 billion compared to the net actual cost of £7.59 billion (excluding central rebates).
+
