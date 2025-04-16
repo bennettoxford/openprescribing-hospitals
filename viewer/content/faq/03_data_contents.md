@@ -61,3 +61,7 @@ The SCMD includes the indicative cost for each medicine or device within the dat
 
 > The indicative cost in this data set will overestimate the total spend on medicines issued in hospitals. For example, the total indicative cost of medicines issued in secondary care for 2020 / 21 was £14.5 billion compared to the net actual cost of £7.59 billion (excluding central rebates).
 
+
+### Does the data include prescriptions dispensed in community pharmacy?
+
+The SCMD does not include NHS prescriptions supplied by the hospital and dispensed in community pharmacy. This data is available in a separate dataset, [Hospital Prescribing Dispensed in the Community](https://opendata.nhsbsa.net/dataset/hospital-prescribing-dispensed-in-the-community), which we do not currently use on OpenPrescribing Hospitals. Medicines dispensed in community pharmacy make up a very small proportion of hospital medicines usage; in January 2025, medicines dispensed in community pharmacy accounted for £5.6m actual cost, which is a very small proportion of the near £2.1bn indicative cost in SCMD data for the same month (likely ~£1bn actual cost). 
