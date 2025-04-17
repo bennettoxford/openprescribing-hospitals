@@ -227,10 +227,10 @@ def create_units_dict() -> Dict:
             "basis_id": "10693811000001101",
         },
         "litre": {
-            "basis": "litre",
-            "conversion_factor": 1,
+            "basis": "ml",
+            "conversion_factor": 1000,
             "id": "258770004",
-            "basis_id": "258770004",
+            "basis_id": "258773002",
         },
         "lozenge": {
             "basis": "lozenge",
@@ -283,10 +283,10 @@ def create_units_dict() -> Dict:
             "basis_id": "258682000",
         },
         "microlitre": {
-            "basis": "litre",
-            "conversion_factor": 1e-06,
+            "basis": "ml",
+            "conversion_factor": 0.001,
             "id": "258774008",
-            "basis_id": "258770004",
+            "basis_id": "258773002",
         },
         "micromol": {
             "basis": "mmol",
@@ -307,10 +307,10 @@ def create_units_dict() -> Dict:
             "basis_id": "10695711000001105",
         },
         "ml": {
-            "basis": "litre",
-            "conversion_factor": 0.001,
+            "basis": "ml",
+            "conversion_factor": 1,
             "id": "258773002",
-            "basis_id": "258770004",
+            "basis_id": "258773002",
         },
         "mmol": {
             "basis": "mmol",
@@ -332,10 +332,10 @@ def create_units_dict() -> Dict:
             "basis_id": "258682000",
         },
         "nanolitre": {
-            "basis": "litre",
-            "conversion_factor": 1e-09,
+            "basis": "ml",
+            "conversion_factor": 0.000001,
             "id": "282113003",
-            "basis_id": "258770004",
+            "basis_id": "258773002",
         },
         "needle": {
             "basis": "needle",
