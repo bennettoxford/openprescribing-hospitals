@@ -80,6 +80,17 @@
         isAnalysisRunning = true;
         dispatch('analysisStart');
         
+        if (typeof window !== 'undefined' && window.plausible) {
+            window.plausible('Analysis Run', {
+                props: {
+                    all_products: selectedVMPs.join(','),
+                    all_organisations: $organisationSearchStore.selectedItems.join(','),
+                    product_count: selectedVMPs.length.toString(),
+                    organisation_count: $organisationSearchStore.selectedItems.length.toString()
+                }
+            });
+        }
+        
         let endpoint = '/api/filtered-quantities/';
         
         try {
