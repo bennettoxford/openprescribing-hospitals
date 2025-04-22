@@ -468,7 +468,10 @@ INGREDIENT_QUANTITY_TABLE_SPEC = TableSpec(
             "converted_quantity", "FLOAT", description="Converted quantity from SCMD"
         ),
         bigquery.SchemaField(
-            "quantity_basis", "STRING", description="Unit of measure for the quantity"
+            "quantity_basis", "STRING", description="Unit of measure ID for the quantity"
+        ),
+        bigquery.SchemaField(
+            "quantity_basis_name", "STRING", description="Unit of measure name for the quantity"
         ),
         bigquery.SchemaField(
             "ingredients",
@@ -521,6 +524,16 @@ INGREDIENT_QUANTITY_TABLE_SPEC = TableSpec(
                     "strength_denominator_unit",
                     "STRING",
                     description="Strength denominator unit",
+                ),
+                bigquery.SchemaField(
+                    "quantity_to_denominator_conversion_factor",
+                    "FLOAT",
+                    description="Conversion factor from quantity units to denominator units",
+                ),
+                bigquery.SchemaField(
+                    "denominator_basis_unit",
+                    "STRING",
+                    description="Basis unit for the denominator",
                 ),
                 bigquery.SchemaField(
                     "calculation_logic",
