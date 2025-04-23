@@ -22,6 +22,7 @@ from pipeline.utils.config import (
     WHO_ROUTES_OF_ADMINISTRATION_TABLE_ID,
     VMP_DDD_MAPPING_TABLE_ID,
     VMP_TABLE_ID,
+    VMP_UNIT_STANDARDISATION_TABLE_ID,
 )
 
 
@@ -765,6 +766,64 @@ VMP_TABLE_SPEC = TableSpec(
                 bigquery.SchemaField("atc_code", "STRING", description="ATC code"),
                 bigquery.SchemaField("atc_name", "STRING", description="ATC name"),
             ],
+        ),
+    ],
+    cluster_fields=["vmp_code"],
+)
+
+VMP_UNIT_STANDARDISATION_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=VMP_UNIT_STANDARDISATION_TABLE_ID,
+    description="Mapping table for VMPs that appear with multiple units in SCMD data, specifying the chosen standard unit and conversion details",
+    schema=[
+        bigquery.SchemaField(
+            "vmp_code", 
+            "STRING", 
+            description="Virtual Medicinal Product (VMP) code"
+        ),
+        bigquery.SchemaField(
+            "vmp_name", 
+            "STRING", 
+            description="VMP name"
+        ),
+        bigquery.SchemaField(
+            "scmd_units",
+            "RECORD",
+            mode="REPEATED",
+            description="Units found in SCMD data for this VMP",
+            fields=[
+                bigquery.SchemaField(
+                    "unit_id", 
+                    "STRING", 
+                    description="Unit identifier"
+                ),
+                bigquery.SchemaField(
+                    "unit_name", 
+                    "STRING", 
+                    description="Unit name"
+                ),
+            ],
+        ),
+        bigquery.SchemaField(
+            "chosen_unit_id", 
+            "STRING", 
+            description="The chosen standard unit identifier"
+        ),
+        bigquery.SchemaField(
+            "chosen_unit_name", 
+            "STRING", 
+            description="The chosen standard unit name"
+        ),
+        bigquery.SchemaField(
+            "conversion_logic", 
+            "STRING", 
+            description="Explanation of how to convert from other units to the chosen unit"
+        ),
+        bigquery.SchemaField(
+            "conversion_factor",
+            "FLOAT",
+            description="Numerical factor to convert from the original unit to the chosen unit"
         ),
     ],
     cluster_fields=["vmp_code"],
