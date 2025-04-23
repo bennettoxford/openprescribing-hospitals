@@ -9,6 +9,7 @@ from pipeline.bq_tables import (
     ORGANISATION_TABLE_SPEC,
     UNITS_CONVERSION_TABLE_SPEC,
     SCMD_PROCESSED_TABLE_SPEC,
+    VMP_UNIT_STANDARDISATION_TABLE_SPEC,
 )
 
 
@@ -53,8 +54,36 @@ def validate_processed_data():
     GROUP BY s.unit
     """
 
+    multiple_units_query = f"""
+    WITH vmp_units AS (
+        SELECT 
+            vmp_code,
+            vmp_name,
+            COUNT(DISTINCT normalised_uom_id) as unit_count,  # Changed from uom_id to normalised_uom_id
+            STRING_AGG(DISTINCT uom_id) as unit_ids,
+            STRING_AGG(DISTINCT normalised_uom_id) as normalised_unit_ids,
+            STRING_AGG(DISTINCT CONCAT(uom_name, ' (', uom_id, ' → ', normalised_uom_id, ')'), ', ') as unit_details
+        FROM `{SCMD_PROCESSED_TABLE_SPEC.full_table_id}`
+        GROUP BY vmp_code, vmp_name
+        HAVING COUNT(DISTINCT normalised_uom_id) > 1  # Changed to check normalised units
+    )
+    SELECT 
+        vu.vmp_code,
+        vu.vmp_name,
+        vu.unit_count,
+        vu.unit_ids,
+        vu.normalised_unit_ids,
+        vu.unit_details
+    FROM vmp_units vu
+    LEFT JOIN `{VMP_UNIT_STANDARDISATION_TABLE_SPEC.full_table_id}` us
+        ON vu.vmp_code = us.vmp_code
+    WHERE us.vmp_code IS NULL
+    ORDER BY vu.unit_count DESC, vu.vmp_code
+    """
+
     missing_orgs = list(client.query(org_validation_query).result())
     missing_units = list(client.query(units_validation_query).result())
+    vmps_multiple_units = list(client.query(multiple_units_query).result())
 
     if missing_orgs:
         logger.error(
@@ -72,8 +101,22 @@ def validate_processed_data():
             logger.error(f"- {row.unit}: {row.count} occurrences")
         raise ValueError("Invalid units found in processed SCMD data")
 
+    if vmps_multiple_units:
+        logger.warning(
+            f"Found {len(vmps_multiple_units)} VMPs with multiple normalized units not in standardisation table:"
+        )
+        for row in vmps_multiple_units[:10]:
+            logger.warning(
+                f"- {row.vmp_code} ({row.vmp_name}): {row.unit_count} normalized units: {row.unit_details}"
+            )
+
     logger.info("All validations passed")
-    return {"schema_valid": schema_valid, "orgs_valid": True, "units_valid": True}
+    return {
+        "schema_valid": schema_valid, 
+        "orgs_valid": True, 
+        "units_valid": True,
+        "vmps_with_multiple_units": len(vmps_multiple_units)
+    }
 
 
 @flow(name="Process SCMD")
