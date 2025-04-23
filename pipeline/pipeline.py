@@ -14,6 +14,7 @@ from pipeline.flows.import_adm_route_mapping import import_adm_route_mapping_flo
 from pipeline.flows.import_dmd import import_dmd
 from pipeline.flows.import_dmd_supp import import_dmd_supp_flow
 from pipeline.flows.populate_vmp_table import populate_vmp_table
+from pipeline.flows.import_vmp_unit_standardisation import import_vmp_unit_standardisation_flow
 from pipeline.flows.process_scmd import process_scmd
 from pipeline.flows.calculate_doses import calculate_doses
 from pipeline.flows.calculate_ingredient_quantity import calculate_ingredient_quantity
@@ -40,8 +41,8 @@ def scmd_pipeline(run_import_flows: bool = True):
         adm_route = import_adm_route_mapping_flow(wait_for=[dmd_result])
         ddd_atc = import_ddd_atc_flow(wait_for=[adm_route])
         vmps = populate_vmp_table(wait_for=[adm_route])
-
-        scmd_result = scmd_import(wait_for=[dmd_result, dmd_supp, adm_route, vmps])
+        vmp_unit_standardisation = import_vmp_unit_standardisation_flow(wait_for=[vmps])
+        scmd_result = scmd_import(wait_for=[vmp_unit_standardisation])
         processed = process_scmd(wait_for=[scmd_result, unit_conv, org_result])
         doses = calculate_doses(wait_for=[processed])
         ingredients = calculate_ingredient_quantity(wait_for=[doses])
