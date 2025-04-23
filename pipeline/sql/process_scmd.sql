@@ -31,6 +31,33 @@ unit_conversions AS (
     CAST(uc.unit AS STRING) as uom_name,
     CAST(uc.basis AS STRING) as normalised_uom_name
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` uc
+),
+standardised_units AS (
+  SELECT
+    vmp_code,
+    chosen_unit_id,
+    chosen_unit_name,
+    conversion_factor
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_UNIT_STANDARDISATION_TABLE_ID }}`
+),
+standardised_data AS (
+  SELECT
+    norm.*,
+    CASE 
+      WHEN su.vmp_code IS NOT NULL AND norm.uom_id != su.chosen_unit_id THEN
+        su.chosen_unit_id
+      ELSE
+        norm.uom_id
+    END as standardised_uom_id,
+    CASE 
+      WHEN su.vmp_code IS NOT NULL AND norm.uom_id != su.chosen_unit_id THEN
+        norm.quantity * su.conversion_factor
+      ELSE
+        norm.quantity
+    END as standardised_quantity
+  FROM normalized_data norm
+  LEFT JOIN standardised_units su
+    ON norm.vmp_code = su.vmp_code
 )
 SELECT
   year_month,
@@ -38,17 +65,19 @@ SELECT
   vmp_code,
   vmp_name,
   uom_id,
-  CAST(COALESCE(uc.normalised_uom_id, norm.uom_id) AS STRING) as normalised_uom_id,
+  CAST(COALESCE(uc.uom_name, '') AS STRING) as uom_name,
+  CAST(COALESCE(uc.normalised_uom_id, std.standardised_uom_id) AS STRING) as normalised_uom_id,
+  CAST(COALESCE(uc.normalised_uom_name, '') AS STRING) as normalised_uom_name,
   quantity,
   CAST(
     CASE 
-      WHEN uc.conversion_factor IS NOT NULL THEN norm.quantity * uc.conversion_factor
-      ELSE norm.quantity
+      WHEN uc.conversion_factor IS NOT NULL THEN 
+        std.standardised_quantity * uc.conversion_factor
+      ELSE 
+        std.standardised_quantity
     END AS FLOAT64
   ) as normalised_quantity,
-  indicative_cost,
-  CAST(COALESCE(uc.uom_name, '') AS STRING) as uom_name,
-  CAST(COALESCE(uc.normalised_uom_name, '') AS STRING) as normalised_uom_name
-FROM normalized_data norm
+  indicative_cost
+FROM standardised_data std
 LEFT JOIN unit_conversions uc
-  ON norm.uom_id = uc.unit_id
+  ON std.standardised_uom_id = uc.unit_id
