@@ -20,6 +20,7 @@ from pipeline.bq_tables import (
     WHO_ROUTES_OF_ADMINISTRATION_TABLE_SPEC,
     VMP_DDD_MAPPING_TABLE_SPEC,
     VMP_TABLE_SPEC,
+    VMP_UNIT_STANDARDISATION_TABLE_SPEC,
 )
 from pipeline.utils.utils import get_bigquery_client
 
@@ -73,6 +74,7 @@ def setup_tables():
         WHO_ROUTES_OF_ADMINISTRATION_TABLE_SPEC,
         VMP_DDD_MAPPING_TABLE_SPEC,
         VMP_TABLE_SPEC,
+        VMP_UNIT_STANDARDISATION_TABLE_SPEC,
     ]
 
     results = []
