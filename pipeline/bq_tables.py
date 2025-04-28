@@ -339,11 +339,41 @@ WHO_ATC_TABLE_SPEC = TableSpec(
     project_id=PROJECT_ID,
     dataset_id=DATASET_ID,
     table_id=WHO_ATC_TABLE_ID,
-    description="ATC information from the WHO",
+    description="ATC information from the WHO, including hierarchical level information",
     schema=[
         bigquery.SchemaField("atc_code", "STRING", description="ATC code"),
         bigquery.SchemaField("atc_name", "STRING", description="ATC name"),
         bigquery.SchemaField("comment", "STRING", description="ATC level"),
+        bigquery.SchemaField(
+            "anatomical_main_group", 
+            "STRING", 
+            description="1st level: Anatomical main group (e.g., 'A' for Alimentary tract and metabolism)"
+        ),
+        bigquery.SchemaField(
+            "therapeutic_subgroup", 
+            "STRING", 
+            description="2nd level: Therapeutic subgroup (e.g., 'A10' for Drugs used in diabetes)"
+        ),
+        bigquery.SchemaField(
+            "pharmacological_subgroup", 
+            "STRING", 
+            description="3rd level: Pharmacological subgroup (e.g., 'A10B' for Blood glucose lowering drugs, excl. insulins)"
+        ),
+        bigquery.SchemaField(
+            "chemical_subgroup", 
+            "STRING", 
+            description="4th level: Chemical subgroup (e.g., 'A10BA' for Biguanides)"
+        ),
+        bigquery.SchemaField(
+            "chemical_substance", 
+            "STRING", 
+            description="5th level: Chemical substance (e.g., 'A10BA02' for Metformin)"
+        ),
+        bigquery.SchemaField(
+            "level", 
+            "INTEGER", 
+            description="The hierarchical level of this ATC code (1-5)"
+        ),
     ],
 )
 

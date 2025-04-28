@@ -179,6 +179,37 @@ def import_ddd_atc_flow():
         }
 
         atc_df = atc_df.rename(columns=atc_column_mapping)
+
+        def convert_name(name):
+            if name.isupper():
+                return name.capitalize()
+            return name[0].upper() + name[1:] if name else name
+        
+        atc_df['atc_name'] = atc_df['atc_name'].apply(convert_name)
+
+        atc_code_to_name_mapping = atc_df.set_index('atc_code')['atc_name'].to_dict()
+        
+        atc_df['anatomical_main_group'] = atc_df['atc_code'].str[:1].map(atc_code_to_name_mapping)
+        atc_df['therapeutic_subgroup'] = atc_df['atc_code'].str[:3].map(atc_code_to_name_mapping)
+        atc_df['pharmacological_subgroup'] = atc_df['atc_code'].str[:4].map(atc_code_to_name_mapping)
+        atc_df['chemical_subgroup'] = atc_df['atc_code'].str[:5].map(atc_code_to_name_mapping)
+        atc_df['chemical_substance'] = atc_df['atc_code'].str[:7].map(atc_code_to_name_mapping)
+        
+        def get_level(code):
+            if len(code) == 1:  # Anatomical main group
+                return 1
+            elif len(code) == 3:  # Therapeutic subgroup
+                return 2
+            elif len(code) == 4:  # Pharmacological subgroup
+                return 3
+            elif len(code) == 5:  # Chemical subgroup
+                return 4
+            elif len(code) == 7:  # Chemical substance
+                return 5
+            return None
+
+        atc_df['level'] = atc_df['atc_code'].apply(get_level)
+        
         ddd_df = ddd_df.rename(columns=ddd_column_mapping)
 
         ddd_df["adm_code"] = ddd_df["adm_code"].str.strip()
