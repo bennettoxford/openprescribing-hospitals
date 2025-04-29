@@ -24,6 +24,8 @@ from pipeline.bq_tables import (
     VTM_INGREDIENTS_TABLE_SPEC,
     DMD_HISTORY_TABLE_SPEC,
     DMD_UOM_TABLE_SPEC,
+    WHO_DDD_ALTERATIONS_TABLE_SPEC,
+    WHO_ATC_ALTERATIONS_TABLE_SPEC,
 )
 from pipeline.utils.utils import get_bigquery_client
 
@@ -81,6 +83,8 @@ def setup_tables():
         VTM_INGREDIENTS_TABLE_SPEC,
         DMD_HISTORY_TABLE_SPEC,
         DMD_UOM_TABLE_SPEC,
+        WHO_DDD_ALTERATIONS_TABLE_SPEC,
+        WHO_ATC_ALTERATIONS_TABLE_SPEC,
     ]
 
     results = []
