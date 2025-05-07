@@ -26,6 +26,7 @@ authored_by: John Doe # Name of original author
 checked_by: Jane Smith # Name of clinical/technical reviewer
 date_reviewed: 2024-03-20 # Date of last review (YYYY-MM-DD)
 next_review: 2025-03-20 # Date of next scheduled review (YYYY-MM-DD)
+first_published: 2024-03-20 # Date of first publication (YYYY-MM-DD)
 draft: true # true/false - indicates if measure is in draft ```
 ```
 

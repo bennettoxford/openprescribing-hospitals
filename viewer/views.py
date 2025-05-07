@@ -1,7 +1,7 @@
 import json
 import math
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from markdown2 import Markdown
 from django.views.generic import TemplateView
 from rest_framework.decorators import api_view
@@ -117,6 +117,10 @@ class MeasuresListView(TemplateView):
             if tag.description:
                 tag.description = markdowner.convert(tag.description)
         
+        one_month_ago = datetime.now().date() - timedelta(days=30)
+        for measure in measures:
+            measure.is_new = measure.first_published and measure.first_published >= one_month_ago
+        
         context["measures"] = measures
         context["measure_tags"] = measure_tags
         return context
@@ -147,6 +151,13 @@ class MeasureItemView(TemplateView):
             measure = self.get_measure(slug)
             context.update(self.get_measure_context(measure))
             context.update(self.get_precomputed_data(measure))
+            
+            is_new = False
+            if measure.first_published:
+                one_month_ago = datetime.now().date() - timedelta(days=30)
+                is_new = measure.first_published >= one_month_ago
+            
+            context['is_new'] = is_new
         except Exception as e:
             context["error"] = str(e)
 

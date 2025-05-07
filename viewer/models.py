@@ -393,6 +393,7 @@ class Measure(models.Model):
     checked_by = models.CharField(max_length=255, null=True)
     date_reviewed = models.DateField(null=True)
     next_review = models.DateField(null=True)
+    first_published = models.DateField(null=True)
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
