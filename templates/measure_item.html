@@ -28,7 +28,14 @@
             </ol>
         </nav>
 
-        <div class="overflow-hidden bg-white rounded-lg shadow-md">
+        <div class="overflow-hidden bg-white rounded-lg shadow-md relative">
+            {% if is_new %}
+            <div class="absolute top-2 right-2 z-10">
+                <span class="inline-flex items-center justify-center text-4xl" aria-label="New measure">
+                    🆕
+                </span>
+            </div>
+            {% endif %}
             {% if is_draft %}
             <div class="w-full">
                 <span class="flex items-center justify-center w-full py-1 text-sm font-medium bg-amber-50 text-amber-800">
