@@ -1,12 +1,12 @@
 name: Environmentally friendly inhalers # Full name of the measure/indicator
 short_name: Environmentally friendly inhalers # Abbreviated name or acronym
-description: Percentage of inhalers issued that are metered dose inhalers (MDIs), excluding salbutamol inhalers. # Brief 1-2 sentence description of what this measure identifies
+description: Percentage of inhaler doses that are from metered dose inhalers (MDIs), excluding salbutamol inhalers. # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |
-  The updated [BTS/NICE/SIGN guidance on asthma management](https://www.nice.org.uk/guidance/ng245/chapter/Recommendations#inhalers) recommends basing inhaler choice on:
-  - an assessment of correct technique
-  - the preference of the person receiving the treatment
-  - the lowest environmental impact among suitable devices
-  - the presence of an integral dose counter
+  The updated [BTS/NICE/SIGN guidance on asthma management](https://www.nice.org.uk/guidance/ng245/chapter/Recommendations#inhalers) recommends basing inhaler choice on:  
+  - an assessment of correct technique  
+  - the preference of the person receiving the treatment  
+  - the lowest environmental impact among suitable devices  
+  - the presence of an integral dose counter  
 
   The NHS has [committed to reducing its carbon footprint by 80% by 2028 to 2032](https://www.england.nhs.uk/greenernhs/a-net-zero-nhs/), including a shift to lower carbon inhalers. Dry powder inhalers (DPIs) and other newer types of inhalers like soft mist inhalers are less harmful to the environment than traditional metered dose inhalers (MDIs).
 
@@ -14,10 +14,10 @@ why_it_matters: |
 
   [NICE has produced an inhaler decision aid](https://www.nice.org.uk/guidance/ng245/resources/patient-decision-aid-on-asthma-inhalers-and-climate-change-bts-nice-sign-pdf-13558151917) to facilitate discussion about inhaler options.
 how_is_it_calculated: >
-    We divide the number of MDI inhalers by the total number of inhalers issued and then multiply that by 100 to obtain the % each month. We do not include salbutamol inhalers in these calculations or inhalers which are used outside of the management of common respiratory conditions such as asthma or chronic obstructive pulmonary disorder.
+    We divide the number of MDI inhaler doses by the total number of inhaler doses and then multiply that by 100 to obtain the % each month. We do not include salbutamol inhalers in these calculations or inhalers which are used outside of the management of common respiratory conditions such as asthma or chronic obstructive pulmonary disorder.
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
-    - Green
+    - Greener NHS
 quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
 authored_by: Chris Wood # Name of original author
 checked_by: TBC # Name of clinical/technical reviewer
