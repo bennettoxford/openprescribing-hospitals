@@ -20,7 +20,8 @@ tags:
     - Greener NHS
 quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
 authored_by: Chris Wood # Name of original author
-checked_by: TBC # Name of clinical/technical reviewer
-date_reviewed: 2025-03-24 # Date of last review (YYYY-MM-DD)
-next_review: 2026-03-24 # Date of next scheduled review (YYYY-MM-DD)
-draft: true # true/false - indicates if measure is in draft
+checked_by: Richard Croker # Name of clinical/technical reviewer
+date_reviewed: 2025-05-07 # Date of last review (YYYY-MM-DD)
+next_review: 2026-05-07 # Date of next scheduled review (YYYY-MM-DD)
+first_published: 2025-05-07 # Date of first publication (YYYY-MM-DD)
+draft: false # true/false - indicates if measure is in draft
