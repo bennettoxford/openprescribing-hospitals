@@ -275,9 +275,6 @@ DMD_TABLE_SPEC = TableSpec(
         bigquery.SchemaField(
             "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
         ),
-        bigquery.SchemaField(
-            "vmp_code_prev", "STRING", description="Previous VMP code"
-        ),
         bigquery.SchemaField("vmp_name", "STRING", description="VMP name"),
         bigquery.SchemaField(
             "vtm", "STRING", mode="NULLABLE", description="Virtual Therapeutic Moiety (VTM) code"
