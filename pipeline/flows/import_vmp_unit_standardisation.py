@@ -40,7 +40,7 @@ def create_standardisation_dict() -> Dict[str, UnitStandardisation]:
             chosen_unit_id="258773002",
             chosen_unit_name="ml",
             conversion_logic="1 bag = 250 ml",
-            conversion_factor=250
+            conversion_factor=250.0
         ),
         "33626511000001102": UnitStandardisation(
             vmp_code="33626511000001102",
@@ -52,7 +52,7 @@ def create_standardisation_dict() -> Dict[str, UnitStandardisation]:
             chosen_unit_id="258773002",
             chosen_unit_name="ml",
             conversion_logic="1 dose = 3 ml",
-            conversion_factor=3
+            conversion_factor=3.0
         ),
         "33517611000001101": UnitStandardisation(
             vmp_code="33517611000001101",
@@ -136,7 +136,7 @@ def create_standardisation_dict() -> Dict[str, UnitStandardisation]:
             chosen_unit_id="258773002",
             chosen_unit_name="ml",
             conversion_logic="1 dose = 3 ml",
-            conversion_factor=3
+            conversion_factor=3.0
         ),
         "33676411000001102": UnitStandardisation(
             vmp_code="33676411000001102",
@@ -148,7 +148,7 @@ def create_standardisation_dict() -> Dict[str, UnitStandardisation]:
             chosen_unit_id="258773002",
             chosen_unit_name="ml",
             conversion_logic="1 dose = 3 ml",
-            conversion_factor=3
+            conversion_factor=3.0
         ),
         "4217811000001106": UnitStandardisation(
             vmp_code="4217811000001106",
@@ -160,7 +160,7 @@ def create_standardisation_dict() -> Dict[str, UnitStandardisation]:
             chosen_unit_id="258773002",
             chosen_unit_name="ml",
             conversion_logic="1 gram = 1 ml",
-            conversion_factor=1
+            conversion_factor=1.0
         ),
         "10638011000001105": UnitStandardisation(
             vmp_code="10638011000001105",
@@ -184,7 +184,7 @@ def create_standardisation_dict() -> Dict[str, UnitStandardisation]:
             chosen_unit_id="258773002",
             chosen_unit_name="ml",
             conversion_logic="1 gram = 1 ml",
-            conversion_factor=1
+            conversion_factor=1.0
         ),
         "38007911000001105": UnitStandardisation(
             vmp_code="38007911000001105",
@@ -196,7 +196,7 @@ def create_standardisation_dict() -> Dict[str, UnitStandardisation]:
             chosen_unit_id="415818006",
             chosen_unit_name="vial",
             conversion_logic="1 vial = 1ml",
-            conversion_factor=1
+            conversion_factor=1.0
         ),
         "39721111000001109": UnitStandardisation(
             vmp_code="39721111000001109",
@@ -208,7 +208,7 @@ def create_standardisation_dict() -> Dict[str, UnitStandardisation]:
             chosen_unit_id="408102007",
             chosen_unit_name="unit dose",
             conversion_logic="1 ml = 10 unit doses",
-            conversion_factor=10
+            conversion_factor=10.0
         ),
         "10161711000001105": UnitStandardisation(
             vmp_code="10161711000001105",
