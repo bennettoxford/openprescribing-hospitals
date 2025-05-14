@@ -1,3 +1,4 @@
+import re
 import pandas as pd
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -6,6 +7,7 @@ from google.api_core.exceptions import NotFound
 from prefect import task, flow
 from prefect.logging import get_run_logger
 from google.cloud import bigquery
+from typing import Optional
 
 from pipeline.utils.utils import get_bigquery_client
 from pipeline.utils.config import PROJECT_ID, DATASET_ID
@@ -137,6 +139,64 @@ def validate_who_routes(df: pd.DataFrame):
     logger.info("All DDD administration routes are present in WHO routes table")
 
 
+def get_atc_level(code: str) -> Optional[int]:
+    """
+    Get the ATC classification level based on the code length.
+    
+    Args:
+        code (str): The ATC code
+        
+    Returns:
+        Optional[int]: The ATC level (1-5) or None if invalid
+    """
+    if not isinstance(code, str):
+        return None
+        
+    code = code.strip()
+    
+    if not re.match(r'^[A-Z](?:[0-9]{2})?[A-Z]?[A-Z]?(?:[0-9]{2})?$', code):
+        return None
+        
+    if len(code) == 1:  # Anatomical main group
+        return 1
+    elif len(code) == 3:  # Therapeutic subgroup
+        return 2
+    elif len(code) == 4:  # Pharmacological subgroup
+        return 3
+    elif len(code) == 5:  # Chemical subgroup
+        return 4
+    elif len(code) == 7:  # Chemical substance
+        return 5
+    return None
+
+
+def convert_atc_name(name: str) -> Optional[str]:
+    """
+    Convert ATC names to proper case format.
+    
+    Args:
+        name (str): The ATC name to convert
+        
+    Returns:
+        Optional[str]: The converted name or None if input is None
+    """
+    if name is None:
+        return None
+        
+    # Strip whitespace first
+    name = name.strip()
+    
+    if not name:
+        return ""
+        
+    # Handle all uppercase words
+    if name.isupper():
+        return name.title()
+    
+    # Handle mixed case by converting to title case
+    return ' '.join(word.capitalize() for word in name.split())
+
+
 @flow(name="Import DDD and ATC Data")
 def import_ddd_atc_flow():
     """Main flow to import DDD and ATC data into BigQuery"""
@@ -180,12 +240,7 @@ def import_ddd_atc_flow():
 
         atc_df = atc_df.rename(columns=atc_column_mapping)
 
-        def convert_name(name):
-            if name.isupper():
-                return name.capitalize()
-            return name[0].upper() + name[1:] if name else name
-        
-        atc_df['atc_name'] = atc_df['atc_name'].apply(convert_name)
+        atc_df['atc_name'] = atc_df['atc_name'].apply(convert_atc_name)
 
         atc_code_to_name_mapping = atc_df.set_index('atc_code')['atc_name'].to_dict()
         
@@ -195,20 +250,7 @@ def import_ddd_atc_flow():
         atc_df['chemical_subgroup'] = atc_df['atc_code'].str[:5].map(atc_code_to_name_mapping)
         atc_df['chemical_substance'] = atc_df['atc_code'].str[:7].map(atc_code_to_name_mapping)
         
-        def get_level(code):
-            if len(code) == 1:  # Anatomical main group
-                return 1
-            elif len(code) == 3:  # Therapeutic subgroup
-                return 2
-            elif len(code) == 4:  # Pharmacological subgroup
-                return 3
-            elif len(code) == 5:  # Chemical subgroup
-                return 4
-            elif len(code) == 7:  # Chemical substance
-                return 5
-            return None
-
-        atc_df['level'] = atc_df['atc_code'].apply(get_level)
+        atc_df['level'] = atc_df['atc_code'].apply(get_atc_level)
         
         ddd_df = ddd_df.rename(columns=ddd_column_mapping)
 
@@ -216,6 +258,7 @@ def import_ddd_atc_flow():
         ddd_df["ddd_unit"] = ddd_df["ddd_unit"].str.lower()
 
         ddd_df["ddd"] = ddd_df["ddd"].apply(lambda x: float(x) if x else None)
+        ddd_df = ddd_df[ddd_df["ddd"].notna()]
 
         validate_who_routes(ddd_df)
 
