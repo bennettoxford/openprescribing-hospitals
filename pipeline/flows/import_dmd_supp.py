@@ -366,9 +366,23 @@ def import_dmd_supp_flow():
         vtm_ing_data = parse_vtm_ingredients_xml(vtm_ing_path)
         dmd_history_data = parse_dmd_history_xml(history_path)
 
-        bnf_rows = upload_to_bigquery(bnf_data)
-        vtm_ing_rows = upload_vtm_ingredients_to_bigquery(vtm_ing_data)
-        dmd_history_rows = upload_dmd_history_to_bigquery(dmd_history_data)
+        bnf_rows = 0
+        if bnf_data and len(bnf_data) > 0:
+            bnf_rows = upload_to_bigquery(bnf_data)
+        else:
+            logger.warning("No BNF data found to upload")
+
+        vtm_ing_rows = 0
+        if vtm_ing_data and len(vtm_ing_data) > 0:
+            vtm_ing_rows = upload_vtm_ingredients_to_bigquery(vtm_ing_data)
+        else:
+            logger.warning("No VTM ingredient data found to upload")
+
+        dmd_history_rows = 0
+        if dmd_history_data and len(dmd_history_data) > 0:
+            dmd_history_rows = upload_dmd_history_to_bigquery(dmd_history_data)
+        else:
+            logger.warning("No dm+d history data found to upload")
 
         logger.info(
             f"Successfully imported supplementary data: {bnf_rows} BNF rows, "
