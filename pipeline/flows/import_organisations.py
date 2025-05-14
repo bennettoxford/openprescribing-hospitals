@@ -100,7 +100,7 @@ def process_org_details(all_orgs_details: Dict[str, Any]) -> tuple:
 
     logger.info(f"Found {len(icbs)} ICBs")
 
-    return icbs, successors, predecessors
+    return icbs, successors, predecessors, filtered_org_details
 
 
 @task()
@@ -303,7 +303,7 @@ def import_organisations():
 
     all_orgs = fetch_all_trusts_from_ord()
     all_orgs_details = fetch_org_details(all_orgs)
-    icbs, successors, predecessors = process_org_details(all_orgs_details)
+    icbs, successors, predecessors, filtered_org_details = process_org_details(all_orgs_details)
 
     icbs_list = list(set(icbs.values()))
     icb_regions = get_icb_regions(icbs_list)
@@ -315,7 +315,7 @@ def import_organisations():
     organisation_df = create_org_mapping_df(
         successors,
         predecessors,
-        all_orgs_details,
+        filtered_org_details,
         icbs,
         icb_regions,
         region_names,
