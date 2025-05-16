@@ -23,6 +23,8 @@ from pipeline.utils.config import (
     VMP_DDD_MAPPING_TABLE_ID,
     VMP_TABLE_ID,
     VMP_UNIT_STANDARDISATION_TABLE_ID,
+    VTM_INGREDIENTS_TABLE_ID,
+    DMD_HISTORY_TABLE_ID,
 )
 
 
@@ -857,4 +859,58 @@ VMP_UNIT_STANDARDISATION_TABLE_SPEC = TableSpec(
         ),
     ],
     cluster_fields=["vmp_code"],
+)
+
+VTM_INGREDIENTS_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=VTM_INGREDIENTS_TABLE_ID,
+    description="Mapping between Virtual Therapeutic Moieties (VTM) and their ingredients from dm+d supplementary data",
+    schema=[
+        bigquery.SchemaField(
+            "vtm_id", 
+            "STRING", 
+            description="Virtual Therapeutic Moiety (VTM) identifier"
+        ),
+        bigquery.SchemaField(
+            "ingredient_id", 
+            "STRING", 
+            description="Ingredient identifier"
+        ),
+    ],
+)
+
+DMD_HISTORY_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=DMD_HISTORY_TABLE_ID,
+    description="Historical mapping of dm+d identifiers including VTMs, VMPs, ingredients, suppliers, forms, routes, and units of measure",
+    schema=[
+        bigquery.SchemaField(
+            "current_id", 
+            "STRING", 
+            description="Current identifier"
+        ),
+        bigquery.SchemaField(
+            "previous_id", 
+            "STRING", 
+            description="Previous identifier"
+        ),
+        bigquery.SchemaField(
+            "start_date", 
+            "DATE", 
+            description="Start date of the mapping"
+        ),
+        bigquery.SchemaField(
+            "end_date", 
+            "DATE", 
+            description="End date of the mapping (if applicable)",
+            mode="NULLABLE"
+        ),
+        bigquery.SchemaField(
+            "entity_type",
+            "STRING",
+            description="Type of entity (VTM, VMP, ING, SUPP, FORM, ROUTE, UOM)"
+        ),
+    ],
 )
