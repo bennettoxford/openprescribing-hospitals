@@ -25,6 +25,7 @@ from pipeline.utils.config import (
     VMP_UNIT_STANDARDISATION_TABLE_ID,
     VTM_INGREDIENTS_TABLE_ID,
     DMD_HISTORY_TABLE_ID,
+    DMD_UOM_TABLE_ID,
 )
 
 
@@ -913,4 +914,36 @@ DMD_HISTORY_TABLE_SPEC = TableSpec(
             description="Type of entity (VTM, VMP, ING, SUPP, FORM, ROUTE, UOM)"
         ),
     ],
+)
+
+DMD_UOM_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=DMD_UOM_TABLE_ID,
+    description="Unit of measure reference data from dm+d containing current and previous codes and descriptions",
+    schema=[
+        bigquery.SchemaField(
+            "uom_code", 
+            "STRING", 
+            description="Unit of measure code"
+        ),
+        bigquery.SchemaField(
+            "uom_code_prev", 
+            "STRING", 
+            mode="NULLABLE",
+            description="Previous unit of measure code"
+        ),
+        bigquery.SchemaField(
+            "change_date", 
+            "DATE", 
+            mode="NULLABLE",
+            description="Date of code change"
+        ),
+        bigquery.SchemaField(
+            "description", 
+            "STRING", 
+            description="Description of the unit of measure"
+        ),
+    ],
+    cluster_fields=["uom_code"],
 )
