@@ -37,12 +37,13 @@ def scmd_pipeline(run_import_flows: bool = True):
         org_result = import_organisations(wait_for=[setup_result])
         ae_status_result = import_ae_status(wait_for=[setup_result])
 
-        dmd_result = import_dmd(wait_for=[unit_conv])
+        adm_route = import_adm_route_mapping_flow(wait_for=[ae_status_result])
+        dmd_result = import_dmd(wait_for=[adm_route])
         dmd_uom = import_dmd_uom(wait_for=[dmd_result])
         dmd_supp = import_dmd_supp_flow(wait_for=[dmd_uom])
-        adm_route = import_adm_route_mapping_flow(wait_for=[dmd_supp])
-        ddd_atc = import_ddd_atc_flow(wait_for=[adm_route])
-        vmps = populate_vmp_table(wait_for=[adm_route])
+       
+        ddd_atc = import_ddd_atc_flow(wait_for=[dmd_supp])
+        vmps = populate_vmp_table(wait_for=[dmd_supp])
         vmp_unit_standardisation = import_vmp_unit_standardisation_flow(wait_for=[vmps])
         scmd_result = scmd_import(wait_for=[vmp_unit_standardisation])
         processed = process_scmd(wait_for=[scmd_result, unit_conv, org_result])
