@@ -54,6 +54,78 @@ def create_standardisation_dict() -> Dict[str, UnitStandardisation]:
             conversion_logic="1 dose = 3 ml",
             conversion_factor=3
         ),
+        "33517611000001101": UnitStandardisation(
+            vmp_code="33517611000001101",
+            vmp_name="Generic Oat (cultivated) (Avena sativa) pollen 50,000BU/ml solution for skin prick test",
+            scmd_units=[
+                {"unit_id": "3317411000001100", "unit_name": "dose"},
+                {"unit_id": "258773002", "unit_name": "ml"}
+            ],
+            chosen_unit_id="258773002",
+            chosen_unit_name="ml",
+            conversion_logic="1 dose = 3 ml",
+            conversion_factor=3
+        ),
+        "33526011000001100": UnitStandardisation(
+            vmp_code="33526011000001100",
+            vmp_name="Generic Birch pollen 50,000SBU/ml solution for skin prick test",
+            scmd_units=[
+                {"unit_id": "3317411000001100", "unit_name": "dose"},
+                {"unit_id": "258773002", "unit_name": "ml"}
+            ],
+            chosen_unit_id="258773002",
+            chosen_unit_name="ml",
+            conversion_logic="1 dose = 3 ml",
+            conversion_factor=3
+        ),
+        "33537911000001100": UnitStandardisation(
+            vmp_code="33537911000001100",
+            vmp_name="Generic Hazel (Corylus avellana) pollen 50,000BU/ml solution for skin prick test",
+            scmd_units=[
+                {"unit_id": "3317411000001100", "unit_name": "dose"},
+                {"unit_id": "258773002", "unit_name": "ml"}
+            ],
+            chosen_unit_id="258773002",
+            chosen_unit_name="ml",
+            conversion_logic="1 dose = 3 ml",
+            conversion_factor=3
+        ),
+        "33538311000001100": UnitStandardisation(
+            vmp_code="33538311000001100",
+            vmp_name="Generic Oak (Quercus robur) pollen 50,000BU/ml solution for skin prick test",
+            scmd_units=[
+                {"unit_id": "3317411000001100", "unit_name": "dose"},
+                {"unit_id": "258773002", "unit_name": "ml"}
+            ],
+            chosen_unit_id="258773002",
+            chosen_unit_name="ml",
+            conversion_logic="1 dose = 3 ml",
+            conversion_factor=3
+        ),
+        "33546011000001103": UnitStandardisation(
+            vmp_code="33546011000001103",
+            vmp_name="Generic Poplar (Populus alba) pollen 50,000BU/ml solution for skin prick test",
+            scmd_units=[
+                {"unit_id": "3317411000001100", "unit_name": "dose"},
+                {"unit_id": "258773002", "unit_name": "ml"}
+            ],
+            chosen_unit_id="258773002",
+            chosen_unit_name="ml",
+            conversion_logic="1 dose = 3 ml",
+            conversion_factor=3
+        ),
+        "33564811000001107": UnitStandardisation(
+            vmp_code="33564811000001107",
+            vmp_name="Generic Willow (Salix caprea) pollen 50,000BU/ml solution for skin prick test",
+            scmd_units=[
+                {"unit_id": "3317411000001100", "unit_name": "dose"},
+                {"unit_id": "258773002", "unit_name": "ml"}
+            ],
+            chosen_unit_id="258773002",
+            chosen_unit_name="ml",
+            conversion_logic="1 dose = 3 ml",
+            conversion_factor=3
+        ),
         "33633611000001107": UnitStandardisation(
             vmp_code="33633611000001107",
             vmp_name="Generic Horse Epithelia 10,000BU/ml solution for skin prick test",
@@ -137,6 +209,42 @@ def create_standardisation_dict() -> Dict[str, UnitStandardisation]:
             chosen_unit_name="unit dose",
             conversion_logic="1 ml = 10 unit doses",
             conversion_factor=10
+        ),
+        "10161711000001105": UnitStandardisation(
+            vmp_code="10161711000001105",
+            vmp_name="Levodopa 20mg/ml / Carbidopa monohydrate 5mg/ml intestinal gel 100ml cassette",
+            scmd_units=[
+                {"unit_id": "428672001", "unit_name": "bag"},
+                {"unit_id": "10698211000001105", "unit_name": "cassette"}
+            ],
+            chosen_unit_id="10698211000001105",
+            chosen_unit_name="cassette",
+            conversion_logic="1 bag = 1 cassette",
+            conversion_factor=1
+        ),
+        "17281111000001103": UnitStandardisation(
+            vmp_code="17281111000001103",
+            vmp_name="Romiplostim 250microgram powder and solvent for solution for injection vials",
+            scmd_units=[
+                {"unit_id": "3318611000001103", "unit_name": "pre-filled disposable injection"},
+                {"unit_id": "415818006", "unit_name": "vial"}
+            ],
+            chosen_unit_id="415818006",
+            chosen_unit_name="vial",
+            conversion_logic="1 pre-filled disposable injection = 1 vial",
+            conversion_factor=1
+        ),
+        "35099611000001102": UnitStandardisation(
+            vmp_code="35099611000001102",
+            vmp_name="Generic Custodiol solution for cardioplegia / organ preservation 1litre bags",
+            scmd_units=[
+                {"unit_id": "428672001", "unit_name": "bag"},
+                {"unit_id": "258770004", "unit_name": "litre"}
+            ],
+            chosen_unit_id="258770004",
+            chosen_unit_name="litre",
+            conversion_logic="1 bag = 1 litre",
+            conversion_factor=1
         ),
     }
     
