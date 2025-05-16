@@ -12,6 +12,7 @@ from pipeline.flows.import_scmd import scmd_import
 from pipeline.flows.import_org_ae_status import import_ae_status
 from pipeline.flows.import_adm_route_mapping import import_adm_route_mapping_flow
 from pipeline.flows.import_dmd import import_dmd
+from pipeline.flows.import_dmd_uom import import_dmd_uom
 from pipeline.flows.import_dmd_supp import import_dmd_supp_flow
 from pipeline.flows.populate_vmp_table import populate_vmp_table
 from pipeline.flows.import_vmp_unit_standardisation import import_vmp_unit_standardisation_flow
@@ -37,8 +38,9 @@ def scmd_pipeline(run_import_flows: bool = True):
         ae_status_result = import_ae_status(wait_for=[setup_result])
 
         dmd_result = import_dmd(wait_for=[unit_conv])
-        dmd_supp = import_dmd_supp_flow(wait_for=[dmd_result])
-        adm_route = import_adm_route_mapping_flow(wait_for=[dmd_result])
+        dmd_uom = import_dmd_uom(wait_for=[dmd_result])
+        dmd_supp = import_dmd_supp_flow(wait_for=[dmd_uom])
+        adm_route = import_adm_route_mapping_flow(wait_for=[dmd_supp])
         ddd_atc = import_ddd_atc_flow(wait_for=[adm_route])
         vmps = populate_vmp_table(wait_for=[adm_route])
         vmp_unit_standardisation = import_vmp_unit_standardisation_flow(wait_for=[vmps])

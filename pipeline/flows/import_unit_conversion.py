@@ -184,12 +184,6 @@ def create_units_dict() -> Dict:
             "id": "428639001",
             "basis_id": "428639001",
         },
-        "insert_OLD": {
-            "basis": "insert",
-            "conversion_factor": 1,
-            "id": "10693411000001103",
-            "basis_id": "428639001",
-        },  # this is an old unit that is no longer used
         "kallikrein inactivator unit": {
             "basis": "kallikrein inactivator unit",
             "conversion_factor": 1,
@@ -549,12 +543,6 @@ def create_units_dict() -> Dict:
             "id": "10692011000001103",
             "basis_id": "10692011000001103",
         },
-        "unit dose old": {
-            "basis": "unit dose",
-            "conversion_factor": 1,
-            "id": "3319711000001103",
-            "basis_id": "408102007",
-        },
         "vial": {
             "basis": "vial",
             "conversion_factor": 1,
@@ -598,12 +586,6 @@ def import_unit_conversion(table_id: str, units_dict: Dict) -> List[Dict]:
             logger.info(
                 f"Progress: {i}/{total_units} units processed ({(i/total_units)*100:.1f}%)"
             )
-
-    for record in conversion_records:
-        if record["unit"] == "insert_OLD":
-            record["unit"] = "insert"
-        elif record["unit"] == "unit dose old":
-            record["unit"] = "unit dose"
 
     job_config = bigquery.LoadJobConfig(
         schema=UNITS_CONVERSION_TABLE_SPEC.schema,

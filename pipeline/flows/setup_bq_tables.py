@@ -21,6 +21,9 @@ from pipeline.bq_tables import (
     VMP_DDD_MAPPING_TABLE_SPEC,
     VMP_TABLE_SPEC,
     VMP_UNIT_STANDARDISATION_TABLE_SPEC,
+    VTM_INGREDIENTS_TABLE_SPEC,
+    DMD_HISTORY_TABLE_SPEC,
+    DMD_UOM_TABLE_SPEC,
 )
 from pipeline.utils.utils import get_bigquery_client
 
@@ -75,6 +78,9 @@ def setup_tables():
         VMP_DDD_MAPPING_TABLE_SPEC,
         VMP_TABLE_SPEC,
         VMP_UNIT_STANDARDISATION_TABLE_SPEC,
+        VTM_INGREDIENTS_TABLE_SPEC,
+        DMD_HISTORY_TABLE_SPEC,
+        DMD_UOM_TABLE_SPEC,
     ]
 
     results = []
