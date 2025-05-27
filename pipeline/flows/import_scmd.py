@@ -9,14 +9,6 @@ from typing import Dict, List, Iterator
 from dataclasses import dataclass
 
 from pipeline.utils.utils import get_bigquery_client
-from pipeline.utils.config import (
-    PROJECT_ID,
-    DATASET_ID,
-    SCMD_DATA_STATUS_TABLE_ID,
-    SCMD_RAW_TABLE_ID,
-    ORGANISATION_TABLE_ID,
-    UNITS_CONVERSION_TABLE_ID,
-)
 from pipeline.bq_tables import SCMD_RAW_TABLE_SPEC, SCMD_DATA_STATUS_TABLE_SPEC
 
 

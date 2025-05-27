@@ -51,10 +51,10 @@ ORGANISATION_TABLE_SPEC = TableSpec(
     description="Details for all NHS Trusts (identified using the following role codes: RO197, RO24) obtained using the ORD API",
     schema=[
         bigquery.SchemaField(
-            "ods_code", "STRING", description="ODS code of the organisation"
+            "ods_code", "STRING", mode="REQUIRED", description="ODS code of the organisation"
         ),
         bigquery.SchemaField(
-            "ods_name", "STRING", description="Name of the organisation"
+            "ods_name", "STRING", mode="REQUIRED", description="Name of the organisation"
         ),
         bigquery.SchemaField(
             "successors",
@@ -77,30 +77,37 @@ ORGANISATION_TABLE_SPEC = TableSpec(
         bigquery.SchemaField(
             "legal_closed_date",
             "DATE",
+            mode="NULLABLE",
             description="Legal closed date of the organisation",
         ),
         bigquery.SchemaField(
             "operational_closed_date",
             "DATE",
+            mode="NULLABLE",
             description="Operational closed date of the organisation",
         ),
         bigquery.SchemaField(
-            "legal_open_date", "DATE", description="Legal open date of the organisation"
+            "legal_open_date", 
+            "DATE",
+            mode="NULLABLE",
+            description="Legal open date of the organisation"
         ),
         bigquery.SchemaField(
             "operational_open_date",
             "DATE",
+            mode="NULLABLE",
             description="Operational open date of the organisation",
         ),
         bigquery.SchemaField(
-            "postcode", "STRING", description="Postcode of the organisation"
+            "postcode", "STRING", mode="NULLABLE", description="Postcode of the organisation"
         ),
         bigquery.SchemaField(
             "region",
             "STRING",
+            mode="NULLABLE",
             description="Region of the organisation (through the ICB)",
         ),
-        bigquery.SchemaField("icb", "STRING", description="ICB of the organisation"),
+        bigquery.SchemaField("icb", "STRING", mode="NULLABLE", description="ICB of the organisation"),
     ],
 )
 
@@ -111,33 +118,37 @@ SCMD_RAW_TABLE_SPEC = TableSpec(
     description="Raw SCMD data",
     schema=[
         bigquery.SchemaField(
-            "year_month", "DATE", description="Year and month of the data"
+            "year_month", "DATE", mode="REQUIRED", description="Year and month of the data"
         ),
-        bigquery.SchemaField("ods_code", "STRING", description="ODS code"),
+        bigquery.SchemaField("ods_code", "STRING", mode="REQUIRED", description="ODS code"),
         bigquery.SchemaField(
             "vmp_snomed_code",
             "STRING",
+            mode="REQUIRED",
             description="SNOMED code indicating VMP from dm+d",
         ),
         bigquery.SchemaField(
-            "vmp_product_name", "STRING", description="Product name from dm+d"
+            "vmp_product_name", "STRING", mode="REQUIRED", description="Product name from dm+d"
         ),
         bigquery.SchemaField(
             "unit_of_measure_identifier",
             "STRING",
+            mode="REQUIRED",
             description="Identifier for the unit of measure from dm+d",
         ),
         bigquery.SchemaField(
             "unit_of_measure_name",
             "STRING",
+            mode="REQUIRED",
             description="Name of the unit of measure from dm+d",
         ),
         bigquery.SchemaField(
             "total_quantity_in_vmp_unit",
             "FLOAT",
+            mode="REQUIRED",
             description="Total quantity in the unit of measure",
         ),
-        bigquery.SchemaField("indicative_cost", "FLOAT", description="Indicative cost"),
+        bigquery.SchemaField("indicative_cost", "FLOAT", mode="NULLABLE", description="Indicative cost"),
     ],
     partition_field="year_month",
     cluster_fields=["vmp_snomed_code"],
@@ -150,46 +161,52 @@ SCMD_PROCESSED_TABLE_SPEC = TableSpec(
     description="SCMD data with the following transformations applied: 1) VMP codes are mapped to their latest version, 2) Quantity is converted to the quantity in basis units, e.g. mg converted to g",
     schema=[
         bigquery.SchemaField(
-            "year_month", "DATE", description="Year and month of the data"
+            "year_month", "DATE", mode="REQUIRED", description="Year and month of the data"
         ),
-        bigquery.SchemaField("ods_code", "STRING", description="ODS code"),
+        bigquery.SchemaField("ods_code", "STRING", mode="REQUIRED", description="ODS code"),
         bigquery.SchemaField(
-            "vmp_code", "STRING", description="SNOMED code for the VMP from dm+d"
+            "vmp_code", "STRING", mode="REQUIRED", description="SNOMED code for the VMP from dm+d"
         ),
         bigquery.SchemaField(
-            "vmp_name", "STRING", description="Product name from dm+d"
+            "vmp_name", "STRING", mode="REQUIRED", description="Product name from dm+d"
         ),
         bigquery.SchemaField(
             "uom_id",
             "STRING",
+            mode="REQUIRED",
             description="Identifier for the unit of measure from dm+d",
         ),
         bigquery.SchemaField(
             "uom_name",
             "STRING",
+            mode="REQUIRED",
             description="Name of the unit of measure from dm+d",
         ),
         bigquery.SchemaField(
             "normalised_uom_id",
             "STRING",
+            mode="REQUIRED",
             description="Identifier for the normalised unit of measure",
         ),
         bigquery.SchemaField(
             "normalised_uom_name",
             "STRING",
+            mode="REQUIRED",
             description="Name of the normalised unit of measure",
         ),
         bigquery.SchemaField(
             "quantity",
             "FLOAT",
+            mode="REQUIRED",
             description="Total quantity in the unit of measure",
         ),
         bigquery.SchemaField(
             "normalised_quantity",
             "FLOAT",
+            mode="REQUIRED",
             description="Total quantity in basis units",
         ),
-        bigquery.SchemaField("indicative_cost", "FLOAT", description="Indicative cost"),
+        bigquery.SchemaField("indicative_cost", "FLOAT", mode="NULLABLE", description="Indicative cost"),
     ],
     partition_field="year_month",
     cluster_fields=["vmp_code"],
@@ -202,10 +219,10 @@ SCMD_DATA_STATUS_TABLE_SPEC = TableSpec(
     description="Status (provisional, finalised) for each month of SCMD data",
     schema=[
         bigquery.SchemaField(
-            "year_month", "DATE", description="Year and month of the data"
+            "year_month", "DATE", mode="REQUIRED", description="Year and month of the data"
         ),
         bigquery.SchemaField(
-            "file_type", "STRING", description="File type (provisional, wip, finalised)"
+            "file_type", "STRING", mode="REQUIRED", description="File type (provisional, wip, finalised)"
         ),
     ],
     partition_field="year_month",
@@ -217,13 +234,13 @@ UNITS_CONVERSION_TABLE_SPEC = TableSpec(
     table_id=UNITS_CONVERSION_TABLE_ID,
     description="Units conversion table. Generated manually taking all unique units from dm+d and WHO DDDs",
     schema=[
-        bigquery.SchemaField("unit", "STRING", description="Unit"),
-        bigquery.SchemaField("basis", "STRING", description="Basis"),
+        bigquery.SchemaField("unit", "STRING", mode="REQUIRED", description="Unit"),
+        bigquery.SchemaField("basis", "STRING", mode="REQUIRED", description="Basis"),
         bigquery.SchemaField(
-            "conversion_factor", "FLOAT", description="Conversion factor"
+            "conversion_factor", "FLOAT", mode="REQUIRED", description="Conversion factor"
         ),
-        bigquery.SchemaField("unit_id", "STRING", description="Unit ID"),
-        bigquery.SchemaField("basis_id", "STRING", description="Basis ID"),
+        bigquery.SchemaField("unit_id", "STRING", mode="NULLABLE", description="Unit ID"),
+        bigquery.SchemaField("basis_id", "STRING", mode="NULLABLE", description="Basis ID"),
     ],
 )
 
@@ -234,14 +251,15 @@ ORG_AE_STATUS_TABLE_SPEC = TableSpec(
     description="Indicator for whether an organisation has had A&E attendances Type 1 by month",
     schema=[
         bigquery.SchemaField(
-            "ods_code", "STRING", description="ODS code of the organisation"
+            "ods_code", "STRING", mode="REQUIRED", description="ODS code of the organisation"
         ),
         bigquery.SchemaField(
-            "period", "DATE", description="Start date of the month, YYYY-MM-DD"
+            "period", "DATE", mode="REQUIRED", description="Start date of the month, YYYY-MM-DD"
         ),
         bigquery.SchemaField(
             "has_ae",
             "BOOLEAN",
+            mode="REQUIRED",
             description="Binary indicator for each organisation if they have over 0 A&E attendances Type 1",
         ),
     ],
@@ -255,25 +273,22 @@ DMD_TABLE_SPEC = TableSpec(
     description="Dictionary of Medicines and Devices (dm+d) data",
     schema=[
         bigquery.SchemaField(
-            "vmp_code", "STRING", description="Virtual Medicinal Product (VMP) code"
-        ),
-        bigquery.SchemaField(
-            "vmp_code_prev", "STRING", description="Previous VMP code"
+            "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
         ),
         bigquery.SchemaField("vmp_name", "STRING", description="VMP name"),
         bigquery.SchemaField(
-            "vtm", "STRING", description="Virtual Therapeutic Moiety (VTM) code"
+            "vtm", "STRING", mode="NULLABLE", description="Virtual Therapeutic Moiety (VTM) code"
         ),
-        bigquery.SchemaField("vtm_name", "STRING", description="VTM name"),
-        bigquery.SchemaField("df_ind", "STRING", description="Dose form indicator"),
-        bigquery.SchemaField("udfs", "FLOAT", description="Unit dose form size"),
+        bigquery.SchemaField("vtm_name", "STRING", mode="NULLABLE", description="VTM name"),
+        bigquery.SchemaField("df_ind", "STRING", mode="REQUIRED", description="Dose form indicator"),
+        bigquery.SchemaField("udfs", "FLOAT", mode="NULLABLE", description="Unit dose form size"),
         bigquery.SchemaField(
-            "udfs_uom", "STRING", description="Unit dose form size unit of measure"
+            "udfs_uom", "STRING", mode="NULLABLE", description="Unit dose form size unit of measure"
         ),
         bigquery.SchemaField(
-            "unit_dose_uom", "STRING", description="Unit dose unit of measure"
+            "unit_dose_uom", "STRING", mode="NULLABLE", description="Unit dose unit of measure"
         ),
-        bigquery.SchemaField("dform_form", "STRING", description="Dose form"),
+        bigquery.SchemaField("dform_form", "STRING", mode="NULLABLE", description="Dose form"),
         bigquery.SchemaField(
             "ingredients",
             "RECORD",
@@ -281,25 +296,27 @@ DMD_TABLE_SPEC = TableSpec(
             description="Ingredients information",
             fields=[
                 bigquery.SchemaField(
-                    "ing_code", "STRING", description="Ingredient code"
+                    "ing_code", "STRING", mode="REQUIRED", description="Ingredient code"
                 ),
                 bigquery.SchemaField(
-                    "ing_name", "STRING", description="Ingredient name"
+                    "ing_name", "STRING", mode="REQUIRED", description="Ingredient name"
                 ),
                 bigquery.SchemaField(
-                    "strnt_nmrtr_val", "FLOAT", description="Strength numerator value"
+                    "strnt_nmrtr_val", "FLOAT", mode="NULLABLE", description="Strength numerator value"
                 ),
                 bigquery.SchemaField(
                     "strnt_nmrtr_uom_name",
                     "STRING",
+                    mode="NULLABLE",
                     description="Strength numerator unit of measure",
                 ),
                 bigquery.SchemaField(
-                    "strnt_dnmtr_val", "FLOAT", description="Strength denominator value"
+                    "strnt_dnmtr_val", "FLOAT", mode="NULLABLE", description="Strength denominator value"
                 ),
                 bigquery.SchemaField(
                     "strnt_dnmtr_uom_name",
                     "STRING",
+                    mode="NULLABLE",
                     description="Strength denominator unit of measure",
                 ),
             ],
@@ -311,10 +328,10 @@ DMD_TABLE_SPEC = TableSpec(
             description="Routes of administration",
             fields=[
                 bigquery.SchemaField(
-                    "ontformroute_cd", "STRING", description="Route code"
+                    "ontformroute_cd", "STRING", mode="REQUIRED", description="Route code"
                 ),
                 bigquery.SchemaField(
-                    "ontformroute_descr", "STRING", description="Route description"
+                    "ontformroute_descr", "STRING", mode="REQUIRED", description="Route description"
                 ),
             ],
         ),
@@ -329,12 +346,12 @@ DMD_SUPP_TABLE_SPEC = TableSpec(
     description="dm+d supplementary data containing BNF codes, ATC codes and DDDs for VMPs",
     schema=[
         bigquery.SchemaField(
-            "vmp_code", "STRING", description="Virtual Medicinal Product (VMP) code"
+            "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
         ),
-        bigquery.SchemaField("bnf_code", "STRING", description="BNF code"),
-        bigquery.SchemaField("atc_code", "STRING", description="ATC code"),
-        bigquery.SchemaField("ddd", "FLOAT", description="DDD"),
-        bigquery.SchemaField("ddd_uom", "STRING", description="DDD unit"),
+        bigquery.SchemaField("bnf_code", "STRING", mode="NULLABLE", description="BNF code"),
+        bigquery.SchemaField("atc_code", "STRING", mode="NULLABLE", description="ATC code"),
+        bigquery.SchemaField("ddd", "FLOAT", mode="NULLABLE", description="DDD"),
+        bigquery.SchemaField("ddd_uom", "STRING", mode="NULLABLE", description="DDD unit"),
     ],
 )
 
@@ -344,37 +361,43 @@ WHO_ATC_TABLE_SPEC = TableSpec(
     table_id=WHO_ATC_TABLE_ID,
     description="ATC information from the WHO, including hierarchical level information",
     schema=[
-        bigquery.SchemaField("atc_code", "STRING", description="ATC code"),
-        bigquery.SchemaField("atc_name", "STRING", description="ATC name"),
-        bigquery.SchemaField("comment", "STRING", description="ATC level"),
+        bigquery.SchemaField("atc_code", "STRING", mode="REQUIRED", description="ATC code"),
+        bigquery.SchemaField("atc_name", "STRING", mode="REQUIRED", description="ATC name"),
+        bigquery.SchemaField("comment", "STRING", mode="NULLABLE", description="ATC level"),
         bigquery.SchemaField(
             "anatomical_main_group", 
             "STRING", 
+            mode="REQUIRED",
             description="1st level: Anatomical main group (e.g., 'A' for Alimentary tract and metabolism)"
         ),
         bigquery.SchemaField(
             "therapeutic_subgroup", 
             "STRING", 
+            mode="NULLABLE",
             description="2nd level: Therapeutic subgroup (e.g., 'A10' for Drugs used in diabetes)"
         ),
         bigquery.SchemaField(
             "pharmacological_subgroup", 
             "STRING", 
+            mode="NULLABLE",
             description="3rd level: Pharmacological subgroup (e.g., 'A10B' for Blood glucose lowering drugs, excl. insulins)"
         ),
         bigquery.SchemaField(
             "chemical_subgroup", 
             "STRING", 
+            mode="NULLABLE",
             description="4th level: Chemical subgroup (e.g., 'A10BA' for Biguanides)"
         ),
         bigquery.SchemaField(
             "chemical_substance", 
             "STRING", 
+            mode="NULLABLE",
             description="5th level: Chemical substance (e.g., 'A10BA02' for Metformin)"
         ),
         bigquery.SchemaField(
             "level", 
             "INTEGER", 
+            mode="REQUIRED",
             description="The hierarchical level of this ATC code (1-5)"
         ),
     ],
@@ -386,13 +409,13 @@ WHO_DDD_TABLE_SPEC = TableSpec(
     table_id=WHO_DDD_TABLE_ID,
     description="DDD information for ATC codes from the WHO",
     schema=[
-        bigquery.SchemaField("atc_code", "STRING", description="ATC code"),
-        bigquery.SchemaField("ddd", "FLOAT", description="DDD"),
-        bigquery.SchemaField("ddd_unit", "STRING", description="DDD unit"),
+        bigquery.SchemaField("atc_code", "STRING", mode="REQUIRED", description="ATC code"),
+        bigquery.SchemaField("ddd", "FLOAT", mode="REQUIRED", description="DDD"),
+        bigquery.SchemaField("ddd_unit", "STRING", mode="NULLABLE", description="DDD unit"),
         bigquery.SchemaField(
-            "adm_code", "STRING", description="Route of administration code"
+            "adm_code", "STRING", mode="NULLABLE", description="Route of administration code"
         ),
-        bigquery.SchemaField("comment", "STRING", description="Comment"),
+        bigquery.SchemaField("comment", "STRING", mode="NULLABLE", description="Comment"),
     ],
 )
 
@@ -402,9 +425,9 @@ WHO_ROUTES_OF_ADMINISTRATION_TABLE_SPEC = TableSpec(
     table_id=WHO_ROUTES_OF_ADMINISTRATION_TABLE_ID,
     description="Routes of administration information from the WHO. Manually generated.",
     schema=[
-        bigquery.SchemaField("who_route_code", "STRING", description="WHO route code"),
+        bigquery.SchemaField("who_route_code", "STRING", mode="NULLABLE", description="WHO route code"),
         bigquery.SchemaField(
-            "who_route_description", "STRING", description="WHO route description"
+            "who_route_description", "STRING", mode="NULLABLE", description="WHO route description"
         ),
     ],
 )
@@ -415,8 +438,8 @@ ADM_ROUTE_MAPPING_TABLE_SPEC = TableSpec(
     table_id=ADM_ROUTE_MAPPING_TABLE_ID,
     description="Mapping between dm+d ontformroute and WHO routes of administration. Manually generated.",
     schema=[
-        bigquery.SchemaField("dmd_ontformroute", "STRING", description="dm+d route"),
-        bigquery.SchemaField("who_route", "STRING", description="WHO route"),
+        bigquery.SchemaField("dmd_ontformroute", "STRING", mode="REQUIRED", description="dm+d route"),
+        bigquery.SchemaField("who_route", "STRING", mode="NULLABLE", description="WHO route"),
     ],
 )
 
@@ -427,56 +450,59 @@ DOSE_TABLE_SPEC = TableSpec(
     description="SCMD quantity converted to doses, using basis unit conversions for calculations",
     schema=[
         bigquery.SchemaField(
-            "year_month", "DATE", description="Year and month of the data"
+            "year_month", "DATE", mode="REQUIRED", description="Year and month of the data"
         ),
         bigquery.SchemaField(
-            "vmp_code", "STRING", description="SNOMED code for the VMP from dm+d"
+            "vmp_code", "STRING", mode="REQUIRED", description="SNOMED code for the VMP from dm+d"
         ),
         bigquery.SchemaField(
-            "vmp_name", "STRING", description="Product name from dm+d"
+            "vmp_name", "STRING", mode="REQUIRED", description="Product name from dm+d"
         ),
-        bigquery.SchemaField("ods_code", "STRING", description="ODS code"),
-        bigquery.SchemaField("ods_name", "STRING", description="Organisation name"),
-        bigquery.SchemaField("scmd_quantity", "FLOAT", description="Original SCMD quantity"),
-        bigquery.SchemaField("scmd_quantity_unit_name", "STRING", description="Original SCMD quantity unit"),
+        bigquery.SchemaField("ods_code", "STRING", mode="REQUIRED", description="ODS code"),
+        bigquery.SchemaField("ods_name", "STRING", mode="REQUIRED", description="Organisation name"),
+        bigquery.SchemaField("scmd_quantity", "FLOAT", mode="REQUIRED", description="Original SCMD quantity"),
+        bigquery.SchemaField("scmd_quantity_unit_name", "STRING", mode="REQUIRED", description="Original SCMD quantity unit"),
         bigquery.SchemaField(
             "scmd_basis_unit",
             "STRING",
+            mode="REQUIRED",
             description="Basis unit for the SCMD quantity",
         ),
         bigquery.SchemaField(
             "scmd_basis_unit_name",
             "STRING",
+            mode="REQUIRED",
             description="Unit of measure name for SCMD quantity",
         ),
         bigquery.SchemaField(
             "scmd_quantity_in_basis_units",
             "FLOAT",
+            mode="REQUIRED",
             description="SCMD quantity converted to basis units",
         ),
-        bigquery.SchemaField("udfs", "FLOAT", description="Unit dose form size"),
-        bigquery.SchemaField("udfs_uom", "STRING", description="Unit dose form size unit of measure"),
+        bigquery.SchemaField("udfs", "FLOAT", mode="REQUIRED", description="Unit dose form size"),
+        bigquery.SchemaField("udfs_uom", "STRING", mode="REQUIRED", description="Unit dose form size unit of measure"),
         bigquery.SchemaField(
-            "udfs_basis_quantity", "FLOAT", description="Unit dose form size converted to basis units"
+            "udfs_basis_quantity", "FLOAT", mode="REQUIRED", description="Unit dose form size converted to basis units"
         ),
         bigquery.SchemaField(
-            "udfs_basis_uom", "STRING", description="Basis unit for the unit dose form size"
+            "udfs_basis_uom", "STRING", mode="REQUIRED", description="Basis unit for the unit dose form size"
         ),
         bigquery.SchemaField(
-            "unit_dose_uom", "STRING", description="Unit dose unit of measure"
+            "unit_dose_uom", "STRING", mode="REQUIRED", description="Unit dose unit of measure"
         ),
         bigquery.SchemaField(
-            "unit_dose_basis_uom", "STRING", description="Basis unit for the unit dose"
+            "unit_dose_basis_uom", "STRING", mode="REQUIRED", description="Basis unit for the unit dose"
         ),
         bigquery.SchemaField(
-            "dose_quantity", "FLOAT", description="Calculated number of doses"
+            "dose_quantity", "FLOAT", mode="REQUIRED", description="Calculated number of doses"
         ),
         bigquery.SchemaField(
-            "dose_unit", "STRING", description="Unit of measure for the dose"
+            "dose_unit", "STRING", mode="REQUIRED", description="Unit of measure for the dose"
         ),
-        bigquery.SchemaField("df_ind", "STRING", description="Dose form indicator"),
+        bigquery.SchemaField("df_ind", "STRING", mode="REQUIRED", description="Dose form indicator"),
         bigquery.SchemaField(
-            "logic", "STRING", description="Logic used for dose calculation including unit conversion details"
+            "logic", "STRING", mode="REQUIRED", description="Logic used for dose calculation including unit conversion details"
         ),
     ],
     partition_field="year_month",
@@ -490,22 +516,22 @@ INGREDIENT_QUANTITY_TABLE_SPEC = TableSpec(
     description="Ingredient level quantities calculated from the SCMD data",
     schema=[
         bigquery.SchemaField(
-            "vmp_code", "STRING", description="Virtual Medicinal Product (VMP) code"
+            "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
         ),
         bigquery.SchemaField(
-            "year_month", "DATE", description="Year and month of the data"
+            "year_month", "DATE", mode="REQUIRED", description="Year and month of the data"
         ),
-        bigquery.SchemaField("ods_code", "STRING", description="ODS code"),
-        bigquery.SchemaField("ods_name", "STRING", description="Organisation name"),
-        bigquery.SchemaField("vmp_name", "STRING", description="VMP name from dm+d"),
+        bigquery.SchemaField("ods_code", "STRING", mode="REQUIRED", description="ODS code"),
+        bigquery.SchemaField("ods_name", "STRING", mode="REQUIRED", description="Organisation name"),
+        bigquery.SchemaField("vmp_name", "STRING", mode="REQUIRED", description="VMP name from dm+d"),
         bigquery.SchemaField(
-            "converted_quantity", "FLOAT", description="Converted quantity from SCMD"
-        ),
-        bigquery.SchemaField(
-            "quantity_basis", "STRING", description="Unit of measure ID for the quantity"
+            "converted_quantity", "FLOAT", mode="REQUIRED", description="Converted quantity from SCMD"
         ),
         bigquery.SchemaField(
-            "quantity_basis_name", "STRING", description="Unit of measure name for the quantity"
+            "quantity_basis", "STRING", mode="REQUIRED", description="Unit of measure ID for the quantity"
+        ),
+        bigquery.SchemaField(
+            "quantity_basis_name", "STRING", mode="REQUIRED", description="Unit of measure name for the quantity"
         ),
         bigquery.SchemaField(
             "ingredients",
@@ -514,64 +540,75 @@ INGREDIENT_QUANTITY_TABLE_SPEC = TableSpec(
             description="Ingredient quantities",
             fields=[
                 bigquery.SchemaField(
-                    "ingredient_code", "STRING", description="Ingredient code"
+                    "ingredient_code", "STRING", mode="REQUIRED", description="Ingredient code"
                 ),
                 bigquery.SchemaField(
-                    "ingredient_name", "STRING", description="Ingredient name"
+                    "ingredient_name", "STRING", mode="REQUIRED", description="Ingredient name"
                 ),
                 bigquery.SchemaField(
                     "ingredient_quantity",
                     "FLOAT",
+                    mode="REQUIRED",
                     description="Calculated ingredient quantity",
                 ),
                 bigquery.SchemaField(
                     "ingredient_unit",
                     "STRING",
+                    mode="REQUIRED",
                     description="Unit of measure for the ingredient",
                 ),
                 bigquery.SchemaField(
                     "ingredient_quantity_basis",
                     "FLOAT",
+                    mode="REQUIRED",
                     description="Calculated ingredient quantity in basis units",
                 ),
                 bigquery.SchemaField(
                     "ingredient_basis_unit",
                     "STRING",
+                    mode="REQUIRED",
                     description="Basis unit for the ingredient",
                 ),
                 bigquery.SchemaField(
                     "strength_numerator_value",
                     "FLOAT",
+                    mode="REQUIRED",
                     description="Strength numerator value",
                 ),
                 bigquery.SchemaField(
                     "strength_numerator_unit",
                     "STRING",
+                    mode="REQUIRED",
                     description="Strength numerator unit",
                 ),
                 bigquery.SchemaField(
                     "strength_denominator_value",
                     "FLOAT",
+                    mode="NULLABLE",
                     description="Strength denominator value",
                 ),
                 bigquery.SchemaField(
                     "strength_denominator_unit",
                     "STRING",
+                    mode="NULLABLE",
                     description="Strength denominator unit",
                 ),
                 bigquery.SchemaField(
                     "quantity_to_denominator_conversion_factor",
                     "FLOAT",
+                    mode="NULLABLE",
                     description="Conversion factor from quantity units to denominator units",
                 ),
                 bigquery.SchemaField(
                     "denominator_basis_unit",
                     "STRING",
+                    mode="NULLABLE",
                     description="Basis unit for the denominator",
                 ),
                 bigquery.SchemaField(
                     "calculation_logic",
                     "STRING",
+                    mode="REQUIRED",
                     description="Logic used for ingredient calculation",
                 ),
             ],
@@ -588,26 +625,27 @@ DDD_QUANTITY_TABLE_SPEC = TableSpec(
     description="Calculated DDD quantities from SCMD data with simplified structure",
     schema=[
         bigquery.SchemaField(
-            "vmp_code", "STRING", description="Virtual Medicinal Product (VMP) code"
+            "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
         ),
         bigquery.SchemaField(
-            "year_month", "DATE", description="Year and month of the data"
+            "year_month", "DATE", mode="REQUIRED", description="Year and month of the data"
         ),
-        bigquery.SchemaField("ods_code", "STRING", description="ODS code"),
-        bigquery.SchemaField("vmp_name", "STRING", description="VMP name"),
-        bigquery.SchemaField("uom", "STRING", description="Unit of measure identifier"),
-        bigquery.SchemaField("uom_name", "STRING", description="Unit of measure name"),
+        bigquery.SchemaField("ods_code", "STRING", mode="REQUIRED", description="ODS code"),
+        bigquery.SchemaField("vmp_name", "STRING", mode="REQUIRED", description="VMP name"),
+        bigquery.SchemaField("uom", "STRING", mode="REQUIRED", description="Unit of measure identifier"),
+        bigquery.SchemaField("uom_name", "STRING", mode="REQUIRED", description="Unit of measure name"),
         bigquery.SchemaField(
-            "quantity", "FLOAT", description="Total quantity in the unit of measure"
+            "quantity", "FLOAT", mode="REQUIRED", description="Total quantity in the unit of measure"
         ),
         bigquery.SchemaField(
-            "ddd_quantity", "FLOAT", description="Calculated number of DDDs"
+            "ddd_quantity", "FLOAT", mode="REQUIRED", description="Calculated number of DDDs"
         ),
-        bigquery.SchemaField("ddd_value", "FLOAT", description="DDD value"),
-        bigquery.SchemaField("ddd_unit", "STRING", description="DDD unit"),
+        bigquery.SchemaField("ddd_value", "FLOAT", mode="REQUIRED", description="DDD value"),
+        bigquery.SchemaField("ddd_unit", "STRING", mode="REQUIRED", description="DDD unit"),
         bigquery.SchemaField(
             "calculation_explanation",
             "STRING",
+            mode="REQUIRED",
             description="Explanation of the DDD calculation",
         ),
     ],
@@ -622,9 +660,9 @@ VMP_DDD_MAPPING_TABLE_SPEC = TableSpec(
     description="Simple mapping between VMPs and their corresponding DDD values. Contains a single DDD value and unit per VMP (set to NULL if multiple conflicting values exist). Also includes UOM information from SCMD data.",
     schema=[
         bigquery.SchemaField(
-            "vmp_code", "STRING", description="Virtual Medicinal Product (VMP) code"
+            "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
         ),
-        bigquery.SchemaField("vmp_name", "STRING", description="VMP name"),
+        bigquery.SchemaField("vmp_name", "STRING", mode="REQUIRED", description="VMP name"),
         bigquery.SchemaField(
             "uoms",
             "RECORD",
@@ -632,16 +670,16 @@ VMP_DDD_MAPPING_TABLE_SPEC = TableSpec(
             description="Units of measure from SCMD data",
             fields=[
                 bigquery.SchemaField(
-                    "uom_id", "STRING", description="Unit of measure identifier"
+                    "uom_id", "STRING", mode="REQUIRED", description="Unit of measure identifier"
                 ),
                 bigquery.SchemaField(
-                    "uom_name", "STRING", description="Unit of measure name"
+                    "uom_name", "STRING", mode="REQUIRED", description="Unit of measure name"
                 ),
                 bigquery.SchemaField(
-                    "basis_id", "STRING", description="Basis unit identifier"
+                    "basis_id", "STRING", mode="REQUIRED", description="Basis unit identifier"
                 ),
                 bigquery.SchemaField(
-                    "basis_name", "STRING", description="Basis unit name"
+                    "basis_name", "STRING", mode="REQUIRED", description="Basis unit name"
                 ),
             ],
         ),
@@ -651,8 +689,8 @@ VMP_DDD_MAPPING_TABLE_SPEC = TableSpec(
             mode="REPEATED",
             description="ATC codes",
             fields=[
-                bigquery.SchemaField("atc_code", "STRING", description="ATC code"),
-                bigquery.SchemaField("atc_name", "STRING", description="ATC name"),
+                bigquery.SchemaField("atc_code", "STRING", mode="REQUIRED", description="ATC code"),
+                bigquery.SchemaField("atc_name", "STRING", mode="REQUIRED", description="ATC name"),
             ],
         ),
         bigquery.SchemaField(
@@ -662,14 +700,15 @@ VMP_DDD_MAPPING_TABLE_SPEC = TableSpec(
             description="Routes of administration",
             fields=[
                 bigquery.SchemaField(
-                    "ontformroute_cd", "STRING", description="Route code"
+                    "ontformroute_cd", "STRING", mode="REQUIRED", description="Route code"
                 ),
                 bigquery.SchemaField(
-                    "ontformroute_descr", "STRING", description="Route description"
+                    "ontformroute_descr", "STRING", mode="REQUIRED", description="Route description"
                 ),
                 bigquery.SchemaField(
                     "who_route_code",
                     "STRING",
+                    mode="REQUIRED",
                     description="WHO route code",
                 ),
             ],
@@ -680,16 +719,18 @@ VMP_DDD_MAPPING_TABLE_SPEC = TableSpec(
             mode="REPEATED",
             description="DDD values from the WHO",
             fields=[
-                bigquery.SchemaField("ddd", "FLOAT", description="DDD value"),
-                bigquery.SchemaField("ddd_unit", "STRING", description="DDD unit"),
+                bigquery.SchemaField("ddd", "FLOAT", mode="REQUIRED", description="DDD value"),
+                bigquery.SchemaField("ddd_unit", "STRING", mode="REQUIRED", description="DDD unit"),
                 bigquery.SchemaField(
                     "ddd_route_code",
                     "STRING",
+                    mode="REQUIRED",
                     description="Route of administration code",
                 ),
                 bigquery.SchemaField(
                     "ddd_comment",
                     "STRING",
+                    mode="NULLABLE",
                     description="Comment",
                 ),
             ],
@@ -701,17 +742,18 @@ VMP_DDD_MAPPING_TABLE_SPEC = TableSpec(
             description="Ingredient information",
             fields=[
                 bigquery.SchemaField(
-                    "ingredient_code", "STRING", description="Ingredient code"
+                    "ingredient_code", "STRING", mode="REQUIRED", description="Ingredient code"
                 ),
                 bigquery.SchemaField(
-                    "ingredient_name", "STRING", description="Ingredient name"
+                    "ingredient_name", "STRING", mode="REQUIRED", description="Ingredient name"
                 ),
                 bigquery.SchemaField(
-                    "ingredient_unit", "STRING", description="Ingredient unit"
+                    "ingredient_unit", "STRING", mode="REQUIRED", description="Ingredient unit"
                 ),
                 bigquery.SchemaField(
                     "ingredient_basis_unit",
                     "STRING",
+                    mode="REQUIRED",
                     description="Basis unit for the ingredient",
                 ),
             ],
@@ -719,31 +761,37 @@ VMP_DDD_MAPPING_TABLE_SPEC = TableSpec(
         bigquery.SchemaField(
             "can_calculate_ddd",
             "BOOLEAN",
+            mode="REQUIRED",
             description="Flag indicating whether DDD can be calculated for this VMP",
         ),
         bigquery.SchemaField(
             "ddd_calculation_logic",
             "STRING",
+            mode="REQUIRED",
             description="Explanation of the DDD calculation logic or issue (for both successful and failed calculations)",
         ),
         bigquery.SchemaField(
             "selected_ddd_value",
             "FLOAT",
+            mode="REQUIRED",
             description="The DDD value that was selected for calculations",
         ),
         bigquery.SchemaField(
             "selected_ddd_unit",
             "STRING",
+            mode="REQUIRED",
             description="The unit of the selected DDD value",
         ),
         bigquery.SchemaField(
             "selected_ddd_basis_unit",
             "STRING",
+            mode="REQUIRED",
             description="The basis unit for the selected DDD value",
         ),
         bigquery.SchemaField(
             "selected_ddd_route_code",
             "STRING",
+            mode="REQUIRED",
             description="The route code of the selected DDD",
         ),
     ],
@@ -757,11 +805,11 @@ VMP_TABLE_SPEC = TableSpec(
     description="A table containing VMP (Virtual Medicinal Product) data including related ingredients, routes of administration, and ATC mappings for VMPs found in SCMD data",
     schema=[
         bigquery.SchemaField(
-            "vmp_code", "STRING", description="Virtual Medicinal Product (VMP) code"
+            "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
         ),
-        bigquery.SchemaField("vmp_name", "STRING", description="VMP name"),
-        bigquery.SchemaField("vtm_code", "STRING", description="Virtual Therapeutic Moiety (VTM) code"),
-        bigquery.SchemaField("vtm_name", "STRING", description="VTM name"),
+        bigquery.SchemaField("vmp_name", "STRING", mode="REQUIRED", description="VMP name"),
+        bigquery.SchemaField("vtm_code", "STRING", mode="NULLABLE", description="Virtual Therapeutic Moiety (VTM) code"),
+        bigquery.SchemaField("vtm_name", "STRING", mode="NULLABLE", description="VTM name"),
         bigquery.SchemaField(
             "ingredients",
             "RECORD",
@@ -769,10 +817,10 @@ VMP_TABLE_SPEC = TableSpec(
             description="Ingredients information",
             fields=[
                 bigquery.SchemaField(
-                    "ingredient_code", "STRING", description="Ingredient code"
+                    "ingredient_code", "STRING", mode="REQUIRED", description="Ingredient code"
                 ),
                 bigquery.SchemaField(
-                    "ingredient_name", "STRING", description="Ingredient name"
+                    "ingredient_name", "STRING", mode="REQUIRED", description="Ingredient name"
                 ),
             ],
         ),
@@ -783,10 +831,10 @@ VMP_TABLE_SPEC = TableSpec(
             description="Routes of administration",
             fields=[
                 bigquery.SchemaField(
-                    "route_code", "STRING", description="Route code"
+                    "route_code", "STRING", mode="REQUIRED", description="Route code"
                 ),
                 bigquery.SchemaField(
-                    "route_name", "STRING", description="Route name"
+                    "route_name", "STRING", mode="REQUIRED", description="Route name"
                 ),
             ],
         ),
@@ -796,8 +844,8 @@ VMP_TABLE_SPEC = TableSpec(
             mode="REPEATED",
             description="ATC codes and names",
             fields=[
-                bigquery.SchemaField("atc_code", "STRING", description="ATC code"),
-                bigquery.SchemaField("atc_name", "STRING", description="ATC name"),
+                bigquery.SchemaField("atc_code", "STRING", mode="REQUIRED", description="ATC code"),
+                bigquery.SchemaField("atc_name", "STRING", mode="REQUIRED", description="ATC name"),
             ],
         ),
     ],
@@ -813,11 +861,13 @@ VMP_UNIT_STANDARDISATION_TABLE_SPEC = TableSpec(
         bigquery.SchemaField(
             "vmp_code", 
             "STRING", 
+            mode="REQUIRED",
             description="Virtual Medicinal Product (VMP) code"
         ),
         bigquery.SchemaField(
             "vmp_name", 
             "STRING", 
+            mode="REQUIRED",
             description="VMP name"
         ),
         bigquery.SchemaField(
@@ -829,11 +879,13 @@ VMP_UNIT_STANDARDISATION_TABLE_SPEC = TableSpec(
                 bigquery.SchemaField(
                     "unit_id", 
                     "STRING", 
+                    mode="REQUIRED",
                     description="Unit identifier"
                 ),
                 bigquery.SchemaField(
                     "unit_name", 
                     "STRING", 
+                    mode="REQUIRED",
                     description="Unit name"
                 ),
             ],
@@ -841,21 +893,25 @@ VMP_UNIT_STANDARDISATION_TABLE_SPEC = TableSpec(
         bigquery.SchemaField(
             "chosen_unit_id", 
             "STRING", 
+            mode="REQUIRED",
             description="The chosen standard unit identifier"
         ),
         bigquery.SchemaField(
             "chosen_unit_name", 
             "STRING", 
+            mode="REQUIRED",
             description="The chosen standard unit name"
         ),
         bigquery.SchemaField(
             "conversion_logic", 
             "STRING", 
+            mode="REQUIRED",
             description="Explanation of how to convert from other units to the chosen unit"
         ),
         bigquery.SchemaField(
             "conversion_factor",
             "FLOAT",
+            mode="REQUIRED",
             description="Numerical factor to convert from the original unit to the chosen unit"
         ),
     ],
@@ -871,11 +927,13 @@ VTM_INGREDIENTS_TABLE_SPEC = TableSpec(
         bigquery.SchemaField(
             "vtm_id", 
             "STRING", 
+            mode="REQUIRED",
             description="Virtual Therapeutic Moiety (VTM) identifier"
         ),
         bigquery.SchemaField(
             "ingredient_id", 
             "STRING", 
+            mode="REQUIRED",
             description="Ingredient identifier"
         ),
     ],
@@ -890,16 +948,19 @@ DMD_HISTORY_TABLE_SPEC = TableSpec(
         bigquery.SchemaField(
             "current_id", 
             "STRING", 
+            mode="REQUIRED",
             description="Current identifier"
         ),
         bigquery.SchemaField(
             "previous_id", 
             "STRING", 
+            mode="REQUIRED",
             description="Previous identifier"
         ),
         bigquery.SchemaField(
             "start_date", 
             "DATE", 
+            mode="REQUIRED",
             description="Start date of the mapping"
         ),
         bigquery.SchemaField(
@@ -911,6 +972,7 @@ DMD_HISTORY_TABLE_SPEC = TableSpec(
         bigquery.SchemaField(
             "entity_type",
             "STRING",
+            mode="REQUIRED",
             description="Type of entity (VTM, VMP, ING, SUPP, FORM, ROUTE, UOM)"
         ),
     ],
@@ -925,6 +987,7 @@ DMD_UOM_TABLE_SPEC = TableSpec(
         bigquery.SchemaField(
             "uom_code", 
             "STRING", 
+            mode="REQUIRED",
             description="Unit of measure code"
         ),
         bigquery.SchemaField(
@@ -942,6 +1005,7 @@ DMD_UOM_TABLE_SPEC = TableSpec(
         bigquery.SchemaField(
             "description", 
             "STRING", 
+            mode="NULLABLE",
             description="Description of the unit of measure"
         ),
     ],

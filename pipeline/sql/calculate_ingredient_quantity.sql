@@ -44,16 +44,18 @@ calculated_quantities AS (
   SELECT
     *,
     CASE
+      -- 1. Check if it has an ingredient
       WHEN ingredient_code IS NULL THEN 
         NULL
+      -- 2. Check for strength info
       WHEN strength_numerator_value IS NULL THEN
         NULL
+      -- 3. No denominator case: multiply SCMD quantity by strength numerator
       WHEN strength_denominator_value IS NULL THEN
-        -- Simple multiplication if no denominator
-        quantity_in_basis * numerator_in_basis
+        original_quantity * strength_numerator_value
+      -- 4. With denominator case: where bases match, divide quantity by denominator and multiply by numerator
       WHEN quantity_basis = denominator_basis THEN
-        -- If bases match, can do direct calculation
-        (quantity_in_basis / denominator_in_basis) * numerator_in_basis
+        (quantity_in_basis / denominator_in_basis) * strength_numerator_value
       ELSE
         NULL
     END as ingredient_quantity,
@@ -86,9 +88,16 @@ SELECT
       ingredient_name,
       ingredient_quantity,
       strength_numerator_unit as ingredient_unit,
-      -- Convert final result to basis units if we have a result
+      -- Convert ingredient quantity to basis units
       CASE 
-        WHEN ingredient_quantity IS NOT NULL THEN ingredient_quantity 
+        WHEN ingredient_quantity IS NOT NULL THEN
+          ingredient_quantity * COALESCE(
+            (SELECT conversion_factor 
+             FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}`
+             WHERE unit = strength_numerator_unit 
+             AND basis = numerator_basis),
+            1.0
+          )
         ELSE NULL 
       END as ingredient_quantity_basis,
       numerator_basis as ingredient_basis_unit,

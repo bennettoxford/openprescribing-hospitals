@@ -106,7 +106,7 @@ ddd_calculations AS (
           quantity, ' / (', selected_ddd_value, ' ', selected_ddd_unit, ' * ', ddd_conversion_factor, ') = ',
           ROUND(quantity / (selected_ddd_value * ddd_conversion_factor), 2), ' DDDs'
         )
-      WHEN ddd_calculation_logic = 'Calculated using ingredient quantity (fallback method)' 
+      WHEN ddd_calculation_logic = 'Calculated using ingredient quantity' 
         AND ingredient_basis_quantity IS NOT NULL
         AND ingredient_basis = ddd_basis THEN
         CONCAT(

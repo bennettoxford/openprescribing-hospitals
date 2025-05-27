@@ -14,7 +14,6 @@ USING (
   vmp_vpi_ing_data AS (
     SELECT DISTINCT
       vmp_full.id AS vmp_code,
-      vmp_full.vpidprev AS vmp_code_prev,
       vmp_full.nm AS vmp_name,
       vmp_full.df_ind,
       vmp_full.udfs,
@@ -54,7 +53,6 @@ USING (
   )
   SELECT 
     CAST(vmp_code AS STRING) AS vmp_code,
-    CAST(vmp_code_prev AS STRING) AS vmp_code_prev,
     vmp_name,
     CAST(vtm AS STRING) AS vtm,
     vtm_name,
@@ -64,19 +62,24 @@ USING (
     unit_dose_uom,
     dform_form,
     rd.ontformroutes,
-    ARRAY_AGG(STRUCT(
-      CAST(ing AS STRING) AS ing_code,
-      ing_nm AS ing_name,
-      CAST(strnt_nmrtr_val AS FLOAT64) AS strnt_nmrtr_val,
-      strnt_nmrtr_uom_name,
-      CAST(strnt_dnmtr_val AS FLOAT64) AS strnt_dnmtr_val,
-      strnt_dnmtr_uom_name
-    ) ORDER BY ing) AS ingredients
+    ARRAY_AGG(
+      IF(ing IS NOT NULL,
+        STRUCT(
+          CAST(ing AS STRING) AS ing_code,
+          ing_nm AS ing_name,
+          CAST(strnt_nmrtr_val AS FLOAT64) AS strnt_nmrtr_val,
+          strnt_nmrtr_uom_name,
+          CAST(strnt_dnmtr_val AS FLOAT64) AS strnt_dnmtr_val,
+          strnt_dnmtr_uom_name
+        ), 
+        NULL
+      ) IGNORE NULLS
+      ORDER BY ing
+    ) AS ingredients
   FROM vmp_vpi_ing_data
   LEFT JOIN route_data rd ON CAST(vmp_code AS STRING) = CAST(rd.vmp AS STRING)
   GROUP BY
     vmp_code,
-    vmp_code_prev,
     vmp_name,
     vtm,
     vtm_name,
@@ -90,7 +93,6 @@ USING (
 ON T.vmp_code = S.vmp_code
 WHEN MATCHED THEN
   UPDATE SET
-    vmp_code_prev = S.vmp_code_prev,
     vmp_name = S.vmp_name,
     vtm = S.vtm,
     vtm_name = S.vtm_name,
@@ -103,12 +105,12 @@ WHEN MATCHED THEN
     ontformroutes = S.ontformroutes
 WHEN NOT MATCHED THEN
   INSERT (
-    vmp_code, vmp_code_prev, vmp_name, vtm, vtm_name, df_ind, 
+    vmp_code, vmp_name, vtm, vtm_name, df_ind, 
     udfs, udfs_uom, unit_dose_uom, dform_form, 
     ingredients, ontformroutes
   )
   VALUES (
-    S.vmp_code, S.vmp_code_prev, S.vmp_name, S.vtm, S.vtm_name, S.df_ind,
+    S.vmp_code, S.vmp_name, S.vtm, S.vtm_name, S.df_ind,
     S.udfs, S.udfs_uom, S.unit_dose_uom, S.dform_form,
     S.ingredients, S.ontformroutes
   )

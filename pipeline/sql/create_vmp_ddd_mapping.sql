@@ -32,8 +32,8 @@ vmp_routes AS (
     vmp.vmp_code,
     ARRAY_AGG(
       STRUCT(
-        route.ontformroute_cd AS route_code,
-        route.ontformroute_descr AS route_description,
+        route.ontformroute_cd,
+        route.ontformroute_descr,
         route_map.who_route AS who_route_code
       )
     ) AS routes
@@ -315,7 +315,7 @@ ddd_calculation_status AS (
     END AS can_calculate_ddd,
     CASE
       WHEN has_single_ingredient AND ingredient_basis_matches_ddd 
-      THEN 'Calculated using ingredient quantity (fallback method)'
+      THEN 'Calculated using ingredient quantity'
       WHEN NOT routes_match 
       THEN 'DDD route does not match product route'
       WHEN has_missing_ingredient_units 
