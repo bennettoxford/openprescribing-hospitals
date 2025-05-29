@@ -215,7 +215,7 @@ def validate_calculation_logic():
                     FROM UNNEST(scmd_basis_units) basis_unit
                     WHERE basis_unit = selected_ddd_basis_unit
                 ) > 0 THEN TRUE
-            WHEN ddd_calculation_logic = 'Calculated using ingredient quantity (fallback method)' 
+            WHEN ddd_calculation_logic = 'Calculated using ingredient quantity' 
                 AND ingredient_count = 1 
                 AND single_ingredient_basis_unit = selected_ddd_basis_unit THEN TRUE
             ELSE FALSE
@@ -228,7 +228,7 @@ def validate_calculation_logic():
                 FROM UNNEST(scmd_basis_units) basis_unit
                 WHERE basis_unit = selected_ddd_basis_unit
             ) > 0 THEN TRUE
-        WHEN ddd_calculation_logic = 'Calculated using ingredient quantity (fallback method)' 
+        WHEN ddd_calculation_logic = 'Calculated using ingredient quantity' 
             AND ingredient_count = 1 
             AND single_ingredient_basis_unit = selected_ddd_basis_unit THEN TRUE
         ELSE FALSE
@@ -248,7 +248,7 @@ def validate_calculation_logic():
                         f"Using SCMD unit but DDD basis unit ({record['selected_ddd_basis_unit']}) "
                         f"not in SCMD basis units ({', '.join(record['scmd_basis_units'])})"
                     )
-            elif record['ddd_calculation_logic'] == 'Calculated using ingredient quantity (fallback method)':
+            elif record['ddd_calculation_logic'] == 'Calculated using ingredient quantity':
                 if record['ingredient_count'] != 1:
                     logger.error(
                         f"- VMP {record['vmp_code']} ({record['vmp_name']}): "

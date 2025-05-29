@@ -27,6 +27,7 @@ django-vite==3.0.4
 djangorestframework==3.15.2
 docker==7.1.0
 environs==11.0.0
+et-xmlfile==2.0.0
 exceptiongroup==1.2.2
 fastapi==0.115.12
 fsspec==2025.3.2
@@ -75,6 +76,7 @@ marshmallow==3.22.0
 mdurl==0.1.2
 numpy==2.1.1
 oauthlib==3.2.2
+openpyxl==3.1.5
 opentelemetry-api==1.31.1
 orjson==3.10.16
 packaging==24.1

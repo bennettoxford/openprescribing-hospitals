@@ -26,6 +26,8 @@ from pipeline.utils.config import (
     VTM_INGREDIENTS_TABLE_ID,
     DMD_HISTORY_TABLE_ID,
     DMD_UOM_TABLE_ID,
+    WHO_DDD_ALTERATIONS_TABLE_ID,
+    WHO_ATC_ALTERATIONS_TABLE_ID,
 )
 
 
@@ -1010,4 +1012,113 @@ DMD_UOM_TABLE_SPEC = TableSpec(
         ),
     ],
     cluster_fields=["uom_code"],
+)
+WHO_DDD_ALTERATIONS_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=WHO_DDD_ALTERATIONS_TABLE_ID,
+    description="Historical alterations to DDD values from WHO, tracking changes over time. Source: https://atcddd.fhi.no/atc_ddd_alterations__cumulative/ddd_alterations/",
+    schema=[
+        bigquery.SchemaField(
+            "substance", 
+            "STRING", 
+            mode="REQUIRED",
+            description="Name of the substance"
+        ),
+        bigquery.SchemaField(
+            "previous_ddd", 
+            "FLOAT", 
+            mode="NULLABLE",
+            description="Previous DDD value"
+        ),
+        bigquery.SchemaField(
+            "previous_ddd_unit", 
+            "STRING", 
+            mode="NULLABLE",
+            description="Unit of the previous DDD"
+        ),
+        bigquery.SchemaField(
+            "previous_route", 
+            "STRING", 
+            mode="NULLABLE",
+            description="Previous route of administration"
+        ),
+        bigquery.SchemaField(
+            "new_ddd", 
+            "FLOAT", 
+            mode="NULLABLE",
+            description="New DDD value"
+        ),
+        bigquery.SchemaField(
+            "new_ddd_unit", 
+            "STRING", 
+            mode="NULLABLE",
+            description="Unit of the new DDD"
+        ),
+        bigquery.SchemaField(
+            "new_route", 
+            "STRING", 
+            mode="NULLABLE",
+            description="New route of administration"
+        ),
+        bigquery.SchemaField(
+            "atc_code", 
+            "STRING",
+            mode="REQUIRED",
+            description="Present ATC code for the substance"
+        ),
+        bigquery.SchemaField(
+            "year_changed", 
+            "INTEGER", 
+            mode="REQUIRED",
+            description="Year when the alteration was implemented"
+        ),
+        bigquery.SchemaField(
+            "comment", 
+            "STRING", 
+            mode="NULLABLE",
+            description="Additional notes or comments about the change"
+        ),
+    ],
+    cluster_fields=["atc_code", "year_changed"]
+)
+
+WHO_ATC_ALTERATIONS_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=WHO_ATC_ALTERATIONS_TABLE_ID,
+    description="Historical alterations to ATC codes from WHO, tracking changes over time. Source: https://atcddd.fhi.no/atc_ddd_alterations__cumulative/atc_alterations/",
+    schema=[
+        bigquery.SchemaField(
+            "substance", 
+            "STRING", 
+            mode="REQUIRED",
+            description="Name of the substance"
+        ),
+        bigquery.SchemaField(
+            "previous_atc_code", 
+            "STRING", 
+            mode="NULLABLE",
+            description="Previous ATC code"
+        ),
+        bigquery.SchemaField(
+            "new_atc_code", 
+            "STRING", 
+            mode="REQUIRED",
+            description="New ATC code"
+        ),
+        bigquery.SchemaField(
+            "year_changed", 
+            "INTEGER", 
+            mode="REQUIRED",
+            description="Year when the alteration was implemented"
+        ),
+        bigquery.SchemaField(
+            "comment", 
+            "STRING", 
+            mode="NULLABLE",
+            description="Additional notes or comments about the change"
+        ),
+    ],
+    cluster_fields=["previous_atc_code", "new_atc_code", "year_changed"]
 )

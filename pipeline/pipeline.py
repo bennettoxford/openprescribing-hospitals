@@ -19,7 +19,9 @@ from pipeline.flows.import_vmp_unit_standardisation import import_vmp_unit_stand
 from pipeline.flows.process_scmd import process_scmd
 from pipeline.flows.calculate_doses import calculate_doses
 from pipeline.flows.calculate_ingredient_quantity import calculate_ingredient_quantity
-from pipeline.flows.import_atc_ddd import import_ddd_atc_flow
+from pipeline.flows.import_atc_ddd_alterations import import_atc_ddd_alterations_flow
+from pipeline.flows.import_atc import import_atc_flow
+from pipeline.flows.import_ddd import import_ddd_flow
 from pipeline.flows.create_vmp_ddd_mapping import create_vmp_ddd_mapping
 from pipeline.flows.calculate_ddd_quantity import calculate_ddd_quantity
 
@@ -36,20 +38,24 @@ def scmd_pipeline(run_import_flows: bool = True):
         unit_conv = import_unit_conversion_flow(wait_for=[setup_result])
         org_result = import_organisations(wait_for=[setup_result])
         ae_status_result = import_ae_status(wait_for=[setup_result])
+        atc_ddd_alterations = import_atc_ddd_alterations_flow(wait_for=[setup_result])
+
+        atc_result = import_atc_flow(wait_for=[atc_ddd_alterations])
+        ddd_result = import_ddd_flow(wait_for=[atc_ddd_alterations])
 
         adm_route = import_adm_route_mapping_flow(wait_for=[ae_status_result])
         dmd_result = import_dmd(wait_for=[adm_route])
         dmd_uom = import_dmd_uom(wait_for=[dmd_result])
-        dmd_supp = import_dmd_supp_flow(wait_for=[dmd_uom])
-       
-        ddd_atc = import_ddd_atc_flow(wait_for=[dmd_supp])
+        dmd_supp = import_dmd_supp_flow(wait_for=[dmd_uom, atc_ddd_alterations])
+    
         vmps = populate_vmp_table(wait_for=[dmd_supp])
         vmp_unit_standardisation = import_vmp_unit_standardisation_flow(wait_for=[vmps])
         scmd_result = scmd_import(wait_for=[vmp_unit_standardisation])
         processed = process_scmd(wait_for=[scmd_result, unit_conv, org_result])
         doses = calculate_doses(wait_for=[processed])
         ingredients = calculate_ingredient_quantity(wait_for=[doses])
-        ddd_mapping = create_vmp_ddd_mapping(wait_for=[ingredients, ddd_atc])
+    
+        ddd_mapping = create_vmp_ddd_mapping(wait_for=[ingredients, atc_result, ddd_result])
         ddd_quantities = calculate_ddd_quantity(wait_for=[ddd_mapping])
 
         logger.info("Import flows completed")
@@ -58,6 +64,7 @@ def scmd_pipeline(run_import_flows: bool = True):
         last_import_result = None
 
     logger.info("SCMD Import Pipeline completed")
+    return last_import_result
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='SCMD Pipeline Runner')
