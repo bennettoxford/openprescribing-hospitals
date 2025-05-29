@@ -3,6 +3,7 @@ import zipfile
 import re
 import xml.etree.ElementTree as ET
 
+from typing import Optional, Dict, Tuple, List
 from dataclasses import dataclass
 from pathlib import Path
 from google.cloud import bigquery
@@ -12,9 +13,15 @@ from prefect import task, flow
 from prefect.logging import get_run_logger
 from prefect.blocks.system import Secret
 
-from pipeline.utils.utils import get_bigquery_client
-from pipeline.bq_tables import DMD_SUPP_TABLE_SPEC, VTM_INGREDIENTS_TABLE_SPEC, DMD_HISTORY_TABLE_SPEC
+from pipeline.utils.utils import get_bigquery_client, fetch_table_data_from_bq
+from pipeline.bq_tables import (
+    DMD_SUPP_TABLE_SPEC, 
+    VTM_INGREDIENTS_TABLE_SPEC, 
+    DMD_HISTORY_TABLE_SPEC,
+    WHO_ATC_ALTERATIONS_TABLE_SPEC,
+)
 
+from pipeline.flows.import_atc import create_atc_code_mapping
 
 TRUD_KEY = Secret.load("trud-api-key").get()
 TEMP_DIR = Path("temp")
@@ -46,14 +53,6 @@ class TRUDClient:
             download_url=release["archiveFileUrl"],
             year=release_date_obj.isocalendar()[0],
         )
-
-
-@task
-def create_temp_directory():
-    """Create temporary directory for downloads"""
-    logger = get_run_logger()
-    logger.info("Creating temporary directory")
-    TEMP_DIR.mkdir(exist_ok=True)
 
 
 @task
@@ -109,7 +108,7 @@ def download_dmd_release(release: TRUDRelease) -> Path:
 
 
 @task
-def extract_supplementary_files(main_zip_path: Path, release_year: int) -> tuple[Path, Path, Path]:
+def extract_supplementary_files(main_zip_path: Path, release_year: int) -> Tuple[Path, Path, Path]:
     """Extract BNF XML file and find VTM ingredients and history files"""
     logger = get_run_logger()
     logger.info("Extracting supplementary files")
@@ -154,7 +153,7 @@ def extract_supplementary_files(main_zip_path: Path, release_year: int) -> tuple
 
 
 @task
-def parse_xml_data(xml_path: Path) -> list[dict]:
+def parse_xml_data(xml_path: Path) -> List[Dict[str, Optional[str]]]:
     """Parse the XML file to extract VMP, BNF, and ATC codes"""
     logger = get_run_logger()
     logger.info(f"Parsing XML data from {xml_path}")
@@ -201,7 +200,7 @@ def parse_xml_data(xml_path: Path) -> list[dict]:
 
 
 @task
-def parse_vtm_ingredients_xml(xml_path: Path) -> list[dict]:
+def parse_vtm_ingredients_xml(xml_path: Path) -> List[Dict[str, Optional[str]]]:
     """Parse the VTM ingredients XML file"""
     logger = get_run_logger()
     logger.info(f"Parsing VTM ingredients XML data from {xml_path}")
@@ -224,7 +223,7 @@ def parse_vtm_ingredients_xml(xml_path: Path) -> list[dict]:
 
 
 @task
-def parse_dmd_history_xml(xml_path: Path) -> list[dict]:
+def parse_dmd_history_xml(xml_path: Path) -> List[Dict[str, Optional[str]]]:
     """Parse the dm+d history XML file for all entity types"""
     logger = get_run_logger()
     logger.info(f"Parsing dm+d history XML data from {xml_path}")
@@ -269,6 +268,50 @@ def parse_dmd_history_xml(xml_path: Path) -> list[dict]:
 
     logger.info(f"Extracted {len(data)} total dm+d history records")
     return data
+
+
+@task
+def update_atc_codes(
+    data: List[Dict[str, Optional[str]]],
+    atc_mapping: Dict[str, Dict[str, str]],
+    deleted_atc_codes: Dict[str, str]
+    ) -> List[Dict[str, Optional[str]]]:
+    """Update ATC codes in dm+d data using the mapping"""
+    logger = get_run_logger()
+
+    updated_data = data.copy()
+    
+    deletions_made = 0
+    updated_data = [
+        record for record in updated_data
+        if not (record.get('atc_code') and record['atc_code'] in deleted_atc_codes)
+    ]
+    deletions_made = len(data) - len(updated_data)
+    
+    if deletions_made > 0:
+        logger.info(f"Removed {deletions_made} records with deleted ATC codes")
+    else:
+        logger.info("No records removed for deleted ATC codes")
+    
+    changes_made = 0
+    for record in updated_data:
+        atc_code = record.get('atc_code')
+        if atc_code and atc_code in atc_mapping:
+            old_code = atc_code
+            mapping = atc_mapping[atc_code]
+            record['atc_code'] = mapping['new_code']
+            changes_made += 1
+            logger.debug(f"Updated ATC code {old_code} to {mapping['new_code']} for VMP {record.get('vmp_code')}")
+    
+    if changes_made > 0:
+        logger.info(f"Updated {changes_made} ATC codes using mapping")
+    else:
+        logger.info("No ATC codes were updated")
+    
+    
+    logger.info(f"ATC code update completed. Total records: {len(updated_data)}")
+    return updated_data
+
 
 
 @task
@@ -354,7 +397,7 @@ def import_dmd_supp_flow():
     logger.info("Starting dm+d supplementary data import flow")
 
     try:
-        create_temp_directory()
+        TEMP_DIR.mkdir(exist_ok=True)
 
         release = get_latest_trud_release()
         logger.info(f"Processing release from {release.release_date}")
@@ -366,9 +409,14 @@ def import_dmd_supp_flow():
         vtm_ing_data = parse_vtm_ingredients_xml(vtm_ing_path)
         dmd_history_data = parse_dmd_history_xml(history_path)
 
+        atc_alterations = fetch_table_data_from_bq(WHO_ATC_ALTERATIONS_TABLE_SPEC)
+        atc_mapping, new_atc_codes, deleted_atc_codes = create_atc_code_mapping(atc_alterations)
+        
+        updated_data = update_atc_codes(bnf_data, atc_mapping, deleted_atc_codes)
+
         bnf_rows = 0
-        if bnf_data and len(bnf_data) > 0:
-            bnf_rows = upload_to_bigquery(bnf_data)
+        if updated_data and len(updated_data) > 0:
+            bnf_rows = upload_to_bigquery(updated_data)
         else:
             logger.warning("No BNF data found to upload")
 
@@ -394,6 +442,7 @@ def import_dmd_supp_flow():
             "bnf_rows": bnf_rows,
             "vtm_ing_rows": vtm_ing_rows,
             "dmd_history_rows": dmd_history_rows,
+            "rows_loaded": bnf_rows,
         }
 
     except Exception as e:

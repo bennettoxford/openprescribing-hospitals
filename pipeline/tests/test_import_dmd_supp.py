@@ -3,7 +3,8 @@ import pytest
 from pipeline.flows.import_dmd_supp import (
     parse_xml_data,
     parse_vtm_ingredients_xml,
-    parse_dmd_history_xml
+    parse_dmd_history_xml,
+    update_atc_codes
 )
 
 @pytest.fixture
@@ -66,6 +67,39 @@ def sample_history_xml_content():
         </VMP>
     </DMDXML>'''
 
+@pytest.fixture
+def sample_dmd_data():
+    return [
+        {
+            'vmp_code': '12345',
+            'bnf_code': '0403030E0',
+            'atc_code': 'N02BE01',
+            'ddd': 1000.0,
+            'ddd_uom': 'mg'
+        },
+        {
+            'vmp_code': '67890',
+            'bnf_code': '0403030G0',
+            'atc_code': 'N02BE02',
+            'ddd': None,
+            'ddd_uom': None
+        },
+        {
+            'vmp_code': '11111',
+            'bnf_code': '0403030H0',
+            'atc_code': 'N02BE03',
+            'ddd': 500.0,
+            'ddd_uom': 'mg'
+        },
+        {
+            'vmp_code': '22222',
+            'bnf_code': '0403030I0',
+            'atc_code': None,  # No ATC code
+            'ddd': None,
+            'ddd_uom': None
+        }
+    ]
+
 class TestXMLParsing:
     def test_parse_xml_data(self, sample_xml_content, tmp_path):
         xml_file = tmp_path / "test.xml"
@@ -120,4 +154,95 @@ class TestXMLParsing:
             'end_date': None,
             'entity_type': 'VMP'
         }
+
+
+class TestATCCodeUpdates:
+    def test_update_atc_codes_with_mapping(self, sample_dmd_data):
+        """Test updating ATC codes using mapping"""
+        atc_mapping = {
+            'N02BE01': {
+                'new_code': 'N02BE01A',
+                'substance': 'Paracetamol'
+            }
+        }
+        deleted_codes = {}
+        
+        result = update_atc_codes(sample_dmd_data, atc_mapping, deleted_codes)
+        
+        # Check that the ATC code was updated
+        assert len(result) == 4
+        assert result[0]['atc_code'] == 'N02BE01A'
+        assert result[0]['vmp_code'] == '12345'  # Other fields unchanged
+        
+
+    def test_update_atc_codes_with_deletions(self, sample_dmd_data):
+        """Test removing records with deleted ATC codes"""
+        atc_mapping = {}
+        deleted_codes = {
+            'N02BE02': 'Aspirin'
+        }
+        
+        result = update_atc_codes(sample_dmd_data, atc_mapping, deleted_codes)
+        
+        # Check that record with deleted ATC code was removed
+        assert len(result) == 3
+        atc_codes = [record.get('atc_code') for record in result]
+        assert 'N02BE02' not in atc_codes
+        assert 'N02BE01' in atc_codes
+        assert 'N02BE03' in atc_codes
+
+    def test_update_atc_codes_combined(self, sample_dmd_data):
+        """Test both updating and deleting ATC codes"""
+        atc_mapping = {
+            'N02BE01': {
+                'new_code': 'N02BE01A',
+                'substance': 'Paracetamol'
+            }
+        }
+        deleted_codes = {
+            'N02BE02': 'Aspirin'
+        }
+        
+        result = update_atc_codes(sample_dmd_data, atc_mapping, deleted_codes)
+        
+        # Check that record with deleted ATC code was removed
+        assert len(result) == 3
+        
+        # Check that the remaining N02BE01 record was updated
+        updated_record = next(r for r in result if r['vmp_code'] == '12345')
+        assert updated_record['atc_code'] == 'N02BE01A'
+        
+        # Check that N02BE02 record was removed
+        atc_codes = [record.get('atc_code') for record in result]
+        assert 'N02BE02' not in atc_codes
+
+    def test_update_atc_codes_no_changes(self, sample_dmd_data):
+        """Test with empty mappings - no changes should occur"""
+        atc_mapping = {}
+        deleted_codes = {}
+        
+        result = update_atc_codes(sample_dmd_data, atc_mapping, deleted_codes)
+        
+        # Should be identical to original
+        assert len(result) == 4
+        assert result == sample_dmd_data
+
+    def test_update_atc_codes_preserves_none_values(self, sample_dmd_data):
+        """Test that records with None ATC codes are preserved and not affected"""
+        atc_mapping = {
+            'N02BE01': {
+                'new_code': 'N02BE01A',
+                'substance': 'Paracetamol'
+            }
+        }
+        deleted_codes = {
+            'N02BE02': 'Aspirin'
+        }
+        
+        result = update_atc_codes(sample_dmd_data, atc_mapping, deleted_codes)
+        
+        # Find the record with None ATC code
+        none_atc_record = next(r for r in result if r['vmp_code'] == '22222')
+        assert none_atc_record['atc_code'] is None
+        assert none_atc_record in result  # Should still be present
 
