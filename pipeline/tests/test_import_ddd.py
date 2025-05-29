@@ -36,7 +36,7 @@ def sample_ddd_alterations():
             'new_ddd_unit': 'mg',
             'new_route': 'O',
             'year_changed': 2023,
-            'comment': 'New DDD added'
+            'comment': 'New DDD'
         },
         {
             'substance': 'Updated DDD',
@@ -48,7 +48,7 @@ def sample_ddd_alterations():
             'new_ddd_unit': 'mg',
             'new_route': 'O',
             'year_changed': 2023,
-            'comment': 'DDD value updated'
+            'comment': None
         },
         {
             'substance': 'Route Changed',
@@ -60,7 +60,7 @@ def sample_ddd_alterations():
             'new_ddd_unit': 'mg',
             'new_route': 'P',
             'year_changed': 2023,
-            'comment': 'Route changed'
+            'comment': None
         },
         {
             'substance': 'Multiple Routes',
@@ -72,7 +72,7 @@ def sample_ddd_alterations():
             'new_ddd_unit': 'mg',
             'new_route': 'O,P',
             'year_changed': 2023,
-            'comment': 'Multiple routes updated'
+            'comment': None
         },
         {
             'substance': 'Deleted DDD',
@@ -84,7 +84,7 @@ def sample_ddd_alterations():
             'new_ddd_unit': None,
             'new_route': None,
             'year_changed': 2023,
-            'comment': 'DDD deleted'
+            'comment': None
         }
     ])
 

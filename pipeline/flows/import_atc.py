@@ -106,7 +106,29 @@ def create_atc_code_mapping(atc_alterations: pd.DataFrame) -> Tuple[Dict[str, st
     """
     logger = get_run_logger()
     
-    atc_alterations_sorted = atc_alterations.sort_values('year_changed')
+    # Filter alterations to ignore those with comments, except specific allowed ones
+    allowed_atc_comments = {"New 3rd/4th level code", "New code"}
+    
+    def should_process_atc_alteration(row) -> bool:
+        comment = row.get('comment')
+        if pd.isna(comment) or comment is None or comment.strip() == "":
+            return True
+        return comment.strip() in allowed_atc_comments
+    
+
+    initial_count = len(atc_alterations)
+    filtered_alterations = atc_alterations[atc_alterations.apply(should_process_atc_alteration, axis=1)].copy()
+    filtered_count = len(filtered_alterations)
+    skipped_count = initial_count - filtered_count
+    
+    if skipped_count > 0:
+        logger.info(f"Skipped {skipped_count} ATC alterations with disallowed comments")
+
+    if len(filtered_alterations) == 0:
+        logger.info("No ATC alterations to process after filtering")
+        return {}, {}, {}
+    
+    atc_alterations_sorted = filtered_alterations.sort_values('year_changed')
     
     code_mapping = {}
     new_codes = {}

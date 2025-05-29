@@ -48,7 +48,24 @@ def create_ddd_mappings(ddd_alterations: pd.DataFrame) -> Tuple[Dict, List[Dict]
     """
     logger = get_run_logger()
     
-    ddd_alterations_sorted = ddd_alterations.sort_values('year_changed')
+    # Filter alterations to ignore those with comments, except specific allowed ones
+    allowed_ddd_comments = {"New DDD"}
+    
+    def should_process_ddd_alteration(row) -> bool:
+        comment = row.get('comment')
+        if pd.isna(comment) or comment is None or comment.strip() == "":
+            return True  # No comment, so process it
+        return comment.strip() in allowed_ddd_comments
+    
+    initial_count = len(ddd_alterations)
+    filtered_alterations = ddd_alterations[ddd_alterations.apply(should_process_ddd_alteration, axis=1)].copy()
+    filtered_count = len(filtered_alterations)
+    skipped_count = initial_count - filtered_count
+    
+    if skipped_count > 0:
+        logger.info(f"Skipped {skipped_count} DDD alterations with disallowed comments")
+    
+    ddd_alterations_sorted = filtered_alterations.sort_values('year_changed')
     
     ddd_updates = {}
     new_ddds = []

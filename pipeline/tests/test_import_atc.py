@@ -34,35 +34,35 @@ def sample_atc_alterations():
             'previous_atc_code': None,
             'new_atc_code': 'N01AA01',
             'year_changed': 2023,
-            'comment': 'New code added'
+            'comment': 'New code'
         },
         {
             'substance': 'Changed Substance',
             'previous_atc_code': 'A01AA01',
             'new_atc_code': 'A01AA02',
             'year_changed': 2022,
-            'comment': 'Code changed'
+            'comment': None
         },
         {
             'substance': 'Updated Name Only',
             'previous_atc_code': 'B01AA01',
             'new_atc_code': 'B01AA01',
             'year_changed': 2023,
-            'comment': 'Name updated'
+            'comment': None
         },
         {
             'substance': 'Chain Change Final',
             'previous_atc_code': 'C01AA02',
             'new_atc_code': 'C01AA03',
             'year_changed': 2024,
-            'comment': 'Final in chain'
+            'comment': None
         },
         {
             'substance': 'Chain Change Initial',
             'previous_atc_code': 'C01AA01',
             'new_atc_code': 'C01AA02',
             'year_changed': 2023,
-            'comment': 'First in chain'
+            'comment': None
         }
     ])
 
@@ -96,21 +96,21 @@ def sample_atc_alterations_with_deletions():
             'previous_atc_code': None,
             'new_atc_code': 'N01AA01',
             'year_changed': 2023,
-            'comment': 'New code added'
+            'comment': 'New 3rd/4th level code'
         },
         {
             'substance': 'Changed Substance',
             'previous_atc_code': 'A01AA01',
             'new_atc_code': 'A01AA02',
             'year_changed': 2022,
-            'comment': 'Code changed'
+            'comment': ''
         },
         {
             'substance': 'Deleted Substance',
             'previous_atc_code': 'B01AA01',
             'new_atc_code': 'deleted',
             'year_changed': 2023,
-            'comment': 'Code deleted'
+            'comment': ''
         }
     ])
 
@@ -257,14 +257,14 @@ class TestCreateATCCodeMapping:
                 'previous_atc_code': 'A01AA01',
                 'new_atc_code': 'A01AA02',
                 'year_changed': 2023,
-                'comment': 'Later change'
+                'comment': None
             },
             {
                 'substance': 'Substance B',
                 'previous_atc_code': 'A01AA01',
                 'new_atc_code': 'A01AA03',
                 'year_changed': 2022,
-                'comment': 'Earlier change'
+                'comment': None
             }
         ])
         
