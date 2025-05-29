@@ -1,5 +1,6 @@
 PROJECT_ID = "ebmdatalab"
 DATASET_ID = "scmd_pipeline"
+BUCKET_NAME = "ebmdatalab"
 ORGANISATION_TABLE_ID = "ods"
 SCMD_RAW_TABLE_ID = "scmd_raw"
 SCMD_PROCESSED_TABLE_ID = "scmd_processed"
