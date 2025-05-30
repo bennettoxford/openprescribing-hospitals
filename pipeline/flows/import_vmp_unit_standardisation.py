@@ -246,6 +246,18 @@ def create_standardisation_dict() -> Dict[str, UnitStandardisation]:
             conversion_logic="1 bag = 1 litre",
             conversion_factor=1
         ),
+        "9062611000001102": UnitStandardisation(
+            vmp_code="9062611000001102",
+            vmp_name="Citric acid 1g/10ml oral solution unit dose sugar free",
+            scmd_units=[
+                {"unit_id": "733013000", "unit_name": "sachet"},
+                {"unit_id": "258773002", "unit_name": "ml"}
+            ],
+            chosen_unit_id="258773002",
+            chosen_unit_name="ml",
+            conversion_logic="1 sachet = 10 ml",
+            conversion_factor=10
+        ),
     }
     
     return standardisations
