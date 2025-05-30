@@ -9,6 +9,7 @@ from pipeline.flows.setup_bq_tables import setup_tables
 from pipeline.flows.import_unit_conversion import import_unit_conversion_flow
 from pipeline.flows.import_organisations import import_organisations
 from pipeline.flows.import_scmd import scmd_import
+from pipeline.flows.import_scmd_pre_apr_2019 import import_scmd_pre_april_2019
 from pipeline.flows.import_org_ae_status import import_ae_status
 from pipeline.flows.import_adm_route_mapping import import_adm_route_mapping_flow
 from pipeline.flows.import_dmd import import_dmd
@@ -50,7 +51,11 @@ def scmd_pipeline(run_import_flows: bool = True):
     
         vmps = populate_vmp_table(wait_for=[dmd_supp])
         vmp_unit_standardisation = import_vmp_unit_standardisation_flow(wait_for=[vmps])
-        scmd_result = scmd_import(wait_for=[vmp_unit_standardisation])
+        
+
+        scmd_pre_apr_result = import_scmd_pre_april_2019(wait_for=[vmp_unit_standardisation])
+        scmd_result = scmd_import(wait_for=[scmd_pre_apr_result])
+        
         processed = process_scmd(wait_for=[scmd_result, unit_conv, org_result])
         doses = calculate_doses(wait_for=[processed])
         ingredients = calculate_ingredient_quantity(wait_for=[doses])
