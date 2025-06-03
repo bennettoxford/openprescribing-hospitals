@@ -29,6 +29,7 @@ from pipeline.flows.load_organisations import load_organisations_flow
 from pipeline.flows.load_vmp_vtm import load_vmp_vtm_data
 from pipeline.flows.load_atc import load_atc_flow
 from pipeline.flows.load_ddd import load_ddd_flow
+from pipeline.flows.load_indicative_cost import load_indicative_costs_flow
 from pipeline.flows.load_data_status import load_data_status_flow
 from pipeline.flows.calculate_ddd_quantity import calculate_ddd_quantity
 
@@ -91,6 +92,7 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
             load_atc_flow(wait_for=[status])
             load_vmp_vtm_data(wait_for=[status])
             load_ddd_flow(wait_for=[status])
+            load_indicative_costs_flow(wait_for=[status])
 
             logger.info("Load flows completed")
             
