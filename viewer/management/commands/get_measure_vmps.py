@@ -10,6 +10,8 @@ def execute_measure_sql(measure_slug):
     
     Args:
         measure_slug: slug of the measure
+    Returns:
+        List of results or None if SQL file not found
     """
     try:
         measure = Measure.objects.get(slug=measure_slug)
@@ -18,7 +20,7 @@ def execute_measure_sql(measure_slug):
 
     sql_path = Path(__file__).parent.parent.parent / 'measures' / measure_slug / 'vmps.sql'
     if not sql_path.exists():
-        raise FileNotFoundError(f'SQL file not found: {sql_path}')
+        return None
         
     with open(sql_path) as f:
         sql = f.read()
@@ -50,6 +52,13 @@ class Command(BaseCommand):
         # Execute the measure's SQL file
         result = execute_measure_sql(measure_slug)
         
+        # Skip if no SQL file found
+        if result is None:
+            self.stdout.write(
+                self.style.WARNING(f'No SQL file found for measure {measure_slug} - skipping')
+            )
+            return
+
         with transaction.atomic():
             # Clear existing MeasureVMP entries for this measure
             MeasureVMP.objects.filter(measure=measure).delete()

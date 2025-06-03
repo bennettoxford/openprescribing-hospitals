@@ -119,9 +119,14 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
                 get_measure_vmps = GetMeasureVMPsCommand()
                 
                 for measure in Measure.objects.all():
-                    logger.info(f"Processing VMPs for measure: {measure.slug}")
-                    get_measure_vmps.handle(measure=measure.slug)
-                logger.info("Successfully processed measure VMPs")
+                    try:
+                        logger.info(f"Processing VMPs for measure: {measure.slug}")
+                        get_measure_vmps.handle(measure=measure.slug)
+                        logger.info(f"Successfully processed VMPs for measure: {measure.slug}")
+                    except Exception as e:
+                        logger.warning(f"Failed to process VMPs for measure {measure.slug}: {e}")
+                        continue 
+                logger.info("Completed processing measure VMPs")
 
                 logger.info("Computing measures")
                 compute_measures = ComputeMeasuresCommand()
