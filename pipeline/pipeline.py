@@ -5,6 +5,7 @@ logging.getLogger("prefect.client").setLevel(logging.WARNING)
 import argparse
 
 from prefect import flow, get_run_logger
+from pipeline.utils.maintenance import enable_maintenance_mode, disable_maintenance_mode
 from pipeline.flows.setup_bq_tables import setup_tables
 from pipeline.flows.import_unit_conversion import import_unit_conversion_flow
 from pipeline.flows.import_organisations import import_organisations
@@ -27,7 +28,7 @@ from pipeline.flows.create_vmp_ddd_mapping import create_vmp_ddd_mapping
 from pipeline.flows.calculate_ddd_quantity import calculate_ddd_quantity
 
 @flow(name="SCMD Import Pipeline")
-def scmd_pipeline(run_import_flows: bool = True):
+def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
     logger = get_run_logger()
     logger.info("Starting SCMD Import Pipeline")
 
@@ -68,15 +69,42 @@ def scmd_pipeline(run_import_flows: bool = True):
     else:
         last_import_result = None
 
+    if run_load_flows:
+        logger.info("Starting load flows")
+        
+        logger.info("Enabling maintenance mode before data loading")
+        try:
+            enable_maintenance_mode()      
+            logger.info("MAINTENANCE MODE ENABLED")
+        except Exception as e:
+            logger.error(f"Failed to enable maintenance mode: {e}")
+            raise Exception("Failed to enable maintenance mode")
+        finally:
+            logger.info("MAINTENANCE MODE - Disabling maintenance mode after data loading")
+            try:
+                disable_maintenance_mode()
+            except Exception as e:
+                logger.error(f"Failed to disable maintenance mode: {e}")
+                raise e
+    
+
     logger.info("SCMD Import Pipeline completed")
     return last_import_result
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='SCMD Pipeline Runner')
-    parser.add_argument('--skip-import', action='store_false', dest='run_import',
-                      help='Skip import flows')
+    parser = argparse.ArgumentParser(description="SCMD Pipeline Runner")
+    parser.add_argument(
+        "--skip-import",
+        action="store_false",
+        dest="run_import",
+        help="Skip import flows",
+    )
+    parser.add_argument(
+        "--skip-load", action="store_false", dest="run_load", help="Skip load flows"
+    )
     args = parser.parse_args()
-    
+
     scmd_pipeline(
-        run_import_flows=args.run_import
+        run_import_flows=args.run_import, 
+        run_load_flows=args.run_load
     )
