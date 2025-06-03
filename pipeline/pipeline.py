@@ -35,6 +35,7 @@ from pipeline.flows.load_ingredient_quantity import load_ingredient_quantity_flo
 from pipeline.flows.load_ddd_quantity import load_ddd_quantity_flow
 from pipeline.flows.load_data_status import load_data_status_flow
 from pipeline.flows.calculate_ddd_quantity import calculate_ddd_quantity
+from pipeline.flows.vacuum_tables import vacuum_tables_flow
 from viewer.management.commands.update_org_submission_cache import update_org_submission_cache
 from viewer.management.commands.import_measures import Command as ImportMeasuresCommand
 from viewer.management.commands.get_measure_vmps import Command as GetMeasureVMPsCommand
@@ -146,6 +147,8 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
             except Exception as e:
                 logger.error(f"Error updating organisation submission cache: {e}")
                 raise e
+
+            vacuum_tables_flow()
 
         except Exception as e:
             logger.error(f"Error during load flows: {e}")
