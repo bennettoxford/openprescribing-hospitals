@@ -179,6 +179,31 @@ def fetch_table_data_from_bq(table_spec, use_bqstorage=False) -> pd.DataFrame:
   
     logger.info(f"Found {len(df)} {table_spec.table_id}")
     return df
+
+def execute_bigquery_query(query: str, timeout=600) -> list:
+    """Execute a BigQuery query and return all results"""
+    logger = get_run_logger()
+    client = get_bigquery_client()
+
+    try:
+        job_config = bigquery.QueryJobConfig(
+            use_query_cache=True,
+            allow_large_results=True
+        )
+        
+        query_job = client.query(query, job_config=job_config)
+        results = query_job.result(timeout=timeout)
+        
+        data = [dict(row.items()) for row in results]
+        logger.info(f"Query completed. Retrieved {len(data)} rows")
+        return data
+        
+    except Exception as e:
+        logger.error(f"Query failed: {str(e)}")
+        logger.error(f"Failed query: {query}")
+        raise
+
+
 def setup_django_environment(db_config=None):
     current_file = Path(__file__).resolve()
     project_root = current_file.parent.parent.parent
