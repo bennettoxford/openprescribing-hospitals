@@ -27,7 +27,7 @@ def execute_measure_sql(measure_slug):
         cursor.execute(sql)
         result = cursor.fetchall()
 
-    return result or None
+    return result or []
 
 
 class Command(BaseCommand):

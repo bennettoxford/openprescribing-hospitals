@@ -35,6 +35,11 @@ from pipeline.flows.load_ingredient_quantity import load_ingredient_quantity_flo
 from pipeline.flows.load_ddd_quantity import load_ddd_quantity_flow
 from pipeline.flows.load_data_status import load_data_status_flow
 from pipeline.flows.calculate_ddd_quantity import calculate_ddd_quantity
+from viewer.management.commands.update_org_submission_cache import update_org_submission_cache
+from viewer.management.commands.import_measures import Command as ImportMeasuresCommand
+from viewer.management.commands.get_measure_vmps import Command as GetMeasureVMPsCommand
+from viewer.management.commands.compute_measures import Command as ComputeMeasuresCommand
+from viewer.models import Measure
 
 @flow(name="SCMD Import Pipeline")
 def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
@@ -102,6 +107,41 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
 
             logger.info("Load flows completed")
             
+            logger.info("Running measure-related management commands")
+            try:
+
+                logger.info("Importing measures")
+                import_measures = ImportMeasuresCommand()
+                import_measures.handle()
+                logger.info("Successfully imported measures")
+
+                logger.info("Getting measure VMPs")
+                get_measure_vmps = GetMeasureVMPsCommand()
+                
+                for measure in Measure.objects.all():
+                    logger.info(f"Processing VMPs for measure: {measure.slug}")
+                    get_measure_vmps.handle(measure=measure.slug)
+                logger.info("Successfully processed measure VMPs")
+
+                logger.info("Computing measures")
+                compute_measures = ComputeMeasuresCommand()
+                for measure in Measure.objects.all():
+                    logger.info(f"Computing measure: {measure.slug}")
+                    compute_measures.handle(measure=measure.slug)
+                logger.info("Successfully computed measures")
+
+            except Exception as e:
+                logger.error(f"Error in measure-related commands: {e}")
+                raise e
+
+            logger.info("Updating organisation submission cache")
+            try:
+                update_org_submission_cache()
+                logger.info("Successfully updated organisation submission cache")
+            except Exception as e:
+                logger.error(f"Error updating organisation submission cache: {e}")
+                raise e
+
         except Exception as e:
             logger.error(f"Error during load flows: {e}")
             raise e
