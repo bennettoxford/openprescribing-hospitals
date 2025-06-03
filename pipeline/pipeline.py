@@ -25,6 +25,7 @@ from pipeline.flows.import_atc_ddd_alterations import import_atc_ddd_alterations
 from pipeline.flows.import_atc import import_atc_flow
 from pipeline.flows.import_ddd import import_ddd_flow
 from pipeline.flows.create_vmp_ddd_mapping import create_vmp_ddd_mapping
+from pipeline.flows.load_data_status import load_data_status_flow
 from pipeline.flows.calculate_ddd_quantity import calculate_ddd_quantity
 
 @flow(name="SCMD Import Pipeline")
@@ -79,6 +80,15 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
         except Exception as e:
             logger.error(f"Failed to enable maintenance mode: {e}")
             raise Exception("Failed to enable maintenance mode")
+
+        try:
+            status = load_data_status_flow(wait_for=[last_import_result])
+
+            logger.info("Load flows completed")
+            
+        except Exception as e:
+            logger.error(f"Error during load flows: {e}")
+            raise e
         finally:
             logger.info("MAINTENANCE MODE - Disabling maintenance mode after data loading")
             try:

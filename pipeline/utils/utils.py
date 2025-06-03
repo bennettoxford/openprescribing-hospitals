@@ -1,12 +1,22 @@
-from google.cloud import bigquery
-from prefect import get_run_logger, task
-from prefect_gcp import GcpCredentials
-from jinja2 import Template
-from pipeline.utils import config
-from pathlib import Path
+import os
+import sys
+import django
+
 import pandas as pd
 import xml.etree.ElementTree as ET
+
+from pathlib import Path
+from google.cloud import bigquery
+from prefect import get_run_logger, task
+from prefect.blocks.system import Secret
+from prefect_gcp import GcpCredentials
+from jinja2 import Template
+from environs import Env
+from pipeline.utils import config
+from pathlib import Path
 from google.cloud import storage
+from django.conf import settings
+
 
 def get_bigquery_client() -> bigquery.Client:
     """Create and return a BigQuery client"""
@@ -157,7 +167,7 @@ def cleanup_temp_files(temp_dir: Path) -> None:
         temp_dir.rmdir()
 
 
-def fetch_table_data_from_bq(table_spec) -> pd.DataFrame:
+def fetch_table_data_from_bq(table_spec, use_bqstorage=False) -> pd.DataFrame:
     """Fetch data from a BigQuery table"""
     logger = get_run_logger()
     client = get_bigquery_client()
@@ -165,9 +175,44 @@ def fetch_table_data_from_bq(table_spec) -> pd.DataFrame:
     logger.info(f"Fetching {table_spec.table_id} from BigQuery")
     table = client.dataset(table_spec.dataset_id).table(table_spec.table_id)
     table_ref = client.get_table(table)
-    rows = client.list_rows(table_ref, selected_fields=table_ref.schema)
-    
-    data = [dict(row) for row in rows]
-    df = pd.DataFrame(data)
+    df = client.list_rows(table_ref, selected_fields=table_ref.schema).to_dataframe(create_bqstorage_client=use_bqstorage)
+  
     logger.info(f"Found {len(df)} {table_spec.table_id}")
     return df
+def setup_django_environment(db_config=None):
+    current_file = Path(__file__).resolve()
+    project_root = current_file.parent.parent.parent
+    sys.path.insert(0, str(project_root))
+    
+    if db_config is None:
+        is_prefect = os.getenv("PREFECT_API_URL") is not None or os.getenv("PREFECT_CLOUD_API_URL") is not None
+        
+        if is_prefect:
+            db_config = {
+                'HOST': Secret.load("db-host").get(),
+                'NAME': Secret.load("db-name").get(),
+                'PASSWORD': Secret.load("db-password").get(),
+                'PORT': Secret.load("db-port").get(),
+                'USER': Secret.load("db-user").get(),
+            }
+        else:
+            env = Env()
+            env.read_env()
+            db_config = {
+                'HOST': env.str("DATABASE_HOST"),
+                'NAME': env.str("DATABASE_NAME"), 
+                'PASSWORD': env.str("DATABASE_PASSWORD"),
+                'PORT': env.str("DATABASE_PORT"),
+                'USER': env.str("DATABASE_USER"),
+            }
+    
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "demo.settings")
+    django.setup()
+    
+    settings.DATABASES['default'].update({
+        'HOST': db_config['HOST'],
+        'NAME': db_config['NAME'],
+        'PASSWORD': db_config['PASSWORD'], 
+        'PORT': db_config['PORT'],
+        'USER': db_config['USER'],
+    })
