@@ -18,6 +18,15 @@ vmp_base AS (
   JOIN scmd_vmps sv ON dmd.vmp_code = sv.vmp_code
 ),
 
+vmp_bnf AS (
+  SELECT
+    supp.vmp_code,
+    supp.bnf_code
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_SUPP_TABLE_ID }}` supp
+  JOIN scmd_vmps sv ON supp.vmp_code = sv.vmp_code
+  WHERE supp.bnf_code IS NOT NULL
+),
+
 vmp_ingredients AS (
   SELECT
     dmd.vmp_code,
@@ -69,10 +78,12 @@ SELECT
   vb.vmp_name,
   vb.vtm AS vtm_code,
   vb.vtm_name,
+  vbnf.bnf_code,
   COALESCE(vi.ingredients, []) AS ingredients,
   COALESCE(vr.ont_form_routes, []) AS ont_form_routes,
   COALESCE(va.atcs, []) AS atcs
 FROM vmp_base vb
+LEFT JOIN vmp_bnf vbnf ON vb.vmp_code = vbnf.vmp_code
 LEFT JOIN vmp_ingredients vi ON vb.vmp_code = vi.vmp_code
 LEFT JOIN vmp_routes vr ON vb.vmp_code = vr.vmp_code
 LEFT JOIN vmp_atc_mappings va ON vb.vmp_code = va.vmp_code 
