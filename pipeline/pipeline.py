@@ -5,6 +5,7 @@ logging.getLogger("prefect.client").setLevel(logging.WARNING)
 import argparse
 
 from prefect import flow, get_run_logger
+from pipeline.utils.maintenance import enable_maintenance_mode, disable_maintenance_mode
 from pipeline.flows.setup_bq_tables import setup_tables
 from pipeline.flows.import_unit_conversion import import_unit_conversion_flow
 from pipeline.flows.import_organisations import import_organisations
@@ -24,10 +25,25 @@ from pipeline.flows.import_atc_ddd_alterations import import_atc_ddd_alterations
 from pipeline.flows.import_atc import import_atc_flow
 from pipeline.flows.import_ddd import import_ddd_flow
 from pipeline.flows.create_vmp_ddd_mapping import create_vmp_ddd_mapping
+from pipeline.flows.load_organisations import load_organisations_flow
+from pipeline.flows.load_vmp_vtm import load_vmp_vtm_data
+from pipeline.flows.load_atc import load_atc_flow
+from pipeline.flows.load_ddd import load_ddd_flow
+from pipeline.flows.load_indicative_cost import load_indicative_costs_flow
+from pipeline.flows.load_dose_data import load_dose_data_flow
+from pipeline.flows.load_ingredient_quantity import load_ingredient_quantity_flow
+from pipeline.flows.load_ddd_quantity import load_ddd_quantity_flow
+from pipeline.flows.load_data_status import load_data_status_flow
 from pipeline.flows.calculate_ddd_quantity import calculate_ddd_quantity
+from pipeline.flows.vacuum_tables import vacuum_tables_flow
+from viewer.management.commands.update_org_submission_cache import update_org_submission_cache
+from viewer.management.commands.import_measures import Command as ImportMeasuresCommand
+from viewer.management.commands.get_measure_vmps import Command as GetMeasureVMPsCommand
+from viewer.management.commands.compute_measures import Command as ComputeMeasuresCommand
+from viewer.models import Measure
 
 @flow(name="SCMD Import Pipeline")
-def scmd_pipeline(run_import_flows: bool = True):
+def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
     logger = get_run_logger()
     logger.info("Starting SCMD Import Pipeline")
 
@@ -68,15 +84,101 @@ def scmd_pipeline(run_import_flows: bool = True):
     else:
         last_import_result = None
 
+    if run_load_flows:
+        logger.info("Starting load flows")
+        
+        logger.info("Enabling maintenance mode before data loading")
+        try:
+            enable_maintenance_mode()      
+            logger.info("MAINTENANCE MODE ENABLED")
+        except Exception as e:
+            logger.error(f"Failed to enable maintenance mode: {e}")
+            raise Exception("Failed to enable maintenance mode")
+
+        try:
+            status = load_data_status_flow(wait_for=[last_import_result])
+            load_organisations_flow(wait_for=[status])
+            load_atc_flow(wait_for=[status])
+            load_vmp_vtm_data(wait_for=[status])
+            load_ddd_flow(wait_for=[status])
+            load_indicative_costs_flow(wait_for=[status])
+            load_dose_data_flow(wait_for=[status])
+            load_ingredient_quantity_flow(wait_for=[status])
+            load_ddd_quantity_flow(wait_for=[status])
+
+            logger.info("Load flows completed")
+            
+            logger.info("Running measure-related management commands")
+            try:
+
+                logger.info("Importing measures")
+                import_measures = ImportMeasuresCommand()
+                import_measures.handle()
+                logger.info("Successfully imported measures")
+
+                logger.info("Getting measure VMPs")
+                get_measure_vmps = GetMeasureVMPsCommand()
+                
+                for measure in Measure.objects.all():
+                    try:
+                        logger.info(f"Processing VMPs for measure: {measure.slug}")
+                        get_measure_vmps.handle(measure=measure.slug)
+                        logger.info(f"Successfully processed VMPs for measure: {measure.slug}")
+                    except Exception as e:
+                        logger.warning(f"Failed to process VMPs for measure {measure.slug}: {e}")
+                        continue 
+                logger.info("Completed processing measure VMPs")
+
+                logger.info("Computing measures")
+                compute_measures = ComputeMeasuresCommand()
+                for measure in Measure.objects.all():
+                    logger.info(f"Computing measure: {measure.slug}")
+                    compute_measures.handle(measure=measure.slug)
+                logger.info("Successfully computed measures")
+
+            except Exception as e:
+                logger.error(f"Error in measure-related commands: {e}")
+                raise e
+
+            logger.info("Updating organisation submission cache")
+            try:
+                update_org_submission_cache()
+                logger.info("Successfully updated organisation submission cache")
+            except Exception as e:
+                logger.error(f"Error updating organisation submission cache: {e}")
+                raise e
+
+            vacuum_tables_flow()
+
+        except Exception as e:
+            logger.error(f"Error during load flows: {e}")
+            raise e
+        finally:
+            logger.info("MAINTENANCE MODE - Disabling maintenance mode after data loading")
+            try:
+                disable_maintenance_mode()
+            except Exception as e:
+                logger.error(f"Failed to disable maintenance mode: {e}")
+                raise e
+    
+
     logger.info("SCMD Import Pipeline completed")
     return last_import_result
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='SCMD Pipeline Runner')
-    parser.add_argument('--skip-import', action='store_false', dest='run_import',
-                      help='Skip import flows')
+    parser = argparse.ArgumentParser(description="SCMD Pipeline Runner")
+    parser.add_argument(
+        "--skip-import",
+        action="store_false",
+        dest="run_import",
+        help="Skip import flows",
+    )
+    parser.add_argument(
+        "--skip-load", action="store_false", dest="run_load", help="Skip load flows"
+    )
     args = parser.parse_args()
-    
+
     scmd_pipeline(
-        run_import_flows=args.run_import
+        run_import_flows=args.run_import, 
+        run_load_flows=args.run_load
     )

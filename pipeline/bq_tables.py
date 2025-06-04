@@ -812,6 +812,7 @@ VMP_TABLE_SPEC = TableSpec(
         bigquery.SchemaField("vmp_name", "STRING", mode="REQUIRED", description="VMP name"),
         bigquery.SchemaField("vtm_code", "STRING", mode="NULLABLE", description="Virtual Therapeutic Moiety (VTM) code"),
         bigquery.SchemaField("vtm_name", "STRING", mode="NULLABLE", description="VTM name"),
+        bigquery.SchemaField("bnf_code", "STRING", mode="NULLABLE", description="BNF code"),
         bigquery.SchemaField(
             "ingredients",
             "RECORD",
