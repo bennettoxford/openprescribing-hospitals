@@ -23,7 +23,6 @@ from pipeline.bq_tables import (
 
 from pipeline.flows.import_atc import create_atc_code_mapping
 
-TRUD_KEY = Secret.load("trud-api-key").get()
 TEMP_DIR = Path("temp")
 
 
@@ -87,7 +86,9 @@ def get_latest_trud_release() -> TRUDRelease:
     """Get the latest TRUD release information"""
     logger = get_run_logger()
     logger.info("Fetching latest TRUD release information")
-    trud_client = TRUDClient(TRUD_KEY)
+
+    trud_key = Secret.load("trud-api-key").get()
+    trud_client = TRUDClient(trud_key)
     return trud_client.get_latest_release()
 
 
