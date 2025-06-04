@@ -209,10 +209,10 @@ def setup_django_environment(db_config=None):
     project_root = current_file.parent.parent.parent
     sys.path.insert(0, str(project_root))
     
+    is_deployment = os.getenv("PREFECT_ENVIRONMENT") == "deployment"
+    
     if db_config is None:
-        is_prefect = os.getenv("PREFECT_API_URL") is not None or os.getenv("PREFECT_CLOUD_API_URL") is not None
-        
-        if is_prefect:
+        if is_deployment:
             db_config = {
                 'HOST': Secret.load("db-host").get(),
                 'NAME': Secret.load("db-name").get(),
@@ -220,6 +220,7 @@ def setup_django_environment(db_config=None):
                 'PORT': Secret.load("db-port").get(),
                 'USER': Secret.load("db-user").get(),
             }
+            secret_key = Secret.load("secret-key").get()
         else:
             env = Env()
             env.read_env()
@@ -230,14 +231,14 @@ def setup_django_environment(db_config=None):
                 'PORT': env.str("DATABASE_PORT"),
                 'USER': env.str("DATABASE_USER"),
             }
+            secret_key = env.str("SECRET_KEY")
+
+    os.environ["SECRET_KEY"] = str(secret_key)
+    os.environ["DATABASE_HOST"] = str(db_config['HOST'])
+    os.environ["DATABASE_NAME"] = str(db_config['NAME'])
+    os.environ["DATABASE_PASSWORD"] = str(db_config['PASSWORD'])
+    os.environ["DATABASE_PORT"] = str(db_config['PORT'])
+    os.environ["DATABASE_USER"] = str(db_config['USER'])
     
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "demo.settings")
     django.setup()
-    
-    settings.DATABASES['default'].update({
-        'HOST': db_config['HOST'],
-        'NAME': db_config['NAME'],
-        'PASSWORD': db_config['PASSWORD'], 
-        'PORT': db_config['PORT'],
-        'USER': db_config['USER'],
-    })
