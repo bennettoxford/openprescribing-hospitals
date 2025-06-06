@@ -183,7 +183,8 @@ ddd_route_selection AS (
       WHEN ARRAY_LENGTH(matching_route_ddds) = 0 THEN FALSE
       WHEN NOT all_matching_ddds_same THEN FALSE
       WHEN (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1) IS NOT NULL 
-        AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != '' THEN FALSE
+        AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != '' 
+        AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != 'New DDD' THEN FALSE
       ELSE TRUE
     END AS route_match_ok,
     CASE
@@ -194,7 +195,8 @@ ddd_route_selection AS (
       WHEN NOT all_matching_ddds_same THEN 'Multiple different DDD values for matching routes'
       WHEN (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1) IS NOT NULL 
         AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != '' 
-        THEN CONCAT('DDD has comment: ', (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))
+        AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != 'New DDD'
+        THEN CONCAT('DDD has unsupported comment: ', (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))
       ELSE NULL
     END AS route_matching_issue,
     -- Get the selected DDD when routes match
