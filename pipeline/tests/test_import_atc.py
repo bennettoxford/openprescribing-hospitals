@@ -213,7 +213,8 @@ class TestCreateATCCodeMapping:
         
         # Check new codes
         assert len(new_codes) == 1
-        assert new_codes['N01AA01'] == 'New Substance'
+        assert new_codes['N01AA01']['substance'] == 'New Substance'
+        assert new_codes['N01AA01']['alterations_comment'] == 'New code'
         
         # Check deleted codes
         assert len(deleted_codes) == 0
@@ -230,7 +231,8 @@ class TestCreateATCCodeMapping:
         
         # Check new codes
         assert len(new_codes) == 1
-        assert new_codes['N01AA01'] == 'New Substance'
+        assert new_codes['N01AA01']['substance'] == 'New Substance'
+        assert new_codes['N01AA01']['alterations_comment'] == 'New 3rd/4th level code'
         
         # Check deleted codes
         assert len(deleted_codes) == 1
@@ -281,7 +283,7 @@ class TestProcessATCData:
         mock_logger.return_value = Mock()
         
         atc_mapping = {}
-        new_codes = {'N01AA01': 'New Substance'}
+        new_codes = {'N01AA01': {'substance': 'New Substance', 'alterations_comment': ''}}
         deleted_codes = {}
         
         result_df = process_atc_data(sample_atc_df, atc_mapping, new_codes, deleted_codes)
@@ -335,7 +337,7 @@ class TestProcessATCData:
                 'substance': 'Updated Another Substance'
             }
         }
-        new_codes = {'N01AA01': 'Brand New Substance'}
+        new_codes = {'N01AA01': {'substance': 'Brand New Substance', 'alterations_comment': ''}}
         deleted_codes = {'C01AA01': 'Chain Substance'}
         
         result_df = process_atc_data(sample_atc_df, atc_mapping, new_codes, deleted_codes)
