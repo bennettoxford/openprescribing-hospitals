@@ -138,6 +138,12 @@ def create_atc_code_mapping(atc_alterations: pd.DataFrame) -> Tuple[Dict[str, st
         old_code = row['previous_atc_code']
         new_code = row['new_atc_code']
         substance = row['substance']
+
+        alterations_comment = row.get('comment')
+        if pd.isna(alterations_comment) or alterations_comment is None:
+            alterations_comment = ""
+        else:
+            alterations_comment = alterations_comment.strip()
         
         # Handle deleted codes
         if new_code == 'deleted':
@@ -146,13 +152,17 @@ def create_atc_code_mapping(atc_alterations: pd.DataFrame) -> Tuple[Dict[str, st
         
         # Handle new codes
         if pd.isna(old_code):
-            new_codes[new_code] = substance
+            new_codes[new_code] = {
+                'substance': substance,
+                'alterations_comment': alterations_comment
+            }
             continue
 
         else:
             code_mapping[old_code] = {
                 'new_code': new_code,
-                'substance': substance
+                'substance': substance,
+                'alterations_comment': alterations_comment
             }
     
     logger.info(f"Created mapping for {len(code_mapping)} ATC codes")
@@ -165,7 +175,7 @@ def create_atc_code_mapping(atc_alterations: pd.DataFrame) -> Tuple[Dict[str, st
 def process_atc_data(
     atc_df: pd.DataFrame, 
     atc_mapping: Dict[str, Dict[str, str]], 
-    new_codes: Dict[str, str],
+    new_codes: Dict[str, Dict[str, str]],
     deleted_codes: Dict[str, str]
     ) -> pd.DataFrame:
     """
@@ -174,6 +184,24 @@ def process_atc_data(
     logger = get_run_logger()
 
     atc_df = atc_df.copy()
+    
+    def combine_comments(existing_comment, alterations_comment, default_comment):
+        """Combine existing comment with alterations comment"""
+        comments = []
+        
+        # Add existing comment if it exists and isn't empty
+        if pd.notna(existing_comment) and existing_comment.strip():
+            comments.append(existing_comment.strip())
+        
+        # Add alterations comment if it exists and isn't empty
+        if alterations_comment:
+            comments.append(alterations_comment)
+        
+        # Add default comment if no alterations comment
+        if not alterations_comment:
+            comments.append(default_comment)
+        
+        return '; '.join(comments)
     
     # Delete codes
     deletions_made = 0
@@ -190,11 +218,14 @@ def process_atc_data(
 
     # Add new ATC codes
     new_rows = []
-    for code, substance in new_codes.items():
+    for code, code_info in new_codes.items():
+        substance = code_info['substance']
+        alterations_comment = code_info['alterations_comment']
+        
         new_rows.append({
             'atc_code': code,
             'atc_name': substance,
-            'comment': 'Added from alterations table'
+            'comment': alterations_comment if alterations_comment else 'Added from alterations table'
         })
     
     if new_rows:
@@ -205,15 +236,20 @@ def process_atc_data(
     # Update existing codes
     if atc_mapping:
         logger.info(f"Updating {len(atc_mapping)} ATC code mappings")
-        code_map = pd.DataFrame(atc_mapping).T
         
-        mask = atc_df['atc_code'].isin(code_map.index)
+        for old_code, update_info in atc_mapping.items():
+            mask = atc_df['atc_code'] == old_code
+            if mask.any():
+                existing_comment = atc_df.loc[mask, 'comment'].iloc[0]
+                combined_comment = combine_comments(
+                    existing_comment, 
+                    update_info.get('alterations_comment', ''), 
+                    'Updated from alterations table'
+                )
 
-        old_codes = atc_df.loc[mask, 'atc_code'].copy()
-        
-        # Update both atc_code and atc_name using the old codes
-        atc_df.loc[mask, 'atc_code'] = old_codes.map(code_map['new_code'].to_dict())
-        atc_df.loc[mask, 'atc_name'] = old_codes.map(code_map['substance'].to_dict())
+                atc_df.loc[mask, 'atc_code'] = update_info['new_code']
+                atc_df.loc[mask, 'atc_name'] = update_info['substance']
+                atc_df.loc[mask, 'comment'] = combined_comment
     
     atc_df['atc_name'] = atc_df['atc_name'].apply(convert_atc_name)
     
