@@ -186,7 +186,7 @@ def transform_and_load_chunk(
         f"Chunk {chunk_num}/{total_chunks}: Loading {len(ic_objects):,} objects to database..."
     )
 
-    SUB_BATCH_SIZE = 5000
+    SUB_BATCH_SIZE = 1000
     total_created = 0
     total_updated = 0
     total_skipped = skipped_count + skipped_due_to_missing_fk
@@ -199,8 +199,6 @@ def transform_and_load_chunk(
                 IndicativeCost.objects.bulk_create(
                     sub_batch,
                     batch_size=SUB_BATCH_SIZE,
-                    update_conflicts=True,
-                    update_fields=["data"],
                     unique_fields=["vmp", "organisation"],
                 )
                 total_created += len(sub_batch)

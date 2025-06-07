@@ -261,21 +261,19 @@ def transform_and_load_chunk(
         f"Chunk {chunk_num}/{total_chunks}: Loading {len(dose_objects):,} dose objects and {len(scmd_objects):,} SCMD objects to database..."
     )
 
-    SUB_BATCH_SIZE = 5000
+    SUB_BATCH_SIZE = 1000
     dose_created = 0
     scmd_created = 0
     total_skipped = skipped_count + dose_skipped + scmd_skipped
 
     for i in range(0, len(dose_objects), SUB_BATCH_SIZE):
-        sub_batch = dose_objects[i : i + SUB_BATCH_SIZE]
+        sub_batch = dose_objects[i:i + SUB_BATCH_SIZE]
 
         try:
             with transaction.atomic():
-                created_objects = Dose.objects.bulk_create(
+                Dose.objects.bulk_create(
                     sub_batch,
                     batch_size=SUB_BATCH_SIZE,
-                    update_conflicts=True,
-                    update_fields=["data"],
                     unique_fields=["vmp", "organisation"],
                 )
                 dose_created += len(sub_batch)
@@ -287,15 +285,13 @@ def transform_and_load_chunk(
             total_skipped += len(sub_batch)
 
     for i in range(0, len(scmd_objects), SUB_BATCH_SIZE):
-        sub_batch = scmd_objects[i : i + SUB_BATCH_SIZE]
+        sub_batch = scmd_objects[i:i + SUB_BATCH_SIZE]
 
         try:
             with transaction.atomic():
                 SCMDQuantity.objects.bulk_create(
                     sub_batch,
                     batch_size=SUB_BATCH_SIZE,
-                    update_conflicts=True,
-                    update_fields=["data"],
                     unique_fields=["vmp", "organisation"],
                 )
                 scmd_created += len(sub_batch)

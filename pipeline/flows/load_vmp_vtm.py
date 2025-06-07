@@ -331,20 +331,44 @@ def load_vmps(
 
         logger.info("Setting up many-to-many relationships...")
 
+        ingredient_relations = []
+        ont_form_route_relations = []
+        who_route_relations = []
+        atc_relations = []
+
         for rel in vmp_relationships:
             vmp = vmp_lookup[rel["vmp_code"]]
+            
+            for ingredient_id in rel["ingredient_ids"]:
+                ingredient_relations.append(
+                    VMP.ingredients.through(vmp_id=vmp.id, ingredient_id=ingredient_id)
+                )
+            
+            for ont_form_route_id in rel["ont_form_route_ids"]:
+                ont_form_route_relations.append(
+                    VMP.ont_form_routes.through(vmp_id=vmp.id, ontformroute_id=ont_form_route_id)
+                )
+            
+            for who_route_id in rel["who_route_ids"]:
+                who_route_relations.append(
+                    VMP.who_routes.through(vmp_id=vmp.id, whoroute_id=who_route_id)
+                )
+            
+            for atc_id in rel["atc_ids"]:
+                atc_relations.append(
+                    VMP.atcs.through(vmp_id=vmp.id, atc_id=atc_id)
+                )
 
-            if rel["ingredient_ids"]:
-                vmp.ingredients.set(rel["ingredient_ids"])
-            if rel["ont_form_route_ids"]:
-                vmp.ont_form_routes.set(rel["ont_form_route_ids"])
-            if rel["who_route_ids"]:
-                vmp.who_routes.set(rel["who_route_ids"])
-            if rel["atc_ids"]:
-                vmp.atcs.set(rel["atc_ids"])
+        if ingredient_relations:
+            VMP.ingredients.through.objects.bulk_create(ingredient_relations, batch_size=1000)
+        if ont_form_route_relations:
+            VMP.ont_form_routes.through.objects.bulk_create(ont_form_route_relations, batch_size=1000)
+        if who_route_relations:
+            VMP.who_routes.through.objects.bulk_create(who_route_relations, batch_size=1000)
+        if atc_relations:
+            VMP.atcs.through.objects.bulk_create(atc_relations, batch_size=1000)
 
         logger.info("Completed VMP creation and relationship setup")
-
 
 @task()
 def vacuum_tables() -> None:
