@@ -321,6 +321,24 @@ DMD_TABLE_SPEC = TableSpec(
                     mode="NULLABLE",
                     description="Strength denominator unit of measure",
                 ),
+                bigquery.SchemaField(
+                    "basis_of_strength_code",
+                    "STRING",
+                    mode="NULLABLE",
+                    description="SNOMED code for the basis of strength substance",
+                ),
+                bigquery.SchemaField(
+                    "basis_of_strength_name",
+                    "STRING",
+                    mode="NULLABLE",
+                    description="Name of the basis of strength substance",
+                ),
+                bigquery.SchemaField(
+                    "basis_of_strength_type",
+                    "INTEGER",
+                    mode="NULLABLE",
+                    description="Type of basis of strength (1=Ingredient Substance, 2=Base Substance)",
+                ),
             ],
         ),
         bigquery.SchemaField(
