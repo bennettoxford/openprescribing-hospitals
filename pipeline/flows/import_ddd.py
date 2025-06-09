@@ -144,13 +144,14 @@ def apply_ddd_deletions_and_updates(ddd_df: pd.DataFrame, ddd_updates: Dict, ddd
             comments.append(existing_comment.strip())
         
         # Add alterations comment if it exists and isn't empty
-        if alterations_comment:
-            comments.append(alterations_comment)
+        if alterations_comment and alterations_comment.strip():
+            comments.append(alterations_comment.strip())
         
         # Add the update note
         comments.append(f"Updated from alterations table (changed in {year_changed})")
         
-        return '; '.join(comments)
+        final_comment = '; '.join(comments)
+        return None if not final_comment else final_comment.strip()
     
     for atc_code, route in ddds_to_delete:
         mask = (
@@ -215,9 +216,12 @@ def process_ddd_data(
     logger = get_run_logger()
     logger.info(f"Processing {len(ddd_df)} DDDs")
     
-    ddd_df["adm_code"] = ddd_df["adm_code"].str.strip()
-    ddd_df["ddd_unit"] = ddd_df["ddd_unit"].str.lower()
-    ddd_df["ddd"] = ddd_df["ddd"].apply(lambda x: float(x) if x else None)
+    ddd_df = ddd_df.copy()
+
+    ddd_df.loc[:, 'comment'] = ddd_df['comment'].apply(lambda x: None if pd.isna(x) or not str(x).strip() else str(x).strip())
+    ddd_df.loc[:, "adm_code"] = ddd_df["adm_code"].str.strip()
+    ddd_df.loc[:, "ddd_unit"] = ddd_df["ddd_unit"].str.lower()
+    ddd_df.loc[:, "ddd"] = ddd_df["ddd"].apply(lambda x: float(x) if x else None)
     ddd_df = ddd_df[ddd_df["ddd"].notna()]
     
     ddd_df = apply_ddd_deletions_and_updates(ddd_df, ddd_updates, ddds_to_delete)
