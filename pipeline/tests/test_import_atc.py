@@ -381,6 +381,65 @@ class TestProcessATCData:
         for col in expected_columns:
             assert col in result_df.columns
 
+    @patch('pipeline.flows.import_atc.get_run_logger')
+    def test_comment_handling(self, mock_logger):
+        mock_logger.return_value = Mock()
+        
+        test_df = pd.DataFrame([
+            {
+                'atc_code': 'A01AA01',
+                'atc_name': 'Test Substance',
+                'comment': ''
+            },
+            {
+                'atc_code': 'A01AA02',
+                'atc_name': 'Test Substance 2',
+                'comment': '   '
+            },
+            {
+                'atc_code': 'A01AA03',
+                'atc_name': 'Test Substance 3',
+                'comment': ' Test Comment  '
+            },
+            {
+                'atc_code': 'A01AA04',
+                'atc_name': 'Test Substance 4',
+                'comment': None
+            }
+        ])
+        
+        result_df = process_atc_data(test_df, {}, {}, {})
+        
+        assert result_df[result_df['atc_code'] == 'A01AA01']['comment'].iloc[0] is None
+        assert result_df[result_df['atc_code'] == 'A01AA02']['comment'].iloc[0] is None
+        assert result_df[result_df['atc_code'] == 'A01AA03']['comment'].iloc[0] == 'Test Comment'
+        assert result_df[result_df['atc_code'] == 'A01AA04']['comment'].iloc[0] is None
+
+    @patch('pipeline.flows.import_atc.get_run_logger')
+    def test_comment_combination(self, mock_logger):
+        mock_logger.return_value = Mock()
+        
+        test_df = pd.DataFrame([
+            {
+                'atc_code': 'A01AA01',
+                'atc_name': 'Test Substance',
+                'comment': '  Original Comment  '
+            }
+        ])
+        
+        atc_mapping = {
+            'A01AA01': {
+                'new_code': 'A01AA99',
+                'substance': 'Updated Substance',
+                'alterations_comment': '  '
+            }
+        }
+        
+        result_df = process_atc_data(test_df, atc_mapping, {}, {})
+        
+        updated_comment = result_df[result_df['atc_code'] == 'A01AA99']['comment'].iloc[0]
+        assert updated_comment == 'Original Comment; Updated from alterations table'
+
 
 class TestAddATCHierarchy:
     def test_add_atc_hierarchy_complete(self, sample_hierarchical_atc_df):

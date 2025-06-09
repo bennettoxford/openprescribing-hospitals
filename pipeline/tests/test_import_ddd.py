@@ -449,3 +449,66 @@ class TestProcessDDDData:
         new_n02 = result[result['atc_code'] == 'N02AA01']
         assert len(new_n02) == 1
         assert new_n02.iloc[0]['ddd'] == 7.5
+
+    @patch('pipeline.flows.import_ddd.get_run_logger')
+    def test_comment_handling(self, mock_logger):
+        mock_logger.return_value = Mock()
+        
+        test_df = pd.DataFrame([
+            {
+                'atc_code': 'A01AA01',
+                'ddd': 10.0,
+                'ddd_unit': 'mg',
+                'adm_code': 'O',
+                'comment': ''
+            },
+            {
+                'atc_code': 'A01AA02',
+                'ddd': 20.0,
+                'ddd_unit': 'mg',
+                'adm_code': 'O',
+                'comment': '   '
+            },
+            {
+                'atc_code': 'A01AA03',
+                'ddd': 30.0,
+                'ddd_unit': 'mg',
+                'adm_code': 'O',
+                'comment': ' Test Comment  '
+            }
+        ])
+        
+        result = process_ddd_data(test_df, {}, set(), [])
+        
+        assert result[result['atc_code'] == 'A01AA01']['comment'].iloc[0] is None
+        assert result[result['atc_code'] == 'A01AA02']['comment'].iloc[0] is None
+        assert result[result['atc_code'] == 'A01AA03']['comment'].iloc[0] == 'Test Comment'
+
+    @patch('pipeline.flows.import_ddd.get_run_logger')
+    def test_comment_combination_in_updates(self, mock_logger):
+        mock_logger.return_value = Mock()
+        
+        test_df = pd.DataFrame([
+            {
+                'atc_code': 'A01AA01',
+                'ddd': 10.0,
+                'ddd_unit': 'mg',
+                'adm_code': 'O',
+                'comment': '  Original Comment  '
+            }
+        ])
+        
+        ddd_updates = {
+            ('A01AA01', 'O'): {
+                'new_ddd': 15.0,
+                'new_ddd_unit': 'mg',
+                'new_route': 'O',
+                'year_changed': 2023,
+                'alterations_comment': '  '
+            }
+        }
+        
+        result = process_ddd_data(test_df, ddd_updates, set(), [])
+
+        updated_comment = result[result['atc_code'] == 'A01AA01']['comment'].iloc[0]
+        assert updated_comment == 'Original Comment; Updated from alterations table (changed in 2023)'

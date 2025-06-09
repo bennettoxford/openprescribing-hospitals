@@ -177,13 +177,16 @@ def process_atc_data(
     atc_mapping: Dict[str, Dict[str, str]], 
     new_codes: Dict[str, Dict[str, str]],
     deleted_codes: Dict[str, str]
-    ) -> pd.DataFrame:
+) -> pd.DataFrame:
     """
     Process ATC data by adding new codes, updating existing codes, and enriching with hierarchical data.
     """
     logger = get_run_logger()
 
+
     atc_df = atc_df.copy()
+
+    atc_df.loc[:, 'comment'] = atc_df['comment'].apply(lambda x: None if pd.isna(x) or not str(x).strip() else str(x).strip())
     
     def combine_comments(existing_comment, alterations_comment, default_comment):
         """Combine existing comment with alterations comment"""
@@ -194,14 +197,15 @@ def process_atc_data(
             comments.append(existing_comment.strip())
         
         # Add alterations comment if it exists and isn't empty
-        if alterations_comment:
-            comments.append(alterations_comment)
+        if alterations_comment and alterations_comment.strip():
+            comments.append(alterations_comment.strip())
         
         # Add default comment if no alterations comment
-        if not alterations_comment:
+        if not alterations_comment or not alterations_comment.strip():
             comments.append(default_comment)
         
-        return '; '.join(comments)
+        final_comment = '; '.join(comments)
+        return None if not final_comment else final_comment.strip()
     
     # Delete codes
     deletions_made = 0
