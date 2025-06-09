@@ -87,6 +87,51 @@ def validate_ingredient_units():
     logger.info("All ingredient strength values have corresponding units")
     return {"valid": True}
 
+@task
+def validate_basis_of_strength():
+    """Validate basis of strength data is consistent"""
+    logger = get_run_logger()
+    client = get_bigquery_client()
+
+    # Check for invalid base substance records (type 2)
+    base_substance_query = f"""
+    SELECT vmp_code, vmp_name, ing.ing_name, ing.basis_of_strength_type
+    FROM `{DMD_TABLE_SPEC.full_table_id}`,
+    UNNEST(ingredients) as ing
+    WHERE ing.basis_of_strength_type = 2 
+    AND (ing.basis_of_strength_code IS NULL OR ing.basis_of_strength_name IS NULL)
+    """
+
+    # Check for invalid ingredient substance records (type 1)
+    ingredient_substance_query = f"""
+    SELECT vmp_code, vmp_name, ing.ing_name, ing.basis_of_strength_type
+    FROM `{DMD_TABLE_SPEC.full_table_id}`,
+    UNNEST(ingredients) as ing
+    WHERE ing.basis_of_strength_type = 1 
+    AND ing.ing_code IS NULL
+    """
+
+    base_results = client.query(base_substance_query).result()
+    ingredient_results = client.query(ingredient_substance_query).result()
+
+    invalid_base_records = [dict(row) for row in base_results]
+    invalid_ingredient_records = [dict(row) for row in ingredient_results]
+
+    if invalid_base_records or invalid_ingredient_records:
+        logger.warning(
+            f"Found ingredients with invalid basis of strength data:\n"
+            f"Base substance issues: {invalid_base_records}\n"
+            f"Ingredient substance issues: {invalid_ingredient_records}"
+        )
+        return {
+            "valid": False, 
+            "invalid_base_records": invalid_base_records,
+            "invalid_ingredient_records": invalid_ingredient_records
+        }
+
+    logger.info("All basis of strength data is valid")
+    return {"valid": True}
+
 @flow(name="Import dm+d")
 def import_dmd():
     """Import and validate dm+d data"""
@@ -101,7 +146,8 @@ def import_dmd():
         "routes": validate_routes(),
         "schema": validate_table_schema(DMD_TABLE_SPEC),
         "vtm": validate_vtm_consistency(),
-        "ingredient_units": validate_ingredient_units()
+        "ingredient_units": validate_ingredient_units(),
+        "basis_of_strength": validate_basis_of_strength()
     }
 
     failed_validations = {

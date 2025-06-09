@@ -27,7 +27,10 @@ USING (
       vpi.strnt_dnmtr_val,
       nmrtr_uom.descr AS strnt_nmrtr_uom_name,
       dnmtr_uom.descr AS strnt_dnmtr_uom_name,
-      ing.nm AS ing_nm
+      ing.nm AS ing_nm,
+      vpi.bs_subid,
+      vpi.basis_strnt,
+      bs.nm AS base_substance_name
     FROM 
       dmd.vmp_full AS vmp_full
     LEFT JOIN 
@@ -50,6 +53,10 @@ USING (
       dmd.vtm as vtm
     ON
       vmp_full.vtm = vtm.id
+    LEFT JOIN
+      dmd.ing as bs
+    ON 
+      vpi.bs_subid = bs.id
   )
   SELECT 
     CAST(vmp_code AS STRING) AS vmp_code,
@@ -70,7 +77,10 @@ USING (
           CAST(strnt_nmrtr_val AS FLOAT64) AS strnt_nmrtr_val,
           strnt_nmrtr_uom_name,
           CAST(strnt_dnmtr_val AS FLOAT64) AS strnt_dnmtr_val,
-          strnt_dnmtr_uom_name
+          strnt_dnmtr_uom_name,
+          CAST(bs_subid AS STRING) AS basis_of_strength_code,
+          base_substance_name AS basis_of_strength_name,
+          CAST(basis_strnt AS INT64) AS basis_of_strength_type
         ), 
         NULL
       ) IGNORE NULLS
