@@ -1,82 +1,84 @@
 {% load static %}
 
 <footer
-  class="via-bn-roman-200/35 relative bg-gradient-to-r from-oxford-200/20 to-bn-strawberry-200/25 pt-12 pb-16 text-oxford before:absolute before:-top-1 before:h-1 before:w-full before:bg-gradient-to-r before:from-oxford-600/60 before:via-bn-roman-600/70 before:to-bn-strawberry-600/60"
+  class="relative bg-gradient-to-r from-oxford-200/20 via-bn-roman-200/35 to-bn-strawberry-200/25 pt-12 pb-16 text-oxford before:absolute before:-top-1 before:h-1 before:w-full before:bg-gradient-to-r before:from-oxford-600/60 before:via-bn-roman-600/70 before:to-bn-strawberry-600/60"
 >
-  <div class="container text-sm xl:max-w-screen-xl">
-    <div
-      class="mb-6 grid grid-flow-row grid-cols-1 gap-8 text-center md:text-left lg:grid-cols-2"
-    >
-      
-      <div class="text-slate-600 md:pt-6">
-        <h2 class="sr-only">Copyright statement</h2>
-        <p>
-          © University of Oxford for the Bennett Institute for Applied Data
-          Science {% now 'Y' %}. This work may be copied freely for
-          non-commercial research and study. 
-        </p>
-        <p class="mt-2">
-          OpenPrescribing Hospitals is part of 
-          <a href="https://openprescribing.net" 
-             class="text-oxford-600 hover:text-oxford-700 underline decoration-1 underline-offset-2"
-             target="_blank"
-             rel="noopener noreferrer">
-            OpenPrescribing.net
-          </a>
-        </p>
-      </div>
-
-      <div class="text-slate-600 md:pt-6">
-        <p class="max-w-prose">
-          Every month, NHS England publishes processed pharmacy stock control data in the form of the <a href="https://opendata.nhsbsa.net/dataset/secondary-care-medicines-data-indicative-price" target="_blank" class="text-oxford-600 hover:text-oxford-700 font-semibold">Secondary Care Medicines Dataset (SCMD)</a>.
-          OpenPrescribing Hospitals allows easy exploration of this data 
-          through a set of curated Measures and a custom analysis builder.
-        </p>
-      </div>
-    </div>
-  </div>
-  <div
-    class="container border-t border-white/50 pt-8 md:mt-8 xl:max-w-screen-xl"
-  >
-    <div class="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-      <div class="flex flex-wrap items-center gap-6">
-        <a
-          class="transition-transform hover:scale-105 focus:scale-105"
-          href="https://www.bennett.ox.ac.uk/"
+  <div class="container mx-auto max-w-screen-xl px-4">
+    <div class="mb-12">
+      <p class="max-w-prose text-slate-600">
+        Every month, NHS England publishes processed pharmacy stock control data in the form of the 
+        <a 
+          href="https://opendata.nhsbsa.net/dataset/secondary-care-medicines-data-indicative-price" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          class="font-semibold text-oxford-600 hover:text-oxford-700 transition-colors"
         >
-          <img
-            class="h-16"
-            src="{% static 'bennett-logo.svg' %}"
-            alt="Bennett Institute logo"
-          />
-        </a>
-        <a
-          class="transition-transform hover:scale-105 focus:scale-105"
-          href="https://www.ox.ac.uk/"
-        >
-          <img
-            class="h-16"
-            src="{% static 'oxford_logo.png' %}"
-            alt="University of Oxford logo"
-          />
-        </a>
-        <a
-          class="transition-transform hover:scale-105 focus:scale-105"
-          href="https://www.phc.ox.ac.uk/"
-        >
-          <img
-            class="h-16"
-            src="{% static 'footer-nuffield.png' %}"
-            alt="Nuffield Department of Primary Care Health Sciences logo"
-          />
-        </a>
-      </div>
-      <p
-        class="text-center text-2xl font-extrabold text-oxford lg:text-left lg:text-3xl"
-      >
-        OpenPrescribing Hospitals is a project from the
-        <span class="sm:block">Bennett Institute for Applied Data Science</span>
+          Secondary Care Medicines Dataset (SCMD)
+        </a>.
+        OpenPrescribing Hospitals allows easy exploration of this data 
+        through a set of curated Measures and a custom analysis builder.
       </p>
+      
+      <p class="mt-4 text-slate-600">
+        OpenPrescribing Hospitals is part of 
+        <a 
+          href="https://openprescribing.net" 
+          class="font-semibold text-oxford-600 hover:text-oxford-700 transition-colors"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          OpenPrescribing.net
+        </a>
+      </p>
+    </div>
+    <div class="border-t border-white/50 pt-8">
+      <div class="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+        <div class="flex flex-wrap items-center gap-8">
+          <a
+            class="transition-transform hover:scale-105 focus:scale-105"
+            href="https://www.bennett.ox.ac.uk/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              class="h-16"
+              src="{% static 'bennett-logo.svg' %}"
+              alt="Bennett Institute logo"
+            />
+          </a>
+          <a
+            class="transition-transform hover:scale-105 focus:scale-105"
+            href="https://www.phc.ox.ac.uk/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              class="h-16"
+              src="{% static 'footer-nuffield.png' %}"
+              alt="Nuffield Department of Primary Care Health Sciences logo"
+            />
+          </a>
+          <a
+            class="transition-transform hover:scale-105 focus:scale-105"
+            href="https://www.ox.ac.uk/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              class="h-16"
+              src="{% static 'oxford_logo.png' %}"
+              alt="University of Oxford logo"
+            />
+          </a>
+        </div>
+        <div class="text-sm text-slate-600 lg:text-right">
+          <h2 class="sr-only">Copyright statement</h2>
+          <p>
+            © University of Oxford for the Bennett Institute for Applied Data Science {% now 'Y' %}.<br>
+            This work may be copied freely for non-commercial research and study.
+          </p>
+        </div>
+      </div>
     </div>
   </div>
 </footer>
