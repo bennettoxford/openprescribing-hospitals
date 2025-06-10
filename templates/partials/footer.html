@@ -36,25 +36,47 @@
     </div>
   </div>
   <div
-    class="container flex flex-col items-center justify-between gap-8 border-t border-white/50 pt-8 md:mt-8 lg:flex-row xl:max-w-screen-xl"
+    class="container border-t border-white/50 pt-8 md:mt-8 xl:max-w-screen-xl"
   >
-    <a
-      class="transition-transform hover:scale-105 focus:scale-105"
-      href="https://www.bennett.ox.ac.uk/"
-    >
-      <img
-        class="h-24"
-        width="220"
-        height="96"
-        src="{% static 'bennett-logo.svg' %}"
-        alt="Bennett Institute logo"
-      />
-    </a>
-    <p
-      class="text-center text-2xl font-extrabold text-oxford lg:text-left lg:text-3xl"
-    >
-      OpenPrescribing Hospitals is a project from the
-      <span class="sm:block">Bennett Institute for Applied Data Science</span>
-    </p>
+    <div class="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+      <div class="flex flex-wrap items-center gap-6">
+        <a
+          class="transition-transform hover:scale-105 focus:scale-105"
+          href="https://www.bennett.ox.ac.uk/"
+        >
+          <img
+            class="h-16"
+            src="{% static 'bennett-logo.svg' %}"
+            alt="Bennett Institute logo"
+          />
+        </a>
+        <a
+          class="transition-transform hover:scale-105 focus:scale-105"
+          href="https://www.ox.ac.uk/"
+        >
+          <img
+            class="h-16"
+            src="{% static 'oxford_logo.png' %}"
+            alt="University of Oxford logo"
+          />
+        </a>
+        <a
+          class="transition-transform hover:scale-105 focus:scale-105"
+          href="https://www.phc.ox.ac.uk/"
+        >
+          <img
+            class="h-16"
+            src="{% static 'footer-nuffield.png' %}"
+            alt="Nuffield Department of Primary Care Health Sciences logo"
+          />
+        </a>
+      </div>
+      <p
+        class="text-center text-2xl font-extrabold text-oxford lg:text-left lg:text-3xl"
+      >
+        OpenPrescribing Hospitals is a project from the
+        <span class="sm:block">Bennett Institute for Applied Data Science</span>
+      </p>
+    </div>
   </div>
 </footer>
