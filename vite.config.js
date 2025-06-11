@@ -35,7 +35,8 @@ export default defineConfig({
             'highcharts/highcharts-more',
             'highcharts/modules/accessibility',
             'highcharts/modules/exporting',
-            'highcharts/modules/export-data'
+            'highcharts/modules/export-data',
+            'highcharts/modules/boost'
           ]
         }
       },
@@ -47,7 +48,8 @@ export default defineConfig({
       'highcharts/highcharts-more',
       'highcharts/modules/accessibility',
       'highcharts/modules/exporting',
-      'highcharts/modules/export-data'
+      'highcharts/modules/export-data',
+      'highcharts/modules/boost'
     ]
   },
   resolve: {

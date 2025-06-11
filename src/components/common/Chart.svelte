@@ -4,6 +4,7 @@
 
   import * as Highcharts from 'highcharts';
   import HCMore from 'highcharts/highcharts-more';
+  import Boost from 'highcharts/modules/boost';
   import Exporting from 'highcharts/modules/exporting';
   import ExportData from 'highcharts/modules/export-data';
   import Accessibility from 'highcharts/modules/accessibility';
@@ -41,6 +42,11 @@
     if (dataset.alwaysVisible) return true;
     return config.visibleItems.has(dataset.label);
   });
+
+  $: shouldUseBoost = visibleDatasets && visibleDatasets.length > 20 && 
+                      mode !== 'percentiles' && mode !== 'trust' && mode !== 'organisation';
+
+
 
   $: finalChartOptions = {
     ...chartOptions,
@@ -106,7 +112,16 @@
           });
         }
       },
-      spacingRight: 20
+      spacingRight: 20,
+      boost: shouldUseBoost ? {
+        enabled: true,
+        useGPUTranslations: true,
+        usePreallocated: true,
+        seriesThreshold: 20,
+        allowForce: true
+      } : {
+        enabled: false
+      }
     },
     title: {
       text: undefined
@@ -119,7 +134,7 @@
       maxHeight: 400,
       navigation: {
         activeColor: '#2563eb',
-        animation: true,
+        animation: false,
         arrowSize: 12,
         inactiveColor: '#94a3b8',
         style: {
@@ -291,7 +306,7 @@
         findNearestPointBy: 'xy',
         stickyTracking: false,
         marker: {
-          enabled: false
+          enabled: shouldUseBoost ? false : false
         },
         states: {
           hover: {
@@ -312,6 +327,16 @@
               }
             }
           }
+        },
+        boostThreshold: shouldUseBoost ? 1 : 2000,
+        cropThreshold: shouldUseBoost ? 1000 : 300,
+        turboThreshold: shouldUseBoost ? 1000 : 1000
+      },
+      line: {
+        lineWidth: shouldUseBoost ? 1 : 2,
+        marker: {
+          enabled: false,
+          radius: shouldUseBoost ? 2 : 3
         }
       },
       arearange: {
@@ -415,7 +440,6 @@
 
 <style>
   :global(.tooltip) {
-    transition: opacity 0.2s ease-in-out;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
 
