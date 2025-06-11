@@ -7,11 +7,14 @@ import { chartConfig } from './chartConfig.js';
  * @param {string} selectedMode - Current view mode
  * @param {Array} selectedOrganisations - Selected organisations for display
  * @param {Map} predecessorMap - Map of predecessor-successor relationships
+ * @param {Array} allTrusts - All trusts in the system
+ * @param {boolean} showPercentiles - Whether to show percentile data
+ * @param {Array} currentPercentiles - Calculated percentiles
  * @returns {Object} Processed chart data with datasets and labels
  */
-export function processChartData(data, filteredData, selectedMode, selectedOrganisations, predecessorMap) {
+export function processChartData(data, filteredData, selectedMode, selectedOrganisations, predecessorMap, allTrusts, showPercentiles, currentPercentiles) {
     if (!Array.isArray(data)) {
-        return { labels: [], datasets: [], maxValue: 0};
+        return { labels: [], datasets: [], maxValue: 0, trustsWithNoData: []};
     }
 
     // Default to 'organisation' mode if selectedMode is null or undefined
@@ -20,11 +23,20 @@ export function processChartData(data, filteredData, selectedMode, selectedOrgan
     const safeFilteredData = Array.isArray(filteredData) ? filteredData : [];
     const safeSelectedOrganisations = Array.isArray(selectedOrganisations) ? selectedOrganisations : [];
     const safePredecessorMap = predecessorMap instanceof Map ? predecessorMap : new Map();
+    const safeAllTrusts = Array.isArray(allTrusts) ? allTrusts : [];
+    const safeShowPercentiles = Boolean(showPercentiles);
+    const safeCurrentPercentiles = Array.isArray(currentPercentiles) ? currentPercentiles : [];
 
     // Get all dates from the complete dataset
     const allDates = [...new Set((safeFilteredData.length > 0 ? safeFilteredData : data).flatMap(item => 
         Array.isArray(item.data) ? item.data.map(([date]) => date) : []
     ))].sort();
+
+    const trustsWithNoData = calculateTrustsWithNoData(
+        safeFilteredData.length > 0 ? safeFilteredData : data, 
+        safeAllTrusts, 
+        safePredecessorMap
+    );
 
     // Determine which data to process based on mode
     const dataToProcess = getDataToProcess(data, safeFilteredData, mode, safeSelectedOrganisations);
@@ -35,7 +47,7 @@ export function processChartData(data, filteredData, selectedMode, selectedOrgan
     // Process data based on mode
     switch (mode) {
         case 'organisation':
-            const orgResult = processOrganisationMode(dataToProcess, allDates);
+            const orgResult = processOrganisationMode(dataToProcess, allDates, safeShowPercentiles, safeCurrentPercentiles);
             datasets = orgResult.datasets;
             maxValue = orgResult.maxValue;
             break;
@@ -70,7 +82,7 @@ export function processChartData(data, filteredData, selectedMode, selectedOrgan
             maxValue = unitResult.maxValue;
             break;
         default:
-            const defaultResult = processOrganisationMode(dataToProcess, allDates);
+            const defaultResult = processOrganisationMode(dataToProcess, allDates, safeShowPercentiles, safeCurrentPercentiles);
             datasets = defaultResult.datasets;
             maxValue = defaultResult.maxValue;
     }
@@ -78,8 +90,41 @@ export function processChartData(data, filteredData, selectedMode, selectedOrgan
     return {
         labels: allDates,
         datasets,
-        maxValue
+        maxValue,
+        trustsWithNoData
     };
+}
+
+function calculateTrustsWithNoData(data, allTrusts, predecessorMap) {
+
+    if (!Array.isArray(data) || !Array.isArray(allTrusts)) {
+        return [];
+    }
+
+    const trustsWithData = new Set();
+    
+
+    data.forEach(item => {
+        if (item && item.organisation__ods_name) {
+            trustsWithData.add(item.organisation__ods_name);
+        }
+    });
+    
+    // Mark predecessors as "having data" if their successor has data
+    if (predecessorMap instanceof Map) {
+        for (const [successor, predecessors] of predecessorMap.entries()) {
+            if (trustsWithData.has(successor) && Array.isArray(predecessors)) {
+                predecessors.forEach(predecessor => {
+                    trustsWithData.add(predecessor);
+                });
+            }
+        }
+    }
+    
+    return allTrusts
+        .filter(trust => !trustsWithData.has(trust))
+        .sort()
+        .map(trust => ({ name: trust, code: 'Unknown' }));
 }
 
 function getDataToProcess(data, filteredData, selectedMode, selectedOrganisations) {
@@ -106,9 +151,14 @@ function getDataToProcess(data, filteredData, selectedMode, selectedOrganisation
     }
 }
 
-function processOrganisationMode(dataToProcess, allDates) {
+function processOrganisationMode(dataToProcess, allDates, showPercentiles, currentPercentiles) {
     let datasets = [];
-    
+
+    if (Array.isArray(currentPercentiles) && currentPercentiles.length > 0 && showPercentiles) {
+        const percentileDatasets = createPercentileDatasets(currentPercentiles, allDates);
+        datasets.push(...percentileDatasets);
+    }
+
     // Only process data if we have data and it's not empty
     if (Array.isArray(dataToProcess) && dataToProcess.length > 0) {
         const { aggregatedData } = preAggregateData(dataToProcess);
@@ -118,6 +168,88 @@ function processOrganisationMode(dataToProcess, allDates) {
 
     const maxValue = calculateMaxValue(datasets);
     return { datasets, maxValue };
+}
+
+
+function createPercentileDatasets(percentiles, allDates) {
+    if (!Array.isArray(percentiles) || !Array.isArray(allDates)) {
+        return [];
+    }
+
+    const datasets = [];
+
+    const percentilesByValue = {};
+    percentiles.forEach(p => {
+        if (p && typeof p.percentile !== 'undefined') {
+            if (!percentilesByValue[p.percentile]) {
+                percentilesByValue[p.percentile] = [];
+            }
+            percentilesByValue[p.percentile].push({
+                month: p.month,
+                quantity: p.quantity
+            });
+        }
+    });
+
+    const percentileRanges = [
+        { range: [45, 55], opacity: 0.8 },
+        { range: [35, 65], opacity: 0.6 },
+        { range: [25, 75], opacity: 0.4 },
+        { range: [15, 85], opacity: 0.2 },
+        { range: [5, 95], opacity: 0.1 }
+    ];
+
+    percentileRanges.forEach(({ range: [lower, upper], opacity }) => {
+        if (percentilesByValue[lower] && percentilesByValue[upper]) {
+            const lowerData = percentilesByValue[lower].sort((a, b) => new Date(a.month) - new Date(b.month));
+            const upperData = percentilesByValue[upper].sort((a, b) => new Date(b.month) - new Date(a.month));
+            
+            const rangeData = allDates.map(date => {
+                const lowerValue = lowerData.find(v => v.month === date);
+                const upperValue = upperData.find(v => v.month === date);
+                return (lowerValue && upperValue) ? { 
+                    lower: lowerValue.quantity, 
+                    upper: upperValue.quantity 
+                } : null;
+            });
+
+            datasets.push({
+                label: `${lower}th-${upper}th percentiles`,
+                data: rangeData,
+                color: '#005AB5',
+                fillOpacity: opacity,
+                strokeWidth: 0,
+                fill: true,
+                isRange: true,
+                isPercentile: true,
+                hidden: false,
+                alwaysVisible: false
+            });
+        }
+    });
+
+    if (percentilesByValue['50']) {
+        const medianData = percentilesByValue['50'].sort((a, b) => new Date(a.month) - new Date(b.month));
+        
+        const medianValues = allDates.map(date => {
+            const value = medianData.find(v => v.month === date);
+            return value ? value.quantity : null;
+        });
+
+        datasets.push({
+            label: 'Median (50th percentile)',
+            data: medianValues,
+            color: '#DC3220',
+            strokeWidth: 2,
+            strokeOpacity: 1,
+            fill: false,
+            isPercentile: true,
+            hidden: false,
+            alwaysVisible: false
+        });
+    }
+
+    return datasets;
 }
 
 function processRegionMode(dataToProcess, allDates, predecessorMap) {
@@ -539,3 +671,22 @@ function createTrustDatasetsFromAggregated(aggregatedData, allDates) {
             isTrust: true
         }));
 } 
+
+export function updateTrustCountBreakdown(percentilesResult, predecessorMap) {
+    if (!percentilesResult || typeof percentilesResult.trustCount !== 'number') {
+        return { current: 0, predecessors: 0, total: 0 };
+    }
+
+    const predecessorCount = predecessorMap instanceof Map 
+        ? Array.from(predecessorMap.values()).reduce((sum, preds) => 
+            sum + (Array.isArray(preds) ? preds.length : 0), 0)
+        : 0;
+
+    const totalContributingEntities = percentilesResult.trustCount + predecessorCount;
+    
+    return {
+        current: percentilesResult.trustCount,
+        predecessors: predecessorCount,
+        total: totalContributingEntities
+    };
+}
