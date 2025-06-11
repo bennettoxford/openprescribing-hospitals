@@ -15,9 +15,11 @@
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
     import { formatNumber } from '../../../utils/utils';
     import pluralize from 'pluralize';
+    import { calculatePercentiles } from '../../../utils/percentileCalculation';
     import { 
         processChartData, 
-        calculateUnits
+        calculateUnits,
+        updateTrustCountBreakdown
     }  from '../../../utils/analyseUtils';
 
     export let className = '';
@@ -32,11 +34,12 @@
     let originalChartData = null;
 
     let viewModes = [
-        { value: 'total', label: 'National Total' },
+        { value: 'organisation', label: 'NHS Trust' },
+        { value: 'icb', label: 'ICB' },
         { value: 'region', label: 'Region' },
-        { value: 'icb', label: 'ICB' }
+        { value: 'total', label: 'National Total' }
     ];
- 
+
     const resultsChartStore = createChartStore({
         mode: 'trust',
         yAxisLabel: 'units',
@@ -63,14 +66,15 @@
         }));
     }
 
-    $: hasSelectedTrusts = analysisData?.selectedOrganisations?.length > 0;
+    $: defaultMode = 'organisation';
 
-    $: defaultMode = hasSelectedTrusts ? 'organisation' : 'total';
+    let showTrustsWithNoData = false;
+    let showTrustCountDetails = false;
 
     $: {
         if (!$modeSelectorStore.selectedMode || 
             !viewModes.some(mode => mode.value === $modeSelectorStore.selectedMode)) {
-            modeSelectorStore.resetToDefault(defaultMode);
+            modeSelectorStore.resetToDefault('organisation');
         }
     }
 
@@ -100,6 +104,13 @@
         
         const currentMode = $modeSelectorStore.selectedMode || 'organisation';
         const storeItems = $organisationSearchStore.items || [];
+        const dataForPercentiles = filteredData.length > 0 ? filteredData : data;
+        const percentilesResult = calculatePercentiles(dataForPercentiles);
+
+        const currentMode = $modeSelectorStore.selectedMode || 'organisation';
+        const storeItems = $organisationSearchStore.items || [];
+        const storePredecessorMap = $organisationSearchStore.predecessorMap || new Map();
+        const storeShowPercentiles = $resultsStore.showPercentiles !== false;
         const selectedOrgs = $organisationSearchStore.selectedItems || [];
 
         const units = calculateUnits(data, filteredData);
@@ -111,12 +122,28 @@
             selectedOrgs,
             storePredecessorMap,
             storeItems,
+            storeShowPercentiles,
+            percentilesResult.percentiles
         );
 
         resultsChartStore.setConfig({
             ...($resultsChartStore.config || {}),
             yAxisTickFormat: (value) => formatNumber(value)
         });
+
+        const trustCountBreakdown = updateTrustCountBreakdown(
+            percentilesResult, 
+            storePredecessorMap
+        );
+
+        resultsStore.update(store => ({
+            ...store,
+            percentiles: percentilesResult.percentiles,
+            trustCount: trustCountBreakdown.total,
+            excludedTrusts: percentilesResult.excludedTrusts,
+            trustsWithNoData: chartResult.trustsWithNoData,
+            trustCountBreakdown
+        }));
 
         return {
             labels: chartResult.labels,
@@ -132,6 +159,7 @@
         if (analysisResult.data && Array.isArray(analysisResult.data)) {
             data = analysisResult.data;
             metadata = {
+                percentiles: analysisResult.percentiles,
                 searchType: analysisResult.searchType,
                 quantityType: analysisResult.quantityType,
                 selectedOrganisations: analysisResult.selectedOrganisations || []
@@ -143,8 +171,7 @@
         completeAnalysisData = data;
         selectedData = data;
 
-        const newDefaultMode = hasSelectedTrusts ? 'organisation' : 'total';
-        modeSelectorStore.resetToDefault(newDefaultMode);
+        modeSelectorStore.resetToDefault('organisation');
 
         resultsStore.update(store => ({
             ...store,
@@ -243,17 +270,11 @@
 
     $: {
         viewModes = [
+            { value: 'organisation', label: 'NHS Trust' },
+            { value: 'icb', label: 'ICB' },
+            { value: 'region', label: 'Region' },
             { value: 'total', label: 'National Total' }
         ];
-
-        if (hasSelectedTrusts) {
-            viewModes.unshift({ value: 'organisation', label: 'NHS Trust' });
-        }
-
-        viewModes.push(
-            { value: 'icb', label: 'ICB' },
-            { value: 'region', label: 'Region' }
-        );
 
         if (vmps.length > 1) {
             viewModes.push({ value: 'product', label: 'Product' });
@@ -342,6 +363,13 @@
         return hasChartable;
     }
 
+    function handlePercentileToggle() {
+        resultsStore.update(store => ({
+            ...store,
+            showPercentiles: !store.showPercentiles
+        }));
+    }
+
 
 </script>
 
@@ -371,6 +399,69 @@
                                 {/if}
                                 See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret this chart.
                             </p>
+                    {#if $resultsStore.trustCount > 0}
+                    <section class="bg-blue-50 border border-blue-200 rounded-lg">
+                        <button
+                            type="button"
+                            class="w-full px-4 py-3 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+                            on:click={() => showTrustCountDetails = !showTrustCountDetails}
+                        >
+                            <div class="flex items-center">
+                                <svg class="h-5 w-5 text-blue-400 mr-3 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                                <span class="text-sm text-blue-700 font-medium">
+                                    {$resultsStore.trustCount}/{$organisationSearchStore.items.length} trusts included in percentile calculation
+                                </span>
+                            </div>
+                            <svg 
+                                class="h-5 w-5 text-blue-400 transform transition-transform duration-200 {showTrustCountDetails ? 'rotate-180' : ''}" 
+                                viewBox="0 0 20 20" 
+                                fill="currentColor"
+                            >
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        
+                        {#if showTrustCountDetails}
+                        <div class="px-4 pb-3 space-y-3 border-t border-blue-200 pt-3">
+                            <p class="text-sm text-blue-700">
+                                Trusts are only included if they have issued any of the selected products during the time period.
+                            </p>
+                            
+                            {#if $resultsStore.trustsWithNoData && $resultsStore.trustsWithNoData.length > 0}
+                            <div>
+                                <button
+                                    type="button"
+                                    class="text-sm text-blue-600 hover:text-blue-800 underline font-medium"
+                                    on:click={() => showTrustsWithNoData = !showTrustsWithNoData}
+                                >
+                                    {showTrustsWithNoData ? 'Hide' : 'Show'} {$resultsStore.trustsWithNoData.length} trusts with no data
+                                </button>
+                                
+                                {#if showTrustsWithNoData}
+                                <div class="mt-2 p-3 bg-gray-100 rounded border border-gray-200">
+                                    <p class="text-xs text-gray-800 font-medium mb-2">
+                                        Trusts with no data for selected products:
+                                    </p>
+                                    <div class="max-h-32 overflow-y-auto">
+                                        <ul class="text-xs text-gray-700 space-y-1">
+                                            {#each $resultsStore.trustsWithNoData as trust}
+                                            <li class="flex items-center">
+                                                <span class="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2 flex-shrink-0"></span>
+                                                <span>{trust.name}</span>
+                                            </li>
+                                            {/each}
+                                        </ul>
+                                    </div>
+                                </div>
+                                {/if}
+                            </div>
+                            {/if}
+                        </div>
+                        {/if}
+                    </section>
+                    {/if}
                     {:else if $modeSelectorStore.selectedMode === 'region'}
                         <p class="text-sm text-gray-700 mb-4">
                             Showing total quantity issued for all selected products aggregated by NHS Region. Each line represents the total quantity across all trusts within a region.
@@ -406,6 +497,41 @@
                             label="View Mode"
                             variant="pill"
                         />
+
+                        {#if $modeSelectorStore.selectedMode === 'organisation'}
+                        <div class="flex flex-col items-center gap-2">
+                            {#if analysisData?.selectedOrganisations?.length > 0}
+                                <span class="text-sm text-gray-600 leading-tight text-center">
+                                    Show percentiles
+                                </span>
+                                <div class="flex items-center gap-2">
+                                    <label class="inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            class="sr-only peer"
+                                            checked={$resultsStore.showPercentiles}
+                                            on:change={handlePercentileToggle}
+                                        />
+                                        <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                    <div class="relative inline-block group">
+                                        <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
+                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+                                        <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
+                                                    group-hover:scale-100 w-[280px] -translate-x-full left-0 top-8 mt-1 rounded-md shadow-lg bg-white 
+                                                    ring-1 ring-black ring-opacity-5 p-4">
+                                            <p class="text-sm text-gray-500">
+                                                Percentiles show variation in product quantity across NHS Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            {/if}
+                        </div>
+                        {/if}
                         
                     </div>
 
