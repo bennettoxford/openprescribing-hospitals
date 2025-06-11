@@ -11,7 +11,12 @@ const initialState = {
     searchType: null,
     dateRange: null,
     visibleItems: new Set(),
-    isAdvancedMode: false
+    isAdvancedMode: false,
+    showPercentiles: true,
+    percentiles: [],
+    trustCount: 0,
+    excludedTrusts: [],
+    trustCountBreakdown: { current: 0, predecessors: 0, total: 0 }
 };
 
 export const resultsStore = writable({ ...initialState });
