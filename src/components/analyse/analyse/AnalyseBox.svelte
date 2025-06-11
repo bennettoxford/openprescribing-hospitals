@@ -64,12 +64,7 @@
             errorMessage = "Please select at least one product or ingredient.";
             return;
         }
-
-        if (!$organisationSearchStore.selectedItems || $organisationSearchStore.selectedItems.length === 0) {
-            errorMessage = "Please select at least one trust to analyse.";
-            return;
-        }
-
+        
         if (!isAdvancedMode) {
             quantityType = "VMP Quantity";
         } else if (quantityType === '--') {
