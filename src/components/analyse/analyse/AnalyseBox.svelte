@@ -11,29 +11,36 @@
     import { createEventDispatcher } from 'svelte';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
-    import { updateResults } from '../../../stores/resultsStore';
     import { getCookie } from '../../../utils/utils';
+    import { modeSelectorStore } from '../../../stores/modeSelectorStore';
     
     const dispatch = createEventDispatcher();
 
     let isAnalysisRunning = false;
     let errorMessage = '';
     let isOrganisationDropdownOpen = false;
+    let selectedOrganisations = [];
 
     $: selectedVMPs = $analyseOptions.selectedVMPs;
     $: quantityType = $analyseOptions.quantityType;
     $: searchType = $analyseOptions.searchType;
     $: isAdvancedMode = $analyseOptions.isAdvancedMode;
 
-    export let orgData = null;
+    export let isadvancedmode = false;
     export let mindate = null;
     export let maxdate = null;
-    export let isAuthenticated = 'false';
+    export let orgdata = null;
+    export let isauthenticated = 'false';
     
-    $: isAuthenticatedBool = isAuthenticated === 'true';
-    
-    $: if (!isAuthenticatedBool && isAdvancedMode) {
-        analyseOptions.setAdvancedMode(false);
+    $: isAdvancedMode = isadvancedmode;
+    $: orgData = orgdata;
+    $: isAuthenticated = isauthenticated;
+    $: isAuthenticatedBool = isauthenticated === 'true';
+
+    $: {
+        if (isAdvancedMode !== $analyseOptions.isAdvancedMode) {
+            analyseOptions.setAdvancedMode(isAdvancedMode);
+        }
     }
 
     onMount(async () => {
@@ -55,6 +62,11 @@
     const csrftoken = getCookie('csrftoken');
     const quantityOptions = ['--', 'VMP Quantity', 'Ingredient Quantity', 'Daily Defined Doses'];
 
+    function handleODSSelection(event) {
+        const { selectedItems } = event.detail;
+        selectedOrganisations = selectedItems;
+    }
+
     async function runAnalysis() {
         if (isAnalysisRunning) return;
 
@@ -64,7 +76,7 @@
             errorMessage = "Please select at least one product or ingredient.";
             return;
         }
-        
+
         if (!isAdvancedMode) {
             quantityType = "VMP Quantity";
         } else if (quantityType === '--') {
@@ -72,16 +84,18 @@
             return;
         }
 
+        organisationSearchStore.updateSelection(selectedOrganisations);
+        
         isAnalysisRunning = true;
-        dispatch('analysisStart');
+        dispatch('analysisstart');
         
         if (typeof window !== 'undefined' && window.plausible) {
             window.plausible('Analysis Run', {
                 props: {
                     all_products: selectedVMPs.join(','),
-                    all_organisations: $organisationSearchStore.selectedItems.join(','),
+                    all_organisations: selectedOrganisations.join(','),
                     product_count: selectedVMPs.length.toString(),
-                    organisation_count: $organisationSearchStore.selectedItems.length.toString()
+                    organisation_count: selectedOrganisations.length.toString()
                 }
             });
         }
@@ -98,7 +112,6 @@
                 body: JSON.stringify({
                     quantity_type: quantityType,
                     names: selectedVMPs,
-                    ods_names: $organisationSearchStore.selectedItems,
                     search_type: searchType
                 })
             });
@@ -108,38 +121,21 @@
                 throw new Error(data.error || `HTTP error! status: ${response.status}`);
             }
 
-            const data = await response.json();
-  
-            analyseOptions.runAnalysis({
-                selectedVMPs,
+            const responseData = await response.json();
+            
+            dispatch('analysiscomplete', { 
+                data: responseData.data,
                 quantityType,
                 searchType,
-                organisations: $organisationSearchStore.selectedItems
+                selectedOrganisations
             });
 
-            updateResults(data, {
-                quantityType,
-                searchType
-            });
-
-            dispatch('analysisComplete', { 
-                data: Array.isArray(data) ? data : [data],
-                quantityType,
-                searchType
-            });
         } catch (error) {
             console.error("Error fetching filtered data:", error);
             errorMessage = "An error occurred while fetching data. Please try again.";
-            dispatch('analysisError', { error: errorMessage });
+            dispatch('analysiserror', { error: errorMessage });
         } finally {
             isAnalysisRunning = false;
-        }
-    }
-
-    function dispatchAnalysisRunningChange(running) {
-        const analyseBox = document.querySelector('analyse-box');
-        if (analyseBox) {
-            analyseBox.dispatchEvent(new CustomEvent('analysisRunningChange', { detail: running }));
         }
     }
 
@@ -154,11 +150,6 @@
             ...options,
             selectedVMPs: event.detail.items
         }));
-    }
-
-    function handleODSSelection(event) {
-        const { selectedItems, usedOrganisationSelection } = event.detail;
-        organisationSearchStore.updateSelection(selectedItems, usedOrganisationSelection);
     }
 
     function handleQuantityTypeChange(event) {
@@ -203,12 +194,13 @@
         if (currentOrgSelections && currentOrgSelections.length > 0) {
             organisationSearchStore.updateSelection(currentOrgSelections);
         }
-        dispatch('advancedModeChange', $analyseOptions.isAdvancedMode);
+        dispatch('advancedmodechange', $analyseOptions.isAdvancedMode);
     }
 
     function handleClearAnalysis() {
         resetSelections(isAdvancedMode ? '--' : 'VMP Quantity');
-        dispatch('analysisClear');
+        modeSelectorStore.resetToDefault('total');
+        dispatch('analysisclear');
     }
 </script>
 <div class="mb-6">

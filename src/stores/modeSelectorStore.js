@@ -2,7 +2,7 @@ import { writable } from 'svelte/store';
 
 function createModeSelectorStore() {
     const { subscribe, set, update } = writable({
-        selectedMode: null,
+        selectedMode: 'total',
         options: []
     });
 
@@ -15,7 +15,10 @@ function createModeSelectorStore() {
             update(state => ({ ...state, selectedMode: mode }));
         },
         reset: () => {
-            set({ selectedMode: null, options: [] });
+            set({ selectedMode: 'total', options: [] });
+        },
+        resetToDefault: (defaultMode) => {
+            update(state => ({ ...state, selectedMode: defaultMode }));
         }
     };
 }

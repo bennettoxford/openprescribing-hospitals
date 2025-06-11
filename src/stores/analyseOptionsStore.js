@@ -10,13 +10,15 @@ const createAnalyseOptionsStore = () => {
         vmpNames: [],
         vtmNames: [],
         ingredientNames: [],
-        isAdvancedMode: false
+        isAdvancedMode: false,
+        selectedOrganisations: []
     });
 
     const runAnalysis = (options) => {
         update(store => ({
             ...store,
-            ...options
+            ...options,
+            selectedOrganisations: options.organisations || []
         }));
     };
 
@@ -26,7 +28,6 @@ const createAnalyseOptionsStore = () => {
         update,
         runAnalysis,
         updateOrganisations: (organisations) => {
-            console.log('Analysis Options Store - Updating organisations:', organisations);
             organisationSearchStore.setItems(organisations);
             organisationSearchStore.setAvailableItems(organisations);
             organisationSearchStore.setFilterType('trust');
@@ -47,7 +48,8 @@ export function clearAnalysisOptions() {
         ...store,
         selectedVMPs: [],
         quantityType: '--',
-        searchType: 'vmp'
+        searchType: 'vmp',
+        selectedOrganisations: []
     }));
     organisationSearchStore.reset();
     clearResults();
