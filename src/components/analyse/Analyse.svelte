@@ -106,18 +106,16 @@
                      class:max-h-0={isAnalyseBoxCollapsed && !isLargeScreen}
                      class:max-h-[1000px]={!isAnalyseBoxCollapsed || isLargeScreen}>
                     <analyse-box 
-                        {isAdvancedMode}
-                        {minDate}
-                        {maxDate}
-                        {orgData}
-                        {isAuthenticated}
-                        on:analysisStart={handleAnalysisStart}
-                        on:analysisComplete={handleAnalysisComplete}
-                        on:analysisError={handleAnalysisError}
-                        on:analysisClear={handleAnalysisClear}
-                        on:organisationDropdownToggle={handleOrganisationDropdownToggle}
-                        on:advancedModeChange={handleAdvancedModeChange}
-                        on:vmpSelection={handleVMPSelection}
+                      isadvancedmode={isAdvancedMode}
+                      orgdata={orgData}
+                      isauthenticated={isAuthenticated}
+                      on:analysisstart={handleAnalysisStart}
+                      on:analysiscomplete={handleAnalysisComplete}
+                      on:analysiserror={handleAnalysisError}
+                      on:analysisclear={handleAnalysisClear}
+                      on:organisationdropdowntoggle={handleOrganisationDropdownToggle}
+                      on:advancedmodechange={handleAdvancedModeChange}
+                      on:vmpselection={handleVMPSelection}
                     ></analyse-box>
                 </div>
                 {#if !isLargeScreen}
