@@ -363,12 +363,10 @@ class MeasureItemView(TemplateView):
 @api_view(["POST"])
 def filtered_quantities(request):
     search_items = request.data.get("names", None)
-    ods_names = request.data.get("ods_names", None)
     quantity_type = request.data.get("quantity_type", None)
-    
-    if not all([search_items, ods_names, quantity_type]) or quantity_type == '--':
-        return Response({"error": "Missing required parameters"}, status=400)
 
+    if not all([search_items, quantity_type]) or quantity_type == '--':
+        return Response({"error": "Missing required parameters"}, status=400)
 
     vmp_ids = set()
     query = Q()
@@ -385,9 +383,9 @@ def filtered_quantities(request):
                 query |= Q(atcs__code__startswith=code)
         except ValueError:
             return Response({"error": f"Invalid search item format: {item}"}, status=400)
-    
+
     vmp_ids = set(VMP.objects.filter(query).values_list('id', flat=True))
-    
+
     if not vmp_ids:
         return Response({"error": "No valid VMPs found"}, status=400)
 
@@ -426,8 +424,7 @@ def filtered_quantities(request):
 
         if quantity_model:
             quantity_data = quantity_model.objects.filter(
-                vmp_id__in=vmp_ids,
-                organisation__ods_name__in=ods_names
+                vmp_id__in=vmp_ids
             ).select_related('organisation')
 
             for item in quantity_data:
