@@ -390,31 +390,18 @@ def filtered_quantities(request):
         return Response({"error": "No valid VMPs found"}, status=400)
 
     try:
-        base_vmps = VMP.objects.filter(
-            id__in=vmp_ids
-        ).select_related('vtm').annotate(
-            ingredient_names=ArrayAgg('ingredients__name', distinct=True),
-            ingredient_codes=ArrayAgg('ingredients__code', distinct=True)
-        ).values(
-            'id', 'code', 'name', 'vtm__name',
-            'ingredient_names', 'ingredient_codes'
-        )
+        predecessor_to_successor = {}
+        successor_orgs = {}
+        
+        for org in Organisation.objects.exclude(successor__isnull=True).select_related('successor'):
+            predecessor_to_successor[org.ods_code] = org.successor.ods_code
 
-        response_data = []
-        for vmp in base_vmps:
-            response_item = {
-                'vmp__code': vmp['code'],
-                'vmp__name': vmp['name'],
-                'vmp__vtm__name': vmp['vtm__name'],
-                'ingredient_names': vmp['ingredient_names'],
-                'ingredient_codes': vmp['ingredient_codes'],
-                'organisation__ods_code': None,
-                'organisation__ods_name': None,
-                'organisation__region': None,
-                'organisation__icb': None,
-                'data': []
+            successor_orgs[org.successor.ods_code] = {
+                'ods_code': org.successor.ods_code,
+                'ods_name': org.successor.ods_name,
+                'region': org.successor.region,
+                'icb': org.successor.icb
             }
-            response_data.append(response_item)
 
         quantity_model = {
             "VMP Quantity": SCMDQuantity,
@@ -422,30 +409,117 @@ def filtered_quantities(request):
             "Daily Defined Doses": DDDQuantity
         }.get(quantity_type)
 
-        if quantity_model:
-            quantity_data = quantity_model.objects.filter(
-                vmp_id__in=vmp_ids
-            ).select_related('organisation')
+        if not quantity_model:
+            return Response({"error": "Invalid quantity type"}, status=400)
 
-            for item in quantity_data:
+        selected_vmps = VMP.objects.filter(id__in=vmp_ids).select_related('vtm').prefetch_related('ingredients')
+
+        quantity_data = quantity_model.objects.filter(
+            vmp_id__in=vmp_ids
+        ).select_related('organisation', 'vmp__vtm').prefetch_related('vmp__ingredients')
+
+        grouped_data = {}
+        
+        for item in quantity_data:
+            vmp_code = item.vmp.code
+            org_code = item.organisation.ods_code
+            
+            target_org_code = predecessor_to_successor.get(org_code, org_code)
+            
+            if target_org_code in successor_orgs:
+                target_org = successor_orgs[target_org_code]
+            else:
+                target_org = {
+                    'ods_code': item.organisation.ods_code,
+                    'ods_name': item.organisation.ods_name,
+                    'region': item.organisation.region,
+                    'icb': item.organisation.icb
+                }
+
+            group_key = (vmp_code, target_org_code)
+            
+            if group_key not in grouped_data:
+                grouped_data[group_key] = {
+                    'vmp': item.vmp,
+                    'target_org': target_org,
+                    'time_series_data': {},
+                    'source_orgs': []
+                }
+            
+            grouped_data[group_key]['source_orgs'].append({
+                'code': org_code,
+                'name': item.organisation.ods_name,
+                'is_predecessor': org_code != target_org_code
+            })
+            
+            if item.data:
+                for entry in item.data:
+                    date, quantity_str, unit = entry[0], entry[1], entry[2]
+                    try:
+                        quantity = float(quantity_str) if quantity_str else 0
+                        
+                        if date not in grouped_data[group_key]['time_series_data']:
+                            grouped_data[group_key]['time_series_data'][date] = {
+                                'quantity': 0,
+                                'unit': unit
+                            }
+                        
+                        grouped_data[group_key]['time_series_data'][date]['quantity'] += quantity
+                        
+                    except (ValueError, TypeError):
+                        continue
+
+        response_data = []
+        
+        for (vmp_code, target_org_code), group_info in grouped_data.items():
+            vmp = group_info['vmp']
+            target_org = group_info['target_org']
+            time_series = group_info['time_series_data']
+            
+            data_array = []
+            for date in sorted(time_series.keys()):
+                ts_entry = time_series[date]
+                data_array.append([date, str(ts_entry['quantity']), ts_entry['unit']])
+            
+            response_item = {
+                'vmp__code': vmp.code,
+                'vmp__name': vmp.name,
+                'vmp__vtm__name': vmp.vtm.name if vmp.vtm else None,
+                'ingredient_names': [ing.name for ing in vmp.ingredients.all()],
+                'ingredient_codes': [ing.code for ing in vmp.ingredients.all()],
+                'organisation__ods_code': target_org['ods_code'],
+                'organisation__ods_name': target_org['ods_name'],
+                'organisation__region': target_org['region'],
+                'organisation__icb': target_org['icb'],
+                'data': data_array,
+            }
+            response_data.append(response_item)
+
+        vmps_with_data = set()
+        for (vmp_code, target_org_code), group_info in grouped_data.items():
+            vmps_with_data.add(vmp_code)
+        
+        for vmp in selected_vmps:
+            if vmp.code not in vmps_with_data:
                 response_item = {
-                    'vmp__code': item.vmp.code,
-                    'vmp__name': item.vmp.name,
-                    'vmp__vtm__name': item.vmp.vtm.name if item.vmp.vtm else None,
-                    'ingredient_names': [ing.name for ing in item.vmp.ingredients.all()],
-                    'ingredient_codes': [ing.code for ing in item.vmp.ingredients.all()],
-                    'organisation__ods_code': item.organisation.ods_code,
-                    'organisation__ods_name': item.organisation.ods_name,
-                    'organisation__region': item.organisation.region,
-                    'organisation__icb': item.organisation.icb,
-                    'data': item.data
+                    'vmp__code': vmp.code,
+                    'vmp__name': vmp.name,
+                    'vmp__vtm__name': vmp.vtm.name if vmp.vtm else None,
+                    'ingredient_names': [ing.name for ing in vmp.ingredients.all()],
+                    'ingredient_codes': [ing.code for ing in vmp.ingredients.all()],
+                    'organisation__ods_code': None,
+                    'organisation__ods_name': None,
+                    'organisation__region': None,
+                    'organisation__icb': None,
+                    'data': [['2020-01-01', '0', 'nan']],
                 }
                 response_data.append(response_item)
 
-        return Response(response_data)
+        return Response({
+            "data": response_data
+        })
 
     except Exception as e:
-        print(f"Error processing request: {str(e)}")
         return Response({"error": "An error occurred while processing the request"}, status=500)
 
 
