@@ -20,6 +20,8 @@
         calculateUnits,
         updateTrustCountBreakdown
     }  from '../../../utils/analyseUtils';
+    import { VIEW_MODES, DEFAULT_ANALYSIS_MODE } from '../../../stores/analyseOptionsStore.js';
+    import { createAnalysisData } from '../../../utils/analyseUtils';
 
     export let className = '';
     export let isAnalysisRunning;
@@ -31,13 +33,9 @@
     let filteredData = [];
     let completeAnalysisData = [];
     let originalChartData = null;
+    let processingError = null;
 
-    let viewModes = [
-        { value: 'organisation', label: 'NHS Trust' },
-        { value: 'icb', label: 'ICB' },
-        { value: 'region', label: 'Region' },
-        { value: 'total', label: 'National Total' }
-    ];
+    let viewModes = [...VIEW_MODES];
 
     const resultsChartStore = createChartStore({
         mode: 'trust',
@@ -65,15 +63,18 @@
         }));
     }
 
-    $: defaultMode = 'organisation';
+    $: defaultMode = DEFAULT_ANALYSIS_MODE;
 
     let showTrustsWithNoData = false;
     let showTrustCountDetails = false;
 
     $: {
-        if (!$modeSelectorStore.selectedMode || 
-            !viewModes.some(mode => mode.value === $modeSelectorStore.selectedMode)) {
-            modeSelectorStore.resetToDefault('organisation');
+        const validModes = viewModes.map(mode => mode.value);
+        const currentMode = $modeSelectorStore.selectedMode;
+        
+        if (!currentMode || !validModes.includes(currentMode)) {
+            console.warn(`Invalid mode '${currentMode}', resetting to default`);
+            modeSelectorStore.resetToDefault(DEFAULT_ANALYSIS_MODE);
         }
     }
 
@@ -132,20 +133,23 @@
     }
 
     function handleUpdateData(analysisResult) {
-        let data;
-        let metadata = {};
+        processingError = null;
+        
+        try {
+            const analysisData = createAnalysisData(analysisResult);
+            
+            if (!analysisData.data || analysisData.data.length === 0) {
+                console.warn('No valid analysis data received');
+                return;
+            }
 
-        if (analysisResult.data && Array.isArray(analysisResult.data)) {
-            data = analysisResult.data;
-            metadata = {
-                percentiles: analysisResult.percentiles,
-                searchType: analysisResult.searchType,
-                quantityType: analysisResult.quantityType,
-                selectedOrganisations: analysisResult.selectedOrganisations || []
+            const data = analysisData.data;
+            const metadata = {
+                percentiles: analysisData.percentiles,
+                searchType: analysisData.searchType,
+                quantityType: analysisData.quantityType,
+                selectedOrganisations: analysisData.selectedOrganisations
             };
-        } else {
-            return;
-        }
       
         completeAnalysisData = data;
         selectedData = data;
@@ -195,9 +199,13 @@
 
         vmps = Object.values(uniqueVmps);
 
-        const chartData = processCompleteChartData(data);
-        originalChartData = chartData;
-        resultsChartStore.setData(chartData);
+            const chartData = processCompleteChartData(data);
+            originalChartData = chartData;
+            resultsChartStore.setData(chartData);
+        } catch (error) {
+            console.error('Error processing analysis data:', error);
+            processingError = error.message || 'Failed to process analysis data';
+        }
     }
 
     function handleProductFilter(event) {
@@ -248,12 +256,7 @@
     }
 
     $: {
-        viewModes = [
-            { value: 'organisation', label: 'NHS Trust' },
-            { value: 'icb', label: 'ICB' },
-            { value: 'region', label: 'Region' },
-            { value: 'total', label: 'National Total' }
-        ];
+        viewModes = [...VIEW_MODES];
 
         if (vmps.length > 1) {
             viewModes.push({ value: 'product', label: 'Product' });
@@ -365,7 +368,19 @@
 {#if showResults}
     <div class="results-box bg-white rounded-lg shadow-md h-full flex flex-col {className}">
         <div class="flex-grow overflow-y-auto rounded-t-lg">
-            {#if isAnalysisRunning}
+            {#if processingError}
+                <div class="p-4 bg-red-50 border border-red-200 rounded-lg m-6">
+                    <div class="flex items-center">
+                        <svg class="h-5 w-5 text-red-400 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                        <div>
+                            <h3 class="text-sm font-medium text-red-800">Analysis Processing Error</h3>
+                            <p class="text-sm text-red-700 mt-1">{processingError}</p>
+                        </div>
+                    </div>
+                </div>
+            {:else if isAnalysisRunning}
                 <div class="flex items-center justify-center h-[500px] p-16">
                     <div class="animate-spin rounded-full h-32 w-32 border-t-4 border-b-4 border-oxford-500"></div>
                 </div>

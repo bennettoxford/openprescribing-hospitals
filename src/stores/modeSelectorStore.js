@@ -1,8 +1,9 @@
 import { writable } from 'svelte/store';
+import { DEFAULT_ANALYSIS_MODE } from './analyseOptionsStore.js';
 
 function createModeSelectorStore() {
     const { subscribe, set, update } = writable({
-        selectedMode: 'total',
+        selectedMode: DEFAULT_ANALYSIS_MODE,
         options: []
     });
 
@@ -15,7 +16,7 @@ function createModeSelectorStore() {
             update(state => ({ ...state, selectedMode: mode }));
         },
         reset: () => {
-            set({ selectedMode: 'total', options: [] });
+            set({ selectedMode: DEFAULT_ANALYSIS_MODE, options: [] });
         },
         resetToDefault: (defaultMode) => {
             update(state => ({ ...state, selectedMode: defaultMode }));

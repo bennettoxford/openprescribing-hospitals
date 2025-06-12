@@ -4,7 +4,7 @@
   }} />
 
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import AnalyseBox from './analyse/AnalyseBox.svelte';
   import ResultsBox from './results/ResultsBox.svelte';
   import { writable } from 'svelte/store';
@@ -15,7 +15,6 @@
   let isOrganisationDropdownOpen = false;
   let showResults = false;
   let analysisData = null;
-  let isAdvancedMode = false;
   let isAnalyseBoxCollapsed = false;
   let isLargeScreen = false;
   let isResultsBoxPopulated = false;
@@ -25,6 +24,7 @@
   export let orgData;
   export let isAuthenticated;
 
+  $: isAdvancedMode = $analyseOptions.isAdvancedMode;
   $: isResultsBoxPopulated = analysisData && analysisData.length > 0;
 
   function handleAnalysisStart() {
@@ -54,10 +54,6 @@
     isAnalysisRunning.set(false);
   }
 
-  function handleAdvancedModeChange(event) {
-    isAdvancedMode = event.detail;
-  }
-
   function handleVMPSelection(event) {
     analyseOptions.update(options => ({
         ...options,
@@ -75,9 +71,10 @@
     isLargeScreen = window.innerWidth >= 1024;
   }
 
-  window.addEventListener('resize', checkScreenSize);
   onMount(() => {
     checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
     if (orgData) {
         try {
             const parsedData = typeof orgData === 'string' ? JSON.parse(orgData) : orgData;
@@ -91,6 +88,10 @@
             console.error('Error parsing ODS data:', error);
         }
     }
+  });
+
+  onDestroy(() => {
+    window.removeEventListener('resize', checkScreenSize);
   });
 </script>
 
@@ -106,15 +107,14 @@
                      class:max-h-0={isAnalyseBoxCollapsed && !isLargeScreen}
                      class:max-h-[1000px]={!isAnalyseBoxCollapsed || isLargeScreen}>
                     <analyse-box 
-                      isadvancedmode={isAdvancedMode}
                       orgdata={orgData}
                       isauthenticated={isAuthenticated}
+                      isadvancedmode={isAdvancedMode}
                       on:analysisstart={handleAnalysisStart}
                       on:analysiscomplete={handleAnalysisComplete}
                       on:analysiserror={handleAnalysisError}
                       on:analysisclear={handleAnalysisClear}
                       on:organisationdropdowntoggle={handleOrganisationDropdownToggle}
-                      on:advancedmodechange={handleAdvancedModeChange}
                       on:vmpselection={handleVMPSelection}
                     ></analyse-box>
                 </div>

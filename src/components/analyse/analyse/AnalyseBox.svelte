@@ -25,29 +25,20 @@
     $: quantityType = $analyseOptions.quantityType;
     $: searchType = $analyseOptions.searchType;
     $: isAdvancedMode = $analyseOptions.isAdvancedMode;
+    $: isAuthenticated = $analyseOptions.isAuthenticated;
 
-    export let isadvancedmode = false;
-    export let mindate = null;
-    export let maxdate = null;
     export let orgdata = null;
     export let isauthenticated = 'false';
-    
-    $: isAdvancedMode = isadvancedmode;
-    $: orgData = orgdata;
-    $: isAuthenticated = isauthenticated;
-    $: isAuthenticatedBool = isauthenticated === 'true';
-
-    $: {
-        if (isAdvancedMode !== $analyseOptions.isAdvancedMode) {
-            analyseOptions.setAdvancedMode(isAdvancedMode);
-        }
-    }
+    export let isadvancedmode = false;
 
     onMount(async () => {
         try {
-            if (orgData) {
+            analyseOptions.setAuthentication(isauthenticated === 'true');
+            analyseOptions.setAdvancedMode(isadvancedmode);
+
+            if (orgdata) {
                 try {
-                    const parsedData = typeof orgData === 'string' ? JSON.parse(orgData) : orgData;
+                    const parsedData = typeof orgdata === 'string' ? JSON.parse(orgdata) : orgdata;
                     organisationSearchStore.setItems(parsedData.items);
                     organisationSearchStore.setAvailableItems(parsedData.items);
                 } catch (error) {
@@ -140,10 +131,9 @@
     }
 
     function handleVMPSelection(event) {
-        if (!isAuthenticatedBool) {
+        if (!isAuthenticated) {
             event.detail.items = event.detail.items.slice(0, 1);
         } else if (!isAdvancedMode && event.detail.items.length > 1) {
-            // If not in advanced mode, only allow one product to be selected
             event.detail.items = [event.detail.items[0]];
         }
         analyseOptions.update(options => ({
@@ -185,17 +175,16 @@
     }
 
     function toggleAdvancedMode() {
-        if (!isAuthenticatedBool && !$analyseOptions.isAdvancedMode) {
+        if (!isAuthenticated && !isAdvancedMode) {
             return;
         }
         
-        analyseOptions.setAdvancedMode(!$analyseOptions.isAdvancedMode);
+        analyseOptions.setAdvancedMode(!isAdvancedMode);
         const currentOrgSelections = $organisationSearchStore.selectedItems;
-        resetSelections($analyseOptions.isAdvancedMode ? '--' : 'VMP Quantity');
+        resetSelections(isAdvancedMode ? '--' : 'VMP Quantity');
         if (currentOrgSelections && currentOrgSelections.length > 0) {
             organisationSearchStore.updateSelection(currentOrgSelections);
         }
-        dispatch('advancedmodechange', $analyseOptions.isAdvancedMode);
     }
 
     function handleClearAnalysis() {
@@ -205,7 +194,7 @@
     }
 </script>
 <div class="mb-6">
-  {#if isAuthenticatedBool}
+  {#if isAuthenticated}
     <div class="border-b border-gray-200">
       <nav class="flex space-x-0 w-full" aria-label="Tabs">
         <div class="flex items-center gap-2 w-full">
