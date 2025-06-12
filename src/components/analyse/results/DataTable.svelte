@@ -5,6 +5,7 @@
 
 <script>
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
+    import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     import { formatNumber } from '../../../utils/utils';
 
     export let data = [];
@@ -17,6 +18,7 @@
     let currentFY = '';
 
     $: dateRange = $analyseOptions.dateRange;
+    const selectedOrgs = $organisationSearchStore.selectedItems || [];
 
     // Calculate available periods when data changes
     $: {
@@ -43,6 +45,10 @@
             }
         }
     }
+
+    $: filteredData = selectedOrgs && selectedOrgs.length > 0
+        ? data.filter(item => selectedOrgs.includes(item.organisation__ods_name))
+        : [];
 
     function processData(data, quantityType, searchType, period) {
         if (!data?.length) return [];
@@ -125,7 +131,17 @@
             }));
     }
 
-    $: groupedData = processData(data, quantityType, searchType, selectedPeriod);
+    $: groupedDataAll = processData(data, quantityType, searchType, selectedPeriod);
+    $: groupedDataSelected = processData(filteredData, quantityType, searchType, selectedPeriod);
+
+    $: mergedData = groupedDataAll.map(allRow => {
+        const selectedRow = groupedDataSelected.find(sel => sel.key === allRow.key);
+        return {
+            ...allRow,
+            selectedTotal: selectedRow ? selectedRow.total : null,
+            selectedUnits: selectedRow ? selectedRow.units : null
+        };
+    });
 
     function formatDate(dateStr) {
         if (!dateStr) return '';
@@ -198,72 +214,89 @@
             </div>
         </div>
     </div>
-    <div class="overflow-x-auto">
-        <div class="max-h-96 overflow-y-auto relative">
-            <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
-                <thead class="bg-gray-200 text-gray-600 text-sm leading-normal sticky top-0 z-10">
-                    <tr>
-                        <th class="py-3 px-6 text-left">
-                            {#if searchType === 'product'}
-                                Product group
-                            {:else if searchType === 'ingredient'}
-                                Ingredient
-                            {:else}
-                                Product
+    <div class="mb-8">
+        <div class="overflow-x-auto">
+            <div class="max-h-96 overflow-y-auto relative">
+                <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
+                    <thead class="bg-gray-200 text-gray-600 text-sm leading-normal sticky top-0 z-10">
+                        <tr>
+                            <th class="py-3 px-6 text-left">
+                                {#if searchType === 'product'}
+                                    Product group
+                                {:else if searchType === 'ingredient'}
+                                    Ingredient
+                                {:else}
+                                    Product
+                                {/if}
+                            </th>
+                            <th class="py-3 px-6 text-left">Unit</th>
+                            <th class="py-3 px-6 text-right">All NHS Trusts</th>
+                            {#if selectedOrgs && selectedOrgs.length > 0}
+                                <th class="py-3 px-6 text-right">
+                                    Selected Trusts ({selectedOrgs.length})
+                                </th>
                             {/if}
-                        </th>
-                        <th class="py-3 px-6 text-left">Unit</th>
-                        <th class="py-3 px-6 text-right">Quantity</th>
-                    </tr>
-                </thead>
-                <tbody class="text-gray-600 text-sm">
-                    {#each groupedData as group}
-                        {#if quantityType === 'DDD'}
-                            <tr class="border-b border-gray-200 hover:bg-gray-100">
-                                <td class="py-3 px-6 text-left">
-                                    {group.key}
-                                </td>
-                                <td class="py-3 px-6 text-left">
-                                    {group.units[0]?.unit || 'DDD'}
-                                </td>
-                                <td class="py-3 px-6 text-right">
-                                    {formatNumber(group.total)}
-                                </td>
-                            </tr>
-                        {:else if !$analyseOptions.isAdvancedMode}
-                            <tr class="border-b border-gray-200 hover:bg-gray-100">
-                                <td class="py-3 px-6 text-left">
-                                    {group.key}
-                                </td>
-                                <td class="py-3 px-6 text-left">
-                                    {group.units[0]?.unit || '-'}
-                                </td>
-                                <td class="py-3 px-6 text-right">
-                                    {formatNumber(group.units[0]?.quantity || 0, group.units[0]?.unit)}
-                                </td>
-                            </tr>
-                        {:else}
-                            <tr class="border-b border-gray-200 hover:bg-gray-100 font-bold">
-                                <td class="py-3 px-6 text-left" rowspan={group.units.length + 1}>
-                                    {group.key}
-                                </td>
-                                <td class="py-3 px-6 text-left">All units</td>
-                                <td class="py-3 px-6 text-right">
-                                    {formatNumber(group.total)}
-                                </td>
-                            </tr>
-                            {#each group.units as unitData}
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-600 text-sm">
+                        {#each mergedData as group}
+                            {#if quantityType === 'DDD'}
                                 <tr class="border-b border-gray-200 hover:bg-gray-100">
-                                    <td class="py-3 px-6 text-left">{unitData.unit}</td>
-                                    <td class="py-3 px-6 text-right">
-                                        {formatNumber(unitData.quantity, unitData.unit)}
-                                    </td>
+                                    <td class="py-3 px-6 text-left">{group.key}</td>
+                                    <td class="py-3 px-6 text-left">{group.units[0]?.unit || 'DDD'}</td>
+                                    <td class="py-3 px-6 text-right">{formatNumber(group.total)}</td>
+                                    {#if selectedOrgs && selectedOrgs.length > 0}
+                                        <td class="py-3 px-6 text-right">
+                                            {group.selectedTotal ? formatNumber(group.selectedTotal) : '-'}
+                                        </td>
+                                    {/if}
                                 </tr>
-                            {/each}
-                        {/if}
-                    {/each}
-                </tbody>
-            </table>
+                            {:else if !$analyseOptions.isAdvancedMode}
+                                <tr class="border-b border-gray-200 hover:bg-gray-100">
+                                    <td class="py-3 px-6 text-left">{group.key}</td>
+                                    <td class="py-3 px-6 text-left">{group.units[0]?.unit || '-'}</td>
+                                    <td class="py-3 px-6 text-right">
+                                        {formatNumber(group.units[0]?.quantity || 0, group.units[0]?.unit)}
+                                    </td>
+                                    {#if selectedOrgs && selectedOrgs.length > 0}
+                                        <td class="py-3 px-6 text-right">
+                                            {group.selectedUnits && group.selectedUnits[0]
+                                                ? formatNumber(group.selectedUnits[0].quantity || 0, group.selectedUnits[0].unit)
+                                                : '-'}
+                                        </td>
+                                    {/if}
+                                </tr>
+                            {:else}
+                                <tr class="border-b border-gray-200 hover:bg-gray-100 font-bold">
+                                    <td class="py-3 px-6 text-left" rowspan={group.units.length + 1}>{group.key}</td>
+                                    <td class="py-3 px-6 text-left">All units</td>
+                                    <td class="py-3 px-6 text-right">{formatNumber(group.total)}</td>
+                                    {#if selectedOrgs && selectedOrgs.length > 0}
+                                        <td class="py-3 px-6 text-right">
+                                            {group.selectedTotal ? formatNumber(group.selectedTotal) : '-'}
+                                        </td>
+                                    {/if}
+                                </tr>
+                                {#each group.units as unitData}
+                                    <tr class="border-b border-gray-200 hover:bg-gray-100">
+                                        <td class="py-3 px-6 text-left">{unitData.unit}</td>
+                                        <td class="py-3 px-6 text-right">
+                                            {formatNumber(unitData.quantity, unitData.unit)}
+                                        </td>
+                                        {#if selectedOrgs && selectedOrgs.length > 0}
+                                            <td class="py-3 px-6 text-right">
+                                                {group.selectedUnits?.find(u => u.unit === unitData.unit)?.quantity
+                                                    ? formatNumber(group.selectedUnits.find(u => u.unit === unitData.unit).quantity, unitData.unit)
+                                                    : '-'}
+                                            </td>
+                                        {/if}
+                                    </tr>
+                                {/each}
+                            {/if}
+                        {/each}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
