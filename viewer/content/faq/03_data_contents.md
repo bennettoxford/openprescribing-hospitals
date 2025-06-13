@@ -10,7 +10,11 @@ Unlike primary care prescribing data, hospital stock control data is not based o
 
 ### Which medicines and devices are included?
 
-All medicines and devices used by NHS Trusts in England with a dm+d code are included.
+All medicines and devices used by NHS Trusts in England with a dm+d code are included. You can view detailed information about all included products using the [Product Lookup page](https://hospitals.openprescribing.net/product-lookup/).
+
+### What is the dm+d?
+
+The dm+d is the standard dictionary for medicines and devices used across the NHS and contains standardised codes, descriptions and metadata for individual items. You can read more about how we use it on OpenPrescribing Hospitals in our blog post, [Getting more from the secondary care medicines data using the dictionary of medicines and devices](https://www.bennett.ox.ac.uk/blog/2025/03/getting-more-from-the-secondary-care-medicines-data-using-the-dictionary-of-medicines-and-devices/).
 
 ### Is homecare medicines data included?
 
@@ -54,15 +58,42 @@ You can read about this in our blog, [More about hospital stock control data](ht
 
 VMP is short for Virtual Medicinal Product. This is a component of the [dictionary of medicines and devices (dm+d)](https://www.bennett.ox.ac.uk/blog/2019/08/what-is-the-dm-d-the-nhs-dictionary-of-medicines-and-devices/), the standard dictionary for medicines and devices used across the NHS and contains standardised codes, descriptions and metadata for individual items. VMPs describe a general class of medicines or device that may be available as an actual product. All of the data within the SCMD is reported at the level of VMPs. We commonly refer to these as _products_. 
 
+<img src="/static/faq/vmp.png" 
+     alt="dm+d hierarchy" 
+     style="max-height: 26rem; margin-left: auto; margin-right: auto; max-width: 100%;" />
+
 You can read more about VMPs in our blogs, [Understanding the secondary care medicines dataset](https://www.bennett.ox.ac.uk/blog/2025/02/understanding-the-secondary-care-medicines-dataset/) and [Getting more from the secondary care medicines data using the dictionary of medicines and devices](https://www.bennett.ox.ac.uk/blog/2025/03/getting-more-from-the-secondary-care-medicines-data-using-the-dictionary-of-medicines-and-devices/).
 
-### What is a DDD?
 
-Defined Daily Dose (DDD) is a unit of measure for medicines consumption that enables comparison of usage across groups of medicines. They are defined and maintained by the World Health Organization (WHO), who define them as:
+### What is the Anatomical Therapeutic Chemical (ATC)/ Defined Daily Dose (DDD) system?
+
+The ATC/DDD system is a way for classifying and measuring drug utilisation to enable comparisons of drug use between countries, regions, and other healthcare settings. It classifies medicinal products using the [Anatomical Therapeutic Classification (ATC) system](/faq/#what-is-the-anatomical-therapeutic-chemical-atc-system) and provides the [Defined Daily Dose (DDD)](/faq/#what-is-a-defined-daily-dose-ddd) as a way to measure their usage.
+
+It is maintained by the [World Health Organisation (WHO) Collaborating Centre for Drug Statistics Methodology](https://atcddd.fhi.no/atc_ddd_methodology/who_collaborating_centre/) and is widely used internationally.
+
+### What is the Anatomical Therapeutic Chemical (ATC) system?
+
+The Anatomical Therapeutic Chemical (ATC) system provides a classification for the active ingredients within medicinal substances based on where in the body they act and their therapeutic (what condition or disease they treat), pharmacological (how they work in the body), and chemical properties (the structure and composition of the substance).
+
+The system is a hierarchy with five levels of increasing specificity, which you can read more about in our blog post, [Classifying and measuring medicines usage with the ATC/DDD system](https://www.bennett.ox.ac.uk/blog/2025/07/calculating-defined-daily-dose-quantity-in-the-secondary-care-medicines-data/). Below is an example of how the ATC code for olanzapine is structured:
+
+<img src="/static/faq/atc.png" 
+     alt="ATC hierarchy showing the 5-level classification system from Anatomical main group (N) down to Chemical substance (03)" 
+     style="height: clamp(5rem, 14vw, 12rem); margin-left: auto; margin-right: auto; max-width: 100%;" />
+
+
+### What is a Defined Daily Dose (DDD)?
+
+The [ATC system](/faq/#what-is-the-anatomical-therapeutic-chemical-atc-system) provides a way to classify drugs, but not a unit to measure them in. This is what the Defined Daily Dose (DDD) is for. DDDs are a unit of measure for medicines consumption that enables comparison of usage across groups of medicines. . They are defined and maintained by the World Health Organization (WHO), who define them as:
 
 > Defined Daily Dose (DDD): The assumed average maintenance dose per day for a drug used for its main indication in adults
 
 *Source: [World Health Organization](https://www.who.int/tools/atc-ddd-toolkit/about-ddd)*
+
+<img src="/static/faq/ddd-calc.png" 
+     alt="DDD calculation logic" 
+     style="max-height: 12rem; margin-left: auto; margin-right: auto; max-width: 100%;" />
+
 
 ### What is indicative cost?
 
@@ -74,3 +105,4 @@ The SCMD includes the indicative cost for each medicine or device within the dat
 ### Does the data include prescriptions dispensed in community pharmacy?
 
 The SCMD does not include NHS prescriptions supplied by the hospital and dispensed in community pharmacy (hospital FP10 prescriptions). This data is available in a separate dataset, [Hospital Prescribing Dispensed in the Community](https://opendata.nhsbsa.net/dataset/hospital-prescribing-dispensed-in-the-community), which we do not currently use on OpenPrescribing Hospitals. Medicines dispensed in community pharmacy make up a very small proportion of hospital medicines usage; in January 2025, medicines dispensed in community pharmacy accounted for £5.6m actual cost, which is a very small proportion of the near £2.1bn indicative cost in SCMD data for the same month (likely ~£1bn actual cost). 
+The DDD quantity for a product can be calculated as follows:
