@@ -16,6 +16,7 @@ from .views import (
     AboutView,
     BlogListView,
     PapersListView,
+    product_details_api,
 )
 
 
@@ -27,6 +28,7 @@ urlpatterns = [
     path("measures/", MeasuresListView.as_view(), name="measures_list"),
     path("api/filtered-vmp-count/", filtered_vmp_count, name="filtered_vmp_count"),
     path("api/filtered-quantities/", filtered_quantities, name="filtered-quantities"),
+    path("api/product-details/", product_details_api, name="product_details_api"),
     path("measures/<slug:slug>/", MeasureItemView.as_view(), name="measure_item"),
     path("submission-history/", OrgsSubmittingDataView.as_view(), name="submission_history"),
     path('login/', LoginView.as_view(), name='login'),

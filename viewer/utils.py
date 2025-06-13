@@ -1,7 +1,21 @@
 import csv
+import math
 from datetime import datetime, timedelta
 from django.conf import settings
 import os
+
+
+def safe_float(value):
+    """Convert value to float, handling NaN, inf, and None values."""
+    if value is None:
+        return None
+    try:
+        float_val = float(value)
+        if math.isnan(float_val) or math.isinf(float_val):
+            return None
+        return float_val
+    except (ValueError, TypeError):
+        return None
 
 
 def generate_dummy_data_csv():
