@@ -114,11 +114,19 @@
     products = data;
     groupedProducts = groupProductsByVTM(data);
     
+    // Initialize expansion state for each product
+    products.forEach(product => {
+      product.showAllExamples = false;
+      product.showSCMDQuantity = false;
+      product.showUnitDose = false;
+      product.showDDDQuantity = false;
+      product.showIngredients = false;
+    });
+    
     Object.keys(groupedProducts).forEach(vtmName => {
       expandedGroups[vtmName] = true;
     });
     expandedGroups = {...expandedGroups};
-    
   }
 
   function handleAPIError(err) {
@@ -331,7 +339,7 @@
                                               group-hover:scale-100 w-[280px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
                                               ring-1 ring-black ring-opacity-5 p-4">
                                     <p class="text-sm text-gray-500">
-                                      Below is an example of a reported quantity for this product from the SCMD. Where it is possible to calculate, the equivalent quantity using alternative measures is shown. See the <a href="/faq/#data-contents" class="underline font-semibold" target="_blank">FAQs</a> for more details.
+                                      This section shows the available quantity measures for this product. See the <a href="/faq/#data-contents" class="underline font-semibold" target="_blank">FAQs</a> for more details.
                                     </p>
                                   </div>
                                 </div>
@@ -423,38 +431,99 @@
                                 </div>
                               {:else}
                                 <!-- Quantity Information Section -->
-                                <div class="grid grid-cols-[auto_1fr] gap-3 items-baseline">
-                                  <span class="text-sm font-medium whitespace-nowrap">SCMD quantity:</span>
-                                  <span class="text-sm break-words hyphens-auto min-w-0">{formatQuantity(product.example_quantity)}</span>
-                                </div>
-                                
-                                <div class="grid grid-cols-[auto_1fr] gap-3 items-baseline">
-                                  <span class="text-sm font-medium whitespace-nowrap">Unit dose quantity:</span>
-                                  <span class="text-sm break-words hyphens-auto min-w-0">{formatQuantity(product.example_dose)}</span>
-                                </div>
-                                
-                                <div class="grid grid-cols-[auto_1fr] gap-3 items-baseline">
-                                  <span class="text-sm font-medium whitespace-nowrap">DDD quantity:</span>
-                                  <span class="text-sm break-words hyphens-auto min-w-0">
-                                    {#if product.example_ddd && product.example_ddd.quantity}
-                                      {product.example_ddd.quantity}
-                                    {:else}
-                                      <span class="text-gray-400">-</span>
-                                    {/if}
-                                  </span>
-                                </div>
-                                
-                                {#if product.example_ingredients && product.example_ingredients.length > 0}
-                                  <div class="pt-1 mt-1 border-t border-gray-200">
-                                    <span class="text-sm font-medium block mb-1.5">Ingredient quantities:</span>
-                                    {#each product.example_ingredients as ingredient}
-                                      <div class="grid grid-cols-[1fr_auto] gap-3 items-baseline pl-2 mb-1">
-                                        <span class="text-sm font-medium break-words hyphens-auto">{ingredient.name}:</span>
-                                        <span class="text-sm whitespace-nowrap min-w-[80px]">{formatIngredientQuantity(ingredient)}</span>
-                                      </div>
-                                    {/each}
+                                <div class="space-y-1">
+                                  <!-- SCMD Quantity -->
+                                  <div class="grid grid-cols-[auto_1fr] gap-3 items-center">
+                                    <span class="text-sm font-medium whitespace-nowrap">SCMD quantity:</span>
+                                    <div class="flex items-center">
+                                      {#if product.example_quantity}
+                                        <span class="flex h-6 items-center gap-2 rounded-md bg-oxford-100 px-2 text-oxford-700 shrink-0">
+                                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 shrink-0">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                                          </svg>
+                                          <span class="text-xs font-medium">Available</span>
+                                        </span>
+                                      {:else}
+                                        <span class="flex h-6 items-center gap-2 rounded-md bg-red-100 px-2 text-red-700 shrink-0">
+                                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 shrink-0">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+                                          </svg>
+                                          <span class="text-xs font-medium">Not available</span>
+                                        </span>
+                                      {/if}
+                                    </div>
                                   </div>
-                                {/if}
+
+                                  <!-- Unit Dose Quantity -->
+                                  <div class="grid grid-cols-[auto_1fr] gap-3 items-center">
+                                    <span class="text-sm font-medium whitespace-nowrap">Unit dose quantity:</span>
+                                    <div class="flex items-center">
+                                      <div class="inline-flex items-center">
+                                        {#if product.example_dose}
+                                          <span class="flex h-6 items-center gap-2 rounded-md bg-oxford-100 px-2 text-oxford-700 shrink-0">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 shrink-0">
+                                              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                                            </svg>
+                                            <span class="text-xs font-medium">Available</span>
+                                          </span>
+                                        {:else}
+                                          <span class="flex h-6 items-center gap-2 rounded-md bg-red-100 px-2 text-red-700 shrink-0">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 shrink-0">
+                                              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+                                            </svg>
+                                            <span class="text-xs font-medium">Not available</span>
+                                          </span>
+                                        {/if}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <!-- DDD Quantity -->
+                                  <div class="grid grid-cols-[auto_1fr] gap-3 items-center">
+                                    <span class="text-sm font-medium whitespace-nowrap">DDD quantity:</span>
+                                    <div class="flex items-center">
+                                      <div class="inline-flex items-center">
+                                        {#if product.example_ddd?.quantity}
+                                          <span class="flex h-6 items-center gap-2 rounded-md bg-oxford-100 px-2 text-oxford-700 shrink-0">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 shrink-0">
+                                              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                                            </svg>
+                                            <span class="text-xs font-medium">Available</span>
+                                          </span>
+                                        {:else}
+                                          <span class="flex h-6 items-center gap-2 rounded-md bg-red-100 px-2 text-red-700 shrink-0">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 shrink-0">
+                                              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+                                            </svg>
+                                            <span class="text-xs font-medium">Not available</span>
+                                          </span>
+                                        {/if}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <!-- Ingredient Quantities -->
+                                  <div class="grid grid-cols-[auto_1fr] gap-3 items-center">
+                                    <span class="text-sm font-medium whitespace-nowrap">Ingredient quantity:</span>
+                                    <div class="flex items-center">
+                                      {#if product.example_ingredients && product.example_ingredients.length > 0}
+                                        <span class="flex h-6 items-center gap-2 rounded-md bg-oxford-100 px-2 text-oxford-700 shrink-0">
+                                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 shrink-0">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                                          </svg>
+                                          <span class="text-xs font-medium">Available</span>
+                                        </span>
+                                      {:else}
+                                        <span class="flex h-6 items-center gap-2 rounded-md bg-red-100 px-2 text-red-700 shrink-0">
+                                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 shrink-0">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+                                          </svg>
+                                          <span class="text-xs font-medium">Not available</span>
+                                        </span>
+                                      {/if}
+                                    </div>
+                                  </div>
+                                </div>
                               {/if}
                             </div>
                           </div>
