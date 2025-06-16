@@ -18,6 +18,8 @@ services:
     value: "False"
   - key: APP_URL
     value: ${APP_URL}
+  - key: DATABASE_URL
+    value: ${main-db.DATABASE_URL}
 databases:
 - engine: PG
   name: main-db
