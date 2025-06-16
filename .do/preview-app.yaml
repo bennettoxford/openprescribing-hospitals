@@ -1,0 +1,24 @@
+name: openprescribing-hospitals
+region: lon
+services:
+- name: web
+  source_dir: /
+  github:
+    repo: bennettoxford/openprescribing-hospitals
+    branch: main
+    deploy_on_push: true
+  run_command: gunicorn demo.wsgi:application --bind 0.0.0.0:8080
+  environment_slug: python
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  envs:
+  - key: SECRET_KEY
+    value: ${SECRET_KEY}
+  - key: DEBUG
+    value: "False"
+  - key: APP_URL
+    value: ${APP_URL}
+databases:
+- engine: PG
+  name: main-db
+  version: "16" 

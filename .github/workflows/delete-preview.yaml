@@ -2,18 +2,19 @@ name: Delete Preview
 
 on:
   pull_request:
-    types: [ closed ]
+    types: [closed]
+
+permissions:
+  contents: read
+  pull-requests: read
 
 jobs:
-  closed:
+  cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: delete preview app
+      - name: Delete preview app
         uses: digitalocean/app_action/delete@v2
         with:
           from_pr_preview: "true"
           ignore_not_found: "true"
           token: ${{ secrets.DIGITAL_OCEAN_API_TOKEN }}
-    permissions:
-      contents: read
-      pull-requests: read

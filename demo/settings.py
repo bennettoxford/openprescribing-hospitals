@@ -2,6 +2,7 @@ from pathlib import Path
 from environs import Env
 import re
 import os
+import dj_database_url
 
 env = Env()
 env.read_env()
@@ -78,14 +79,9 @@ WSGI_APPLICATION = "demo.wsgi.application"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env.str("DATABASE_NAME"),
-        'USER': env.str("DATABASE_USER"),
-        'PASSWORD': env.str("DATABASE_PASSWORD"),
-        'HOST': env.str("DATABASE_HOST"),
-        'PORT': env.str("DATABASE_PORT"),
-    }
+    'default': dj_database_url.config(
+        default=f"postgresql://{env.str('DATABASE_USER')}:{env.str('DATABASE_PASSWORD')}@{env.str('DATABASE_HOST')}:{env.str('DATABASE_PORT')}/{env.str('DATABASE_NAME')}"
+    )
 }
 
 CACHES = {
