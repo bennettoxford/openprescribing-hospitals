@@ -78,11 +78,22 @@ WSGI_APPLICATION = "demo.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default=f"postgresql://{env.str('DATABASE_USER')}:{env.str('DATABASE_PASSWORD')}@{env.str('DATABASE_HOST')}:{env.str('DATABASE_PORT')}/{env.str('DATABASE_NAME')}"
-    )
-}
+database_url = env.str("DATABASE_URL", None)
+
+if database_url:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=database_url,
+            conn_max_age=600
+        )
+    }
+else:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=f"postgresql://{env.str('DATABASE_USER')}:{env.str('DATABASE_PASSWORD')}@{env.str('DATABASE_HOST')}:{env.str('DATABASE_PORT')}/{env.str('DATABASE_NAME')}",
+            conn_max_age=600
+        )
+    }
 
 CACHES = {
     'default': {
