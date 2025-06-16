@@ -7,7 +7,7 @@ services:
     repo: bennettoxford/openprescribing-hospitals
     branch: main
     deploy_on_push: true
-  run_command: gunicorn demo.wsgi:application --bind 0.0.0.0:8080
+  run_command: python manage.py migrate && gunicorn demo.wsgi:application --bind 0.0.0.0:8080
   environment_slug: python
   instance_count: 1
   instance_size_slug: basic-xxs
