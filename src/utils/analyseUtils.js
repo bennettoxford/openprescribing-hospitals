@@ -146,17 +146,10 @@ export function updateTrustCountBreakdown(percentilesResult, predecessorMap) {
         return { current: 0, predecessors: 0, total: 0 };
     }
 
-    const predecessorCount = predecessorMap instanceof Map 
-        ? Array.from(predecessorMap.values()).reduce((sum, preds) => 
-            sum + (Array.isArray(preds) ? preds.length : 0), 0)
-        : 0;
 
-    const totalContributingEntities = percentilesResult.trustCount + predecessorCount;
-    
     return {
         current: percentilesResult.trustCount,
-        predecessors: predecessorCount,
-        total: totalContributingEntities
+        total: percentilesResult.trustCount
     };
 }
 

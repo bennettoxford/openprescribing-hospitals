@@ -1,18 +1,16 @@
 /**
  * Calculate percentiles from filtered data
- * Removes organisations with zero usage across all periods, then fills missing months with zeros
+ * Counts trusts in data + their predecessors as included
  */
-export function calculatePercentiles(filteredData) {
+export function calculatePercentiles(filteredData, predecessorMap = null) {
     if (!Array.isArray(filteredData) || filteredData.length === 0) {
         return { percentiles: [], trustCount: 0, excludedTrusts: [] };
     }
 
-    // First pass: Calculate total usage per organisation to identify those with any usage
+    // Get all organisations that appear in the data
     const orgTotalUsage = {};
     const orgNames = {};
     const allMonths = new Set();
-
-    const uniqueOrgs = new Set();
 
     filteredData.forEach(item => {
         const orgId = item.organisation__ods_code;
@@ -22,7 +20,6 @@ export function calculatePercentiles(filteredData) {
             return;
         }
 
-        uniqueOrgs.add(orgId);
         if (orgName) {
             orgNames[orgId] = orgName;
         }
@@ -46,22 +43,33 @@ export function calculatePercentiles(filteredData) {
         }
     });
 
-    const includedOrgs = [];
-    const excludedTrusts = [];
+    // Since trusts only appear in data if they have usage, all are included
+    const includedOrgs = Object.keys(orgTotalUsage);
     
-    Object.keys(orgTotalUsage).forEach(orgId => {
-        if (orgTotalUsage[orgId] > 0) {
-            includedOrgs.push(orgId);
-        } else {
-            excludedTrusts.push({
-                code: orgId,
-                name: orgNames[orgId] || `Unknown (${orgId})`
-            });
+    // Count additional trusts that should be included due to predecessor relationships
+    let additionalIncludedCount = 0;
+    
+    if (predecessorMap instanceof Map) {
+        // For each successor that has data, count its predecessors as included
+        for (const [successor, predecessors] of predecessorMap.entries()) {
+            const successorHasData = Object.keys(orgTotalUsage).some(orgId => 
+                orgNames[orgId] === successor
+            );
+            
+            if (successorHasData && Array.isArray(predecessors)) {
+                additionalIncludedCount += predecessors.length;
+            }
         }
-    });
+    }
+
+    const totalIncludedCount = includedOrgs.length + additionalIncludedCount;
 
     if (includedOrgs.length === 0) {
-        return { percentiles: [], trustCount: 0, excludedTrusts };
+        return { 
+            percentiles: [], 
+            trustCount: totalIncludedCount, 
+            excludedTrusts: []
+        };
     }
 
     // Second pass: Collect monthly values for included organisations only
@@ -126,7 +134,7 @@ export function calculatePercentiles(filteredData) {
 
     return {
         percentiles: percentilesData,
-        trustCount: includedOrgs.length,
-        excludedTrusts: excludedTrusts.sort((a, b) => a.name.localeCompare(b.name))
+        trustCount: totalIncludedCount,
+        excludedTrusts: []
     };
 } 

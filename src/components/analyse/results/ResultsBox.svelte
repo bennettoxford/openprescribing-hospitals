@@ -66,6 +66,7 @@
     $: defaultMode = DEFAULT_ANALYSIS_MODE;
 
     let showTrustsWithNoData = false;
+    let showIncludedTrusts = false;
     let showTrustCountDetails = false;
 
     $: {
@@ -83,14 +84,14 @@
             return { labels: [], datasets: [] };
         }
 
-        const dataForPercentiles = filteredData.length > 0 ? filteredData : data;
-        const percentilesResult = calculatePercentiles(dataForPercentiles);
-
         const currentMode = $modeSelectorStore.selectedMode || 'organisation';
         const storeItems = $organisationSearchStore.items || [];
         const storePredecessorMap = $organisationSearchStore.predecessorMap || new Map();
         const storeShowPercentiles = $resultsStore.showPercentiles !== false;
         const selectedOrgs = $organisationSearchStore.selectedItems || [];
+
+        const dataForPercentiles = filteredData.length > 0 ? filteredData : data;
+        const percentilesResult = calculatePercentiles(dataForPercentiles, storePredecessorMap);
 
         const units = calculateUnits(data, filteredData);
 
@@ -119,7 +120,7 @@
         resultsStore.update(store => ({
             ...store,
             percentiles: percentilesResult.percentiles,
-            trustCount: trustCountBreakdown.total,
+            trustCount: percentilesResult.trustCount,
             excludedTrusts: percentilesResult.excludedTrusts,
             trustsWithNoData: chartResult.trustsWithNoData,
             trustCountBreakdown
@@ -134,6 +135,10 @@
 
     function handleUpdateData(analysisResult) {
         processingError = null;
+        
+        showIncludedTrusts = false;
+        showTrustsWithNoData = false;
+        showTrustCountDetails = false;
         
         try {
             const analysisData = createAnalysisData(analysisResult);
@@ -362,6 +367,33 @@
         }));
     }
 
+    function getIncludedTrusts() {
+        if (!selectedData || selectedData.length === 0) {
+            return [];
+        }
+
+        const includedTrusts = new Set();
+        const storePredecessorMap = $organisationSearchStore.predecessorMap || new Map();
+
+        selectedData.forEach(item => {
+            if (item && item.organisation__ods_name) {
+                includedTrusts.add(item.organisation__ods_name);
+            }
+        });
+
+        if (storePredecessorMap instanceof Map) {
+            for (const [successor, predecessors] of storePredecessorMap.entries()) {
+                if (includedTrusts.has(successor) && Array.isArray(predecessors)) {
+                    predecessors.forEach(predecessor => {
+                        includedTrusts.add(predecessor);
+                    });
+                }
+            }
+        }
+
+        return Array.from(includedTrusts).sort().map(trust => ({ name: trust, code: 'Unknown' }));
+    }
+
 
 </script>
 
@@ -433,6 +465,34 @@
                                 Trusts are only included if they have issued any of the selected products during the time period.
                             </p>
                             
+                            <div>
+                                <button
+                                    type="button"
+                                    class="text-sm text-blue-600 hover:text-blue-800 underline font-medium"
+                                    on:click={() => showIncludedTrusts = !showIncludedTrusts}
+                                >
+                                    {showIncludedTrusts ? 'Hide' : 'Show'} {$resultsStore.trustCount} trusts included in percentiles calculation
+                                </button>
+                                
+                                {#if showIncludedTrusts}
+                                <div class="mt-2 p-3 bg-gray-100 rounded border border-gray-200">
+                                    <p class="text-xs text-gray-800 font-medium mb-2">
+                                        Trusts included in percentile calculation:
+                                    </p>
+                                    <div class="max-h-32 overflow-y-auto">
+                                        <ul class="text-xs text-gray-700 space-y-1">
+                                            {#each getIncludedTrusts() as trust}
+                                            <li class="flex items-center">
+                                                <span class="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2 flex-shrink-0"></span>
+                                                <span>{trust.name}</span>
+                                            </li>
+                                            {/each}
+                                        </ul>
+                                    </div>
+                                </div>
+                                {/if}
+                            </div>
+                            
                             {#if $resultsStore.trustsWithNoData && $resultsStore.trustsWithNoData.length > 0}
                             <div>
                                 <button
@@ -440,7 +500,7 @@
                                     class="text-sm text-blue-600 hover:text-blue-800 underline font-medium"
                                     on:click={() => showTrustsWithNoData = !showTrustsWithNoData}
                                 >
-                                    {showTrustsWithNoData ? 'Hide' : 'Show'} {$resultsStore.trustsWithNoData.length} trusts with no data
+                                    {showTrustsWithNoData ? 'Hide' : 'Show'} {$resultsStore.trustsWithNoData.length} trusts excluded from percentiles calculation
                                 </button>
                                 
                                 {#if showTrustsWithNoData}
