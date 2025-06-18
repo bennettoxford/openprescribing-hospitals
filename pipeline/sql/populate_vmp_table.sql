@@ -13,7 +13,11 @@ vmp_base AS (
     dmd.vmp_code,
     dmd.vmp_name,
     dmd.vtm,
-    dmd.vtm_name
+    dmd.vtm_name,
+    dmd.df_ind,
+    dmd.udfs,
+    dmd.udfs_uom,
+    dmd.unit_dose_uom,
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_TABLE_ID }}` dmd
   JOIN scmd_vmps sv ON dmd.vmp_code = sv.vmp_code
 ),
@@ -33,7 +37,13 @@ vmp_ingredients AS (
     ARRAY_AGG(
       STRUCT(
         ing.ing_code AS ingredient_code,
-        ing.ing_name AS ingredient_name
+        ing.ing_name AS ingredient_name,
+        ing.strnt_nmrtr_val,
+        ing.strnt_nmrtr_uom_name,
+        ing.strnt_dnmtr_val,
+        ing.strnt_dnmtr_uom_name,
+        ing.basis_of_strength_type,
+        ing.basis_of_strength_name
       )
     ) AS ingredients
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_TABLE_ID }}` dmd,
@@ -79,6 +89,10 @@ SELECT
   vb.vtm AS vtm_code,
   vb.vtm_name,
   vbnf.bnf_code,
+  vb.df_ind,
+  vb.udfs,
+  vb.udfs_uom,
+  vb.unit_dose_uom,
   COALESCE(vi.ingredients, []) AS ingredients,
   COALESCE(vr.ont_form_routes, []) AS ont_form_routes,
   COALESCE(va.atcs, []) AS atcs
