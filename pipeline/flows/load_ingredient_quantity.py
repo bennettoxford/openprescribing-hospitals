@@ -5,7 +5,7 @@ import argparse
 from google.cloud import bigquery
 from prefect import get_run_logger, task, flow
 from django.db import transaction
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from pipeline.bq_tables import INGREDIENT_QUANTITY_TABLE_SPEC
 from pipeline.utils.utils import (
     setup_django_environment,
@@ -16,7 +16,7 @@ from pipeline.utils.utils import (
 
 setup_django_environment()
 
-from viewer.models import IngredientQuantity, Ingredient, VMP, Organisation
+from viewer.models import IngredientQuantity, Ingredient, VMP, Organisation, CalculationLogic
 
 
 @task
@@ -87,14 +87,30 @@ def extract_ingredient_data_by_vmps(
 
 
 @task
-def clear_existing_ingredient_data() -> int:
-    """Clear all existing ingredient quantity data in chunks"""
+def clear_existing_ingredient_data() -> Tuple[int, int]:
+    """Clear all existing ingredient quantity data and calculation logic in chunks"""
     logger = get_run_logger()
-    logger.info("Clearing existing ingredient quantity data")
+    logger.info("Clearing existing ingredient quantity data and calculation logic")
 
     total_deleted = 0
+    total_logic_deleted = 0
     chunk_size = 10_000
 
+    # Clear ingredient calculation logic
+    while True:
+        with transaction.atomic():
+            batch_ids = list(
+                CalculationLogic.objects.filter(logic_type='ingredient').values_list("id", flat=True)[:chunk_size]
+            )
+            if not batch_ids:
+                break
+
+            deleted_count = CalculationLogic.objects.filter(
+                id__in=batch_ids
+            ).delete()[0]
+            total_logic_deleted += deleted_count
+
+    # Clear ingredient quantity data
     while True:
         with transaction.atomic():
             batch_ids = list(
@@ -109,7 +125,8 @@ def clear_existing_ingredient_data() -> int:
             total_deleted += deleted_count
 
     logger.info(f"Deleted {total_deleted:,} existing ingredient quantity records")
-    return total_deleted
+    logger.info(f"Deleted {total_logic_deleted:,} existing ingredient calculation logic records")
+    return total_deleted, total_logic_deleted
 
 
 @task
@@ -129,6 +146,78 @@ def cache_foreign_keys() -> Dict:
 
 
 @task
+def validate_and_store_ingredient_logic(chunk_df: pd.DataFrame, foreign_key_cache: Dict, chunk_num: int, total_chunks: int) -> Dict:
+    """Validate that ingredient logic is consistent per VMP-ingredient pair and store it"""
+    logger = get_run_logger()
+    
+    if len(chunk_df) == 0:
+        return {"logic_created": 0, "logic_conflicts": 0}
+    
+    vmp_ingredient_logic = {}
+    conflicted_keys = set()
+    logic_conflicts = 0
+    
+    for _, row in chunk_df.iterrows():
+        try:
+            vmp_code = row["vmp_code"]
+            ingredients = row["ingredients"].tolist()
+            
+            for ingredient in ingredients:
+                ingredient_code = ingredient.get("ingredient_code")
+                calculation_logic = ingredient.get("calculation_logic")
+                
+                if not ingredient_code or not calculation_logic:
+                    continue
+                    
+                key = (vmp_code, ingredient_code)
+                
+                if key in vmp_ingredient_logic:
+                    if vmp_ingredient_logic[key] != calculation_logic:
+                        logger.warning(f"Chunk {chunk_num}/{total_chunks}: VMP {vmp_code} + Ingredient {ingredient_code} has conflicting logic")
+                        logic_conflicts += 1
+                        conflicted_keys.add(key)
+                        continue
+                else:
+                    vmp_ingredient_logic[key] = calculation_logic
+                    
+        except Exception as e:
+            logger.error(f"Error processing ingredient logic: {str(e)}")
+            continue
+    
+    ingredients = foreign_key_cache["ingredients"]
+    vmps = foreign_key_cache["vmps"]
+    logic_objects = []
+    
+    for (vmp_code, ingredient_code), logic in vmp_ingredient_logic.items():
+
+        if (vmp_code, ingredient_code) in conflicted_keys:
+            continue
+            
+        if vmp_code in vmps and ingredient_code in ingredients:
+            logic_objects.append(
+                CalculationLogic(
+                    vmp_id=vmps[vmp_code],
+                    ingredient_id=ingredients[ingredient_code],
+                    logic_type='ingredient',
+                    logic=logic
+                )
+            )
+    
+    logic_created = 0
+    if logic_objects:
+        try:
+            with transaction.atomic():
+                CalculationLogic.objects.bulk_create(logic_objects)
+                logic_created = len(logic_objects)
+        except Exception as e:
+            logger.error(f"Chunk {chunk_num}/{total_chunks}: Error creating ingredient logic: {str(e)}")
+    
+    logger.info(f"Chunk {chunk_num}/{total_chunks}: Created {logic_created} ingredient logic records, {logic_conflicts} conflicts found")
+    
+    return {"logic_created": logic_created, "logic_conflicts": logic_conflicts}
+
+
+@task
 def transform_and_load_chunk(
     chunk_df: pd.DataFrame, foreign_key_cache: Dict, chunk_num: int, total_chunks: int
 ) -> Dict:
@@ -141,7 +230,9 @@ def transform_and_load_chunk(
 
     if len(chunk_df) == 0:
         logger.info(f"Chunk {chunk_num}/{total_chunks}: No data to process")
-        return {"created": 0, "skipped": 0}
+        return {"created": 0, "skipped": 0, "logic_created": 0, "logic_conflicts": 0}
+
+    logic_result = validate_and_store_ingredient_logic(chunk_df, foreign_key_cache, chunk_num, total_chunks)
 
     logger.info(f"Chunk {chunk_num}/{total_chunks}: Filtering for valid records...")
     valid_mask = (
@@ -163,7 +254,7 @@ def transform_and_load_chunk(
         logger.info(
             f"Chunk {chunk_num}/{total_chunks}: No valid records after filtering"
         )
-        return {"created": 0, "skipped": skipped_count}
+        return {"created": 0, "skipped": skipped_count, **logic_result}
 
     df_valid["year_month"] = pd.to_datetime(df_valid["year_month"]).dt.strftime(
         "%Y-%m-%d"
@@ -266,6 +357,7 @@ def transform_and_load_chunk(
     return {
         "created": total_created,
         "skipped": total_skipped,
+        **logic_result
     }
 
 
@@ -289,12 +381,14 @@ def load_ingredient_quantity_flow(vmp_chunk_size: int = 1000):
         f"Will process {len(all_vmps):,} VMPs in {total_chunks} chunks of {vmp_chunk_size} VMPs each"
     )
 
-    deleted_count = clear_existing_ingredient_data()
+    deleted_count, logic_deleted_count = clear_existing_ingredient_data()
     foreign_key_cache = cache_foreign_keys()
 
     total_stats = {
         "total_created": 0,
         "total_skipped": 0,
+        "total_logic_created": 0,
+        "total_logic_conflicts": 0,
         "total_processed_chunks": 0,
     }
 
@@ -319,6 +413,8 @@ def load_ingredient_quantity_flow(vmp_chunk_size: int = 1000):
 
         total_stats["total_created"] += chunk_result["created"]
         total_stats["total_skipped"] += chunk_result["skipped"]
+        total_stats["total_logic_created"] += chunk_result["logic_created"]
+        total_stats["total_logic_conflicts"] += chunk_result["logic_conflicts"]
         total_stats["total_processed_chunks"] += 1
 
         chunk_duration = time.time() - chunk_start_time
@@ -327,7 +423,8 @@ def load_ingredient_quantity_flow(vmp_chunk_size: int = 1000):
         logger.info(
             f"Chunk {chunk_num}/{total_chunks} complete in {chunk_duration:.1f}s ({progress_pct:.1f}% done). "
             f"Processed VMPs {start_idx+1}-{end_idx}. "
-            f"Running totals - Created: {total_stats['total_created']:,}, Skipped: {total_stats['total_skipped']:,}. "
+            f"Running totals - Created: {total_stats['total_created']:,}, Logic created: {total_stats['total_logic_created']:,}, "
+            f"Logic conflicts: {total_stats['total_logic_conflicts']:,}, Skipped: {total_stats['total_skipped']:,}. "
         )
 
     total_time = time.time() - start_time
@@ -335,12 +432,17 @@ def load_ingredient_quantity_flow(vmp_chunk_size: int = 1000):
     logger.info(
         f"Ingredient quantity data import completed in {total_time/60:.1f} minutes. "
         f"Deleted: {deleted_count:,}, Created: {total_stats['total_created']:,}, "
+        f"Logic deleted: {logic_deleted_count:,}, Logic created: {total_stats['total_logic_created']:,}, "
+        f"Logic conflicts: {total_stats['total_logic_conflicts']:,}, "
         f"Skipped: {total_stats['total_skipped']:,}, Chunks processed: {total_stats['total_processed_chunks']}. "
     )
 
     return {
         "deleted": deleted_count,
         "created": total_stats["total_created"],
+        "logic_deleted": logic_deleted_count,
+        "logic_created": total_stats["total_logic_created"],
+        "logic_conflicts": total_stats["total_logic_conflicts"],
         "skipped": total_stats["total_skipped"],
     }
 

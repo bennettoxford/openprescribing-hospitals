@@ -7,11 +7,13 @@ from pipeline.flows.load_ddd_quantity import (
     clear_existing_ddd_data,
     cache_foreign_keys,
     transform_and_load_chunk,
+    validate_and_store_ddd_logic,
 )
 from viewer.models import (
     DDDQuantity,
     VMP,
     Organisation,
+    CalculationLogic,
 )
 
 
@@ -25,6 +27,11 @@ def sample_ddd_data():
             "ddd_quantity": [1.5, 2.0, 3.0],
             "ddd_value": [1.0, 2.0, 1.0],
             "ddd_unit": ["mg", "g", "mg"],
+            "calculation_logic": [
+                "DDD calculated using WHO DDD value",
+                "DDD calculated using WHO DDD value",
+                "DDD calculated using WHO DDD value",
+            ],
         }
     )
 
@@ -88,6 +95,7 @@ class TestLoadDDDQuantity:
                     "ddd_quantity",
                     "ddd_value",
                     "ddd_unit",
+                    "calculation_logic",
                 ]
             )
 
@@ -104,11 +112,16 @@ class TestLoadDDDQuantity:
                 organisation=org, 
                 data=[["2024-01-01", "1.5", "DDD (1.0 mg)"]]
             )
+            CalculationLogic.objects.create(
+                vmp=vmp, logic_type="ddd", logic="Test DDD logic", ingredient=None
+            )
 
-            deleted_count = clear_existing_ddd_data()
+            deleted_count, logic_deleted_count = clear_existing_ddd_data()
 
             assert deleted_count == 1
+            assert logic_deleted_count == 1
             assert DDDQuantity.objects.count() == 0
+            assert CalculationLogic.objects.filter(logic_type="ddd").count() == 0
 
     @pytest.mark.django_db
     def test_cache_foreign_keys(self):
@@ -134,6 +147,68 @@ class TestLoadDDDQuantity:
             assert result["organisations"]["ORG2"] == org2.id
 
     @pytest.mark.django_db
+    def test_validate_and_store_ddd_logic(self, sample_ddd_data, sample_foreign_keys):
+        with patch("pipeline.flows.load_ddd_quantity.task", lambda x: x):
+            result = validate_and_store_ddd_logic(sample_ddd_data, sample_foreign_keys, 1, 2)
+
+            assert isinstance(result, dict)
+            assert "logic_created" in result
+            assert "logic_conflicts" in result
+            assert result["logic_created"] == 2
+            assert result["logic_conflicts"] == 0
+
+            logic_records = CalculationLogic.objects.filter(logic_type="ddd")
+            assert logic_records.count() == 2
+
+            for logic_record in logic_records:
+                assert "DDD calculated using WHO DDD value" in logic_record.logic
+                assert logic_record.ingredient is None
+
+    @pytest.mark.django_db
+    def test_validate_and_store_ddd_logic_conflicts(self, sample_foreign_keys):
+        with patch("pipeline.flows.load_ddd_quantity.task", lambda x: x):
+
+            conflicting_data = pd.DataFrame(
+                {
+                    "vmp_code": ["12345", "12345"],
+                    "year_month": ["2024-01-01", "2024-01-01"],
+                    "ods_code": ["ORG1", "ORG2"],
+                    "ddd_quantity": [1.5, 2.0],
+                    "ddd_value": [1.0, 1.0],
+                    "ddd_unit": ["mg", "mg"],
+                    "calculation_logic": [
+                        "DDD calculation method 1",
+                        "DDD calculation method 2",
+                    ],
+                }
+            )
+
+            result = validate_and_store_ddd_logic(conflicting_data, sample_foreign_keys, 1, 2)
+
+            assert result["logic_conflicts"] == 1
+            assert result["logic_created"] == 0
+
+    @pytest.mark.django_db
+    def test_validate_and_store_ddd_logic_no_logic_data(self, sample_foreign_keys):
+        with patch("pipeline.flows.load_ddd_quantity.task", lambda x: x):
+            no_logic_data = pd.DataFrame(
+                {
+                    "vmp_code": ["12345"],
+                    "year_month": ["2024-01-01"],
+                    "ods_code": ["ORG1"],
+                    "ddd_quantity": [1.5],
+                    "ddd_value": [1.0],
+                    "ddd_unit": ["mg"],
+                    "calculation_logic": [None],
+                }
+            )
+
+            result = validate_and_store_ddd_logic(no_logic_data, sample_foreign_keys, 1, 2)
+
+            assert result["logic_created"] == 0
+            assert result["logic_conflicts"] == 0
+
+    @pytest.mark.django_db
     def test_transform_and_load_chunk(
         self, sample_ddd_data, sample_foreign_keys
     ):
@@ -144,6 +219,8 @@ class TestLoadDDDQuantity:
 
             assert isinstance(result, dict)
             assert result["created"] > 0
+            assert "logic_created" in result
+            assert "logic_conflicts" in result
             assert DDDQuantity.objects.count() > 0
 
             ddd_quantity = DDDQuantity.objects.first()
@@ -153,6 +230,9 @@ class TestLoadDDDQuantity:
                 isinstance(entry, list) and len(entry) == 3
                 for entry in ddd_quantity.data
             )
+
+            logic_records = CalculationLogic.objects.filter(logic_type="ddd")
+            assert logic_records.count() == 2
 
     @pytest.mark.django_db
     def test_transform_and_load_chunk_empty_data(self, sample_foreign_keys):
@@ -165,6 +245,8 @@ class TestLoadDDDQuantity:
 
             assert result["created"] == 0
             assert result["skipped"] == 0
+            assert result["logic_created"] == 0
+            assert result["logic_conflicts"] == 0
             assert DDDQuantity.objects.count() == 0
 
     @pytest.mark.django_db
@@ -181,6 +263,8 @@ class TestLoadDDDQuantity:
 
             assert result["created"] == 0
             assert DDDQuantity.objects.count() == 0
+            assert "logic_created" in result
+            assert "logic_conflicts" in result
 
     @pytest.mark.django_db 
     def test_transform_and_load_chunk_missing_data(self, sample_foreign_keys):
@@ -192,6 +276,11 @@ class TestLoadDDDQuantity:
                 "ddd_quantity": [1.5, 2.0, None],
                 "ddd_value": [1.0, 2.0, 1.0],
                 "ddd_unit": ["mg", "g", "mg"],
+                "calculation_logic": [
+                    "DDD logic 1",
+                    "DDD logic 2", 
+                    "DDD logic 3"
+                ],
             })
             
             result = transform_and_load_chunk(
@@ -199,5 +288,8 @@ class TestLoadDDDQuantity:
             )
 
             assert result["created"] == 1
-            assert result["skipped"] == 0   
+            assert result["skipped"] == 2 
             assert DDDQuantity.objects.count() == 1
+            # Logic still created for valid records
+            assert "logic_created" in result
+            assert "logic_conflicts" in result

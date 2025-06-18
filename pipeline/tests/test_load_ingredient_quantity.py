@@ -7,8 +7,9 @@ from pipeline.flows.load_ingredient_quantity import (
     extract_ingredient_data_by_vmps,
     clear_existing_ingredient_data,
     transform_and_load_chunk,
+    validate_and_store_ingredient_logic,
 )
-from viewer.models import IngredientQuantity, Ingredient, VMP, Organisation
+from viewer.models import IngredientQuantity, Ingredient, VMP, Organisation, CalculationLogic
 
 
 @pytest.fixture
@@ -24,11 +25,13 @@ def sample_ingredient_data():
                         "ingredient_code": "ING1",
                         "ingredient_quantity_basis": 100.0,
                         "ingredient_basis_unit": "mg",
+                        "calculation_logic": "Ingredient quantity calculated from strength numerator/denominator",
                     },
                     {
                         "ingredient_code": "ING2",
                         "ingredient_quantity_basis": 50.0,
                         "ingredient_basis_unit": "mg",
+                        "calculation_logic": "Ingredient quantity calculated from strength numerator/denominator",
                     },
                 ],
                 [
@@ -36,6 +39,7 @@ def sample_ingredient_data():
                         "ingredient_code": "ING3",
                         "ingredient_quantity_basis": 200.0,
                         "ingredient_basis_unit": "ml",
+                        "calculation_logic": "Ingredient quantity calculated using unit conversion",
                     }
                 ],
                 [
@@ -43,6 +47,7 @@ def sample_ingredient_data():
                         "ingredient_code": "ING1",
                         "ingredient_quantity_basis": 150.0,
                         "ingredient_basis_unit": "mg",
+                        "calculation_logic": "Ingredient quantity calculated from strength numerator/denominator",
                     }
                 ],
             ],
@@ -119,11 +124,109 @@ class TestLoadIngredientQuantity:
             organisation=org,
             data=[["2024-01-01", "100.0", "mg"]],
         )
+        CalculationLogic.objects.create(
+            vmp=vmp, 
+            ingredient=ingredient, 
+            logic_type="ingredient", 
+            logic="Test ingredient logic"
+        )
 
-        deleted_count = clear_existing_ingredient_data()
+        deleted_count, logic_deleted_count = clear_existing_ingredient_data()
 
         assert deleted_count == 1
+        assert logic_deleted_count == 1
         assert IngredientQuantity.objects.count() == 0
+        assert CalculationLogic.objects.filter(logic_type="ingredient").count() == 0
+
+    @pytest.mark.django_db
+    def test_validate_and_store_ingredient_logic(self, sample_ingredient_data, sample_foreign_keys):
+
+        sample_ingredient_data["ingredients"] = sample_ingredient_data["ingredients"].apply(lambda x: np.array(x))
+        
+        result = validate_and_store_ingredient_logic(sample_ingredient_data, sample_foreign_keys, 1, 2)
+
+        assert isinstance(result, dict)
+        assert "logic_created" in result
+        assert "logic_conflicts" in result
+        assert result["logic_created"] == 3
+        assert result["logic_conflicts"] == 0
+
+        logic_records = CalculationLogic.objects.filter(logic_type="ingredient")
+        assert logic_records.count() == 3
+
+        for logic_record in logic_records:
+            assert "calculated" in logic_record.logic.lower()
+            assert logic_record.ingredient is not None
+
+    @pytest.mark.django_db
+    def test_validate_and_store_ingredient_logic_conflicts(self, sample_foreign_keys):
+
+        conflicting_data = pd.DataFrame(
+            {
+                "vmp_code": ["12345", "12345"],
+                "year_month": ["2024-01-01", "2024-02-01"],
+                "ods_code": ["ORG1", "ORG1"],
+                "ingredients": [
+                    np.array([
+                        {
+                            "ingredient_code": "ING1",
+                            "ingredient_quantity_basis": 100.0,
+                            "ingredient_basis_unit": "mg",
+                            "calculation_logic": "Logic method 1",
+                        }
+                    ]),
+                    np.array([
+                        {
+                            "ingredient_code": "ING1",
+                            "ingredient_quantity_basis": 150.0,
+                            "ingredient_basis_unit": "mg",
+                            "calculation_logic": "Logic method 2",
+                        }
+                    ]),
+                ],
+            }
+        )
+
+        result = validate_and_store_ingredient_logic(conflicting_data, sample_foreign_keys, 1, 2)
+
+        assert result["logic_conflicts"] == 1
+        assert result["logic_created"] == 0
+
+    @pytest.mark.django_db
+    def test_validate_and_store_ingredient_logic_no_logic_data(self, sample_foreign_keys):
+        no_logic_data = pd.DataFrame(
+            {
+                "vmp_code": ["12345"],
+                "year_month": ["2024-01-01"],
+                "ods_code": ["ORG1"],
+                "ingredients": [
+                    np.array([
+                        {
+                            "ingredient_code": "ING1",
+                            "ingredient_quantity_basis": 100.0,
+                            "ingredient_basis_unit": "mg",
+                            "calculation_logic": None,
+                        }
+                    ])
+                ],
+            }
+        )
+
+        result = validate_and_store_ingredient_logic(no_logic_data, sample_foreign_keys, 1, 2)
+
+        assert result["logic_created"] == 0
+        assert result["logic_conflicts"] == 0
+
+    @pytest.mark.django_db
+    def test_validate_and_store_ingredient_logic_missing_foreign_keys(self, sample_ingredient_data):
+        empty_cache = {"ingredients": {}, "vmps": {}, "organisations": {}}
+        
+        sample_ingredient_data["ingredients"] = sample_ingredient_data["ingredients"].apply(lambda x: np.array(x))
+        
+        result = validate_and_store_ingredient_logic(sample_ingredient_data, empty_cache, 1, 2)
+
+        assert result["logic_created"] == 0
+        assert result["logic_conflicts"] == 0
 
     @pytest.mark.django_db
     def test_transform_and_load_chunk(
@@ -139,12 +242,17 @@ class TestLoadIngredientQuantity:
 
         assert isinstance(result, dict)
         assert result["created"] > 0
+        assert "logic_created" in result
+        assert "logic_conflicts" in result
         assert IngredientQuantity.objects.count() > 0
 
         iq = IngredientQuantity.objects.first()
         assert isinstance(iq.data, list)
         assert len(iq.data) > 0
         assert all(isinstance(entry, list) and len(entry) == 3 for entry in iq.data)
+
+        logic_records = CalculationLogic.objects.filter(logic_type="ingredient")
+        assert logic_records.count() == 3
 
     @pytest.mark.django_db
     def test_transform_and_load_chunk_invalid_data(self, sample_foreign_keys):
@@ -162,6 +270,7 @@ class TestLoadIngredientQuantity:
                                 "ingredient_code": "INVALID",
                                 "ingredient_quantity_basis": 100.0,
                                 "ingredient_basis_unit": "mg",
+                                "calculation_logic": "Test logic",
                             }
                         ]
                     )
@@ -173,3 +282,51 @@ class TestLoadIngredientQuantity:
 
         assert result["created"] == 0
         assert result["skipped"] > 0
+        assert "logic_created" in result
+        assert "logic_conflicts" in result
+
+    @pytest.mark.django_db
+    def test_transform_and_load_chunk_empty_data(self, sample_foreign_keys):
+        empty_data = pd.DataFrame()
+
+        result = transform_and_load_chunk(empty_data, sample_foreign_keys, 1, 2)
+
+        assert result["created"] == 0
+        assert result["skipped"] == 0
+        assert result["logic_created"] == 0
+        assert result["logic_conflicts"] == 0
+        assert IngredientQuantity.objects.count() == 0
+
+    @pytest.mark.django_db
+    def test_transform_and_load_chunk_missing_fields(self, sample_foreign_keys):
+        invalid_data = pd.DataFrame(
+            {
+                "vmp_code": ["12345", None],
+                "year_month": ["2024-01-01", "2024-01-01"],
+                "ods_code": ["ORG1", "ORG1"],
+                "ingredients": [
+                    np.array([
+                        {
+                            "ingredient_code": "ING1",
+                            "ingredient_quantity_basis": 100.0,
+                            "ingredient_basis_unit": "mg",
+                            "calculation_logic": "Test logic",
+                        }
+                    ]),
+                    np.array([
+                        {
+                            "ingredient_code": "ING2",
+                            "ingredient_quantity_basis": 50.0,
+                            "ingredient_basis_unit": "mg",
+                            "calculation_logic": "Test logic",
+                        }
+                    ]),
+                ],
+            }
+        )
+
+        result = transform_and_load_chunk(invalid_data, sample_foreign_keys, 1, 2)
+
+        assert result["created"] == 1
+        assert result["skipped"] == 1
+        assert IngredientQuantity.objects.count() == 1

@@ -8,9 +8,10 @@ from pipeline.flows.load_dose_data import (
     clear_existing_dose_data,
     cache_foreign_keys,
     transform_and_load_chunk,
+    validate_and_store_dose_logic,
     ensure_proper_types,
 )
-from viewer.models import Dose, SCMDQuantity, VMP, Organisation
+from viewer.models import Dose, SCMDQuantity, VMP, Organisation, CalculationLogic, Ingredient
 
 
 @pytest.fixture
@@ -24,6 +25,11 @@ def sample_dose_data():
             "dose_unit": ["pre-filled disposable injection", "capsules", "spoonful"],
             "scmd_quantity": [10.0, 2.0, 15.0],
             "scmd_basis_unit_name": ["ml", "capsules", "ml"],
+            "calculation_logic": [
+                "Dose calculated from unit dose form size and unit dose unit of measure",
+                "Dose calculated from unit dose form size and unit dose unit of measure",
+                "Dose calculated from unit dose form size and unit dose unit of measure",
+            ],
         }
     )
 
@@ -100,6 +106,7 @@ class TestLoadDoseData:
                 "dose_unit",
                 "scmd_quantity",
                 "scmd_basis_unit_name",
+                "calculation_logic",
             ]
         )
 
@@ -114,13 +121,18 @@ class TestLoadDoseData:
         SCMDQuantity.objects.create(
             vmp=vmp, organisation=org, data=[["2024-01-01", 10.0, "tablets"]]
         )
+        CalculationLogic.objects.create(
+            vmp=vmp, logic_type="dose", logic="Test logic", ingredient=None
+        )
 
-        dose_deleted, scmd_deleted = clear_existing_dose_data()
+        dose_deleted, scmd_deleted, logic_deleted = clear_existing_dose_data()
 
         assert dose_deleted == 1
         assert scmd_deleted == 1
+        assert logic_deleted == 1
         assert Dose.objects.count() == 0
         assert SCMDQuantity.objects.count() == 0
+        assert CalculationLogic.objects.filter(logic_type="dose").count() == 0
 
     @pytest.mark.django_db
     def test_cache_foreign_keys(self, sample_foreign_keys):
@@ -133,12 +145,74 @@ class TestLoadDoseData:
         assert len(result["organisations"]) == 2
 
     @pytest.mark.django_db
+    def test_validate_and_store_dose_logic(self, sample_dose_data, sample_foreign_keys):
+        result = validate_and_store_dose_logic(sample_dose_data, sample_foreign_keys, 1, 2)
+
+        assert isinstance(result, dict)
+        assert "logic_created" in result
+        assert "logic_conflicts" in result
+        assert result["logic_created"] == 2  # Two unique VMPs
+        assert result["logic_conflicts"] == 0
+
+        logic_records = CalculationLogic.objects.filter(logic_type="dose")
+        assert logic_records.count() == 2
+
+        for logic_record in logic_records:
+            assert logic_record.logic == "Dose calculated from unit dose form size and unit dose unit of measure"
+            assert logic_record.ingredient is None
+
+    @pytest.mark.django_db
+    def test_validate_and_store_dose_logic_conflicts(self, sample_foreign_keys):
+        conflicting_data = pd.DataFrame(
+            {
+                "year_month": ["2024-01-01", "2024-01-01"],
+                "vmp_code": ["12345", "12345"],
+                "ods_code": ["ORG1", "ORG2"],
+                "dose_quantity": [1.0, 2.0],
+                "dose_unit": ["capsules", "capsules"],
+                "scmd_quantity": [10.0, 20.0],
+                "scmd_basis_unit_name": ["ml", "ml"],
+                "calculation_logic": [
+                    "Logic method 1",
+                    "Logic method 2",
+                ],
+            }
+        )
+
+        result = validate_and_store_dose_logic(conflicting_data, sample_foreign_keys, 1, 2)
+
+        assert result["logic_conflicts"] == 1
+        assert result["logic_created"] == 0
+
+    @pytest.mark.django_db
+    def test_validate_and_store_dose_logic_no_logic_data(self, sample_foreign_keys):
+        no_logic_data = pd.DataFrame(
+            {
+                "year_month": ["2024-01-01"],
+                "vmp_code": ["12345"],
+                "ods_code": ["ORG1"],
+                "dose_quantity": [1.0],
+                "dose_unit": ["capsules"],
+                "scmd_quantity": [10.0],
+                "scmd_basis_unit_name": ["ml"],
+                "calculation_logic": [None],
+            }
+        )
+
+        result = validate_and_store_dose_logic(no_logic_data, sample_foreign_keys, 1, 2)
+
+        assert result["logic_created"] == 0
+        assert result["logic_conflicts"] == 0
+
+    @pytest.mark.django_db
     def test_transform_and_load_chunk(self, sample_dose_data, sample_foreign_keys):
         result = transform_and_load_chunk(sample_dose_data, sample_foreign_keys, 1, 2)
 
         assert isinstance(result, dict)
         assert result["dose_created"] > 0
         assert result["scmd_created"] > 0
+        assert "logic_created" in result
+        assert "logic_conflicts" in result
 
         doses = Dose.objects.all()
         scmd = SCMDQuantity.objects.all()
@@ -162,6 +236,9 @@ class TestLoadDoseData:
         for unit in dose_units:
             assert unit in expected_units
 
+        logic_records = CalculationLogic.objects.filter(logic_type="dose")
+        assert logic_records.count() == 2
+
     @pytest.mark.django_db
     def test_transform_and_load_chunk_invalid_data(self, sample_foreign_keys):
         invalid_data = pd.DataFrame(
@@ -173,6 +250,7 @@ class TestLoadDoseData:
                 "dose_unit": ["pre-filled disposable injection", "capsules"],
                 "scmd_quantity": [None, None],
                 "scmd_basis_unit_name": [None, None],
+                "calculation_logic": ["Test logic", "Test logic"],
             }
         )
 
@@ -181,3 +259,18 @@ class TestLoadDoseData:
         assert result["skipped"] > 0
         assert result["dose_created"] == 0
         assert result["scmd_created"] == 0
+        # Logic still created for valid VMP codes even if dose/scmd data is invalid
+        assert "logic_created" in result
+        assert "logic_conflicts" in result
+
+    @pytest.mark.django_db
+    def test_transform_and_load_chunk_empty_data(self, sample_foreign_keys):
+        empty_data = pd.DataFrame()
+
+        result = transform_and_load_chunk(empty_data, sample_foreign_keys, 1, 2)
+
+        assert result["dose_created"] == 0
+        assert result["scmd_created"] == 0
+        assert result["skipped"] == 0
+        assert result["logic_created"] == 0
+        assert result["logic_conflicts"] == 0

@@ -4,13 +4,13 @@ import pandas as pd
 from google.cloud import bigquery
 from prefect import get_run_logger, task, flow
 from django.db import transaction
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from pipeline.bq_tables import DDD_QUANTITY_TABLE_SPEC
 from pipeline.utils.utils import setup_django_environment, get_bigquery_client
 
 
 setup_django_environment()
-from viewer.models import DDDQuantity, VMP, Organisation
+from viewer.models import DDDQuantity, VMP, Organisation, CalculationLogic
 
 
 @task
@@ -54,7 +54,8 @@ def extract_ddd_data_by_vmps(
         ods_code,
         ddd_quantity,
         ddd_value,
-        ddd_unit
+        ddd_unit,
+        calculation_logic
     FROM `{DDD_QUANTITY_TABLE_SPEC.full_table_id}`
     WHERE ddd_quantity IS NOT NULL
     AND vmp_code IN ('{vmp_list_str}')
@@ -76,14 +77,28 @@ def extract_ddd_data_by_vmps(
 
 
 @task
-def clear_existing_ddd_data() -> int:
-    """Clear all existing DDD quantity data"""
+def clear_existing_ddd_data() -> Tuple[int, int]:
+    """Clear all existing DDD quantity data and calculation logic"""
     logger = get_run_logger()
-    logger.info("Clearing existing DDD quantity data")
+    logger.info("Clearing existing DDD quantity data and calculation logic")
 
     total_deleted = 0
+    total_logic_deleted = 0
     chunk_size = 10_000
 
+    # Clear DDD calculation logic
+    while True:
+        with transaction.atomic():
+            batch_ids = list(
+                CalculationLogic.objects.filter(logic_type='ddd').values_list("id", flat=True)[:chunk_size]
+            )
+            if not batch_ids:
+                break
+
+            deleted_count = CalculationLogic.objects.filter(id__in=batch_ids).delete()[0]
+            total_logic_deleted += deleted_count
+
+    # Clear DDD quantity data
     while True:
         with transaction.atomic():
             batch_ids = list(
@@ -96,7 +111,8 @@ def clear_existing_ddd_data() -> int:
             total_deleted += deleted_count
 
     logger.info(f"Deleted {total_deleted:,} existing DDD quantity records")
-    return total_deleted
+    logger.info(f"Deleted {total_logic_deleted:,} existing DDD calculation logic records")
+    return total_deleted, total_logic_deleted
 
 
 @task
@@ -110,6 +126,67 @@ def cache_foreign_keys() -> Dict:
 
     logger.info(f"Cached {len(vmps):,} VMPs and {len(organisations):,} organisations")
     return {"vmps": vmps, "organisations": organisations}
+
+
+@task
+def validate_and_store_ddd_logic(chunk_df: pd.DataFrame, foreign_key_cache: Dict, chunk_num: int, total_chunks: int) -> Dict:
+    """Validate that DDD logic is consistent per VMP and store it"""
+    logger = get_run_logger()
+    
+    if len(chunk_df) == 0:
+        return {"logic_created": 0, "logic_conflicts": 0}
+    
+    logic_df = chunk_df[chunk_df["calculation_logic"].notna()].copy()
+    
+    if len(logic_df) == 0:
+        logger.info(f"Chunk {chunk_num}/{total_chunks}: No logic data found")
+        return {"logic_created": 0, "logic_conflicts": 0}
+    
+    # Group by VMP and check for consistent logic
+    vmp_logic = {}
+    conflicted_vmps = set()
+    logic_conflicts = 0
+    
+    for vmp_code, group in logic_df.groupby("vmp_code"):
+        unique_logic = group["calculation_logic"].unique()
+        
+        if len(unique_logic) > 1:
+            logger.warning(f"Chunk {chunk_num}/{total_chunks}: VMP {vmp_code} has {len(unique_logic)} different logic values")
+            logic_conflicts += 1
+            conflicted_vmps.add(vmp_code)
+            continue
+            
+        vmp_logic[vmp_code] = unique_logic[0]
+    
+    vmps = foreign_key_cache["vmps"]
+    logic_objects = []
+    
+    for vmp_code, logic in vmp_logic.items():
+        if vmp_code in conflicted_vmps:
+            continue
+            
+        if vmp_code in vmps:
+            logic_objects.append(
+                CalculationLogic(
+                    vmp_id=vmps[vmp_code],
+                    logic_type='ddd',
+                    logic=logic,
+                    ingredient=None
+                )
+            )
+    
+    logic_created = 0
+    if logic_objects:
+        try:
+            with transaction.atomic():
+                CalculationLogic.objects.bulk_create(logic_objects)
+                logic_created = len(logic_objects)
+        except Exception as e:
+            logger.error(f"Chunk {chunk_num}/{total_chunks}: Error creating DDD logic: {str(e)}")
+    
+    logger.info(f"Chunk {chunk_num}/{total_chunks}: Created {logic_created} DDD logic records, {logic_conflicts} conflicts found")
+    
+    return {"logic_created": logic_created, "logic_conflicts": logic_conflicts}
 
 
 @task
@@ -128,7 +205,10 @@ def transform_and_load_chunk(
 
     if len(chunk_df) == 0:
         logger.info(f"Chunk {chunk_num}/{total_chunks}: No data to process")
-        return {"created": 0, "skipped": 0}
+        return {"created": 0, "skipped": 0, "logic_created": 0, "logic_conflicts": 0}
+
+    # First validate and store the logic
+    logic_result = validate_and_store_ddd_logic(chunk_df, foreign_key_cache, chunk_num, total_chunks)
 
     valid_mask = (
         chunk_df["vmp_code"].notna()
@@ -147,7 +227,7 @@ def transform_and_load_chunk(
 
     if len(df_valid) == 0:
         logger.info(f"Chunk {chunk_num}/{total_chunks}: No valid data to process after filtering")
-        return {"created": 0, "skipped": skipped_count}
+        return {"created": 0, "skipped": skipped_count, **logic_result}
 
     df_valid["year_month"] = pd.to_datetime(df_valid["year_month"]).dt.strftime("%Y-%m-%d")
 
@@ -186,7 +266,7 @@ def transform_and_load_chunk(
 
     SUB_BATCH_SIZE = 5000
     total_created = 0
-    total_skipped = 0
+    total_skipped = skipped_count
 
     for i in range(0, len(ddd_objects), SUB_BATCH_SIZE):
         sub_batch = ddd_objects[i : i + SUB_BATCH_SIZE]
@@ -215,6 +295,7 @@ def transform_and_load_chunk(
     return {
         "created": total_created,
         "skipped": total_skipped,
+        **logic_result
     }
 
 
@@ -238,12 +319,14 @@ def load_ddd_quantity_flow(vmp_chunk_size: int = 1000):
         f"Will process {len(all_vmps):,} VMPs in {total_chunks} chunks of {vmp_chunk_size} VMPs each"
     )
 
-    deleted_count = clear_existing_ddd_data()
+    deleted_count, logic_deleted_count = clear_existing_ddd_data()
     foreign_key_cache = cache_foreign_keys()
 
     total_stats = {
         "total_created": 0,
         "total_skipped": 0,
+        "total_logic_created": 0,
+        "total_logic_conflicts": 0,
         "total_processed_chunks": 0,
     }
 
@@ -261,6 +344,8 @@ def load_ddd_quantity_flow(vmp_chunk_size: int = 1000):
 
         total_stats["total_created"] += chunk_result["created"]
         total_stats["total_skipped"] += chunk_result["skipped"]
+        total_stats["total_logic_created"] += chunk_result["logic_created"]
+        total_stats["total_logic_conflicts"] += chunk_result["logic_conflicts"]
         total_stats["total_processed_chunks"] += 1
 
         chunk_duration = time.time() - chunk_start_time
@@ -269,7 +354,8 @@ def load_ddd_quantity_flow(vmp_chunk_size: int = 1000):
         logger.info(
             f"Chunk {chunk_num}/{total_chunks} complete in {chunk_duration:.1f}s ({progress_pct:.1f}% done). "
             f"Processed VMPs {start_idx+1}-{end_idx}. "
-            f"Running totals - Created: {total_stats['total_created']:,}, Skipped: {total_stats['total_skipped']:,}. "
+            f"Running totals - Created: {total_stats['total_created']:,}, Logic created: {total_stats['total_logic_created']:,}, "
+            f"Logic conflicts: {total_stats['total_logic_conflicts']:,}, Skipped: {total_stats['total_skipped']:,}. "
         )
 
     total_time = time.time() - start_time
@@ -277,12 +363,17 @@ def load_ddd_quantity_flow(vmp_chunk_size: int = 1000):
     logger.info(
         f"DDD quantity data import completed in {total_time/60:.1f} minutes. "
         f"Deleted: {deleted_count:,}, Created: {total_stats['total_created']:,}, "
+        f"Logic deleted: {logic_deleted_count:,}, Logic created: {total_stats['total_logic_created']:,}, "
+        f"Logic conflicts: {total_stats['total_logic_conflicts']:,}, "
         f"Skipped: {total_stats['total_skipped']:,}, Chunks processed: {total_stats['total_processed_chunks']}. "
     )
 
     return {
         "deleted": deleted_count,
         "created": total_stats["total_created"],
+        "logic_deleted": logic_deleted_count,
+        "logic_created": total_stats["total_logic_created"],
+        "logic_conflicts": total_stats["total_logic_conflicts"],
         "skipped": total_stats["total_skipped"],
     }
 
