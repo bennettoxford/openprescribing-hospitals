@@ -530,11 +530,11 @@ class CalculationLogic(models.Model):
                 condition=models.Q(logic_type='ingredient'),
                 name='unique_vmp_ingredient_logic'
             ),
-        ]
-        models.CheckConstraint(
-            check=(
-                models.Q(logic_type='ingredient', ingredient__isnull=False) |
-                models.Q(logic_type__in=['dose', 'ddd'], ingredient__isnull=True)
+            models.CheckConstraint(
+                condition=(
+                    models.Q(logic_type='ingredient', ingredient__isnull=False) |
+                    models.Q(logic_type__in=['dose', 'ddd'], ingredient__isnull=True)
+                ),
+                name='ingredient_required_for_ingredient_logic'
             ),
-            name='ingredient_required_for_ingredient_logic'
-        )
+        ]
