@@ -499,3 +499,42 @@ class ContentCache(models.Model):
         managed = False
         verbose_name = "Content Cache"
         verbose_name_plural = "Content Cache"
+
+class CalculationLogic(models.Model):
+    LOGIC_TYPES = [
+        ('dose', 'Dose'),
+        ('ingredient', 'Ingredient Quantity'),
+        ('ddd', 'DDD Quantity'),
+    ]
+    
+    vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name="calculation_logic")
+    ingredient = models.ForeignKey(
+        Ingredient, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        help_text="Required for ingredient quantity logic, null for dose/DDD logic"
+    )
+    logic_type = models.CharField(max_length=20, choices=LOGIC_TYPES)
+    logic = models.TextField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['vmp', 'logic_type'], 
+                condition=models.Q(logic_type__in=['dose', 'ddd']),
+                name='unique_vmp_logic_type'
+            ),
+            models.UniqueConstraint(
+                fields=['vmp', 'ingredient', 'logic_type'], 
+                condition=models.Q(logic_type='ingredient'),
+                name='unique_vmp_ingredient_logic'
+            ),
+        ]
+        models.CheckConstraint(
+            check=(
+                models.Q(logic_type='ingredient', ingredient__isnull=False) |
+                models.Q(logic_type__in=['dose', 'ddd'], ingredient__isnull=True)
+            ),
+            name='ingredient_required_for_ingredient_logic'
+        )
