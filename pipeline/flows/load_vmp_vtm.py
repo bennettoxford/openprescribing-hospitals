@@ -12,7 +12,7 @@ from pipeline.bq_tables import (
 )
 
 setup_django_environment()
-from viewer.models import VMP, VTM, Ingredient, WHORoute, ATC, OntFormRoute
+from viewer.models import VMP, VTM, Ingredient, WHORoute, ATC, OntFormRoute, VMPIngredientStrength
 
 
 @task()
@@ -256,11 +256,20 @@ def load_vmps(
                 else None
             )
 
+            # Use basis unit quantities where available, fallback to original
+            udfs_value = row.get("udfs_basis_quantity") if pd.notna(row.get("udfs_basis_quantity")) else row.get("udfs")
+            udfs_uom_value = row.get("udfs_basis_uom") if pd.notna(row.get("udfs_basis_uom")) else row.get("udfs_uom")
+            unit_dose_uom_value = row.get("unit_dose_basis_uom") if pd.notna(row.get("unit_dose_basis_uom")) else row.get("unit_dose_uom")
+
             vmp_obj = VMP(
                 code=vmp_code,
                 name=row["vmp_name"],
                 vtm_id=vtm_id,
                 bnf_code=row.get("bnf_code"),
+                df_ind=row.get("df_ind"),
+                udfs=udfs_value,
+                udfs_uom=udfs_uom_value,
+                unit_dose_uom=unit_dose_uom_value,
             )
             vmp_objects.append(vmp_obj)
 
@@ -371,6 +380,78 @@ def load_vmps(
         logger.info("Completed VMP creation and relationship setup")
 
 @task()
+def load_vmp_ingredient_strengths(
+    vmp_data: pd.DataFrame,
+    ingredient_mapping: Dict[str, int],
+) -> None:
+    """Load VMPIngredientStrength data using basis unit quantities where available"""
+    logger = get_run_logger()
+    
+    with transaction.atomic():
+        deleted_count = VMPIngredientStrength.objects.all().delete()[0]
+        logger.info(f"Deleted {deleted_count} existing VMPIngredientStrength records")
+
+        vmp_lookup = {vmp.code: vmp for vmp in VMP.objects.all()}
+        strength_objects = []
+
+        for _, row in vmp_data.iterrows():
+            vmp_code = row["vmp_code"]
+            vmp = vmp_lookup.get(vmp_code)
+            
+            if not vmp:
+                continue
+
+            if "ingredients" in row and (
+                isinstance(row["ingredients"], list)
+                or isinstance(row["ingredients"], np.ndarray)
+            ):
+                for ing in row["ingredients"]:
+                    if isinstance(ing, dict):
+                        ing_code = ing.get("ingredient_code")
+                        ingredient_id = ingredient_mapping.get(ing_code)
+                        
+                        if ingredient_id:
+                            # Use basis unit quantities where available, fallback to original
+                            strnt_nmrtr_val = (
+                                ing.get("strnt_nmrtr_basis_val") 
+                                if pd.notna(ing.get("strnt_nmrtr_basis_val"))
+                                else ing.get("strnt_nmrtr_val")
+                            )
+                            strnt_nmrtr_uom_name = (
+                                ing.get("strnt_nmrtr_basis_uom")
+                                if pd.notna(ing.get("strnt_nmrtr_basis_uom"))
+                                else ing.get("strnt_nmrtr_uom_name")
+                            )
+                            strnt_dnmtr_val = (
+                                ing.get("strnt_dnmtr_basis_val")
+                                if pd.notna(ing.get("strnt_dnmtr_basis_val"))
+                                else ing.get("strnt_dnmtr_val")
+                            )
+                            strnt_dnmtr_uom_name = (
+                                ing.get("strnt_dnmtr_basis_uom")
+                                if pd.notna(ing.get("strnt_dnmtr_basis_uom"))
+                                else ing.get("strnt_dnmtr_uom_name")
+                            )
+
+                            strength_obj = VMPIngredientStrength(
+                                vmp=vmp,
+                                ingredient_id=ingredient_id,
+                                strnt_nmrtr_val=strnt_nmrtr_val,
+                                strnt_nmrtr_uom_name=strnt_nmrtr_uom_name,
+                                strnt_dnmtr_val=strnt_dnmtr_val,
+                                strnt_dnmtr_uom_name=strnt_dnmtr_uom_name,
+                                basis_of_strength_type=ing.get("basis_of_strength_type"),
+                                basis_of_strength_name=ing.get("basis_of_strength_name"),
+                            )
+                            strength_objects.append(strength_obj)
+
+        created_objects = VMPIngredientStrength.objects.bulk_create(
+            strength_objects, batch_size=1000
+        )
+        logger.info(f"Created {len(created_objects)} VMPIngredientStrength records")
+
+
+@task()
 def vacuum_tables() -> None:
     logger = get_run_logger()
 
@@ -380,6 +461,7 @@ def vacuum_tables() -> None:
         "viewer_ingredient",
         "viewer_whoroute",
         "viewer_ontformroute",
+        "viewer_vmpingredientstrength",
     ]
 
     m2m_tables = [
@@ -428,6 +510,8 @@ def load_vmp_vtm_data():
     load_vmps(
         vmp_data, vtm_mapping, ingredient_mapping, atc_mapping, ont_form_route_mapping
     )
+    
+    load_vmp_ingredient_strengths(vmp_data, ingredient_mapping)
 
     vacuum_tables()
 
