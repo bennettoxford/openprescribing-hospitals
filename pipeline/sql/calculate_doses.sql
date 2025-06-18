@@ -111,7 +111,7 @@ calculated_doses AS (
           ELSE 'Not calculated: Discrete but SCMD quantity basis != udfs basis or unit dose form size'
         END
       ELSE 'Not calculated: not a discrete form'
-    END AS logic
+    END AS calculation_logic
   FROM processed_data
 )
 SELECT 
@@ -134,5 +134,5 @@ SELECT
   dose_quantity,
   dose_unit,
   df_ind,
-  logic
+  calculation_logic
 FROM calculated_doses

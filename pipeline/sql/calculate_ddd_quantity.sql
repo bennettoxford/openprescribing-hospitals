@@ -101,23 +101,13 @@ ddd_calculations AS (
       WHEN selected_ddd_value = 0 THEN
         'DDD calculation not possible: DDD value is zero'
       WHEN ddd_calculation_logic = 'Calculated using SCMD unit' THEN
-        CONCAT(
-          'DDD calculation using SCMD quantity: ',
-          quantity, ' / (', selected_ddd_value, ' ', selected_ddd_unit, ' * ', ddd_conversion_factor, ') = ',
-          ROUND(quantity / (selected_ddd_value * ddd_conversion_factor), 2), ' DDDs'
-        )
+          'DDD calculation using SCMD quantity'
       WHEN ddd_calculation_logic = 'Calculated using ingredient quantity' 
         AND ingredient_basis_quantity IS NOT NULL
-        AND ingredient_basis = ddd_basis THEN
-        CONCAT(
-          'DDD calculation using ingredient quantity: ',
-          ingredient_basis_quantity, ' ', ingredient_basis_unit, ' / (',
-          selected_ddd_value, ' ', selected_ddd_unit, ' * ', ddd_conversion_factor, ') = ',
-          ROUND(ingredient_basis_quantity / (selected_ddd_value * ddd_conversion_factor), 2), ' DDDs'
-        )
+        AND ingredient_basis = ddd_basis THEN 'DDD calculation using ingredient quantity'
       ELSE
         'DDD calculation not possible: missing required quantities or incompatible units'
-    END AS calculation_explanation
+    END AS calculation_logic
   FROM data_with_conversions
 )
 
@@ -132,5 +122,5 @@ SELECT
   ddd_quantity,
   selected_ddd_value AS ddd_value,
   selected_ddd_unit AS ddd_unit,
-  calculation_explanation
+  calculation_logic
 FROM ddd_calculations

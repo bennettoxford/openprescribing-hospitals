@@ -522,7 +522,7 @@ DOSE_TABLE_SPEC = TableSpec(
         ),
         bigquery.SchemaField("df_ind", "STRING", mode="REQUIRED", description="Dose form indicator"),
         bigquery.SchemaField(
-            "logic", "STRING", mode="REQUIRED", description="Logic used for dose calculation including unit conversion details"
+            "calculation_logic", "STRING", mode="REQUIRED", description="Logic used for dose calculation including unit conversion details"
         ),
     ],
     partition_field="year_month",
@@ -663,10 +663,10 @@ DDD_QUANTITY_TABLE_SPEC = TableSpec(
         bigquery.SchemaField("ddd_value", "FLOAT", mode="REQUIRED", description="DDD value"),
         bigquery.SchemaField("ddd_unit", "STRING", mode="REQUIRED", description="DDD unit"),
         bigquery.SchemaField(
-            "calculation_explanation",
+            "calculation_logic",
             "STRING",
             mode="REQUIRED",
-            description="Explanation of the DDD calculation",
+            description="Logic used for DDD calculation",
         ),
     ],
     partition_field="year_month",
