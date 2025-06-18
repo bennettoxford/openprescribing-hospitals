@@ -37,12 +37,12 @@ def validate_ddd_values_present():
         vmp_name,
         ddd_value,
         ddd_unit,
-        calculation_explanation
+        calculation_logic
     FROM `{DDD_QUANTITY_TABLE_SPEC.full_table_id}`
     WHERE 
-        calculation_explanation LIKE 'DDD calculation%'
+        calculation_logic LIKE 'DDD calculation%'
         AND (ddd_value IS NULL OR ddd_unit IS NULL)
-    GROUP BY vmp_code, vmp_name, ddd_value, ddd_unit, calculation_explanation
+    GROUP BY vmp_code, vmp_name, ddd_value, ddd_unit, calculation_logic
     """
     
     results = client.query(query).result()
