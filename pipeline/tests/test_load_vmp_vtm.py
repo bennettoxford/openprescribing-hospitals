@@ -12,8 +12,9 @@ from pipeline.flows.load_vmp_vtm import (
     validate_atcs,
     load_ont_form_routes,
     load_vmps,
+    load_vmp_ingredient_strengths,
 )
-from viewer.models import VMP, VTM, Ingredient, WHORoute, ATC, OntFormRoute
+from viewer.models import VMP, VTM, Ingredient, WHORoute, ATC, OntFormRoute, VMPIngredientStrength
 
 
 @pytest.fixture
@@ -25,12 +26,45 @@ def sample_vmp_data():
             "vtm_code": ["VTM123", "VTM456"],
             "vtm_name": ["Test VTM 1", "Test VTM 2"],
             "bnf_code": ["0101010", "0101020"],
+            "df_ind": ["1", "2"],
+            "udfs": [5.0, 10.0],
+            "udfs_uom": ["mg", "ml"],
+            "unit_dose_uom": ["tablet", "ml"],
             "ingredients": [
                 [
-                    {"ingredient_code": "ING123", "ingredient_name": "Ingredient 1"},
-                    {"ingredient_code": "ING456", "ingredient_name": "Ingredient 2"},
+                    {
+                        "ingredient_code": "ING123",
+                        "ingredient_name": "Ingredient 1",
+                        "strnt_nmrtr_val": 500.0,
+                        "strnt_nmrtr_uom_name": "mg",
+                        "strnt_dnmtr_val": 1.0,
+                        "strnt_dnmtr_uom_name": "tablet",
+                        "basis_of_strength_type": 1,
+                        "basis_of_strength_name": "Ingredient 1"
+                    },
+                    {
+                        "ingredient_code": "ING456",
+                        "ingredient_name": "Ingredient 2",
+                        "strnt_nmrtr_val": 250.0,
+                        "strnt_nmrtr_uom_name": "mg",
+                        "strnt_dnmtr_val": 1.0,
+                        "strnt_dnmtr_uom_name": "tablet",
+                        "basis_of_strength_type": 1,
+                        "basis_of_strength_name": "Ingredient 2"
+                    },
                 ],
-                [{"ingredient_code": "ING789", "ingredient_name": "Ingredient 3"}],
+                [
+                    {
+                        "ingredient_code": "ING789",
+                        "ingredient_name": "Ingredient 3",
+                        "strnt_nmrtr_val": 100.0,
+                        "strnt_nmrtr_uom_name": "mg",
+                        "strnt_dnmtr_val": 5.0,
+                        "strnt_dnmtr_uom_name": "ml",
+                        "basis_of_strength_type": 2,
+                        "basis_of_strength_name": "Ingredient 3 Base"
+                    }
+                ],
             ],
             "ont_form_routes": [
                 [{"route_code": "RT1", "route_name": "tablet.oral"}],
@@ -79,6 +113,10 @@ class TestLoadVMPVTM:
                 "ingredients",
                 "ont_form_routes",
                 "atcs",
+                "df_ind",
+                "udfs",
+                "udfs_uom",
+                "unit_dose_uom",
             ]
         )
 
@@ -235,6 +273,10 @@ class TestLoadVMPVTM:
         assert vmp1.name == "Test Drug 1"
         assert vmp1.vtm.vtm == "VTM123"
         assert vmp1.bnf_code == "0101010"
+        assert vmp1.df_ind == "1"
+        assert vmp1.udfs == 5.0
+        assert vmp1.udfs_uom == "mg"
+        assert vmp1.unit_dose_uom == "tablet"
         assert vmp1.ingredients.count() == 2
         assert vmp1.ont_form_routes.count() == 1
         assert vmp1.atcs.count() == 1
@@ -243,3 +285,57 @@ class TestLoadVMPVTM:
         assert "Ingredient 1" in [i.name for i in vmp1.ingredients.all()]
         assert "tablet.oral" in [r.name for r in vmp1.ont_form_routes.all()]
         assert "A01AA01" in [a.code for a in vmp1.atcs.all()]
+
+        vmp2 = vmps.get(code="67890")
+        assert vmp2.df_ind == "2"
+        assert vmp2.udfs == 10.0
+
+    @pytest.mark.django_db
+    def test_load_vmp_ingredient_strengths(self, sample_vmp_data):
+        
+        vtms = VTM.objects.bulk_create(
+            [VTM(vtm="VTM123", name="Test VTM 1"), VTM(vtm="VTM456", name="Test VTM 2")]
+        )
+        
+        ingredients = Ingredient.objects.bulk_create(
+            [
+                Ingredient(code="ING123", name="Ingredient 1"),
+                Ingredient(code="ING456", name="Ingredient 2"),
+                Ingredient(code="ING789", name="Ingredient 3"),
+            ]
+        )
+        ingredient_mapping = {ing.code: ing.id for ing in ingredients}
+        
+        VMP.objects.bulk_create(
+            [
+                VMP(code="12345", name="Test Drug 1", vtm=vtms[0]),
+                VMP(code="67890", name="Test Drug 2", vtm=vtms[1]),
+            ]
+        )
+        
+        load_vmp_ingredient_strengths(sample_vmp_data, ingredient_mapping)
+        
+        strengths = VMPIngredientStrength.objects.all()
+        assert strengths.count() == 3  # 2 ingredients for first VMP, 1 for second
+        
+        strength1 = VMPIngredientStrength.objects.get(
+            vmp__code="12345", 
+            ingredient__code="ING123"
+        )
+        assert strength1.strnt_nmrtr_val == 500.0
+        assert strength1.strnt_nmrtr_uom_name == "mg"
+        assert strength1.strnt_dnmtr_val == 1.0
+        assert strength1.strnt_dnmtr_uom_name == "tablet"
+        assert strength1.basis_of_strength_type == 1
+        assert strength1.basis_of_strength_name == "Ingredient 1"
+        
+        strength3 = VMPIngredientStrength.objects.get(
+            vmp__code="67890", 
+            ingredient__code="ING789"
+        )
+        assert strength3.strnt_nmrtr_val == 100.0
+        assert strength3.strnt_nmrtr_uom_name == "mg"
+        assert strength3.strnt_dnmtr_val == 5.0
+        assert strength3.strnt_dnmtr_uom_name == "ml"
+        assert strength3.basis_of_strength_type == 2
+        assert strength3.basis_of_strength_name == "Ingredient 3 Base"
