@@ -831,6 +831,13 @@ VMP_TABLE_SPEC = TableSpec(
         bigquery.SchemaField("vtm_code", "STRING", mode="NULLABLE", description="Virtual Therapeutic Moiety (VTM) code"),
         bigquery.SchemaField("vtm_name", "STRING", mode="NULLABLE", description="VTM name"),
         bigquery.SchemaField("bnf_code", "STRING", mode="NULLABLE", description="BNF code"),
+        bigquery.SchemaField("df_ind", "STRING", mode="NULLABLE", description="Dose form indicator"),
+        bigquery.SchemaField("udfs", "FLOAT", mode="NULLABLE", description="Unit dose form size"),
+        bigquery.SchemaField("udfs_uom", "STRING", mode="NULLABLE", description="Unit dose form size unit of measure"),
+        bigquery.SchemaField("udfs_basis_quantity", "FLOAT", mode="NULLABLE", description="Unit dose form size converted to basis units"),
+        bigquery.SchemaField("udfs_basis_uom", "STRING", mode="NULLABLE", description="Basis unit for the unit dose form size"),
+        bigquery.SchemaField("unit_dose_uom", "STRING", mode="NULLABLE", description="Unit dose unit of measure"),
+        bigquery.SchemaField("unit_dose_basis_uom", "STRING", mode="NULLABLE", description="Basis unit for the unit dose"),
         bigquery.SchemaField(
             "ingredients",
             "RECORD",
@@ -842,6 +849,36 @@ VMP_TABLE_SPEC = TableSpec(
                 ),
                 bigquery.SchemaField(
                     "ingredient_name", "STRING", mode="REQUIRED", description="Ingredient name"
+                ),
+                bigquery.SchemaField(
+                    "strnt_nmrtr_val", "FLOAT", mode="NULLABLE", description="Strength numerator value"
+                ),
+                bigquery.SchemaField(
+                    "strnt_nmrtr_uom_name", "STRING", mode="NULLABLE", description="Strength numerator unit of measure"
+                ),
+                bigquery.SchemaField(
+                    "strnt_nmrtr_basis_val", "FLOAT", mode="NULLABLE", description="Strength numerator value converted to basis units"
+                ),
+                bigquery.SchemaField(
+                    "strnt_nmrtr_basis_uom", "STRING", mode="NULLABLE", description="Basis unit for strength numerator"
+                ),
+                bigquery.SchemaField(
+                    "strnt_dnmtr_val", "FLOAT", mode="NULLABLE", description="Strength denominator value"
+                ),
+                bigquery.SchemaField(
+                    "strnt_dnmtr_uom_name", "STRING", mode="NULLABLE", description="Strength denominator unit of measure"
+                ),
+                bigquery.SchemaField(
+                    "strnt_dnmtr_basis_val", "FLOAT", mode="NULLABLE", description="Strength denominator value converted to basis units"
+                ),
+                bigquery.SchemaField(
+                    "strnt_dnmtr_basis_uom", "STRING", mode="NULLABLE", description="Basis unit for strength denominator"
+                ),
+                bigquery.SchemaField(
+                    "basis_of_strength_type", "INTEGER", mode="NULLABLE", description="Type of basis of strength (1=Ingredient Substance, 2=Base Substance)"
+                ),
+                bigquery.SchemaField(
+                    "basis_of_strength_name", "STRING", mode="NULLABLE", description="Name of the basis of strength substance"
                 ),
             ],
         ),
@@ -869,6 +906,12 @@ VMP_TABLE_SPEC = TableSpec(
                 bigquery.SchemaField("atc_name", "STRING", mode="REQUIRED", description="ATC name"),
             ],
         ),
+        bigquery.SchemaField("selected_ddd_value", "FLOAT", mode="NULLABLE", description="Selected DDD value for this VMP"),
+        bigquery.SchemaField("selected_ddd_unit", "STRING", mode="NULLABLE", description="Unit of the selected DDD"),
+        bigquery.SchemaField("selected_ddd_basis_value", "FLOAT", mode="NULLABLE", description="Selected DDD value converted to basis units"),
+        bigquery.SchemaField("selected_ddd_basis_unit", "STRING", mode="NULLABLE", description="Basis unit for the selected DDD"),
+        bigquery.SchemaField("can_calculate_ddd", "BOOLEAN", mode="NULLABLE", description="Whether DDD calculations are possible for this VMP"),
+        bigquery.SchemaField("ddd_calculation_logic", "STRING", mode="NULLABLE", description="Logic used for DDD calculations"),
     ],
     cluster_fields=["vmp_code"],
 )
