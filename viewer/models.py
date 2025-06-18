@@ -39,6 +39,10 @@ class VMP(models.Model):
     who_routes = models.ManyToManyField("WHORoute", related_name="vmps")
     atcs = models.ManyToManyField("ATC", related_name="vmps")
     bnf_code = models.CharField(max_length=20, null=True)
+    df_ind = models.CharField(max_length=20, null=False, default="Not applicable", help_text="Dose form indicator")
+    udfs = models.FloatField(null=True, help_text="Unit dose form size")
+    udfs_uom = models.CharField(max_length=100, null=True, help_text="Unit dose form size unit of measure")
+    unit_dose_uom = models.CharField(max_length=100, null=True, help_text="Unit dose unit of measure")
 
     def __str__(self):
         return f"{self.name} ({self.code})"
@@ -123,6 +127,26 @@ class Ingredient(models.Model):
         indexes = [
             models.Index(fields=["code"]),
         ]
+
+class VMPIngredientStrength(models.Model):
+    vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name="ingredient_strengths")
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name="vmp_strengths")
+    
+    strnt_nmrtr_val = models.FloatField(null=True, help_text="Strength numerator value")
+    strnt_nmrtr_uom_name = models.CharField(max_length=100, null=True, help_text="Strength numerator unit of measure")
+    strnt_dnmtr_val = models.FloatField(null=True, help_text="Strength denominator value")
+    strnt_dnmtr_uom_name = models.CharField(max_length=100, null=True, help_text="Strength denominator unit of measure")
+    basis_of_strength_type = models.IntegerField(null=True, help_text="Type of basis of strength (1=Ingredient Substance, 2=Base Substance)")
+    basis_of_strength_name = models.CharField(max_length=255, null=True, help_text="Name of the basis of strength substance")
+
+    class Meta:
+        unique_together = ('vmp', 'ingredient')
+        indexes = [
+            models.Index(fields=["vmp", "ingredient"]),
+        ]
+
+    def __str__(self):
+        return f"{self.vmp.name} - {self.ingredient.name}"
 
 class Organisation(models.Model):
     ods_code = models.CharField(max_length=10, unique=True)
