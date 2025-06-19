@@ -1,0 +1,25 @@
+name: openprescribing-hospitals
+region: lon
+services:
+- name: web
+  source_dir: /
+  github:
+    repo: bennettoxford/openprescribing-hospitals
+    branch: main
+    deploy_on_push: true
+  dockerfile_path: Dockerfile
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  envs:
+  - key: SECRET_KEY
+    value: ${SECRET_KEY}
+  - key: DEBUG
+    value: "False"
+  - key: APP_URL
+    value: ${APP_URL}
+  - key: DATABASE_URL
+    value: ${main-db.DATABASE_URL}
+databases:
+- engine: PG
+  name: main-db
+  version: "16" 
