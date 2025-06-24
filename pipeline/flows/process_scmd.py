@@ -11,6 +11,7 @@ from pipeline.bq_tables import (
     SCMD_PROCESSED_TABLE_SPEC,
     VMP_UNIT_STANDARDISATION_TABLE_SPEC,
     DMD_TABLE_SPEC,
+    DMD_HISTORY_TABLE_SPEC,
 )
 
 @task
@@ -142,15 +143,16 @@ def validate_scmd_data():
             logger.error(f"- VMP {row.vmp_code} ({row.vmp_name}): {row.status}")
 
         prev_code_query = f"""
-            SELECT vmp_code, vmp_code_prev
-            FROM `{DMD_TABLE_SPEC.full_table_id}`
-            WHERE vmp_code_prev IN ({','.join([f"'{m.vmp_code}'" for m in validation_results['vmp_mappings']])})
+            SELECT current_id, previous_id
+            FROM `{DMD_HISTORY_TABLE_SPEC.full_table_id}`
+            WHERE entity_type = 'VMP'
+            AND previous_id IN ({','.join([f"'{m.vmp_code}'" for m in validation_results['vmp_mappings']])})
         """
         prev_mappings = list(client.query(prev_code_query).result())
         if prev_mappings:
             logger.error("\nSome invalid codes found as previous codes:")
             for prev in prev_mappings:
-                logger.error(f"- Previous code {prev.vmp_code_prev} should be mapped to {prev.vmp_code}")
+                logger.error(f"- Previous code {prev.previous_id} should be mapped to {prev.current_id}")
         raise ValueError("Invalid VMP mappings found")
 
     if validation_results["multiple_units"]:
