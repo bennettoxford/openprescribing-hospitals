@@ -31,16 +31,18 @@ def validate_ddd_values_present():
     logger.info("Validating DDD values and units are present when calculable")
 
     client = get_bigquery_client()
+
     query = f"""
     SELECT
         vmp_code,
         vmp_name,
         ddd_value,
         ddd_unit,
-        calculation_logic
+        calculation_logic,
+        COUNT(*) as count
     FROM `{DDD_QUANTITY_TABLE_SPEC.full_table_id}`
     WHERE 
-        calculation_logic LIKE 'DDD calculation%'
+        calculation_logic IN ('DDD calculation using SCMD quantity', 'DDD calculation using ingredient quantity')
         AND (ddd_value IS NULL OR ddd_unit IS NULL)
     GROUP BY vmp_code, vmp_name, ddd_value, ddd_unit, calculation_logic
     """
@@ -50,15 +52,18 @@ def validate_ddd_values_present():
     
     if errors:
         logger.error(f"Found {len(errors)} VMPs that should have DDD values but have missing values or units:")
-        for error in errors[:5]:
+        for error in errors:
             logger.error(
                 f"VMP: {error.vmp_code} ({error.vmp_name}), "
                 f"DDD value: {error.ddd_value}, "
-                f"DDD unit: {error.ddd_unit}"
+                f"DDD unit: {error.ddd_unit}, "
+                f"Logic: {error.calculation_logic}, "
+                f"Count: {error.count}"
             )
         raise ValueError("DDD values presence validation failed")
+    else:
+        logger.info("All VMPs with calculable DDDs have proper DDD values and units")
     
-    logger.info("All VMPs with calculable DDDs have proper DDD values and units")
     return {"ddd_values_presence_validation": "passed"}
 
 

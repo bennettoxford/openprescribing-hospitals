@@ -28,6 +28,7 @@ from pipeline.utils.config import (
     DMD_UOM_TABLE_ID,
     WHO_DDD_ALTERATIONS_TABLE_ID,
     WHO_ATC_ALTERATIONS_TABLE_ID,
+    CALCULATION_LOGIC_TABLE_ID,
 )
 
 
@@ -1081,6 +1082,7 @@ DMD_UOM_TABLE_SPEC = TableSpec(
     ],
     cluster_fields=["uom_code"],
 )
+
 WHO_DDD_ALTERATIONS_TABLE_SPEC = TableSpec(
     project_id=PROJECT_ID,
     dataset_id=DATASET_ID,
@@ -1189,4 +1191,38 @@ WHO_ATC_ALTERATIONS_TABLE_SPEC = TableSpec(
         ),
     ],
     cluster_fields=["previous_atc_code", "new_atc_code", "year_changed"]
+)
+
+CALCULATION_LOGIC_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=CALCULATION_LOGIC_TABLE_ID,
+    description="Calculation logic for each VMP and quantity type (dose, ingredient, DDD).",
+    schema=[
+        bigquery.SchemaField(
+            "vmp_code", 
+            "STRING", 
+            mode="REQUIRED",
+            description="Virtual Medicinal Product (VMP) code"
+        ),
+        bigquery.SchemaField(
+            "ingredient_code", 
+            "STRING", 
+            mode="NULLABLE",
+            description="Ingredient code (required for ingredient/DDD quantity logic, null for dose logic)"
+        ),
+        bigquery.SchemaField(
+            "logic_type", 
+            "STRING", 
+            mode="REQUIRED",
+            description="Type of calculation logic: dose, ingredient, or ddd"
+        ),
+        bigquery.SchemaField(
+            "logic", 
+            "STRING", 
+            mode="REQUIRED",
+            description="Detailed calculation logic description"
+        ),
+    ],
+    cluster_fields=["vmp_code", "logic_type"],
 )
