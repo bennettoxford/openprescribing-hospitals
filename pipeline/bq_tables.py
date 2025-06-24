@@ -668,6 +668,12 @@ DDD_QUANTITY_TABLE_SPEC = TableSpec(
             mode="REQUIRED",
             description="Logic used for DDD calculation",
         ),
+        bigquery.SchemaField(
+            "ingredient_code",
+            "STRING", 
+            mode="NULLABLE",
+            description="Ingredient code used for DDD calculation (only populated when calculation uses ingredient quantity)"
+        ),
     ],
     partition_field="year_month",
     cluster_fields=["vmp_code"],

@@ -30,7 +30,13 @@ ingredient_data AS (
       WHEN ARRAY_LENGTH(ingredients) = 1 THEN
         (SELECT ingredient_basis_unit FROM UNNEST(ingredients) LIMIT 1)
       ELSE NULL
-    END AS ingredient_basis_unit
+    END AS ingredient_basis_unit,
+    -- Get the ingredient code for single ingredient products
+    CASE 
+      WHEN ARRAY_LENGTH(ingredients) = 1 THEN
+        (SELECT ingredient_code FROM UNNEST(ingredients) LIMIT 1)
+      ELSE NULL
+    END AS ingredient_code
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ INGREDIENT_QUANTITY_TABLE_ID }}`
 ),
 
@@ -45,6 +51,7 @@ data_with_ddd AS (
     n.quantity,
     i.ingredient_basis_quantity,
     i.ingredient_basis_unit,
+    i.ingredient_code,
     ddd_map.can_calculate_ddd,
     ddd_map.ddd_calculation_logic,
     ddd_map.selected_ddd_value,
@@ -122,5 +129,10 @@ SELECT
   ddd_quantity,
   selected_ddd_value AS ddd_value,
   selected_ddd_unit AS ddd_unit,
+  -- Include ingredient code when DDD calculation uses ingredient quantity
+  CASE 
+    WHEN calculation_logic = 'DDD calculation using ingredient quantity' THEN ingredient_code
+    ELSE NULL
+  END AS ingredient_code,
   calculation_logic
 FROM ddd_calculations
