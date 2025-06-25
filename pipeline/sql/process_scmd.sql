@@ -6,20 +6,37 @@ WITH history_mappings AS (
   SELECT 
     previous_id,
     current_id,
-    entity_type
+    entity_type,
+    start_date,
+    end_date
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_HISTORY_TABLE_ID }}`
   WHERE entity_type IN ('VMP', 'UOM')
   AND previous_id != current_id
 ),
+-- Some codes have multiple entries mapping to the same code for different time periods. We deduplicate by selecting the most recent
+deduplicated_history AS (
+  SELECT 
+    previous_id,
+    current_id,
+    entity_type,
+    ROW_NUMBER() OVER (
+      PARTITION BY previous_id, entity_type 
+      ORDER BY 
+        CASE WHEN end_date IS NULL THEN 1 ELSE 0 END DESC, -- Prefer active mappings (no end date)
+        end_date DESC,  -- Then prefer latest end date
+        start_date DESC -- Finally prefer latest start date
+    ) as rn
+  FROM history_mappings
+),
 vmp_mappings AS (
   SELECT previous_id, current_id
-  FROM history_mappings
-  WHERE entity_type = 'VMP'
+  FROM deduplicated_history
+  WHERE entity_type = 'VMP' AND rn = 1
 ),
 uom_mappings AS (
   SELECT previous_id, current_id
-  FROM history_mappings
-  WHERE entity_type = 'UOM'
+  FROM deduplicated_history
+  WHERE entity_type = 'UOM' AND rn = 1
 ),
 normalized_vmps AS (
   SELECT 
