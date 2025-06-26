@@ -79,7 +79,8 @@ def validate_calculation_logic_consistency():
     FROM `{CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
     WHERE logic_type = 'ddd' 
         AND ingredient_code IS NOT NULL
-        AND logic NOT LIKE '%ingredient quantity%'
+        AND LOWER(logic) NOT LIKE '%ingredient quantity%'
+        AND logic NOT IN ('Ingredient quantity / DDD')
     GROUP BY vmp_code, logic_type, ingredient_code, logic
     """
     results = client.query(invalid_ddd_ingredient_codes_query).result()
@@ -104,7 +105,7 @@ def validate_calculation_logic_consistency():
     FROM `{CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
     WHERE logic_type = 'ddd' 
         AND ingredient_code IS NULL
-        AND logic LIKE '%ingredient quantity%'
+        AND (LOWER(logic) LIKE '%ingredient quantity%' OR logic = 'Ingredient quantity / DDD')
     GROUP BY vmp_code, logic_type, logic
     """
     results = client.query(missing_ddd_ingredient_codes_query).result()

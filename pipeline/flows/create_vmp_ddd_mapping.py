@@ -158,10 +158,10 @@ def validate_calculation_logic():
     """Validate that the DDD (Defined Daily Dose) calculation logic is consistent with VMP data.
     This validation checks for calculable VMPs only:
 
-    1. For VMPs using SCMD unit calculation:
+    1. For VMPs using 'SCMD quantity / DDD':
        - Verifies the selected DDD basis unit exists in the VMP's SCMD basis units
 
-    2. For VMPs using ingredient quantity:
+    2. For VMPs using 'Ingredient quantity / DDD':
        - Verifies the VMP has exactly one ingredient
        - Verifies the ingredient's basis unit matches the selected DDD basis unit
     """
@@ -209,26 +209,26 @@ def validate_calculation_logic():
             WHERE basis_unit = selected_ddd_basis_unit
         ) > 0 AS scmd_basis_matches_ddd,
         CASE
-            WHEN ddd_calculation_logic = 'Calculated using SCMD unit' 
+            WHEN ddd_calculation_logic = 'SCMD quantity / DDD'
                 AND (
                     SELECT COUNT(1) 
                     FROM UNNEST(scmd_basis_units) basis_unit
                     WHERE basis_unit = selected_ddd_basis_unit
                 ) > 0 THEN TRUE
-            WHEN ddd_calculation_logic = 'Calculated using ingredient quantity' 
+            WHEN ddd_calculation_logic = 'Ingredient quantity / DDD'
                 AND ingredient_count = 1 
                 AND single_ingredient_basis_unit = selected_ddd_basis_unit THEN TRUE
             ELSE FALSE
         END AS logic_is_valid
     FROM ddd_mapping
     WHERE CASE
-        WHEN ddd_calculation_logic = 'Calculated using SCMD unit' 
+        WHEN ddd_calculation_logic = 'SCMD quantity / DDD'
             AND (
                 SELECT COUNT(1) 
                 FROM UNNEST(scmd_basis_units) basis_unit
                 WHERE basis_unit = selected_ddd_basis_unit
             ) > 0 THEN TRUE
-        WHEN ddd_calculation_logic = 'Calculated using ingredient quantity' 
+        WHEN ddd_calculation_logic = 'Ingredient quantity / DDD'
             AND ingredient_count = 1 
             AND single_ingredient_basis_unit = selected_ddd_basis_unit THEN TRUE
         ELSE FALSE
@@ -241,14 +241,14 @@ def validate_calculation_logic():
     if invalid_logic_records:
         logger.error(f"Found {len(invalid_logic_records)} VMPs with inconsistent calculation logic")
         for record in invalid_logic_records[:5]:
-            if record['ddd_calculation_logic'] == 'Calculated using SCMD unit':
+            if record['ddd_calculation_logic'] == 'SCMD quantity / DDD':
                 if not record.get('scmd_basis_matches_ddd', False):
                     logger.error(
                         f"- VMP {record['vmp_code']} ({record['vmp_name']}): "
                         f"Using SCMD unit but DDD basis unit ({record['selected_ddd_basis_unit']}) "
                         f"not in SCMD basis units ({', '.join(record['scmd_basis_units'])})"
                     )
-            elif record['ddd_calculation_logic'] == 'Calculated using ingredient quantity':
+            elif record['ddd_calculation_logic'] == 'Ingredient quantity / DDD':
                 if record['ingredient_count'] != 1:
                     logger.error(
                         f"- VMP {record['vmp_code']} ({record['vmp_name']}): "

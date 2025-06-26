@@ -306,7 +306,7 @@ ddd_calculation_status AS (
     vmp_name,
     who_ddds,
     TRUE AS can_calculate_ddd,
-    'Calculated using SCMD unit' AS ddd_calculation_logic,
+    'SCMD quantity / DDD' AS ddd_calculation_logic,
     selected_ddd_value,
     selected_ddd_unit,
     selected_ddd_route_code,
@@ -326,18 +326,18 @@ ddd_calculation_status AS (
     END AS can_calculate_ddd,
     CASE
       WHEN has_single_ingredient AND ingredient_basis_matches_ddd 
-      THEN 'Calculated using ingredient quantity'
+      THEN 'Ingredient quantity / DDD'
       WHEN NOT routes_match 
-      THEN 'DDD route does not match product route'
+      THEN 'Not calculated: DDD route does not match product route'
       WHEN has_missing_ingredient_units 
-      THEN 'Missing ingredient unit information, cannot calculate'
+      THEN 'Not calculated: missing ingredient unit information, cannot calculate'
       WHEN NOT has_ingredients 
-      THEN CONCAT('Unit incompatibility: DDD unit (', selected_ddd_unit, ') not compatible with any SCMD units. No ingredients found for fallback.')
+      THEN CONCAT('Not calculated: DDD unit incompatible with SCMD unit. No ingredients found.')
       WHEN NOT has_single_ingredient 
-      THEN CONCAT('Unit incompatibility: DDD unit (', selected_ddd_unit, ') not compatible with any SCMD units. Multiple ingredients found, fallback not possible.')
+      THEN CONCAT('Not calculated: DDD unit incompatible with SCMD unit. Multiple ingredients found, fallback not possible.')
       WHEN NOT ingredient_basis_matches_ddd 
-      THEN CONCAT('Unit incompatibility: DDD unit (', selected_ddd_unit, ') not compatible with any SCMD units. Ingredient basis unit (', single_ingredient_basis_unit, ') does not match DDD basis unit (', selected_ddd_basis_unit, ').')
-      ELSE 'Unknown route or unit compatibility issue'
+      THEN CONCAT('Not calculated: DDD unit incompatible with SCMD unit. Ingredient unit does not match DDD unit.')
+      ELSE 'Not calculated: unknown route or unit compatibility issue'
     END AS ddd_calculation_logic,
     selected_ddd_value,
     selected_ddd_unit,
