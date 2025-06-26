@@ -13,6 +13,14 @@ setup_django_environment()
 from viewer.models import Dose, SCMDQuantity, VMP, Organisation, CalculationLogic
 
 
+def fetch_bigquery_data(query: str, client) -> pd.DataFrame:
+    """Fetch BigQuery data with automatic memory cleanup"""
+    job_config = bigquery.QueryJobConfig(use_query_cache=False, allow_large_results=True)
+    query_job = client.query(query, job_config=job_config)
+    df = query_job.to_dataframe(create_bqstorage_client=True)
+    return df.copy()
+
+
 def ensure_proper_types(data_list):
     """Ensure each entry in the data array has the proper types"""
     for i, entry in enumerate(data_list):
@@ -104,12 +112,7 @@ def extract_dose_data_by_vmps(
     ORDER BY vmp_code, ods_code, year_month
     """
 
-    job_config = bigquery.QueryJobConfig(
-        use_query_cache=False, allow_large_results=True
-    )
-
-    query_job = client.query(query, job_config=job_config)
-    df = query_job.to_dataframe(create_bqstorage_client=True)
+    df = fetch_bigquery_data(query, client)
 
     logger.info(
         f"Chunk {chunk_num}/{total_chunks}: Extracted {len(df):,} rows for {len(vmp_codes):,} VMPs"
@@ -349,7 +352,7 @@ def transform_and_load_chunk(
         f"Chunk {chunk_num}/{total_chunks}: Loading {len(dose_objects):,} dose objects and {len(scmd_objects):,} SCMD objects to database..."
     )
 
-    SUB_BATCH_SIZE = 1000
+    SUB_BATCH_SIZE = 500
     dose_created = 0
     scmd_created = 0
     total_skipped = skipped_count + dose_skipped + scmd_skipped
@@ -403,12 +406,12 @@ def transform_and_load_chunk(
 
 
 @flow
-def load_dose_data_flow(vmp_chunk_size: int = 1000):
+def load_dose_data_flow(vmp_chunk_size: int = 500):
     """
     Main flow to import dose and SCMD quantity data using VMP-based chunking
 
     Args:
-        vmp_chunk_size: Number of VMPs to process in each chunk (default: 1000)
+        vmp_chunk_size: Number of VMPs to process in each chunk (default: 500)
     """
     logger = get_run_logger()
     start_time = time.time()
@@ -501,8 +504,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--vmp-chunk-size",
         type=int,
-        default=1000,
-        help="Number of VMPs per chunk (default: 1000)",
+        default=500,
+        help="Number of VMPs per chunk (default: 500)",
     )
 
     args = parser.parse_args()

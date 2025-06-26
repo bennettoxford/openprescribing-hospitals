@@ -66,9 +66,13 @@ def load_vtms(vmp_data: pd.DataFrame) -> Dict[str, int]:
     logger.info(f"Found {len(vtm_entries)} unique VTMs in the data")
 
     with transaction.atomic():
-
-        deleted_count = VTM.objects.all().delete()[0]
-        logger.info(f"Deleted {deleted_count} existing VTM records")
+        logger.info("Deleting VTM records...")
+        deleted_total = 0
+        while VTM.objects.exists():
+            ids = VTM.objects.values_list('id', flat=True)[:10000]
+            batch_count = VTM.objects.filter(id__in=ids).delete()[0]
+            deleted_total += batch_count
+        logger.info(f"Finished deleting VTM records. Total deleted: {deleted_total}")
 
         vtm_objects = [
             VTM(vtm=vtm_code, name=vtm_name)
@@ -89,8 +93,13 @@ def load_who_routes(who_routes_data: pd.DataFrame) -> Dict[str, int]:
     logger = get_run_logger()
 
     with transaction.atomic():
-        deleted_count = WHORoute.objects.all().delete()[0]
-        logger.info(f"Deleted {deleted_count} existing WHO route records")
+        logger.info("Deleting WHO route records...")
+        deleted_total = 0
+        while WHORoute.objects.exists():
+            ids = WHORoute.objects.values_list('id', flat=True)[:10000]
+            batch_count = WHORoute.objects.filter(id__in=ids).delete()[0]
+            deleted_total += batch_count
+        logger.info(f"Finished deleting WHO route records. Total deleted: {deleted_total}")
 
         route_objects = [
             WHORoute(code=row["who_route_code"], name=row["who_route_description"])
@@ -126,9 +135,13 @@ def load_ingredients(vmp_data: pd.DataFrame) -> Dict[str, int]:
     logger.info(f"Found {len(ingredient_entries)} unique ingredients in the data")
 
     with transaction.atomic():
-
-        deleted_count = Ingredient.objects.all().delete()[0]
-        logger.info(f"Deleted {deleted_count} existing ingredient records")
+        logger.info("Deleting ingredient records...")
+        deleted_total = 0
+        while Ingredient.objects.exists():
+            ids = Ingredient.objects.values_list('id', flat=True)[:10000]
+            batch_count = Ingredient.objects.filter(id__in=ids).delete()[0]
+            deleted_total += batch_count
+        logger.info(f"Finished deleting ingredient records. Total deleted: {deleted_total}")
 
         ingredient_objects = [
             Ingredient(code=ing_code, name=ing_name)
@@ -204,8 +217,13 @@ def load_ont_form_routes(
     logger.info(f"Found {len(route_entries)} unique OntFormRoutes in the data")
 
     with transaction.atomic():
-        deleted_count = OntFormRoute.objects.all().delete()[0]
-        logger.info(f"Deleted {deleted_count} existing OntFormRoute records")
+        logger.info("Deleting OntFormRoute records...")
+        deleted_total = 0
+        while OntFormRoute.objects.exists():
+            ids = OntFormRoute.objects.values_list('id', flat=True)[:10000]
+            batch_count = OntFormRoute.objects.filter(id__in=ids).delete()[0]
+            deleted_total += batch_count
+        logger.info(f"Finished deleting OntFormRoute records. Total deleted: {deleted_total}")
 
         ont_form_route_objects = []
         for route_name, route_code in route_entries.items():
@@ -242,8 +260,13 @@ def load_vmps(
     logger = get_run_logger()
 
     with transaction.atomic():
-        deleted_count = VMP.objects.all().delete()[0]
-        logger.info(f"Deleted {deleted_count} existing VMP records")
+        logger.info("Deleting VMP records...")
+        deleted_total = 0
+        while VMP.objects.exists():
+            ids = VMP.objects.values_list('id', flat=True)[:10000]
+            batch_count = VMP.objects.filter(id__in=ids).delete()[0]
+            deleted_total += batch_count
+        logger.info(f"Finished deleting VMP records. Total deleted: {deleted_total}")
 
         vmp_objects = []
         vmp_relationships = []
@@ -388,8 +411,13 @@ def load_vmp_ingredient_strengths(
     logger = get_run_logger()
     
     with transaction.atomic():
-        deleted_count = VMPIngredientStrength.objects.all().delete()[0]
-        logger.info(f"Deleted {deleted_count} existing VMPIngredientStrength records")
+        logger.info("Deleting VMPIngredientStrength records...")
+        deleted_total = 0
+        while VMPIngredientStrength.objects.exists():
+            ids = VMPIngredientStrength.objects.values_list('id', flat=True)[:10000]
+            batch_count = VMPIngredientStrength.objects.filter(id__in=ids).delete()[0]
+            deleted_total += batch_count
+        logger.info(f"Finished deleting VMPIngredientStrength records. Total deleted: {deleted_total}")
 
         vmp_lookup = {vmp.code: vmp for vmp in VMP.objects.all()}
         strength_objects = []

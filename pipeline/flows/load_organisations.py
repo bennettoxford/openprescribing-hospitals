@@ -10,7 +10,16 @@ from pipeline.utils.config import (
 from pipeline.utils.utils import setup_django_environment, execute_bigquery_query
 
 setup_django_environment()
-from viewer.models import Organisation
+from viewer.models import (
+    Organisation, 
+    SCMDQuantity, 
+    Dose, 
+    IngredientQuantity, 
+    DDDQuantity, 
+    IndicativeCost, 
+    PrecomputedMeasure, 
+    OrgSubmissionCache
+)
 
 
 @task()
@@ -69,14 +78,78 @@ def transform_organisations(data: List[Dict]) -> List[Dict]:
 
 @task
 def load_organisations(data: List[Dict]) -> Dict:
-    """Load organization data by replacing all existing data"""
     logger = get_run_logger()
     logger.info(f"Loading {len(data)} organisation records")
 
     with transaction.atomic():
+        logger.info("Deleting SCMDQuantity records...")
+        scmd_deleted_total = 0
+        while SCMDQuantity.objects.exists():
+            ids = SCMDQuantity.objects.values_list('id', flat=True)[:10000]
+            batch_count = SCMDQuantity.objects.filter(id__in=ids).delete()[0]
+            scmd_deleted_total += batch_count
+            logger.info(f"Deleted {batch_count} SCMDQuantity records (total: {scmd_deleted_total})")
+        logger.info(f"Finished deleting SCMDQuantity records. Total deleted: {scmd_deleted_total}")
+        
+        logger.info("Deleting Dose records...")
+        dose_deleted_total = 0
+        while Dose.objects.exists():
+            ids = Dose.objects.values_list('id', flat=True)[:10000]
+            batch_count = Dose.objects.filter(id__in=ids).delete()[0]
+            dose_deleted_total += batch_count
+        logger.info(f"Finished deleting Dose records. Total deleted: {dose_deleted_total}")
+        
+        logger.info("Deleting IngredientQuantity records...")
+        ingredient_deleted_total = 0
+        while IngredientQuantity.objects.exists():
+            ids = IngredientQuantity.objects.values_list('id', flat=True)[:10000]
+            batch_count = IngredientQuantity.objects.filter(id__in=ids).delete()[0]
+            ingredient_deleted_total += batch_count
+        logger.info(f"Finished deleting IngredientQuantity records. Total deleted: {ingredient_deleted_total}")
 
+        logger.info("Deleting DDDQuantity records...")
+        ddd_deleted_total = 0
+        while DDDQuantity.objects.exists():
+            ids = DDDQuantity.objects.values_list('id', flat=True)[:10000]
+            batch_count = DDDQuantity.objects.filter(id__in=ids).delete()[0]
+            ddd_deleted_total += batch_count
+        logger.info(f"Finished deleting DDDQuantity records. Total deleted: {ddd_deleted_total}")
+        
+        logger.info("Deleting IndicativeCost records...")
+        cost_deleted_total = 0
+        while IndicativeCost.objects.exists():
+            ids = IndicativeCost.objects.values_list('id', flat=True)[:10000]
+            batch_count = IndicativeCost.objects.filter(id__in=ids).delete()[0]
+            cost_deleted_total += batch_count
+        logger.info(f"Finished deleting IndicativeCost records. Total deleted: {cost_deleted_total}")
+        
+        logger.info("Deleting PrecomputedMeasure records...")
+        measure_deleted_total = 0
+        while PrecomputedMeasure.objects.exists():
+            ids = PrecomputedMeasure.objects.values_list('id', flat=True)[:10000]
+            batch_count = PrecomputedMeasure.objects.filter(id__in=ids).delete()[0]
+            measure_deleted_total += batch_count
+        logger.info(f"Finished deleting PrecomputedMeasure records. Total deleted: {measure_deleted_total}")
+        
+        logger.info("Deleting OrgSubmissionCache records...")
+        cache_deleted_total = 0
+        while OrgSubmissionCache.objects.exists():
+            ids = OrgSubmissionCache.objects.values_list('id', flat=True)[:10000]
+            batch_count = OrgSubmissionCache.objects.filter(id__in=ids).delete()[0]
+            cache_deleted_total += batch_count
+        logger.info(f"Finished deleting OrgSubmissionCache records. Total deleted: {cache_deleted_total}")
+
+        logger.info("Deleting Organisation records...")
         deleted_count = Organisation.objects.all().delete()[0]
-        logger.info(f"Deleted {deleted_count} existing organisation records")
+        logger.info(f"Deleted {deleted_count} Organisation records")
+
+        total_related_deleted = (scmd_deleted_total + dose_deleted_total + ingredient_deleted_total + 
+                               ddd_deleted_total + cost_deleted_total + measure_deleted_total + cache_deleted_total)
+        logger.info(f"Deletion summary - Related records: {total_related_deleted}, Organisations: {deleted_count}")
+        logger.info("Deletion phase complete")
+     
+    with transaction.atomic():
+        logger.info("Starting creation phase...")
 
         organisation_objects = [
             Organisation(
@@ -94,7 +167,10 @@ def load_organisations(data: List[Dict]) -> Dict:
 
         total_created = len(created_objects)
         logger.info(f"Created {total_created} organisation records")
+    
 
+    with transaction.atomic():
+        logger.info("Starting successor updates...")
         successor_updates = 0
 
         org_lookup = {org.ods_code: org for org in Organisation.objects.all()}
@@ -113,11 +189,15 @@ def load_organisations(data: List[Dict]) -> Dict:
                 orgs_to_update, ["successor"], batch_size=1000
             )
             logger.info(f"Updated {successor_updates} successor relationships")
+        logger.info("Successor updates complete")
 
     logger.info(
-        f"Organisation data load complete. Deleted: {deleted_count}, Created: {total_created}, Updated successors: {successor_updates}"
+        f"Organisation data load complete. Related deleted: {total_related_deleted}, "
+        f"Organisations deleted: {deleted_count}, Created: {total_created}, "
+        f"Updated successors: {successor_updates}"
     )
     return {
+        "related_records_deleted": total_related_deleted,
         "deleted": deleted_count,
         "created": total_created,
         "updated_successors": successor_updates,
@@ -136,8 +216,9 @@ def load_organisations_flow():
     result = load_organisations(transformed_data)
 
     logger.info(
-        f"Organisation import complete. Deleted: {result['deleted']}, "
-        f"Created: {result['created']}, Updated successors: {result['updated_successors']}"
+        f"Organisation import complete. Related deleted: {result['related_records_deleted']}, "
+        f"Organisations deleted: {result['deleted']}, Created: {result['created']}, "
+        f"Updated successors: {result['updated_successors']}"
     )
 
     return result

@@ -23,6 +23,7 @@ from viewer.models import IngredientQuantity, Ingredient, VMP, Organisation, Cal
 def get_ingredient_calculation_logic() -> Dict[Tuple[str, str], str]:
     """Download calculation logic for ingredient calculations from the calculation logic table"""
     logger = get_run_logger()
+    
     client = get_bigquery_client()
 
     query = f"""
@@ -63,9 +64,18 @@ def get_unique_vmps_with_ingredient_data() -> List[str]:
     """
 
     results = execute_bigquery_query(query)
+    
     vmp_codes = [row["vmp_code"] for row in results]
     logger.info(f"Found {len(vmp_codes):,} unique VMPs with ingredient quantity data")
     return vmp_codes
+
+
+def fetch_bigquery_data(query: str, client) -> pd.DataFrame:
+    """Fetch BigQuery data with automatic memory cleanup"""
+    job_config = bigquery.QueryJobConfig(use_query_cache=False, allow_large_results=True)
+    query_job = client.query(query, job_config=job_config)
+    df = query_job.to_dataframe(create_bqstorage_client=True)
+    return df.copy()
 
 
 @task
@@ -99,12 +109,7 @@ def extract_ingredient_data_by_vmps(
     ORDER BY vmp_code, ods_code, year_month
     """
 
-    job_config = bigquery.QueryJobConfig(
-        use_query_cache=False, allow_large_results=True
-    )
-
-    query_job = client.query(query, job_config=job_config)
-    df = query_job.to_dataframe(create_bqstorage_client=True)
+    df = fetch_bigquery_data(query, client)
 
     logger.info(
         f"Chunk {chunk_num}/{total_chunks}: Extracted {len(df):,} rows for {len(vmp_codes):,} VMPs"
@@ -364,12 +369,13 @@ def transform_and_load_chunk(
         f"Chunk {chunk_num}/{total_chunks}: Loading {len(iq_objects):,} objects to database..."
     )
 
-    SUB_BATCH_SIZE = 1000
+    SUB_BATCH_SIZE = 500
     total_created = 0
     total_skipped = skipped_count + skipped_due_to_missing_fk
 
     for i in range(0, len(iq_objects), SUB_BATCH_SIZE):
         sub_batch = iq_objects[i : i + SUB_BATCH_SIZE]
+        
         try:
             with transaction.atomic():
                 IngredientQuantity.objects.bulk_create(
@@ -414,6 +420,7 @@ def load_ingredient_quantity_flow(vmp_chunk_size: int = 500):
     )
 
     deleted_count, logic_deleted_count = clear_existing_ingredient_data()
+    
     foreign_key_cache = cache_foreign_keys()
 
     total_stats = {
@@ -486,8 +493,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--vmp-chunk-size",
         type=int,
-        default=1000,
-        help="Number of VMPs per chunk (default: 1000)",
+        default=500,
+        help="Number of VMPs per chunk (default: 500)",
     )
 
     args = parser.parse_args()

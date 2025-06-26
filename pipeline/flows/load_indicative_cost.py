@@ -14,6 +14,14 @@ setup_django_environment()
 from viewer.models import IndicativeCost, VMP, Organisation
 
 
+def fetch_bigquery_data(query: str, client) -> pd.DataFrame:
+    """Fetch BigQuery data with automatic memory cleanup"""
+    job_config = bigquery.QueryJobConfig(use_query_cache=False, allow_large_results=True)
+    query_job = client.query(query, job_config=job_config)
+    df = query_job.to_dataframe(create_bqstorage_client=True)
+    return df.copy()
+
+
 @task
 def get_unique_vmps() -> List[str]:
     """Get all unique VMP codes that have indicative cost data"""
@@ -60,13 +68,7 @@ def extract_indicative_cost_by_vmps(
     ORDER BY vmp_code, ods_code, year_month
     """
 
-    job_config = bigquery.QueryJobConfig(
-        use_query_cache=False, allow_large_results=True
-    )
-
-    query_job = client.query(query, job_config=job_config)
-
-    df = query_job.to_dataframe(create_bqstorage_client=True)
+    df = fetch_bigquery_data(query, client)
 
     logger.info(
         f"Chunk {chunk_num}/{total_chunks}: Extracted {len(df):,} rows for {len(vmp_codes):,} VMPs"
@@ -186,7 +188,7 @@ def transform_and_load_chunk(
         f"Chunk {chunk_num}/{total_chunks}: Loading {len(ic_objects):,} objects to database..."
     )
 
-    SUB_BATCH_SIZE = 1000
+    SUB_BATCH_SIZE = 500
     total_created = 0
     total_updated = 0
     total_skipped = skipped_count + skipped_due_to_missing_fk
@@ -221,7 +223,7 @@ def transform_and_load_chunk(
 
 
 @flow
-def load_indicative_costs_flow(vmp_chunk_size: int = 1000):
+def load_indicative_costs_flow(vmp_chunk_size: int = 500):
     logger = get_run_logger()
     start_time = time.time()
 
@@ -298,8 +300,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--vmp-chunk-size",
         type=int,
-        default=1000,
-        help="Number of VMPs per chunk (default: 1000)",
+        default=500,
+        help="Number of VMPs per chunk (default: 500)",
     )
 
     args = parser.parse_args()
