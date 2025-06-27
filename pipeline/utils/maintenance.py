@@ -1,16 +1,18 @@
 import logging
-from django.core.cache import cache
-from datetime import datetime
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
-MAINTENANCE_MODE_KEY = "system_maintenance_mode"
-MAINTENANCE_START_KEY = "maintenance_mode_start_time"
-
 def enable_maintenance_mode():
+    """Enable maintenance mode"""
     try:
-        cache.set(MAINTENANCE_MODE_KEY, True)
-        cache.set(MAINTENANCE_START_KEY, datetime.now().isoformat())
+        from viewer.models import SystemMaintenance
+        
+        maintenance = SystemMaintenance.get_instance()
+        maintenance.enabled = True
+        maintenance.started_at = timezone.now()
+        maintenance.save()
+        
         logger.info("Maintenance mode enabled")
         return True
     except Exception as e:
@@ -20,8 +22,13 @@ def enable_maintenance_mode():
 def disable_maintenance_mode():
     """Disable maintenance mode"""
     try:
-        cache.delete(MAINTENANCE_MODE_KEY)
-        cache.delete(MAINTENANCE_START_KEY)
+        from viewer.models import SystemMaintenance
+        
+        maintenance = SystemMaintenance.get_instance()
+        maintenance.enabled = False
+        maintenance.started_at = None
+        maintenance.save()
+        
         logger.info("Maintenance mode disabled successfully")
         return True
     except Exception as e:
@@ -30,23 +37,32 @@ def disable_maintenance_mode():
 
 def is_maintenance_mode():
     """Check if maintenance mode is currently enabled"""
-    return cache.get(MAINTENANCE_MODE_KEY, False)
+    try:
+        from viewer.models import SystemMaintenance
+        maintenance = SystemMaintenance.get_instance()
+        return maintenance.enabled
+    except Exception as e:
+        logger.error(f"Error checking maintenance mode: {e}")
+        return False
 
 def get_maintenance_status():
     """Get detailed maintenance mode status"""
-    is_enabled = cache.get(MAINTENANCE_MODE_KEY, False)
-    start_time_str = cache.get(MAINTENANCE_START_KEY)
-    
-    status = {
-        "enabled": is_enabled
-    }
-    
-    if start_time_str:
-        try:
-            start_time = datetime.fromisoformat(start_time_str)
-            status["started_at"] = start_time_str
-            status["duration"] = str(datetime.now() - start_time)
-        except ValueError:
-            pass
-    
-    return status 
+    try:
+        from viewer.models import SystemMaintenance
+        maintenance = SystemMaintenance.get_instance()
+        
+        status = {
+            "enabled": maintenance.enabled
+        }
+        
+        if maintenance.enabled and maintenance.started_at:
+            status["started_at"] = maintenance.started_at.isoformat()
+            
+            duration = maintenance.get_duration()
+            if duration:
+                status["duration"] = str(duration)
+        
+        return status
+    except Exception as e:
+        logger.error(f"Error getting maintenance status: {e}")
+        return {"enabled": False, "error": str(e)} 

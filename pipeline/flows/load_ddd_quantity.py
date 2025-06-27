@@ -184,7 +184,7 @@ def transform_and_load_chunk(
         f"Chunk {chunk_num}/{total_chunks}: Loading {len(ddd_objects):,} objects to database..."
     )
 
-    SUB_BATCH_SIZE = 5000
+    SUB_BATCH_SIZE = 1000
     total_created = 0
     total_skipped = 0
 
@@ -196,8 +196,6 @@ def transform_and_load_chunk(
                 DDDQuantity.objects.bulk_create(
                     sub_batch,
                     batch_size=SUB_BATCH_SIZE,
-                    update_conflicts=True,
-                    update_fields=["data"],
                     unique_fields=["vmp", "organisation"],
                 )
                 total_created += len(sub_batch)

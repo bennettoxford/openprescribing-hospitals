@@ -1,0 +1,79 @@
+deployments:
+- name: scmd-full-pipeline
+  description: Complete pipeline
+  version:
+  entrypoint: pipeline/pipeline.py:scmd_pipeline
+  parameters:
+    run_import_flows: true
+    run_load_flows: true
+  work_pool:
+    name: oph
+    work_queue_name: default
+    job_variables:
+      env:
+        PREFECT_ENVIRONMENT: deployment
+  schedule:
+  build:
+  tags: []
+  concurrency_limit:
+  schedules: []
+  pull:
+  - prefect.deployments.steps.git_clone:
+      id: clone-step
+      repository: https://github.com/bennettoxford/openprescribing-hospitals.git
+      branch: deploy-prefect
+  - prefect.deployments.steps.pip_install_requirements:
+      directory: '{{ clone-step.directory }}'
+      requirements_file: requirements.txt
+- name: scmd-import-only
+  description: SCMD pipeline - runs import flows only
+  version:
+  entrypoint: pipeline/pipeline.py:scmd_pipeline
+  parameters:
+    run_import_flows: true
+    run_load_flows: false
+  work_pool:
+    name: oph
+    work_queue_name: default
+    job_variables:
+      env:
+        PREFECT_ENVIRONMENT: deployment
+  schedule:
+  build:
+  tags: []
+  concurrency_limit:
+  schedules: []
+  pull:
+  - prefect.deployments.steps.git_clone:
+      id: clone-step
+      repository: https://github.com/bennettoxford/openprescribing-hospitals.git
+      branch: deploy-prefect
+  - prefect.deployments.steps.pip_install_requirements:
+      directory: '{{ clone-step.directory }}'
+      requirements_file: requirements.txt
+- name: scmd-load-only
+  description: SCMD pipeline - runs load flows only
+  version:
+  entrypoint: pipeline/pipeline.py:scmd_pipeline
+  parameters:
+    run_import_flows: false
+    run_load_flows: true
+  work_pool:
+    name: oph
+    work_queue_name: default
+    job_variables:
+      env:
+        PREFECT_ENVIRONMENT: deployment
+  schedule:
+  build:
+  tags: []
+  concurrency_limit:
+  schedules: []
+  pull:
+  - prefect.deployments.steps.git_clone:
+      id: clone-step
+      repository: https://github.com/bennettoxford/openprescribing-hospitals.git
+      branch: deploy-prefect
+  - prefect.deployments.steps.pip_install_requirements:
+      directory: '{{ clone-step.directory }}'
+      requirements_file: requirements.txt

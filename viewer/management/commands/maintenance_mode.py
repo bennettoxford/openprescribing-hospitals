@@ -40,11 +40,15 @@ class Command(BaseCommand):
 
         elif action == 'status':
             status = get_maintenance_status()
-            if status['enabled']:
+            if status.get('error'):
+                self.stdout.write(
+                    self.style.ERROR(f"Error getting status: {status['error']}")
+                )
+            elif status['enabled']:
                 self.stdout.write(
                     self.style.WARNING('Maintenance mode is ENABLED')
                 )
-                if 'duration' in status:
+                if status.get('duration'):
                     self.stdout.write(f"Running for: {status['duration']}")
             else:
                 self.stdout.write(

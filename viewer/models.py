@@ -475,3 +475,29 @@ class ContentCache(models.Model):
         managed = False
         verbose_name = "Content Cache"
         verbose_name_plural = "Content Cache"
+
+class SystemMaintenance(models.Model):
+    enabled = models.BooleanField(default=False)
+    started_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "System Maintenance"
+        verbose_name_plural = "System Maintenance"
+    
+    def __str__(self):
+        status = "ENABLED" if self.enabled else "DISABLED"
+        return f"Maintenance Mode: {status}"
+    
+    @classmethod
+    def get_instance(cls):
+        """Get or create the singleton maintenance record"""
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+    
+    def get_duration(self):
+        """Get maintenance duration if enabled"""
+        if self.enabled and self.started_at:
+            from django.utils import timezone
+            return timezone.now() - self.started_at
+        return None
