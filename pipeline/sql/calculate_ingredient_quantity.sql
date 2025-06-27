@@ -9,36 +9,24 @@ WITH normalised_units AS (
     org.ods_name,
     processed.vmp_code,
     processed.vmp_name,
-    processed.normalised_quantity as original_quantity,
-    processed.normalised_uom_name as original_unit,
-    -- Convert SCMD quantity to basis units
-    processed.normalised_quantity * COALESCE(qty_conv.conversion_factor, 1.0) as quantity_in_basis,
-    COALESCE(qty_conv.basis, processed.normalised_uom_name) as quantity_basis,
-    -- Ingredient info
-    ing.ing_code as ingredient_code,
-    ing.ing_name as ingredient_name,
-    -- Original strength values
+    processed.normalised_quantity,
+    processed.normalised_uom_name,
+    ing.ingredient_code,
+    ing.ingredient_name,
     ing.strnt_nmrtr_val as strength_numerator_value,
     ing.strnt_nmrtr_uom_name as strength_numerator_unit,
+    ing.strnt_nmrtr_basis_val as numerator_basis_value,
+    ing.strnt_nmrtr_basis_uom as numerator_basis_unit,
     ing.strnt_dnmtr_val as strength_denominator_value,
     ing.strnt_dnmtr_uom_name as strength_denominator_unit,
-    -- Convert strength values to basis units
-    ing.strnt_nmrtr_val * COALESCE(num_conv.conversion_factor, 1.0) as numerator_in_basis,
-    COALESCE(num_conv.basis, ing.strnt_nmrtr_uom_name) as numerator_basis,
-    ing.strnt_dnmtr_val * COALESCE(denom_conv.conversion_factor, 1.0) as denominator_in_basis,
-    COALESCE(denom_conv.basis, ing.strnt_dnmtr_uom_name) as denominator_basis
+    ing.strnt_dnmtr_basis_val as denominator_basis_value,
+    ing.strnt_dnmtr_basis_uom as denominator_basis_unit
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ SCMD_PROCESSED_TABLE_ID }}` processed
-  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_TABLE_ID }}` dmd
-    ON processed.vmp_code = dmd.vmp_code
+  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_TABLE_ID }}` vmp
+    ON processed.vmp_code = vmp.vmp_code
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ ORGANISATION_TABLE_ID }}` org
     ON processed.ods_code = org.ods_code
-  LEFT JOIN UNNEST(dmd.ingredients) as ing
-  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` qty_conv
-    ON processed.normalised_uom_name = qty_conv.unit
-  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` num_conv
-    ON ing.strnt_nmrtr_uom_name = num_conv.unit
-  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` denom_conv
-    ON ing.strnt_dnmtr_uom_name = denom_conv.unit
+  LEFT JOIN UNNEST(vmp.ingredients) as ing
 ),
 calculated_quantities AS (
   SELECT
@@ -52,24 +40,24 @@ calculated_quantities AS (
         NULL
       -- 3. No denominator case: multiply SCMD quantity by strength numerator
       WHEN strength_denominator_value IS NULL THEN
-        original_quantity * strength_numerator_value
+        normalised_quantity * strength_numerator_value
       -- 4. With denominator case: where bases match, divide quantity by denominator and multiply by numerator
-      WHEN quantity_basis = denominator_basis THEN
-        (quantity_in_basis / denominator_in_basis) * strength_numerator_value
+      WHEN normalised_uom_name = denominator_basis_unit THEN
+        (normalised_quantity / denominator_basis_value) * numerator_basis_value
       ELSE
         NULL
     END as ingredient_quantity,
     CASE
       WHEN ingredient_code IS NULL THEN 
-        'Not calculated: No ingredient'
+        'Not calculated: No ingredients'
       WHEN strength_numerator_value IS NULL THEN
-        'Not calculated: No strength info'
+        'Not calculated: No ingredient strength'
       WHEN strength_denominator_value IS NULL THEN
-        'Direct multiplication (Qty * Num)'
-      WHEN quantity_basis = denominator_basis THEN
-        'Basis unit calculation (Qty/Denom * Num)'
+        'SCMD quantity x ingredient strength numerator'
+      WHEN normalised_uom_name = denominator_basis_unit THEN
+        'SCMD quantity x (ingredient strength numerator / ingredient strength denominator)'
       ELSE
-        'Not calculated: Incompatible basis units'
+        'Not calculated: Ingredient strength denominator units do not match SCMD quantity units'
     END as calculation_logic
   FROM normalised_units
 )
@@ -79,37 +67,23 @@ SELECT
   ods_code,
   ods_name,
   vmp_name,
-  original_quantity as converted_quantity,
-  original_unit as quantity_basis,
-  original_unit as quantity_basis_name,
+  normalised_quantity as converted_quantity,
+  normalised_uom_name as quantity_basis,
+  normalised_uom_name as quantity_basis_name,
   ARRAY_AGG(
     STRUCT(
       ingredient_code,
       ingredient_name,
       ingredient_quantity,
       strength_numerator_unit as ingredient_unit,
-      -- Convert ingredient quantity to basis units
-      CASE 
-        WHEN ingredient_quantity IS NOT NULL THEN
-          ingredient_quantity * COALESCE(
-            (SELECT conversion_factor 
-             FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}`
-             WHERE unit = strength_numerator_unit 
-             AND basis = numerator_basis),
-            1.0
-          )
-        ELSE NULL 
-      END as ingredient_quantity_basis,
-      numerator_basis as ingredient_basis_unit,
+      ingredient_quantity as ingredient_quantity_basis,
+      numerator_basis_unit as ingredient_basis_unit,
       strength_numerator_value,
       strength_numerator_unit,
       strength_denominator_value,
       strength_denominator_unit,
-      CASE
-        WHEN quantity_basis = denominator_basis THEN 1.0
-        ELSE NULL
-      END as quantity_to_denominator_conversion_factor,
-      denominator_basis as denominator_basis_unit,
+      1.0 as quantity_to_denominator_conversion_factor,
+      denominator_basis_unit,
       calculation_logic
     )
   ) as ingredients
@@ -120,5 +94,5 @@ GROUP BY
   ods_code,
   ods_name,
   vmp_name,
-  original_quantity,
-  original_unit
+  normalised_quantity,
+  normalised_uom_name

@@ -5,8 +5,8 @@ import argparse
 from google.cloud import bigquery
 from prefect import get_run_logger, task, flow
 from django.db import transaction
-from typing import Dict, List
-from pipeline.bq_tables import INGREDIENT_QUANTITY_TABLE_SPEC
+from typing import Dict, List, Tuple
+from pipeline.bq_tables import INGREDIENT_QUANTITY_TABLE_SPEC, CALCULATION_LOGIC_TABLE_SPEC
 from pipeline.utils.utils import (
     setup_django_environment,
     get_bigquery_client,
@@ -16,7 +16,35 @@ from pipeline.utils.utils import (
 
 setup_django_environment()
 
-from viewer.models import IngredientQuantity, Ingredient, VMP, Organisation
+from viewer.models import IngredientQuantity, Ingredient, VMP, Organisation, CalculationLogic
+
+
+@task
+def get_ingredient_calculation_logic() -> Dict[Tuple[str, str], str]:
+    """Download calculation logic for ingredient calculations from the calculation logic table"""
+    logger = get_run_logger()
+    
+    client = get_bigquery_client()
+
+    query = f"""
+    SELECT 
+        vmp_code,
+        ingredient_code,
+        logic
+    FROM `{CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
+    WHERE logic_type = 'ingredient'
+    AND ingredient_code IS NOT NULL
+    """
+
+    result = client.query(query).to_dataframe(create_bqstorage_client=True)
+    
+    logic_dict = {}
+    for _, row in result.iterrows():
+        key = (row['vmp_code'], row['ingredient_code'])
+        logic_dict[key] = row['logic']
+    
+    logger.info(f"Downloaded ingredient calculation logic for {len(logic_dict):,} VMP-ingredient combinations")
+    return logic_dict
 
 
 @task
@@ -36,9 +64,18 @@ def get_unique_vmps_with_ingredient_data() -> List[str]:
     """
 
     results = execute_bigquery_query(query)
+    
     vmp_codes = [row["vmp_code"] for row in results]
     logger.info(f"Found {len(vmp_codes):,} unique VMPs with ingredient quantity data")
     return vmp_codes
+
+
+def fetch_bigquery_data(query: str, client) -> pd.DataFrame:
+    """Fetch BigQuery data with automatic memory cleanup"""
+    job_config = bigquery.QueryJobConfig(use_query_cache=False, allow_large_results=True)
+    query_job = client.query(query, job_config=job_config)
+    df = query_job.to_dataframe(create_bqstorage_client=True)
+    return df.copy()
 
 
 @task
@@ -72,12 +109,7 @@ def extract_ingredient_data_by_vmps(
     ORDER BY vmp_code, ods_code, year_month
     """
 
-    job_config = bigquery.QueryJobConfig(
-        use_query_cache=False, allow_large_results=True
-    )
-
-    query_job = client.query(query, job_config=job_config)
-    df = query_job.to_dataframe(create_bqstorage_client=True)
+    df = fetch_bigquery_data(query, client)
 
     logger.info(
         f"Chunk {chunk_num}/{total_chunks}: Extracted {len(df):,} rows for {len(vmp_codes):,} VMPs"
@@ -87,13 +119,27 @@ def extract_ingredient_data_by_vmps(
 
 
 @task
-def clear_existing_ingredient_data() -> int:
-    """Clear all existing ingredient quantity data in chunks"""
+def clear_existing_ingredient_data() -> Tuple[int, int]:
+    """Clear all existing ingredient quantity data and calculation logic in chunks"""
     logger = get_run_logger()
-    logger.info("Clearing existing ingredient quantity data")
+    logger.info("Clearing existing ingredient quantity data and calculation logic")
 
     total_deleted = 0
+    total_logic_deleted = 0
     chunk_size = 10_000
+
+    while True:
+        with transaction.atomic():
+            batch_ids = list(
+                CalculationLogic.objects.filter(logic_type='ingredient').values_list("id", flat=True)[:chunk_size]
+            )
+            if not batch_ids:
+                break
+
+            deleted_count = CalculationLogic.objects.filter(
+                id__in=batch_ids
+            ).delete()[0]
+            total_logic_deleted += deleted_count
 
     while True:
         with transaction.atomic():
@@ -109,7 +155,8 @@ def clear_existing_ingredient_data() -> int:
             total_deleted += deleted_count
 
     logger.info(f"Deleted {total_deleted:,} existing ingredient quantity records")
-    return total_deleted
+    logger.info(f"Deleted {total_logic_deleted:,} existing ingredient calculation logic records")
+    return total_deleted, total_logic_deleted
 
 
 @task
@@ -129,8 +176,83 @@ def cache_foreign_keys() -> Dict:
 
 
 @task
+def load_ingredient_logic(
+    chunk_df: pd.DataFrame, 
+    foreign_key_cache: Dict, 
+    ingredient_logic_dict: Dict[Tuple[str, str], str],
+    chunk_num: int, 
+    total_chunks: int
+) -> Dict:
+    """Validate and store ingredient logic using the centralized calculation logic"""
+    logger = get_run_logger()
+    
+    if len(chunk_df) == 0:
+        return {"logic_created": 0, "logic_conflicts": 0}
+
+    chunk_combinations = set()
+    
+    chunk_df = chunk_df.copy()
+    chunk_df['ingredients'] = chunk_df['ingredients'].apply(
+        lambda x: x.tolist() if hasattr(x, 'tolist') else (x if isinstance(x, list) else [])
+    )
+    
+    for row in chunk_df.itertuples(index=False):
+        try:
+            vmp_code = row.vmp_code
+            ingredients = row.ingredients
+            
+            for ingredient in ingredients:
+                ingredient_code = ingredient.get("ingredient_code")
+                if ingredient_code:
+                    chunk_combinations.add((vmp_code, ingredient_code))
+                    
+        except Exception as e:
+            logger.error(f"Error processing ingredient combinations: {str(e)}")
+            continue
+    
+    ingredients = foreign_key_cache["ingredients"]
+    vmps = foreign_key_cache["vmps"]
+    logic_objects = []
+    logic_created = 0
+    
+    for (vmp_code, ingredient_code) in chunk_combinations:
+        logic_key = (vmp_code, ingredient_code)
+        
+        if (logic_key in ingredient_logic_dict and 
+            vmp_code in vmps and 
+            ingredient_code in ingredients):
+            
+            logic_objects.append(
+                CalculationLogic(
+                    vmp_id=vmps[vmp_code],
+                    ingredient_id=ingredients[ingredient_code],
+                    logic_type='ingredient',
+                    logic=ingredient_logic_dict[logic_key]
+                )
+            )
+        elif logic_key not in ingredient_logic_dict:
+            logger.warning(f"Chunk {chunk_num}/{total_chunks}: No ingredient logic found for VMP {vmp_code} + Ingredient {ingredient_code}")
+    
+    if logic_objects:
+        try:
+            with transaction.atomic():
+                CalculationLogic.objects.bulk_create(logic_objects)
+                logic_created = len(logic_objects)
+        except Exception as e:
+            logger.error(f"Chunk {chunk_num}/{total_chunks}: Error creating ingredient logic: {str(e)}")
+    
+    logger.info(f"Chunk {chunk_num}/{total_chunks}: Created {logic_created} ingredient logic records")
+    
+    return {"logic_created": logic_created, "logic_conflicts": 0}
+
+
+@task
 def transform_and_load_chunk(
-    chunk_df: pd.DataFrame, foreign_key_cache: Dict, chunk_num: int, total_chunks: int
+    chunk_df: pd.DataFrame, 
+    foreign_key_cache: Dict, 
+    ingredient_logic_dict: Dict[Tuple[str, str], str],
+    chunk_num: int, 
+    total_chunks: int
 ) -> Dict:
     """Transform and load a chunk"""
     logger = get_run_logger()
@@ -141,7 +263,9 @@ def transform_and_load_chunk(
 
     if len(chunk_df) == 0:
         logger.info(f"Chunk {chunk_num}/{total_chunks}: No data to process")
-        return {"created": 0, "skipped": 0}
+        return {"created": 0, "skipped": 0, "logic_created": 0, "logic_conflicts": 0}
+
+    logic_result = load_ingredient_logic(chunk_df, foreign_key_cache, ingredient_logic_dict, chunk_num, total_chunks)
 
     logger.info(f"Chunk {chunk_num}/{total_chunks}: Filtering for valid records...")
     valid_mask = (
@@ -163,23 +287,27 @@ def transform_and_load_chunk(
         logger.info(
             f"Chunk {chunk_num}/{total_chunks}: No valid records after filtering"
         )
-        return {"created": 0, "skipped": skipped_count}
+        return {"created": 0, "skipped": skipped_count, **logic_result}
 
-    df_valid["year_month"] = pd.to_datetime(df_valid["year_month"]).dt.strftime(
+    df_valid["year_month"] = pd.to_datetime(df_valid["year_month"].astype(str)).dt.strftime(
         "%Y-%m-%d"
+    )
+
+    df_valid = df_valid.copy()
+    df_valid['ingredients'] = df_valid['ingredients'].apply(
+        lambda x: x.tolist() if hasattr(x, 'tolist') else (x if isinstance(x, list) else [])
     )
 
     ingredient_data = {}
 
     logger.info(f"Chunk {chunk_num}/{total_chunks}: Processing ingredient data...")
 
-    for _, row in df_valid.iterrows():
+    for row in df_valid.itertuples(index=False):
         try:
-            vmp_code = row["vmp_code"]
-            ods_code = row["ods_code"]
-            year_month = row["year_month"]
-
-            ingredients = row["ingredients"].tolist()
+            vmp_code = row.vmp_code
+            ods_code = row.ods_code
+            year_month = row.year_month
+            ingredients = row.ingredients
 
             for ingredient in ingredients:
                 ingredient_code = ingredient.get("ingredient_code")
@@ -241,12 +369,13 @@ def transform_and_load_chunk(
         f"Chunk {chunk_num}/{total_chunks}: Loading {len(iq_objects):,} objects to database..."
     )
 
-    SUB_BATCH_SIZE = 1000
+    SUB_BATCH_SIZE = 500
     total_created = 0
     total_skipped = skipped_count + skipped_due_to_missing_fk
 
     for i in range(0, len(iq_objects), SUB_BATCH_SIZE):
         sub_batch = iq_objects[i : i + SUB_BATCH_SIZE]
+        
         try:
             with transaction.atomic():
                 IngredientQuantity.objects.bulk_create(
@@ -264,21 +393,24 @@ def transform_and_load_chunk(
     return {
         "created": total_created,
         "skipped": total_skipped,
+        **logic_result
     }
 
 
 @flow
-def load_ingredient_quantity_flow(vmp_chunk_size: int = 1000):
+def load_ingredient_quantity_flow(vmp_chunk_size: int = 500):
     """
     Main flow to import ingredient quantity data using VMP-based chunking
 
     Args:
-        vmp_chunk_size: Number of VMPs to process in each chunk (default: 1000)
+        vmp_chunk_size: Number of VMPs to process in each chunk (default: 500)
     """
     logger = get_run_logger()
     start_time = time.time()
 
     logger.info(f"Starting ingredient quantity data import with VMP-based chunking")
+
+    ingredient_logic_dict = get_ingredient_calculation_logic()
 
     all_vmps = get_unique_vmps_with_ingredient_data()
 
@@ -287,12 +419,15 @@ def load_ingredient_quantity_flow(vmp_chunk_size: int = 1000):
         f"Will process {len(all_vmps):,} VMPs in {total_chunks} chunks of {vmp_chunk_size} VMPs each"
     )
 
-    deleted_count = clear_existing_ingredient_data()
+    deleted_count, logic_deleted_count = clear_existing_ingredient_data()
+    
     foreign_key_cache = cache_foreign_keys()
 
     total_stats = {
         "total_created": 0,
         "total_skipped": 0,
+        "total_logic_created": 0,
+        "total_logic_conflicts": 0,
         "total_processed_chunks": 0,
     }
 
@@ -312,11 +447,13 @@ def load_ingredient_quantity_flow(vmp_chunk_size: int = 1000):
             continue
 
         chunk_result = transform_and_load_chunk(
-            chunk_df, foreign_key_cache, chunk_num, total_chunks
+            chunk_df, foreign_key_cache, ingredient_logic_dict, chunk_num, total_chunks
         )
 
         total_stats["total_created"] += chunk_result["created"]
         total_stats["total_skipped"] += chunk_result["skipped"]
+        total_stats["total_logic_created"] += chunk_result["logic_created"]
+        total_stats["total_logic_conflicts"] += chunk_result["logic_conflicts"]
         total_stats["total_processed_chunks"] += 1
 
         chunk_duration = time.time() - chunk_start_time
@@ -325,7 +462,8 @@ def load_ingredient_quantity_flow(vmp_chunk_size: int = 1000):
         logger.info(
             f"Chunk {chunk_num}/{total_chunks} complete in {chunk_duration:.1f}s ({progress_pct:.1f}% done). "
             f"Processed VMPs {start_idx+1}-{end_idx}. "
-            f"Running totals - Created: {total_stats['total_created']:,}, Skipped: {total_stats['total_skipped']:,}. "
+            f"Running totals - Created: {total_stats['total_created']:,}, Logic created: {total_stats['total_logic_created']:,}, "
+            f"Logic conflicts: {total_stats['total_logic_conflicts']:,}, Skipped: {total_stats['total_skipped']:,}. "
         )
 
     total_time = time.time() - start_time
@@ -333,12 +471,17 @@ def load_ingredient_quantity_flow(vmp_chunk_size: int = 1000):
     logger.info(
         f"Ingredient quantity data import completed in {total_time/60:.1f} minutes. "
         f"Deleted: {deleted_count:,}, Created: {total_stats['total_created']:,}, "
+        f"Logic deleted: {logic_deleted_count:,}, Logic created: {total_stats['total_logic_created']:,}, "
+        f"Logic conflicts: {total_stats['total_logic_conflicts']:,}, "
         f"Skipped: {total_stats['total_skipped']:,}, Chunks processed: {total_stats['total_processed_chunks']}. "
     )
 
     return {
         "deleted": deleted_count,
         "created": total_stats["total_created"],
+        "logic_deleted": logic_deleted_count,
+        "logic_created": total_stats["total_logic_created"],
+        "logic_conflicts": total_stats["total_logic_conflicts"],
         "skipped": total_stats["total_skipped"],
     }
 
@@ -350,8 +493,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--vmp-chunk-size",
         type=int,
-        default=1000,
-        help="Number of VMPs per chunk (default: 1000)",
+        default=500,
+        help="Number of VMPs per chunk (default: 500)",
     )
 
     args = parser.parse_args()

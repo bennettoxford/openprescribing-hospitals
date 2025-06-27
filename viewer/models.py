@@ -39,6 +39,10 @@ class VMP(models.Model):
     who_routes = models.ManyToManyField("WHORoute", related_name="vmps")
     atcs = models.ManyToManyField("ATC", related_name="vmps")
     bnf_code = models.CharField(max_length=20, null=True)
+    df_ind = models.CharField(max_length=20, null=False, default="Not applicable", help_text="Dose form indicator")
+    udfs = models.FloatField(null=True, help_text="Unit dose form size")
+    udfs_uom = models.CharField(max_length=100, null=True, help_text="Unit dose form size unit of measure")
+    unit_dose_uom = models.CharField(max_length=100, null=True, help_text="Unit dose unit of measure")
 
     def __str__(self):
         return f"{self.name} ({self.code})"
@@ -123,6 +127,26 @@ class Ingredient(models.Model):
         indexes = [
             models.Index(fields=["code"]),
         ]
+
+class VMPIngredientStrength(models.Model):
+    vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name="ingredient_strengths")
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name="vmp_strengths")
+    
+    strnt_nmrtr_val = models.FloatField(null=True, help_text="Strength numerator value")
+    strnt_nmrtr_uom_name = models.CharField(max_length=100, null=True, help_text="Strength numerator unit of measure")
+    strnt_dnmtr_val = models.FloatField(null=True, help_text="Strength denominator value")
+    strnt_dnmtr_uom_name = models.CharField(max_length=100, null=True, help_text="Strength denominator unit of measure")
+    basis_of_strength_type = models.IntegerField(null=True, help_text="Type of basis of strength (1=Ingredient Substance, 2=Base Substance)")
+    basis_of_strength_name = models.CharField(max_length=255, null=True, help_text="Name of the basis of strength substance")
+
+    class Meta:
+        unique_together = ('vmp', 'ingredient')
+        indexes = [
+            models.Index(fields=["vmp", "ingredient"]),
+        ]
+
+    def __str__(self):
+        return f"{self.vmp.name} - {self.ingredient.name}"
 
 class Organisation(models.Model):
     ods_code = models.CharField(max_length=10, unique=True)
@@ -501,3 +525,41 @@ class SystemMaintenance(models.Model):
             from django.utils import timezone
             return timezone.now() - self.started_at
         return None
+class CalculationLogic(models.Model):
+    LOGIC_TYPES = [
+        ('dose', 'Dose'),
+        ('ingredient', 'Ingredient Quantity'),
+        ('ddd', 'DDD Quantity'),
+    ]
+    
+    vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name="calculation_logic")
+    ingredient = models.ForeignKey(
+        Ingredient, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        help_text="Required for ingredient quantity logic, null for dose/DDD logic"
+    )
+    logic_type = models.CharField(max_length=20, choices=LOGIC_TYPES)
+    logic = models.TextField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['vmp', 'logic_type'], 
+                condition=models.Q(logic_type__in=['dose', 'ddd']),
+                name='unique_vmp_logic_type'
+            ),
+            models.UniqueConstraint(
+                fields=['vmp', 'ingredient', 'logic_type'], 
+                condition=models.Q(logic_type='ingredient'),
+                name='unique_vmp_ingredient_logic'
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(logic_type='ingredient', ingredient__isnull=False) |
+                    models.Q(logic_type__in=['dose', 'ddd'], ingredient__isnull=True)
+                ),
+                name='ingredient_required_for_ingredient_logic'
+            ),
+        ]
