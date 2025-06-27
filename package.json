@@ -24,6 +24,7 @@
     "@tailwindcss/typography": "^0.5.15",
     "date-fns": "^3.6.0",
     "highcharts": "^12.1.2",
+    "pluralize": "^8.0.0",
     "postcss-nesting": "^13.0.0",
     "postcss-preset-env": "^10.0.2"
   }

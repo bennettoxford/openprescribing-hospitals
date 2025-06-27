@@ -15,6 +15,7 @@
     import { createChartStore } from '../../../stores/chartStore';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     import { formatNumber } from '../../../utils/utils';
+    import pluralize from 'pluralize';
 
     export let className = '';
     export let isAnalysisRunning;
@@ -91,11 +92,7 @@
             }, 0);
             
             if (count > 1) {
-                if (unit.endsWith('y')) {
-                    return unit.slice(0, -1) + 'ies';
-                } else if (!unit.endsWith('s')) {
-                    return unit + 's';
-                }
+                return pluralize(unit);
             }
             return unit;
         });
@@ -716,17 +713,7 @@
             const matchingVmp = vmps.find(vmp => vmp.vmp === d.dataset.label);
             const baseUnit = matchingVmp?.unit || chartConfig?.yAxisLabel || 'unit';
             
-            if (value !== 1) {
-                if (baseUnit.endsWith('y')) {
-                    unit = baseUnit.slice(0, -1) + 'ies';
-                } else if (!baseUnit.endsWith('s')) {
-                    unit = baseUnit + 's';
-                } else {
-                    unit = baseUnit;
-                }
-            } else {
-                unit = baseUnit;
-            }
+            unit = pluralize(baseUnit, value);
         } else {
             unit = chartConfig?.yAxisLabel || 'units';
         }
