@@ -995,7 +995,7 @@ def build_single_product_data(vmp):
         'vtm_name': vmp.vtm.name if vmp.vtm else None,
         'vtm_code': vmp.vtm.vtm if vmp.vtm else None,
         'routes': [route.name for route in vmp.ont_form_routes.all()],
-        'who_routes': [route.name for route in vmp.who_routes.all()],
+        'who_routes': [route.name for route in vmp.who_routes.all()] if ddd_info else [],
         'atc_codes': [atc.code for atc in vmp.atcs.all()],
         'ingredient_names': ingredient_names,
         'ddd_info': ddd_info,
