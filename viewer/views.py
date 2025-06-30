@@ -22,7 +22,7 @@ import os
 import re
 from django.utils.text import slugify
 from django.core.cache import cache
-
+from typing import List, Set
 
 from .forms import LoginForm
 from .models import (
@@ -43,6 +43,7 @@ from .models import (
     MeasureTag,
     Dose
 )
+from .utils import safe_float
 
 
 class IndexView(TemplateView):
@@ -807,138 +808,209 @@ class ProductDetailsView(TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        search_term = self.request.GET.get('search', '')
-        page = self.request.GET.get('page', 1)
-        try:
-            page = int(page)
-        except ValueError:
-            page = 1
-        
-        per_page = 50
-        offset = (page - 1) * per_page
-        
-        vmps = VMP.objects.select_related('vtm').prefetch_related(
-            'ingredients',
-            'ddds',
-            'ont_form_routes',
-            'who_routes'
-        )
-        
-        if search_term:
-            vmps = vmps.filter(
-                Q(name__icontains=search_term) |
-                Q(code__icontains=search_term) |
-                Q(vtm__name__icontains=search_term) |
-                Q(vtm__vtm__icontains=search_term)
-            )
-        
-        vmps = vmps.order_by('name')
-  
-        total_count = vmps.count()
-        total_pages = math.ceil(total_count / per_page)
-        
-        vmps = vmps[offset:offset + per_page]
-        
-        products = []
-        for vmp in vmps:
-            ingredient_names = ", ".join([i.name for i in vmp.ingredients.all()])
-
-            ddd_value = None
-            ddd = vmp.ddds.first()
-            if ddd:
-                ddd_value = {
-                    'ddd': ddd.ddd,
-                    'unit_type': ddd.unit_type,
-                    'route': ddd.who_route.name
-                }
-
-            valid_quantity = SCMDQuantity.objects.filter(
-                vmp=vmp,
-                data__0__0__isnull=False,
-                data__0__1__isnull=False,
-                data__0__2__isnull=False
-            ).select_related('organisation').first()
-
-            example_quantity = None
-            example_ingredient = None
-            example_ddd = None
-            example_month = None
-            example_ingredients = []
-            example_dose = None
-
-            if valid_quantity and valid_quantity.data:
-                example_month = valid_quantity.data[0][0]
-
-                example_quantity = {
-                    'quantity': valid_quantity.data[0][1],
-                    'unit': valid_quantity.data[0][2]
-                }
-
-                dose_quantity = Dose.objects.filter(
-                    vmp=vmp,
-                    organisation=valid_quantity.organisation,
-                    data__0__0=example_month
-                ).first()
-
-                if dose_quantity and dose_quantity.data:
-                    example_dose = {
-                        'quantity': dose_quantity.data[0][1],
-                        'unit': dose_quantity.data[0][2]
-                    }
-
-                ingredient_quantities = IngredientQuantity.objects.filter(
-                    vmp=vmp,
-                    organisation=valid_quantity.organisation,
-                    data__0__0=example_month
-                ).select_related('ingredient')
-
-                if ingredient_quantities:
-                    for ing_quantity in ingredient_quantities:
-                        if ing_quantity.data:
-                            example_ingredients.append({
-                                'quantity': ing_quantity.data[0][1],
-                                'unit': ing_quantity.data[0][2],
-                                'name': ing_quantity.ingredient.name
-                            })
-
-                ddd_quantity = DDDQuantity.objects.filter(
-                    vmp=vmp,
-                    organisation=valid_quantity.organisation,
-                    data__0__0=example_month
-                ).first()
-
-                if ddd_quantity and ddd_quantity.data:
-                    example_ddd = {
-                        'quantity': ddd_quantity.data[0][1],
-                        'unit': ddd_quantity.data[0][2],
-                        'ddd': ddd_value['ddd'] if ddd_value else None
-                    }
-
-            products.append({
-                'vmp_name': vmp.name,
-                'vmp_code': vmp.code,
-                'vtm_name': vmp.vtm.name if vmp.vtm else None,
-                'vtm_code': vmp.vtm.vtm if vmp.vtm else None,
-                'routes': [route.name for route in vmp.ont_form_routes.all()],
-                'who_routes': [route.name for route in vmp.who_routes.all()],
-                'ingredient_names': ingredient_names,
-                'ddd_value': ddd_value,
-                'example_quantity': example_quantity,
-                'example_ingredient': example_ingredient,
-                'example_ddd': example_ddd,
-                'example_ingredients': example_ingredients,
-                'example_dose': example_dose
-            })
-        
         context.update({
-            'products': mark_safe(json.dumps(products, cls=DjangoJSONEncoder)),
-            'current_page': str(page),
-            'total_pages': str(total_pages),
-            'search_term': search_term
+            'products': mark_safe(json.dumps([], cls=DjangoJSONEncoder)),
+            'search_term': ''
         })
 
         return context
+
+@csrf_protect
+@login_required
+@api_view(["POST"])
+def product_details_api(request):
+    try:
+        search_items = request.data.get("names", [])
+        if not search_items:
+            return Response({"error": "No products selected"}, status=400)
+        
+        vmp_ids = get_vmp_ids_from_search_items(search_items)
+        if not vmp_ids:
+            return Response({"error": "No valid VMPs found"}, status=400)
+        
+        products = build_product_details(vmp_ids)
+        return Response(products)
+        
+    except ValueError as e:
+        return Response({"error": str(e)}, status=400)
+    except Exception as e:
+        return Response({"error": "An error occurred while processing the request"}, status=500)
+
+def get_vmp_ids_from_search_items(search_items: List[str]) -> Set[int]:
+    """
+    Extract VMP IDs from search items based on type.
+    
+    Args:
+        search_items: List of search items in format "code|type"
+        
+    Returns:
+        Set of VMP IDs
+        
+    Raises:
+        ValueError: If search item format is invalid
+    """
+    query = Q()
+    for item in search_items:
+        try:
+            code, item_type = item.split('|')
+            if item_type == 'vmp':
+                query |= Q(code=code)
+            elif item_type == 'vtm':
+                query |= Q(vtm__vtm=code)
+            elif item_type == 'ingredient':
+                query |= Q(ingredients__code=code)
+        except ValueError:
+            raise ValueError(f"Invalid search item format: {item}")
+    
+    return set(VMP.objects.filter(query).values_list('id', flat=True))
+
+def build_product_details(vmp_ids):
+    """Build detailed product information for given VMP IDs."""
+    vmps = VMP.objects.filter(id__in=vmp_ids).select_related('vtm').prefetch_related(
+        'ingredients', 'ddds', 'ont_form_routes', 'who_routes', 'atcs',
+        'ingredient_strengths__ingredient', 'calculation_logic'
+    )
+    
+    products = []
+    for vmp in vmps:
+        product_data = build_single_product_data(vmp)
+        products.append(product_data)
+    
+    return products
+
+def build_single_product_data(vmp):
+    """Build detailed data for a single VMP."""
+    ingredient_names = ", ".join([i.name for i in vmp.ingredients.all()])
+
+    ddd_value = None
+    ddd = vmp.ddds.first()
+    if ddd:
+        ddd_value = {
+            'ddd': safe_float(ddd.ddd),
+            'unit_type': ddd.unit_type,
+            'route': ddd.who_route.name
+        }
+
+    ddd_info = None
+    if ddd_value and ddd_value['ddd'] is not None:
+        ddd_info = f"{ddd_value['ddd']} {ddd_value['unit_type']}"
+
+    # Check for existence of quantities and get their units
+    has_scmd_quantity = SCMDQuantity.objects.filter(
+        vmp=vmp,
+        data__0__0__isnull=False
+    ).exists()
+
+    # Get SCMD units information if SCMD quantity data exists
+    scmd_units = []
+    if has_scmd_quantity:
+        scmd_quantity_obj = SCMDQuantity.objects.filter(vmp=vmp).first()
+        if scmd_quantity_obj and scmd_quantity_obj.data:
+            units_set = set()
+            for entry in scmd_quantity_obj.data:
+                if len(entry) >= 3 and entry[2]:
+                    units_set.add(entry[2])
+            scmd_units = sorted(list(units_set))
+
+    # Get dose data and units
+    has_dose = Dose.objects.filter(
+        vmp=vmp,
+        data__0__0__isnull=False
+    ).exists()
+    
+    dose_units = []
+    if has_dose:
+        dose_obj = Dose.objects.filter(vmp=vmp).first()
+        if dose_obj and dose_obj.data:
+            units_set = set()
+            for entry in dose_obj.data:
+                if len(entry) >= 3 and entry[2]:
+                    units_set.add(entry[2])
+            dose_units = sorted(list(units_set))
+
+    # Get ingredient quantity data and units
+    has_ingredient_quantities = IngredientQuantity.objects.filter(
+        vmp=vmp,
+        data__0__0__isnull=False
+    ).exists()
+    
+    ingredient_units = []
+    if has_ingredient_quantities:
+        ingredient_obj = IngredientQuantity.objects.filter(vmp=vmp).first()
+        if ingredient_obj and ingredient_obj.data:
+            units_set = set()
+            for entry in ingredient_obj.data:
+                if len(entry) >= 3 and entry[2]:
+                    units_set.add(entry[2])
+            ingredient_units = sorted(list(units_set))
+
+    has_ddd_quantity = DDDQuantity.objects.filter(
+        vmp=vmp,
+        data__0__0__isnull=False
+    ).exists()
+
+    # Get calculation logic for each quantity type
+    dose_logic = None
+    ddd_logic = None
+    ingredient_logic = []
+
+    for calc_logic in vmp.calculation_logic.select_related('ingredient'):
+        if calc_logic.logic_type == 'dose':
+            dose_logic = {
+                'logic': calc_logic.logic,
+                'unit_dose_uom': vmp.unit_dose_uom,
+                'udfs': safe_float(vmp.udfs),
+                'udfs_uom': vmp.udfs_uom
+            }
+        elif calc_logic.logic_type == 'ddd':
+            ddd_logic = {
+                'logic': calc_logic.logic,
+                'ingredient': calc_logic.ingredient.name if calc_logic.ingredient else None
+            }
+        elif calc_logic.logic_type == 'ingredient':
+            # Get strength information for this ingredient
+            strength_info = None
+            if calc_logic.ingredient:
+                strength = vmp.ingredient_strengths.filter(ingredient=calc_logic.ingredient).first()
+                if strength:
+                    strength_info = {
+                        'numerator_value': safe_float(strength.strnt_nmrtr_val),
+                        'numerator_uom': strength.strnt_nmrtr_uom_name,
+                        'denominator_value': safe_float(strength.strnt_dnmtr_val),
+                        'denominator_uom': strength.strnt_dnmtr_uom_name,
+                        'basis_of_strength_type': strength.basis_of_strength_type,
+                        'basis_of_strength_name': strength.basis_of_strength_name
+                    }
+            
+            ingredient_logic.append({
+                'ingredient': calc_logic.ingredient.name if calc_logic.ingredient else None,
+                'logic': calc_logic.logic,
+                'strength_info': strength_info
+            })
+
+
+    return {
+        'vmp_name': vmp.name,
+        'vmp_code': vmp.code,
+        'vtm_name': vmp.vtm.name if vmp.vtm else None,
+        'vtm_code': vmp.vtm.vtm if vmp.vtm else None,
+        'routes': [route.name for route in vmp.ont_form_routes.all()],
+        'who_routes': [route.name for route in vmp.who_routes.all()] if ddd_info else [],
+        'atc_codes': [atc.code for atc in vmp.atcs.all()],
+        'ingredient_names': ingredient_names,
+        'ddd_info': ddd_info,
+        'df_ind': vmp.df_ind,
+        'has_scmd_quantity': has_scmd_quantity,
+        'scmd_units': scmd_units,
+        'has_dose': has_dose,
+        'dose_units': dose_units,
+        'has_ddd_quantity': has_ddd_quantity,
+        'has_ingredient_quantities': has_ingredient_quantities,
+        'ingredient_units': ingredient_units,
+        'dose_logic': dose_logic,
+        'ddd_logic': ddd_logic,
+        'ingredient_logic': ingredient_logic
+    }
 
 class BlogListView(TemplateView):
     template_name = "blog_list.html"
@@ -975,4 +1047,3 @@ class PapersListView(TemplateView):
             'error': 'No cached data available. Please run refresh_content_cache management command.'
         })
         return context
-
