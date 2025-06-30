@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ error_name }}{% endblock %}
+
+{% block content %}
+<div class="container xl:max-w-screen-xl pb-4">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+        <div class="mb-10">
+            <div class="text-center mb-6">
+                <div class="text-6xl mb-6">
+                    {% if error_code == "404" %}🔍
+                    {% elif error_code == "403" %}🚫
+                    {% elif error_code == "400" %}❌
+                    {% elif error_code == "500" %}⚠️
+                    {% elif error_code == "CSRF" %}🛡️
+                    {% else %}⚠️
+                    {% endif %}
+                </div>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+                    <p class="text-4xl font-extrabold text-oxford-600 sm:text-5xl" aria-hidden="true">
+                        {{ error_code }}
+                    </p>
+                    <div class="sm:border-l-2 sm:border-slate-300 sm:pl-4">
+                        <h1 class="text-4xl font-bold text-oxford">
+                            {{ error_name }}
+                        </h1>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-10 text-gray-600 flex flex-col gap-4">
+            <p class="text-center">
+                {{ error_message }}
+            </p>
+            {% if error_code != "500" %}
+            <p class="text-center">
+                You can explore these sections of OpenPrescribing Hospitals:
+            </p>
+            {% endif %}
+        </div>
+
+        {% if error_code != "500" %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+            <a href="{% url 'viewer:index' %}" 
+               class="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden border border-gray-100 hover:border-oxford-100 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-oxford-900 group-hover:text-oxford-700 transition-colors">Home</h3>
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-oxford-50 group-hover:bg-oxford-100 transition-colors">
+                        <svg class="w-5 h-5 text-oxford-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-gray-600 text-sm leading-relaxed">Return to the homepage to start exploring hospital prescribing data.</p>
+            </a>
+
+            {% if error_code == "403" %}
+            <a href="{% url 'viewer:login' %}" 
+               class="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden border border-gray-100 hover:border-oxford-100 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-oxford-900 group-hover:text-oxford-700 transition-colors">Login</h3>
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-oxford-50 group-hover:bg-oxford-100 transition-colors">
+                        <svg class="w-5 h-5 text-oxford-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-gray-600 text-sm leading-relaxed">Sign in to access restricted content.</p>
+            </a>
+            {% else %}
+            <a href="{% url 'viewer:analyse' %}" 
+               class="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden border border-gray-100 hover:border-oxford-100 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-oxford-900 group-hover:text-oxford-700 transition-colors">Analyse</h3>
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-oxford-50 group-hover:bg-oxford-100 transition-colors">
+                        <svg class="w-5 h-5 text-oxford-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-gray-600 text-sm leading-relaxed">Explore and analyse hospital prescribing data with our interactive tools.</p>
+            </a>
+            {% endif %}
+
+            <a href="{% url 'viewer:faq' %}" 
+               class="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden border border-gray-100 hover:border-oxford-100 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-oxford-900 group-hover:text-oxford-700 transition-colors">FAQ</h3>
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-oxford-50 group-hover:bg-oxford-100 transition-colors">
+                        <svg class="w-5 h-5 text-oxford-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-gray-600 text-sm leading-relaxed">Find answers to frequently asked questions about the data we use and the platform.</p>
+            </a>
+
+            <a href="{% url 'viewer:contact' %}" 
+               class="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden border border-gray-100 hover:border-oxford-100 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-oxford-900 group-hover:text-oxford-700 transition-colors">Contact</h3>
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-oxford-50 group-hover:bg-oxford-100 transition-colors">
+                        <svg class="w-5 h-5 text-oxford-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-gray-600 text-sm leading-relaxed">Get in touch with our team {% if error_code == "500" %}to report issues{% else %}for support, feedback, or collaboration opportunities{% endif %}.</p>
+            </a>
+        </div>
+        {% endif %}
+
+        <div class="text-center">
+            <p class="text-sm text-gray-500 mb-4">
+                {% if error_code == "404" %}
+                    If you think this page should exist, please <a href="{% url 'viewer:contact' %}" class="font-medium text-oxford-600 hover:text-oxford-700 underline">contact us</a> to report the issue.
+                {% elif error_code == "403" %}
+                    If you believe you should have access to this content, please <a href="{% url 'viewer:contact' %}" class="font-medium text-oxford-600 hover:text-oxford-700 underline">contact us</a> for assistance.
+                {% elif error_code == "CSRF" %}
+                    If this problem persists, please <a href="{% url 'viewer:contact' %}" class="font-medium text-oxford-600 hover:text-oxford-700 underline">contact us</a> for help.
+                {% else %}
+                    If this problem continues, please <a href="{% url 'viewer:contact' %}" class="font-medium text-oxford-600 hover:text-oxford-700 underline">contact us</a>.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
