@@ -9,10 +9,21 @@
 {% block title %}Product Details{% endblock %}
 
 {% block content %}
-<product-details
-    products='{{ products }}'
-    current-page='{{ current_page }}'
-    total-pages='{{ total_pages }}'
-    search='{{ search_term }}'
-></product-details>
+<div class="container xl:max-w-screen-xl pt-2 md:pt-6 pb-4">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="mb-12">
+            <h1 class="text-4xl font-bold mb-6 text-gray-900 tracking-tight">Product Details</h1>
+            <p class="text-lg text-gray-600 mb-4 leading-relaxed">Search individual products or groups of products by product group and ingredient to view
+                their details. 
+            </p>
+            <p class="text-lg text-gray-600 mb-4 leading-relaxed">
+                For each product, you can view detailed product information and check the availability of different quantity measures including SCMD quantity, unit dose quantity, DDD quantity, and ingredient quantities.
+            </p>
+            <div class="bg-white rounded-lg shadow-md">
+                <product-details></product-details>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
