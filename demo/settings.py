@@ -233,3 +233,5 @@ LOGGING = {
 }
 
 os.makedirs(os.path.join(BASE_DIR, 'logs'), exist_ok=True)
+
+CSRF_FAILURE_VIEW = 'viewer.views.csrf_failure'
