@@ -404,6 +404,10 @@
         return Array.from(includedTrusts).sort().map(trust => ({ name: trust, code: 'Unknown' }));
     }
 
+    $: showChartTip = $modeSelectorStore.selectedMode === 'organisation' && 
+                               (!$resultsStore.analysisData?.selectedOrganisations?.length || $resultsStore.analysisData?.selectedOrganisations?.length === 0) && 
+                               !$resultsStore.showPercentiles;
+
 
 </script>
 
@@ -436,106 +440,109 @@
                     <div>
                         <h3 class="text-xl font-semibold">Time Series Chart</h3> 
                         {#if $modeSelectorStore.selectedMode === 'organisation'}
-                            <p class="text-sm text-gray-700 mb-4">
-                                Showing a percentiles chart calculated across all NHS trusts who have issued any of the selected products.
-                                {#if $resultsStore.analysisData?.selectedOrganisations?.length > 0}
-                                    Selected NHS Trusts are shown as individual lines.
-                                {:else}
-                                    Select individual trusts in the analysis builder to see them on this chart.
-                                {/if}
-                                See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret this chart.
-                            </p>
-                    {#if $resultsStore.trustCount > 0}
-                    <section class="bg-blue-50 border border-blue-200 rounded-lg">
-                        <button
-                            type="button"
-                            class="w-full px-4 py-3 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
-                            on:click={() => showTrustCountDetails = !showTrustCountDetails}
-                        >
-                            <div class="flex items-center">
-                                <svg class="h-5 w-5 text-blue-400 mr-3 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                                </svg>
-                                <span class="text-sm text-blue-700 font-medium">
-                                    {$resultsStore.trustCount}/{$organisationSearchStore.items.length} trusts included in percentile calculation
-                                </span>
-                            </div>
-                            <svg 
-                                class="h-5 w-5 text-blue-400 transform transition-transform duration-200 {showTrustCountDetails ? 'rotate-180' : ''}" 
-                                viewBox="0 0 20 20" 
-                                fill="currentColor"
-                            >
-                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                        
-                        {#if showTrustCountDetails}
-                        <div class="px-4 pb-3 space-y-3 border-t border-blue-200 pt-3">
-                            <p class="text-sm text-blue-700">
-                                Trusts are only included if they have issued any of the selected products during the time period.
-                            </p>
-                            
-                            <div>
-                                <button
-                                    type="button"
-                                    class="text-sm text-blue-600 hover:text-blue-800 underline font-medium"
-                                    on:click={() => showIncludedTrusts = !showIncludedTrusts}
-                                >
-                                    {showIncludedTrusts ? 'Hide' : 'Show'} {$resultsStore.trustCount} trusts included in percentiles calculation
-                                </button>
-                                
-                                {#if showIncludedTrusts}
-                                <div class="mt-2 p-3 bg-gray-100 rounded border border-gray-200">
-                                    <p class="text-xs text-gray-800 font-medium mb-2">
-                                        Trusts included in percentile calculation:
-                                    </p>
-                                    <div class="max-h-32 overflow-y-auto">
-                                        <ul class="text-xs text-gray-700 space-y-1">
-                                            {#each getIncludedTrusts() as trust}
-                                            <li class="flex items-center">
-                                                <span class="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2 flex-shrink-0"></span>
-                                                <span>{trust.name}</span>
-                                            </li>
-                                            {/each}
-                                        </ul>
-                                    </div>
-                                </div>
-                                {/if}
-                            </div>
-                            
-                            {#if $resultsStore.trustsWithNoData && $resultsStore.trustsWithNoData.length > 0}
-                            <div>
-                                <button
-                                    type="button"
-                                    class="text-sm text-blue-600 hover:text-blue-800 underline font-medium"
-                                    on:click={() => showTrustsWithNoData = !showTrustsWithNoData}
-                                >
-                                    {showTrustsWithNoData ? 'Hide' : 'Show'} {$resultsStore.trustsWithNoData.length} trusts excluded from percentiles calculation
-                                </button>
-                                
-                                {#if showTrustsWithNoData}
-                                <div class="mt-2 p-3 bg-gray-100 rounded border border-gray-200">
-                                    <p class="text-xs text-gray-800 font-medium mb-2">
-                                        Trusts with no data for selected products:
-                                    </p>
-                                    <div class="max-h-32 overflow-y-auto">
-                                        <ul class="text-xs text-gray-700 space-y-1">
-                                            {#each $resultsStore.trustsWithNoData as trust}
-                                            <li class="flex items-center">
-                                                <span class="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2 flex-shrink-0"></span>
-                                                <span>{trust.name}</span>
-                                            </li>
-                                            {/each}
-                                        </ul>
-                                    </div>
-                                </div>
-                                {/if}
-                            </div>
+                            {#if $resultsStore.analysisData?.selectedOrganisations?.length > 0}
+                                <p class="text-sm text-gray-700 mb-4">
+                                    Showing a percentiles chart calculated across all NHS trusts who have issued any of the selected products. Selected NHS Trusts are shown as individual lines.
+                                    See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret this chart.
+                                </p>
+                            {:else}
+                                <p class="text-sm text-gray-700 mb-4">
+                                    No NHS Trusts selected. Turn on percentiles to see variation across all trusts, or go back to the analysis builder to select specific trusts.
+                                    See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret this chart.
+                                </p>
                             {/if}
-                        </div>
-                        {/if}
-                    </section>
-                    {/if}
+                            
+                            {#if $resultsStore.showPercentiles && $resultsStore.trustCount > 0}
+                            <section class="bg-blue-50 border border-blue-200 rounded-lg mb-4">
+                                <button
+                                    type="button"
+                                    class="w-full px-4 py-3 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+                                    on:click={() => showTrustCountDetails = !showTrustCountDetails}
+                                >
+                                    <div class="flex items-center">
+                                        <svg class="h-5 w-5 text-blue-400 mr-3 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                        </svg>
+                                        <span class="text-sm text-blue-700 font-medium">
+                                            {$resultsStore.trustCount}/{$organisationSearchStore.items.length} trusts included in percentile calculation
+                                        </span>
+                                    </div>
+                                    <svg 
+                                        class="h-5 w-5 text-blue-400 transform transition-transform duration-200 {showTrustCountDetails ? 'rotate-180' : ''}" 
+                                        viewBox="0 0 20 20" 
+                                        fill="currentColor"
+                                    >
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                                
+                                {#if showTrustCountDetails}
+                                <div class="px-4 pb-3 space-y-3 border-t border-blue-200 pt-3">
+                                    <p class="text-sm text-blue-700">
+                                        Trusts are only included if they have issued any of the selected products during the time period.
+                                    </p>
+                                    
+                                    <div>
+                                        <button
+                                            type="button"
+                                            class="text-sm text-blue-600 hover:text-blue-800 underline font-medium"
+                                            on:click={() => showIncludedTrusts = !showIncludedTrusts}
+                                        >
+                                            {showIncludedTrusts ? 'Hide' : 'Show'} {$resultsStore.trustCount} trusts included in percentiles calculation
+                                        </button>
+                                        
+                                        {#if showIncludedTrusts}
+                                        <div class="mt-2 p-3 bg-gray-100 rounded border border-gray-200">
+                                            <p class="text-xs text-gray-800 font-medium mb-2">
+                                                Trusts included in percentile calculation:
+                                            </p>
+                                            <div class="max-h-32 overflow-y-auto">
+                                                <ul class="text-xs text-gray-700 space-y-1">
+                                                    {#each getIncludedTrusts() as trust}
+                                                    <li class="flex items-center">
+                                                        <span class="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2 flex-shrink-0"></span>
+                                                        <span>{trust.name}</span>
+                                                    </li>
+                                                    {/each}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        {/if}
+                                    </div>
+                                    
+                                    {#if $resultsStore.trustsWithNoData && $resultsStore.trustsWithNoData.length > 0}
+                                    <div>
+                                        <button
+                                            type="button"
+                                            class="text-sm text-blue-600 hover:text-blue-800 underline font-medium"
+                                            on:click={() => showTrustsWithNoData = !showTrustsWithNoData}
+                                        >
+                                            {showTrustsWithNoData ? 'Hide' : 'Show'} {$resultsStore.trustsWithNoData.length} trusts excluded from percentiles calculation
+                                        </button>
+                                        
+                                        {#if showTrustsWithNoData}
+                                        <div class="mt-2 p-3 bg-gray-100 rounded border border-gray-200">
+                                            <p class="text-xs text-gray-800 font-medium mb-2">
+                                                Trusts with no data for selected products:
+                                            </p>
+                                            <div class="max-h-32 overflow-y-auto">
+                                                <ul class="text-xs text-gray-700 space-y-1">
+                                                    {#each $resultsStore.trustsWithNoData as trust}
+                                                    <li class="flex items-center">
+                                                        <span class="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2 flex-shrink-0"></span>
+                                                        <span>{trust.name}</span>
+                                                    </li>
+                                                    {/each}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        {/if}
+                                    </div>
+                                    {/if}
+                                </div>
+                                {/if}
+                            </section>
+                            {/if}
                     {:else if $modeSelectorStore.selectedMode === 'region'}
                         <p class="text-sm text-gray-700 mb-4">
                             Showing total quantity issued for all selected products aggregated by NHS Region. Each line represents the total quantity across all trusts within a region.
@@ -574,50 +581,95 @@
 
                         {#if $modeSelectorStore.selectedMode === 'organisation'}
                         <div class="flex flex-col items-center gap-2">
-                            {#if analysisData?.selectedOrganisations?.length > 0}
-                                <span class="text-sm text-gray-600 leading-tight text-center">
-                                    Show percentiles
-                                </span>
-                                <div class="flex items-center gap-2">
-                                    <label class="inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            class="sr-only peer"
-                                            checked={$resultsStore.showPercentiles}
-                                            on:change={handlePercentileToggle}
-                                        />
-                                        <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                                    </label>
-                                    <div class="relative inline-block group">
-                                        <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
-                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                                            </svg>
-                                        </button>
-                                        <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
-                                                    group-hover:scale-100 w-[280px] -translate-x-full left-0 top-8 mt-1 rounded-md shadow-lg bg-white 
-                                                    ring-1 ring-black ring-opacity-5 p-4">
-                                            <p class="text-sm text-gray-500">
-                                                Percentiles show variation in product quantity across NHS Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.
-                                            </p>
-                                        </div>
+                            <span class="text-sm text-gray-600 leading-tight text-center">
+                                Show percentiles
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <label class="inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        class="sr-only peer"
+                                        checked={$resultsStore.showPercentiles}
+                                        on:change={handlePercentileToggle}
+                                    />
+                                    <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                                <div class="relative inline-block group">
+                                    <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
+                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
+                                                group-hover:scale-100 w-[280px] -translate-x-full left-4 top-4 rounded-md shadow-lg bg-white 
+                                                ring-1 ring-black ring-opacity-5 p-4">
+                                        <p class="text-sm text-gray-500">
+                                            Percentiles show variation in product quantity across NHS Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.
+                                        </p>
                                     </div>
                                 </div>
-                            {/if}
+                            </div>
                         </div>
                         {/if}
                         
                     </div>
 
                     <div class="grid grid-cols-1 gap-4">
-                        <div class="relative h-[550px] mb-6 sm:mb-0">
-                            <Chart 
-                                store={resultsChartStore} 
-                                data={filteredData.length > 0 ? filteredData : selectedData}
-                                formatTooltipContent={customTooltipFormatter}
-                                mode={$modeSelectorStore.selectedMode}
-                            />
-                        </div>
+                        {#if showChartTip}
+                            <!-- Show tip in place of chart when no trusts selected and percentiles off -->
+                            <div class="relative h-[550px] mb-6 sm:mb-0 flex items-center justify-center bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg">
+                                <div class="text-center space-y-4 p-8 max-w-md">
+                                    <div>
+                                        <h3 class="text-lg font-medium text-gray-900 mb-2">No trusts selected</h3>
+                                        <p class="text-sm text-gray-600 mb-4">
+                                            To see data, either:
+                                        </p>
+                                        <div class="space-y-3">
+                                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                                <div class="flex items-start">
+                                                    <div class="flex-shrink-0">
+                                                        <svg class="h-5 w-5 text-blue-400 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                        </svg>
+                                                    </div>
+                                                    <div class="ml-3">
+                                                        <p class="text-sm text-blue-700">
+                                                            <strong>Turn on percentiles</strong> to see variation across all NHS Trusts in England
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="text-sm text-gray-600">
+                                                <strong>or</strong>
+                                            </div>
+                                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                                <div class="flex items-start">
+                                                    <div class="flex-shrink-0">
+                                                        <svg class="h-5 w-5 text-gray-400 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                        </svg>
+                                                    </div>
+                                                    <div class="ml-3">
+                                                        <p class="text-sm text-gray-600">
+                                                            <strong>Select specific trusts</strong> in the analysis builder to compare them directly
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {:else}
+                            <div class="relative h-[550px] mb-6 sm:mb-0">
+                                <Chart 
+                                    store={resultsChartStore} 
+                                    data={filteredData.length > 0 ? filteredData : selectedData}
+                                    formatTooltipContent={customTooltipFormatter}
+                                    mode={$modeSelectorStore.selectedMode}
+                                />
+                            </div>
+                        {/if}
                     </div>
                 </section>
 
