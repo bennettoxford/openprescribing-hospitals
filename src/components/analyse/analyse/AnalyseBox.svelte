@@ -268,7 +268,7 @@
                   </svg>
                 </button>
                 <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
-                            group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
+                            group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-4 rounded-md shadow-lg bg-white 
                             ring-1 ring-black ring-opacity-5 p-4">
                   <p class="text-sm text-gray-500">
                     {#if isAdvancedMode}
@@ -297,7 +297,7 @@
                   </svg>
                 </button>
                 <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
-                            group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
+                            group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-4 rounded-md shadow-lg bg-white 
                             ring-1 ring-black ring-opacity-5 p-4">
                   <p class="text-sm text-gray-500">
                     {#if isAdvancedMode}
@@ -338,7 +338,7 @@
                     </svg>
                   </button>
                   <div class="absolute z-[200] scale-0 transition-all duration-100 origin-top transform 
-                              group-hover:scale-100 w-[200px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
+                              group-hover:scale-100 w-[200px] -translate-x-1/2 left-1/2 top-4 rounded-md shadow-lg bg-white 
                               ring-1 ring-black ring-opacity-5 p-4">
                     <p class="text-sm text-gray-500">
                       Select the quantity unit most relevant to the selected products to use for the analysis.
