@@ -2,7 +2,7 @@ import { writable } from 'svelte/store';
 import { clearResults } from './resultsStore';
 import { organisationSearchStore } from './organisationSearchStore';
 
-export const DEFAULT_ANALYSIS_MODE = 'organisation';
+export const DEFAULT_ANALYSIS_MODE = 'total';
 
 export const VIEW_MODES = [
     { value: 'organisation', label: 'NHS Trust' },

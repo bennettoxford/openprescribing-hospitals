@@ -63,11 +63,20 @@
         }));
     }
 
-    $: defaultMode = DEFAULT_ANALYSIS_MODE;
+    $: defaultMode = getDefaultMode(analysisData);
 
     let showTrustsWithNoData = false;
     let showIncludedTrusts = false;
     let showTrustCountDetails = false;
+
+    function getDefaultMode(analysisData) {
+        // If trusts are selected, default to 'organisation' (trust) mode
+        if (analysisData?.selectedOrganisations?.length > 0) {
+            return 'organisation';
+        }
+        // If no trusts selected, default to 'total' (national) mode
+        return 'total';
+    }
 
     $: {
         const validModes = viewModes.map(mode => mode.value);
@@ -75,7 +84,7 @@
         
         if (!currentMode || !validModes.includes(currentMode)) {
             console.warn(`Invalid mode '${currentMode}', resetting to default`);
-            modeSelectorStore.resetToDefault(DEFAULT_ANALYSIS_MODE);
+            modeSelectorStore.resetToDefault(getDefaultMode(analysisData));
         }
     }
 
@@ -84,7 +93,7 @@
             return { labels: [], datasets: [] };
         }
 
-        const currentMode = $modeSelectorStore.selectedMode || 'organisation';
+        const currentMode = $modeSelectorStore.selectedMode || getDefaultMode(analysisData);
         const storeItems = $organisationSearchStore.items || [];
         const storePredecessorMap = $organisationSearchStore.predecessorMap || new Map();
         const storeShowPercentiles = $resultsStore.showPercentiles !== false;
@@ -159,7 +168,8 @@
         completeAnalysisData = data;
         selectedData = data;
 
-        modeSelectorStore.resetToDefault('organisation');
+        const dynamicDefaultMode = getDefaultMode(analysisResult);
+        modeSelectorStore.resetToDefault(dynamicDefaultMode);
 
         resultsStore.update(store => ({
             ...store,
@@ -170,7 +180,6 @@
             }
         }));
 
-   
         const uniqueVmps = {};
         data.forEach(item => {
             if (item.vmp__code && !uniqueVmps[item.vmp__code]) {
