@@ -1,0 +1,17 @@
+name: AWaRe Watch and Reserve Antibiotics
+short_name: AWaRe Watch+Reserve
+description: Percentage of antibiotic DDDs that are classified as "Watch" or "Reserve" antibiotics according to the WHO AWaRe classification system
+why_it_matters: |
+    The WHO AWaRe classification categorises antibiotics into Access, Watch, and Reserve groups to guide appropriate antibiotic selection and promote antimicrobial stewardship. "Watch" antibiotics are second-choice treatments that should be used with caution due to their higher resistance potential, whilst "Reserve" antibiotics are last-resort treatments that should be preserved for critical situations. Monitoring the proportion of Watch and Reserve antibiotics helps identify opportunities to optimise antibiotic prescribing by promoting first-line "Access" antibiotics where clinically appropriate, and ensures that higher-risk antibiotics are used judiciously.
+how_is_it_calculated: >
+    The numerator includes all DDDs of antibiotics classified as "Watch" or "Reserve" in the WHO AWaRe 2024 list. 
+    The denominator includes all DDDs of antibiotics classified as "Access", "Watch", or "Reserve" in the WHO AWaRe 2024 list.
+    This creates a percentage showing the proportion of higher-concern antibiotics (Watch and Reserve) relative to all classified antibiotics used.
+tags:
+    - Antimicrobial stewardship
+quantity_type: ddd
+authored_by: ""
+checked_by: ""
+date_reviewed: 2025-07-01
+next_review: 2026-07-01
+draft: true

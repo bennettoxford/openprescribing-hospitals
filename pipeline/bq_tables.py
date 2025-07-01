@@ -29,6 +29,7 @@ from pipeline.utils.config import (
     WHO_DDD_ALTERATIONS_TABLE_ID,
     WHO_ATC_ALTERATIONS_TABLE_ID,
     CALCULATION_LOGIC_TABLE_ID,
+    AWARE_VMP_MAPPING_PROCESSED_TABLE_ID,
 )
 
 
@@ -1225,4 +1226,67 @@ CALCULATION_LOGIC_TABLE_SPEC = TableSpec(
         ),
     ],
     cluster_fields=["vmp_code", "logic_type"],
+)
+
+AWARE_VMP_MAPPING_PROCESSED_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=AWARE_VMP_MAPPING_PROCESSED_TABLE_ID,
+    description="AWaRe VMP mapping with historical dm+d code mapping applied and restricted to VMPs present in processed SCMD data",
+    schema=[
+        bigquery.SchemaField(
+            "Antibiotic", 
+            "STRING", 
+            mode="NULLABLE",
+            description="Name of the antibiotic from AWaRe classification"
+        ),
+        bigquery.SchemaField(
+            "vtm_nm", 
+            "STRING", 
+            mode="NULLABLE",
+            description="Virtual Therapeutic Moiety (VTM) name from dm+d (updated to current name if historical mapping applied)"
+        ),
+        bigquery.SchemaField(
+            "vtm_id", 
+            "INTEGER", 
+            mode="NULLABLE",
+            description="Virtual Therapeutic Moiety (VTM) ID from dm+d (updated to current ID if historical mapping applied)"
+        ),
+        bigquery.SchemaField(
+            "vmp_nm", 
+            "STRING", 
+            mode="NULLABLE",
+            description="Virtual Medicinal Product (VMP) name from dm+d (updated to current name if historical mapping applied)"
+        ),
+        bigquery.SchemaField(
+            "vmp_id", 
+            "INTEGER", 
+            mode="NULLABLE",
+            description="Virtual Medicinal Product (VMP) ID from dm+d (updated to current ID if historical mapping applied)"
+        ),
+        bigquery.SchemaField(
+            "aware_2019", 
+            "STRING", 
+            mode="NULLABLE",
+            description="2019 AWaRe category (Access, Watch, Reserve, Other)"
+        ),
+        bigquery.SchemaField(
+            "aware_2024", 
+            "STRING", 
+            mode="NULLABLE",
+            description="2024 AWaRe category (Access, Watch, Reserve, Other)"
+        ),
+        bigquery.SchemaField(
+            "vtm_id_updated", 
+            "BOOLEAN", 
+            mode="NULLABLE",
+            description="Flag indicating if the VTM ID was updated through historical mapping"
+        ),
+        bigquery.SchemaField(
+            "vmp_id_updated", 
+            "BOOLEAN", 
+            mode="NULLABLE",
+            description="Flag indicating if the VMP ID was updated through historical mapping"
+        ),
+    ],
 )

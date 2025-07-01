@@ -563,3 +563,48 @@ class CalculationLogic(models.Model):
                 name='ingredient_required_for_ingredient_logic'
             ),
         ]
+
+class AWAREAntibiotic(models.Model):
+    """WHO AWARE antibiotic classification data"""
+    name = models.CharField(max_length=255, unique=True, help_text="Antibiotic name from AWARE list")
+    aware_2019 = models.CharField(max_length=50, null=True, help_text="AWARE classification for 2019")
+    aware_2024 = models.CharField(max_length=50, null=True, help_text="AWARE classification for 2024")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["name"]),
+        ]
+
+class AWAREVMPMapping(models.Model):
+    """Mapping between AWARE antibiotics and VMPs"""
+    
+    aware_antibiotic = models.ForeignKey(
+        AWAREAntibiotic, 
+        on_delete=models.CASCADE, 
+        related_name="vmp_mappings"
+    )
+    vmp = models.ForeignKey(
+        VMP, 
+        on_delete=models.CASCADE, 
+        related_name="aware_mappings"
+    )
+    vtm = models.ForeignKey(
+        VTM, 
+        on_delete=models.CASCADE, 
+        related_name="aware_mappings",
+        help_text="The VTM used to link antibiotic to VMP"
+    )
+
+    def __str__(self):
+        return f"{self.aware_antibiotic.name} -> {self.vmp.name}"
+
+    class Meta:
+        unique_together = ('aware_antibiotic', 'vmp')
+        indexes = [
+            models.Index(fields=["aware_antibiotic", "vmp"]),
+            models.Index(fields=["vmp"]),
+            models.Index(fields=["vtm"]),
+        ]
