@@ -11,6 +11,7 @@
     import { createEventDispatcher } from 'svelte';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
+    import { resultsStore } from '../../../stores/resultsStore';
     import { getCookie } from '../../../utils/utils';
     import { modeSelectorStore } from '../../../stores/modeSelectorStore';
     
@@ -189,7 +190,10 @@
 
     function handleClearAnalysis() {
         resetSelections(isAdvancedMode ? '--' : 'VMP Quantity');
-        modeSelectorStore.resetToDefault('organisation');
+        resultsStore.update(store => ({
+            ...store,
+            showPercentiles: false
+        }));
         dispatch('analysisclear');
     }
 </script>

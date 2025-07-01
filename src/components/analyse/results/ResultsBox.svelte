@@ -163,6 +163,7 @@
 
         resultsStore.update(store => ({
             ...store,
+            showPercentiles: false,
             analysisData: {
                 ...store.analysisData,
                 ...metadata

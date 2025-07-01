@@ -12,7 +12,7 @@ const initialState = {
     dateRange: null,
     visibleItems: new Set(),
     isAdvancedMode: false,
-    showPercentiles: true,
+    showPercentiles: false,
     percentiles: [],
     trustCount: 0,
     excludedTrusts: [],
