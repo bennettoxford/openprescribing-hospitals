@@ -22,6 +22,7 @@
     "@highcharts/svelte": "^1.1.1",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/typography": "^0.5.15",
+    "clipboard": "^2.0.11",
     "date-fns": "^3.6.0",
     "highcharts": "^12.1.2",
     "pluralize": "^8.0.0",
