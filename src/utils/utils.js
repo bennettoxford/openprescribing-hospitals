@@ -56,3 +56,20 @@ export function formatNumber(value, options = {}) {
     
     return result;
 }
+
+export function formatStrength(value) {
+    if (value == null || isNaN(value)) return 'N/A';
+    
+    const num = Number(value);
+    
+    const str = num.toString();
+    const decimalIndex = str.indexOf('.');
+    
+    // If no decimal point or 3 or fewer decimal places, return as is
+    if (decimalIndex === -1 || str.length - decimalIndex - 1 <= 3) {
+        return str;
+    }
+    
+    // If more than 3 decimal places, round to 3 decimal places
+    return num.toFixed(3);
+}

@@ -803,7 +803,7 @@ class AboutView(TemplateView):
         context = super().get_context_data(**kwargs)
         return context
 
-@method_decorator(login_required, name='dispatch')
+
 class ProductDetailsView(TemplateView):
     template_name = "product_details.html"
     
@@ -817,7 +817,6 @@ class ProductDetailsView(TemplateView):
         return context
 
 @csrf_protect
-@login_required
 @api_view(["POST"])
 def product_details_api(request):
     try:
