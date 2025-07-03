@@ -6,7 +6,7 @@
 <script>
   import { onMount } from 'svelte';
   import Search from '../common/Search.svelte';
-  import { getCookie, formatNumber } from '../../utils/utils';
+  import { getCookie, formatStrength } from '../../utils/utils';
   import { analyseOptions } from '../../stores/analyseOptionsStore';
   
   const csrftoken = getCookie('csrftoken');
@@ -340,11 +340,6 @@
                           <h4 class="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">Product Information</h4>
                           
                           <div class="grid grid-cols-[auto_1fr] gap-3 items-baseline">
-                            <span class="text-sm font-medium whitespace-nowrap">VMP code:</span>
-                            <span class="text-sm break-words hyphens-auto min-w-0">{product.vmp_code}</span>
-                          </div>
-                          
-                          <div class="grid grid-cols-[auto_1fr] gap-3 items-baseline">
                             <span class="text-sm font-medium whitespace-nowrap">VTM:</span>
                             <span class="text-sm break-words hyphens-auto min-w-0">
                               {#if product.vtm_name && product.vtm_code}
@@ -353,6 +348,11 @@
                                 <span class="text-gray-400">-</span>
                               {/if}
                             </span>
+                          </div>
+
+                          <div class="grid grid-cols-[auto_1fr] gap-3 items-baseline">
+                            <span class="text-sm font-medium whitespace-nowrap">VMP code:</span>
+                            <span class="text-sm break-words hyphens-auto min-w-0">{product.vmp_code}</span>
                           </div>
                           
                           <div class="grid grid-cols-[auto_1fr] gap-3 items-start">
@@ -365,7 +365,7 @@
                                       <span class="text-gray-900">{ingredientCalc.ingredient}</span>
                                       {#if ingredientCalc.strength_info}
                                         <span class="text-xs text-gray-600">
-                                          ({#if ingredientCalc.strength_info.numerator_value}{formatNumber(ingredientCalc.strength_info.numerator_value)}{ingredientCalc.strength_info.numerator_uom ? ` ${ingredientCalc.strength_info.numerator_uom}` : ''}{#if ingredientCalc.strength_info.denominator_value}/{formatNumber(ingredientCalc.strength_info.denominator_value)}{ingredientCalc.strength_info.denominator_uom ? ` ${ingredientCalc.strength_info.denominator_uom}` : ''}{/if}{/if})
+                                          (<span class="font-medium">Strength:</span> {#if ingredientCalc.strength_info.numerator_value}{formatStrength(ingredientCalc.strength_info.numerator_value)}{ingredientCalc.strength_info.numerator_uom ? ` ${ingredientCalc.strength_info.numerator_uom}` : ''}{#if ingredientCalc.strength_info.denominator_value}/{formatStrength(ingredientCalc.strength_info.denominator_value)}{ingredientCalc.strength_info.denominator_uom ? ` ${ingredientCalc.strength_info.denominator_uom}` : ''}{/if}{/if})
                                         </span>
                                       {:else}
                                         <span class="text-xs text-gray-400 italic">(no strength info)</span>
@@ -571,11 +571,11 @@
                                           <div class="space-y-1">
                                             {#if product.dose_logic?.logic}
                                               <div class="flex gap-2">
-                                                <span class="text-xs font-medium text-gray-700 whitespace-nowrap">Calculation logic:</span>
+                                                <span class="text-xs font-medium text-gray-700 whitespace-nowrap">Calculation:</span>
                                                 <span class="text-xs text-gray-600">{product.dose_logic.logic}</span>
                                               </div>
                                             {:else if product.has_dose}
-                                              <div class="text-xs text-gray-600">Logic unavailable</div>
+                                              <div class="text-xs text-gray-600">Calculation unavailable</div>
                                             {:else}
                                               <div class="text-xs text-gray-600">Not calculated</div>
                                             {/if}
@@ -584,7 +584,7 @@
                                           <div class="space-y-2">
                                             {#if product.ddd_logic?.logic}
                                               <div class="flex gap-2">
-                                                <span class="text-xs font-medium text-gray-700 whitespace-nowrap">Calculation logic:</span>
+                                                <span class="text-xs font-medium text-gray-700 whitespace-nowrap">Calculation:</span>
                                                 <span class="text-xs text-gray-600">{product.ddd_logic.logic}</span>
                                               </div>
                                               {#if product.ddd_logic.ingredient}
@@ -594,7 +594,7 @@
                                                 </div>
                                               {/if}
                                             {:else if product.has_ddd_quantity}
-                                              <div class="text-xs text-gray-600">Logic unavailable</div>
+                                              <div class="text-xs text-gray-600">Calculation unavailable</div>
                                             {:else}
                                               <div class="text-xs text-gray-600">Not calculated</div>
                                             {/if}
@@ -613,7 +613,7 @@
                                                     {/if}
                                                     {#if ingredientCalc.logic}
                                                       <div class="flex gap-2">
-                                                        <span class="text-xs font-medium text-gray-700 whitespace-nowrap">Calculation logic:</span>
+                                                        <span class="text-xs font-medium text-gray-700 whitespace-nowrap">Calculation:</span>
                                                         <span class="text-xs text-gray-600">{ingredientCalc.logic}</span>
                                                       </div>
                                                     {:else}
@@ -623,7 +623,7 @@
                                                 </div>
                                               {/each}
                                             {:else if product.has_ingredient_quantities}
-                                              <div class="text-xs text-gray-600">Logic unavailable</div>
+                                              <div class="text-xs text-gray-600">Calculation unavailable</div>
                                             {:else}
                                               <div class="text-xs text-gray-600">Not calculated</div>
                                             {/if}
