@@ -4,11 +4,12 @@ import numpy as np
 from unittest.mock import patch, MagicMock
 from pipeline.flows.load_ingredient_quantity import (
     get_ingredient_calculation_logic,
+    get_all_vmp_ingredient_combinations_with_logic,
     get_unique_vmps_with_ingredient_data,
     extract_ingredient_data_by_vmps,
     clear_existing_ingredient_data,
-    transform_and_load_chunk,
-    load_ingredient_logic,
+    transform_and_load_ingredient_quantity_chunk,
+    load_ingredient_logic_for_combinations,
 )
 from viewer.models import IngredientQuantity, Ingredient, VMP, Organisation, CalculationLogic
 
@@ -174,20 +175,38 @@ class TestLoadIngredientQuantity:
             assert IngredientQuantity.objects.count() == 0
             assert CalculationLogic.objects.filter(logic_type="ingredient").count() == 0
 
-    @pytest.mark.django_db
-    def test_load_ingredient_logic(self, sample_ingredient_data, sample_foreign_keys, sample_ingredient_logic_dict):
+    @patch("pipeline.flows.load_ingredient_quantity.get_bigquery_client")
+    def test_get_all_vmp_ingredient_combinations_with_logic(self, mock_client):
         with patch("pipeline.flows.load_ingredient_quantity.task", lambda x: x):
-            sample_ingredient_data["ingredients"] = sample_ingredient_data["ingredients"].apply(lambda x: np.array(x))
+            mock_query = MagicMock()
+            mock_query.to_dataframe.return_value = pd.DataFrame({
+                "vmp_code": ["12345", "12345", "67890"],
+                "ingredient_code": ["ING1", "ING2", "ING3"]
+            })
+            mock_client.return_value.query.return_value = mock_query
+
+            result = get_all_vmp_ingredient_combinations_with_logic()
+
+            assert isinstance(result, list)
+            assert len(result) == 3
+            assert ("12345", "ING1") in result
+            assert ("12345", "ING2") in result
+            assert ("67890", "ING3") in result
+
+    @pytest.mark.django_db
+    def test_load_ingredient_logic_for_combinations(self, sample_foreign_keys, sample_ingredient_logic_dict):
+        with patch("pipeline.flows.load_ingredient_quantity.task", lambda x: x):
+            combinations = [("12345", "ING1"), ("12345", "ING2"), ("67890", "ING3")]
             
-            result = load_ingredient_logic(
-                sample_ingredient_data, sample_foreign_keys, sample_ingredient_logic_dict, 1, 2
+            result = load_ingredient_logic_for_combinations(
+                combinations, sample_foreign_keys, sample_ingredient_logic_dict, 1, 2
             )
 
             assert isinstance(result, dict)
             assert "logic_created" in result
-            assert "logic_conflicts" in result
+            assert "logic_missing" in result
             assert result["logic_created"] == 3
-            assert result["logic_conflicts"] == 0
+            assert result["logic_missing"] == 0
 
             logic_records = CalculationLogic.objects.filter(logic_type="ingredient")
             assert logic_records.count() == 3
@@ -199,39 +218,19 @@ class TestLoadIngredientQuantity:
                 assert logic_record.ingredient is not None
 
     @pytest.mark.django_db
-    def test_load_ingredient_logic_missing_logic(self, sample_foreign_keys):
+    def test_load_ingredient_logic_for_combinations_missing_logic(self, sample_foreign_keys):
         with patch("pipeline.flows.load_ingredient_quantity.task", lambda x: x):
-            test_data = pd.DataFrame({
-                "vmp_code": ["12345", "12345"],
-                "year_month": ["2024-01-01", "2024-02-01"],
-                "ods_code": ["ORG1", "ORG1"],
-                "ingredients": [
-                    np.array([
-                        {
-                            "ingredient_code": "ING1",
-                            "ingredient_quantity_basis": 100.0,
-                            "ingredient_basis_unit": "mg",
-                        }
-                    ]),
-                    np.array([
-                        {
-                            "ingredient_code": "ING999",
-                            "ingredient_quantity_basis": 150.0,
-                            "ingredient_basis_unit": "mg",
-                        }
-                    ]),
-                ],
-            })
+            combinations = [("12345", "ING1"), ("99999", "ING999")]
             
             # Only provide logic for one combination
             logic_dict = {("12345", "ING1"): "Test logic for 12345 + ING1"}
 
-            result = load_ingredient_logic(
-                test_data, sample_foreign_keys, logic_dict, 1, 2
+            result = load_ingredient_logic_for_combinations(
+                combinations, sample_foreign_keys, logic_dict, 1, 2
             )
 
             assert result["logic_created"] == 1
-            assert result["logic_conflicts"] == 0
+            assert result["logic_missing"] == 1
 
             logic_records = CalculationLogic.objects.filter(logic_type="ingredient")
             assert logic_records.count() == 1
@@ -240,48 +239,46 @@ class TestLoadIngredientQuantity:
             assert record.ingredient.code == "ING1"
 
     @pytest.mark.django_db
-    def test_load_ingredient_logic_empty_data(self, sample_foreign_keys, sample_ingredient_logic_dict):
+    def test_load_ingredient_logic_for_combinations_empty_list(self, sample_foreign_keys, sample_ingredient_logic_dict):
         with patch("pipeline.flows.load_ingredient_quantity.task", lambda x: x):
-            empty_df = pd.DataFrame()
+            combinations = []
             
-            result = load_ingredient_logic(
-                empty_df, sample_foreign_keys, sample_ingredient_logic_dict, 1, 2
+            result = load_ingredient_logic_for_combinations(
+                combinations, sample_foreign_keys, sample_ingredient_logic_dict, 1, 2
             )
 
             assert result["logic_created"] == 0
-            assert result["logic_conflicts"] == 0
+            assert result["logic_missing"] == 0
 
     @pytest.mark.django_db
-    def test_load_ingredient_logic_missing_foreign_keys(self, sample_ingredient_data, sample_ingredient_logic_dict):
+    def test_load_ingredient_logic_for_combinations_missing_foreign_keys(self, sample_ingredient_logic_dict):
         with patch("pipeline.flows.load_ingredient_quantity.task", lambda x: x):
             empty_cache = {"ingredients": {}, "vmps": {}, "organisations": {}}
+            combinations = [("12345", "ING1"), ("12345", "ING2"), ("67890", "ING3")]
             
-            sample_ingredient_data["ingredients"] = sample_ingredient_data["ingredients"].apply(lambda x: np.array(x))
-            
-            result = load_ingredient_logic(
-                sample_ingredient_data, empty_cache, sample_ingredient_logic_dict, 1, 2
+            result = load_ingredient_logic_for_combinations(
+                combinations, empty_cache, sample_ingredient_logic_dict, 1, 2
             )
 
             assert result["logic_created"] == 0
-            assert result["logic_conflicts"] == 0
+            assert result["logic_missing"] == 3
 
     @pytest.mark.django_db
-    def test_transform_and_load_chunk(
-        self, sample_ingredient_data, sample_foreign_keys, sample_ingredient_logic_dict
+    def test_transform_and_load_ingredient_quantity_chunk(
+        self, sample_ingredient_data, sample_foreign_keys
     ):
         with patch("pipeline.flows.load_ingredient_quantity.task", lambda x: x):
             sample_ingredient_data["ingredients"] = sample_ingredient_data[
                 "ingredients"
             ].apply(lambda x: np.array(x))
 
-            result = transform_and_load_chunk(
-                sample_ingredient_data, sample_foreign_keys, sample_ingredient_logic_dict, 1, 2
+            result = transform_and_load_ingredient_quantity_chunk(
+                sample_ingredient_data, sample_foreign_keys, 1, 2
             )
 
             assert isinstance(result, dict)
             assert result["created"] > 0
-            assert "logic_created" in result
-            assert "logic_conflicts" in result
+            assert "skipped" in result
             assert IngredientQuantity.objects.count() > 0
 
             iq = IngredientQuantity.objects.first()
@@ -289,11 +286,8 @@ class TestLoadIngredientQuantity:
             assert len(iq.data) > 0
             assert all(isinstance(entry, list) and len(entry) == 3 for entry in iq.data)
 
-            logic_records = CalculationLogic.objects.filter(logic_type="ingredient")
-            assert logic_records.count() == 3
-
     @pytest.mark.django_db
-    def test_transform_and_load_chunk_invalid_data(self, sample_foreign_keys, sample_ingredient_logic_dict):
+    def test_transform_and_load_ingredient_quantity_chunk_invalid_data(self, sample_foreign_keys):
         with patch("pipeline.flows.load_ingredient_quantity.task", lambda x: x):
             import numpy as np
 
@@ -316,32 +310,28 @@ class TestLoadIngredientQuantity:
                 }
             )
 
-            result = transform_and_load_chunk(
-                invalid_data, sample_foreign_keys, sample_ingredient_logic_dict, 1, 2
+            result = transform_and_load_ingredient_quantity_chunk(
+                invalid_data, sample_foreign_keys, 1, 2
             )
 
             assert result["created"] == 0
             assert result["skipped"] > 0
-            assert "logic_created" in result
-            assert "logic_conflicts" in result
 
     @pytest.mark.django_db
-    def test_transform_and_load_chunk_empty_data(self, sample_foreign_keys, sample_ingredient_logic_dict):
+    def test_transform_and_load_ingredient_quantity_chunk_empty_data(self, sample_foreign_keys):
         with patch("pipeline.flows.load_ingredient_quantity.task", lambda x: x):
             empty_data = pd.DataFrame()
 
-            result = transform_and_load_chunk(
-                empty_data, sample_foreign_keys, sample_ingredient_logic_dict, 1, 2
+            result = transform_and_load_ingredient_quantity_chunk(
+                empty_data, sample_foreign_keys, 1, 2
             )
 
             assert result["created"] == 0
             assert result["skipped"] == 0
-            assert result["logic_created"] == 0
-            assert result["logic_conflicts"] == 0
             assert IngredientQuantity.objects.count() == 0
 
     @pytest.mark.django_db
-    def test_transform_and_load_chunk_missing_fields(self, sample_foreign_keys, sample_ingredient_logic_dict):
+    def test_transform_and_load_ingredient_quantity_chunk_missing_fields(self, sample_foreign_keys):
         with patch("pipeline.flows.load_ingredient_quantity.task", lambda x: x):
             invalid_data = pd.DataFrame(
                 {
@@ -367,8 +357,8 @@ class TestLoadIngredientQuantity:
                 }
             )
 
-            result = transform_and_load_chunk(
-                invalid_data, sample_foreign_keys, sample_ingredient_logic_dict, 1, 2
+            result = transform_and_load_ingredient_quantity_chunk(
+                invalid_data, sample_foreign_keys, 1, 2
             )
 
             assert result["created"] == 1
