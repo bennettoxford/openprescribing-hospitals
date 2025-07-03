@@ -608,7 +608,7 @@
                                                     {#if ingredientCalc.ingredient}
                                                       <div class="flex gap-2">
                                                         <span class="text-xs font-medium text-gray-700 whitespace-nowrap">Ingredient:</span>
-                                                        <span class="text-xs text-gray-900 font-medium">{ingredientCalc.ingredient}</span>
+                                                        <span class="text-xs text-gray-600">{ingredientCalc.ingredient}</span>
                                                       </div>
                                                     {/if}
                                                     {#if ingredientCalc.logic}
