@@ -224,6 +224,38 @@ class TestDDDMappings:
         assert new_ddd['ddd'] == 5.0
         assert new_ddd['ddd_unit'] == 'mg'
         assert new_ddd['adm_code'] == 'O'
+        assert new_ddd['comment'] == 'New DDD'
+
+    @patch('pipeline.flows.import_ddd.get_run_logger')
+    def test_create_ddd_mappings_new_ddds_without_comment(self, mock_logger):
+        """Test new DDDs without alterations comment get None comment"""
+        mock_logger.return_value = Mock()
+        
+        # Create alterations with no comment
+        alterations = pd.DataFrame([
+            {
+                'substance': 'New DDD Substance',
+                'atc_code': 'N01AA01',
+                'previous_ddd': None,
+                'previous_ddd_unit': None,
+                'previous_route': None,
+                'new_ddd': 5.0,
+                'new_ddd_unit': 'mg',
+                'new_route': 'O',
+                'year_changed': 2023,
+                'comment': None
+            }
+        ])
+        
+        ddd_updates, new_ddds, ddds_to_delete = create_ddd_mappings(alterations)
+        
+        assert len(new_ddds) == 1
+        new_ddd = new_ddds[0]
+        assert new_ddd['atc_code'] == 'N01AA01'
+        assert new_ddd['ddd'] == 5.0
+        assert new_ddd['ddd_unit'] == 'mg'
+        assert new_ddd['adm_code'] == 'O'
+        assert new_ddd['comment'] is None
 
     @patch('pipeline.flows.import_ddd.get_run_logger')
     def test_create_ddd_mappings_updates(self, mock_logger, sample_ddd_alterations):
@@ -267,8 +299,8 @@ class TestApplyDDDDeletionsAndUpdates:
         assert len(result) == len(sample_ddd_df) - 1
 
     @patch('pipeline.flows.import_ddd.get_run_logger')
-    def test_apply_updates_same_route(self, mock_logger, sample_ddd_df):
-        """Test updating DDD values while keeping the same route"""
+    def test_apply_updates_same_route_with_alterations_comment(self, mock_logger, sample_ddd_df):
+        """Test updating DDD values while keeping the same route, with alterations comment"""
         mock_logger.return_value = Mock()
         
         ddd_updates = {
@@ -276,7 +308,8 @@ class TestApplyDDDDeletionsAndUpdates:
                 'new_ddd': 15.0,
                 'new_ddd_unit': 'mg',
                 'new_route': 'O',
-                'year_changed': 2023
+                'year_changed': 2023,
+                'alterations_comment': 'DDD value changed'
             }
         }
         ddds_to_delete = set()
@@ -287,7 +320,9 @@ class TestApplyDDDDeletionsAndUpdates:
         assert len(updated_row) == 1
         assert updated_row.iloc[0]['ddd'] == 15.0
         assert updated_row.iloc[0]['ddd_unit'] == 'mg'
-        assert 'Updated from alterations table (changed in 2023)' in updated_row.iloc[0]['comment']
+
+        expected_comment = 'Original DDD; DDD value changed; Updated from alterations table (changed in 2023)'
+        assert updated_row.iloc[0]['comment'] == expected_comment
 
     @patch('pipeline.flows.import_ddd.get_run_logger')
     def test_apply_updates_route_change(self, mock_logger, sample_ddd_df):
@@ -299,7 +334,8 @@ class TestApplyDDDDeletionsAndUpdates:
                 'new_ddd': 25.0,
                 'new_ddd_unit': 'mg',
                 'new_route': 'P',
-                'year_changed': 2023
+                'year_changed': 2023,
+                'alterations_comment': ''
             }
         }
         ddds_to_delete = set()
@@ -318,6 +354,7 @@ class TestApplyDDDDeletionsAndUpdates:
         assert len(new_row) == 1
         assert new_row.iloc[0]['ddd'] == 25.0
         assert new_row.iloc[0]['adm_code'] == 'P'
+        assert new_row.iloc[0]['comment'] == 'Route to change'
 
     @patch('pipeline.flows.import_ddd.get_run_logger')
     def test_apply_multiple_operations(self, mock_logger, sample_ddd_df):
@@ -330,13 +367,15 @@ class TestApplyDDDDeletionsAndUpdates:
                 'new_ddd': 12.0,
                 'new_ddd_unit': 'mg',
                 'new_route': 'O',
-                'year_changed': 2023
+                'year_changed': 2023,
+                'alterations_comment': ''
             },
             ('B01AA01', 'O'): {
                 'new_ddd': 22.0,
                 'new_ddd_unit': 'mg',
                 'new_route': 'P',
-                'year_changed': 2023
+                'year_changed': 2023,
+                'alterations_comment': ''
             }
         }
         
@@ -511,4 +550,4 @@ class TestProcessDDDData:
         result = process_ddd_data(test_df, ddd_updates, set(), [])
 
         updated_comment = result[result['atc_code'] == 'A01AA01']['comment'].iloc[0]
-        assert updated_comment == 'Original Comment; Updated from alterations table (changed in 2023)'
+        assert updated_comment == 'Original Comment'

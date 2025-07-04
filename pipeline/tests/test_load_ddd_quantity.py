@@ -3,12 +3,13 @@ import pandas as pd
 from unittest.mock import patch, MagicMock
 from pipeline.flows.load_ddd_quantity import (
     get_ddd_calculation_logic,
+    get_all_vmps_with_ddd_logic,
     get_unique_vmps_with_ddd_data,
     extract_ddd_data_by_vmps,
     clear_existing_ddd_data,
     cache_foreign_keys,
-    transform_and_load_chunk,
-    load_ddd_logic,
+    transform_and_load_ddd_quantity_chunk,
+    load_ddd_logic_for_vmps,
 )
 from viewer.models import (
     DDDQuantity,
@@ -82,6 +83,23 @@ class TestLoadDDDQuantity:
             assert len(result) == 2
             assert result["12345"] == "DDD calculated using WHO DDD value for Test Drug 1"
             assert result["67890"] == "DDD calculated using WHO DDD value for Test Drug 2"
+
+    @patch("pipeline.flows.load_ddd_quantity.get_bigquery_client")
+    def test_get_all_vmps_with_ddd_logic(self, mock_client):
+        with patch("pipeline.flows.load_ddd_quantity.task", lambda x: x):
+            mock_query = MagicMock()
+            mock_query.to_dataframe.return_value = pd.DataFrame(
+                {"vmp_code": ["12345", "67890", "11111"]}
+            )
+            mock_client.return_value.query.return_value = mock_query
+
+            result = get_all_vmps_with_ddd_logic()
+
+            assert isinstance(result, list)
+            assert len(result) == 3
+            assert "12345" in result
+            assert "67890" in result
+            assert "11111" in result
 
     @patch("pipeline.flows.load_ddd_quantity.get_bigquery_client")
     def test_get_unique_vmps_with_ddd_data(self, mock_client):
@@ -171,17 +189,19 @@ class TestLoadDDDQuantity:
             assert result["organisations"]["ORG2"] == org2.id
 
     @pytest.mark.django_db
-    def test_load_ddd_logic(self, sample_ddd_data, sample_foreign_keys, sample_ddd_logic_dict):
+    def test_load_ddd_logic_for_vmps(self, sample_foreign_keys, sample_ddd_logic_dict):
         with patch("pipeline.flows.load_ddd_quantity.task", lambda x: x):
-            result = load_ddd_logic(
-                sample_ddd_data, sample_foreign_keys, sample_ddd_logic_dict, 1, 2
+            vmp_codes = ["12345", "67890"]
+            
+            result = load_ddd_logic_for_vmps(
+                vmp_codes, sample_foreign_keys, sample_ddd_logic_dict, 1, 2
             )
 
             assert isinstance(result, dict)
             assert "logic_created" in result
-            assert "logic_conflicts" in result
+            assert "logic_missing" in result
             assert result["logic_created"] == 2
-            assert result["logic_conflicts"] == 0
+            assert result["logic_missing"] == 0
 
             logic_records = CalculationLogic.objects.filter(logic_type="ddd")
             assert logic_records.count() == 2
@@ -194,56 +214,48 @@ class TestLoadDDDQuantity:
                 assert logic_record.ingredient is None
 
     @pytest.mark.django_db
-    def test_load_ddd_logic_missing_logic(self, sample_foreign_keys):
+    def test_load_ddd_logic_for_vmps_missing_logic(self, sample_foreign_keys):
         with patch("pipeline.flows.load_ddd_quantity.task", lambda x: x):
-            test_data = pd.DataFrame({
-                "vmp_code": ["12345", "99999"],
-                "year_month": ["2024-01-01", "2024-01-01"],
-                "ods_code": ["ORG1", "ORG1"],
-                "ddd_quantity": [1.5, 2.0],
-                "ddd_value": [1.0, 2.0],
-                "ddd_unit": ["mg", "g"],
-            })
+            vmp_codes = ["12345", "99999"]
             
             # Only provide logic for one VMP
             logic_dict = {"12345": "Test logic for 12345"}
 
-            result = load_ddd_logic(
-                test_data, sample_foreign_keys, logic_dict, 1, 2
+            result = load_ddd_logic_for_vmps(
+                vmp_codes, sample_foreign_keys, logic_dict, 1, 2
             )
 
             assert result["logic_created"] == 1
-            assert result["logic_conflicts"] == 0
+            assert result["logic_missing"] == 1
 
             logic_records = CalculationLogic.objects.filter(logic_type="ddd")
             assert logic_records.count() == 1
             assert logic_records.first().vmp.code == "12345"
 
     @pytest.mark.django_db
-    def test_load_ddd_logic_empty_data(self, sample_foreign_keys, sample_ddd_logic_dict):
+    def test_load_ddd_logic_for_vmps_empty_list(self, sample_foreign_keys, sample_ddd_logic_dict):
         with patch("pipeline.flows.load_ddd_quantity.task", lambda x: x):
-            empty_df = pd.DataFrame()
+            vmp_codes = []
             
-            result = load_ddd_logic(
-                empty_df, sample_foreign_keys, sample_ddd_logic_dict, 1, 2
+            result = load_ddd_logic_for_vmps(
+                vmp_codes, sample_foreign_keys, sample_ddd_logic_dict, 1, 2
             )
 
             assert result["logic_created"] == 0
-            assert result["logic_conflicts"] == 0
+            assert result["logic_missing"] == 0
 
     @pytest.mark.django_db
-    def test_transform_and_load_chunk(
-        self, sample_ddd_data, sample_foreign_keys, sample_ddd_logic_dict
+    def test_transform_and_load_ddd_quantity_chunk(
+        self, sample_ddd_data, sample_foreign_keys
     ):
         with patch("pipeline.flows.load_ddd_quantity.task", lambda x: x):
-            result = transform_and_load_chunk(
-                sample_ddd_data, sample_foreign_keys, sample_ddd_logic_dict, 1, 2
+            result = transform_and_load_ddd_quantity_chunk(
+                sample_ddd_data, sample_foreign_keys, 1, 2
             )
 
             assert isinstance(result, dict)
             assert result["created"] > 0
-            assert "logic_created" in result
-            assert "logic_conflicts" in result
+            assert "skipped" in result
             assert DDDQuantity.objects.count() > 0
 
             ddd_quantity = DDDQuantity.objects.first()
@@ -254,42 +266,35 @@ class TestLoadDDDQuantity:
                 for entry in ddd_quantity.data
             )
 
-            logic_records = CalculationLogic.objects.filter(logic_type="ddd")
-            assert logic_records.count() == 2
-
     @pytest.mark.django_db
-    def test_transform_and_load_chunk_empty_data(self, sample_foreign_keys, sample_ddd_logic_dict):
+    def test_transform_and_load_ddd_quantity_chunk_empty_data(self, sample_foreign_keys):
         with patch("pipeline.flows.load_ddd_quantity.task", lambda x: x):
             empty_df = pd.DataFrame()
             
-            result = transform_and_load_chunk(
-                empty_df, sample_foreign_keys, sample_ddd_logic_dict, 1, 1
+            result = transform_and_load_ddd_quantity_chunk(
+                empty_df, sample_foreign_keys, 1, 1
             )
 
             assert result["created"] == 0
             assert result["skipped"] == 0
-            assert result["logic_created"] == 0
-            assert result["logic_conflicts"] == 0
             assert DDDQuantity.objects.count() == 0
 
     @pytest.mark.django_db
-    def test_transform_and_load_chunk_invalid_foreign_keys(
-        self, sample_ddd_data, sample_ddd_logic_dict
+    def test_transform_and_load_ddd_quantity_chunk_invalid_foreign_keys(
+        self, sample_ddd_data
     ):
         with patch("pipeline.flows.load_ddd_quantity.task", lambda x: x):
             empty_cache = {"vmps": {}, "organisations": {}}
             
-            result = transform_and_load_chunk(
-                sample_ddd_data, empty_cache, sample_ddd_logic_dict, 1, 1
+            result = transform_and_load_ddd_quantity_chunk(
+                sample_ddd_data, empty_cache, 1, 1
             )
 
             assert result["created"] == 0
             assert DDDQuantity.objects.count() == 0
-            assert "logic_created" in result
-            assert "logic_conflicts" in result
 
     @pytest.mark.django_db 
-    def test_transform_and_load_chunk_missing_data(self, sample_foreign_keys, sample_ddd_logic_dict):
+    def test_transform_and_load_ddd_quantity_chunk_missing_data(self, sample_foreign_keys):
         with patch("pipeline.flows.load_ddd_quantity.task", lambda x: x):
             invalid_data = pd.DataFrame({
                 "vmp_code": ["12345", None, "67890"],
@@ -300,13 +305,10 @@ class TestLoadDDDQuantity:
                 "ddd_unit": ["mg", "g", "mg"],
             })
             
-            result = transform_and_load_chunk(
-                invalid_data, sample_foreign_keys, sample_ddd_logic_dict, 1, 1
+            result = transform_and_load_ddd_quantity_chunk(
+                invalid_data, sample_foreign_keys, 1, 1
             )
 
             assert result["created"] == 1
             assert result["skipped"] == 2 
             assert DDDQuantity.objects.count() == 1
-            # Logic still created for valid records
-            assert "logic_created" in result
-            assert "logic_conflicts" in result

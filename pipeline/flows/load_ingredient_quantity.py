@@ -48,6 +48,28 @@ def get_ingredient_calculation_logic() -> Dict[Tuple[str, str], str]:
 
 
 @task
+def get_all_vmp_ingredient_combinations_with_logic() -> List[Tuple[str, str]]:
+    """Get all unique VMP-ingredient combinations that have calculation logic"""
+    logger = get_run_logger()
+    
+    client = get_bigquery_client()
+
+    query = f"""
+    SELECT DISTINCT vmp_code, ingredient_code
+    FROM `{CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
+    WHERE logic_type = 'ingredient'
+    AND ingredient_code IS NOT NULL
+    ORDER BY vmp_code, ingredient_code
+    """
+
+    result = client.query(query).to_dataframe()
+    combinations = [(row['vmp_code'], row['ingredient_code']) for _, row in result.iterrows()]
+    
+    logger.info(f"Found {len(combinations):,} unique VMP-ingredient combinations with calculation logic")
+    return combinations
+
+
+@task
 def get_unique_vmps_with_ingredient_data() -> List[str]:
     """Get all unique VMP codes that have ingredient quantity data"""
     logger = get_run_logger()
@@ -88,6 +110,10 @@ def extract_ingredient_data_by_vmps(
     logger.info(
         f"Chunk {chunk_num}/{total_chunks}: Extracting data for {len(vmp_codes):,} VMPs"
     )
+
+    if not vmp_codes:
+        logger.info(f"Chunk {chunk_num}/{total_chunks}: No VMPs to extract data for")
+        return pd.DataFrame()
 
     client = get_bigquery_client()
 
@@ -176,46 +202,25 @@ def cache_foreign_keys() -> Dict:
 
 
 @task
-def load_ingredient_logic(
-    chunk_df: pd.DataFrame, 
+def load_ingredient_logic_for_combinations(
+    combinations: List[Tuple[str, str]], 
     foreign_key_cache: Dict, 
     ingredient_logic_dict: Dict[Tuple[str, str], str],
     chunk_num: int, 
     total_chunks: int
 ) -> Dict:
-    """Validate and store ingredient logic using the centralized calculation logic"""
+    """Load ingredient logic for a specific set of VMP-ingredient combinations"""
     logger = get_run_logger()
     
-    if len(chunk_df) == 0:
-        return {"logic_created": 0, "logic_conflicts": 0}
-
-    chunk_combinations = set()
-    
-    chunk_df = chunk_df.copy()
-    chunk_df['ingredients'] = chunk_df['ingredients'].apply(
-        lambda x: x.tolist() if hasattr(x, 'tolist') else (x if isinstance(x, list) else [])
-    )
-    
-    for row in chunk_df.itertuples(index=False):
-        try:
-            vmp_code = row.vmp_code
-            ingredients = row.ingredients
-            
-            for ingredient in ingredients:
-                ingredient_code = ingredient.get("ingredient_code")
-                if ingredient_code:
-                    chunk_combinations.add((vmp_code, ingredient_code))
-                    
-        except Exception as e:
-            logger.error(f"Error processing ingredient combinations: {str(e)}")
-            continue
+    if len(combinations) == 0:
+        return {"logic_created": 0, "logic_missing": 0}
     
     ingredients = foreign_key_cache["ingredients"]
     vmps = foreign_key_cache["vmps"]
     logic_objects = []
-    logic_created = 0
+    logic_missing = 0
     
-    for (vmp_code, ingredient_code) in chunk_combinations:
+    for (vmp_code, ingredient_code) in combinations:
         logic_key = (vmp_code, ingredient_code)
         
         if (logic_key in ingredient_logic_dict and 
@@ -232,7 +237,15 @@ def load_ingredient_logic(
             )
         elif logic_key not in ingredient_logic_dict:
             logger.warning(f"Chunk {chunk_num}/{total_chunks}: No ingredient logic found for VMP {vmp_code} + Ingredient {ingredient_code}")
+            logic_missing += 1
+        elif vmp_code not in vmps:
+            logger.warning(f"Chunk {chunk_num}/{total_chunks}: VMP {vmp_code} not found in database")
+            logic_missing += 1
+        elif ingredient_code not in ingredients:
+            logger.warning(f"Chunk {chunk_num}/{total_chunks}: Ingredient {ingredient_code} not found in database")
+            logic_missing += 1
     
+    logic_created = 0
     if logic_objects:
         try:
             with transaction.atomic():
@@ -241,31 +254,28 @@ def load_ingredient_logic(
         except Exception as e:
             logger.error(f"Chunk {chunk_num}/{total_chunks}: Error creating ingredient logic: {str(e)}")
     
-    logger.info(f"Chunk {chunk_num}/{total_chunks}: Created {logic_created} ingredient logic records")
+    logger.info(f"Chunk {chunk_num}/{total_chunks}: Created {logic_created} ingredient logic records, {logic_missing} missing")
     
-    return {"logic_created": logic_created, "logic_conflicts": 0}
+    return {"logic_created": logic_created, "logic_missing": logic_missing}
 
 
 @task
-def transform_and_load_chunk(
+def transform_and_load_ingredient_quantity_chunk(
     chunk_df: pd.DataFrame, 
     foreign_key_cache: Dict, 
-    ingredient_logic_dict: Dict[Tuple[str, str], str],
     chunk_num: int, 
     total_chunks: int
 ) -> Dict:
-    """Transform and load a chunk"""
+    """Transform and load a chunk of ingredient quantity data"""
     logger = get_run_logger()
 
     logger.info(
-        f"Chunk {chunk_num}/{total_chunks}: Transforming and loading {len(chunk_df):,} records"
+        f"Chunk {chunk_num}/{total_chunks}: Transforming and loading {len(chunk_df):,} ingredient quantity records"
     )
 
     if len(chunk_df) == 0:
-        logger.info(f"Chunk {chunk_num}/{total_chunks}: No data to process")
-        return {"created": 0, "skipped": 0, "logic_created": 0, "logic_conflicts": 0}
-
-    logic_result = load_ingredient_logic(chunk_df, foreign_key_cache, ingredient_logic_dict, chunk_num, total_chunks)
+        logger.info(f"Chunk {chunk_num}/{total_chunks}: No ingredient quantity data to process")
+        return {"created": 0, "skipped": 0}
 
     logger.info(f"Chunk {chunk_num}/{total_chunks}: Filtering for valid records...")
     valid_mask = (
@@ -285,9 +295,9 @@ def transform_and_load_chunk(
 
     if len(df_valid) == 0:
         logger.info(
-            f"Chunk {chunk_num}/{total_chunks}: No valid records after filtering"
+            f"Chunk {chunk_num}/{total_chunks}: No valid ingredient quantity records after filtering"
         )
-        return {"created": 0, "skipped": skipped_count, **logic_result}
+        return {"created": 0, "skipped": skipped_count}
 
     df_valid["year_month"] = pd.to_datetime(df_valid["year_month"].astype(str)).dt.strftime(
         "%Y-%m-%d"
@@ -393,77 +403,109 @@ def transform_and_load_chunk(
     return {
         "created": total_created,
         "skipped": total_skipped,
-        **logic_result
     }
 
 
 @flow
-def load_ingredient_quantity_flow(vmp_chunk_size: int = 500):
+def load_ingredient_quantity_flow(combination_chunk_size: int = 1000, vmp_chunk_size: int = 500):
     """
-    Main flow to import ingredient quantity data using VMP-based chunking
+    Main flow to import ingredient quantity data from BigQuery
 
     Args:
-        vmp_chunk_size: Number of VMPs to process in each chunk (default: 500)
+        combination_chunk_size: Number of VMP-ingredient combinations to process in each logic chunk (default: 1000)
+        vmp_chunk_size: Number of VMPs to process in each quantity chunk (default: 500)
     """
     logger = get_run_logger()
     start_time = time.time()
 
-    logger.info(f"Starting ingredient quantity data import with VMP-based chunking")
+    logger.info(f"Starting ingredient quantity data import from BigQuery")
 
     ingredient_logic_dict = get_ingredient_calculation_logic()
 
-    all_vmps = get_unique_vmps_with_ingredient_data()
+    all_logic_combinations = get_all_vmp_ingredient_combinations_with_logic()
 
-    total_chunks = (len(all_vmps) + vmp_chunk_size - 1) // vmp_chunk_size
+    quantity_vmps = get_unique_vmps_with_ingredient_data()
+
     logger.info(
-        f"Will process {len(all_vmps):,} VMPs in {total_chunks} chunks of {vmp_chunk_size} VMPs each"
+        f"Found {len(all_logic_combinations):,} VMP-ingredient combinations with logic and {len(quantity_vmps):,} VMPs with ingredient quantity data"
     )
 
     deleted_count, logic_deleted_count = clear_existing_ingredient_data()
-    
     foreign_key_cache = cache_foreign_keys()
 
     total_stats = {
         "total_created": 0,
         "total_skipped": 0,
         "total_logic_created": 0,
-        "total_logic_conflicts": 0,
+        "total_logic_missing": 0,
         "total_processed_chunks": 0,
     }
 
-    for chunk_num in range(1, total_chunks + 1):
+    logic_total_chunks = (len(all_logic_combinations) + combination_chunk_size - 1) // combination_chunk_size
+    logger.info(
+        f"Will process ingredient logic for {len(all_logic_combinations):,} VMP-ingredient combinations in {logic_total_chunks} chunks of {combination_chunk_size} combinations each"
+    )
+
+    for chunk_num in range(1, logic_total_chunks + 1):
+        chunk_start_time = time.time()
+
+        start_idx = (chunk_num - 1) * combination_chunk_size
+        end_idx = min(start_idx + combination_chunk_size, len(all_logic_combinations))
+        chunk_combinations = all_logic_combinations[start_idx:end_idx]
+
+        logic_result = load_ingredient_logic_for_combinations(
+            chunk_combinations, foreign_key_cache, ingredient_logic_dict, chunk_num, logic_total_chunks
+        )
+
+        total_stats["total_logic_created"] += logic_result["logic_created"]
+        total_stats["total_logic_missing"] += logic_result["logic_missing"]
+
+        chunk_duration = time.time() - chunk_start_time
+        progress_pct = (chunk_num / logic_total_chunks) * 100
+
+        logger.info(
+            f"Logic chunk {chunk_num}/{logic_total_chunks} complete in {chunk_duration:.1f}s ({progress_pct:.1f}% done). "
+            f"Processed combinations {start_idx+1}-{end_idx}. "
+            f"Running totals - Logic created: {total_stats['total_logic_created']:,}, "
+            f"Logic missing: {total_stats['total_logic_missing']:,}. "
+        )
+
+    quantity_total_chunks = (len(quantity_vmps) + vmp_chunk_size - 1) // vmp_chunk_size
+    logger.info(
+        f"Will process ingredient quantity data for {len(quantity_vmps):,} VMPs in {quantity_total_chunks} chunks of {vmp_chunk_size} VMPs each"
+    )
+
+    for chunk_num in range(1, quantity_total_chunks + 1):
         chunk_start_time = time.time()
 
         start_idx = (chunk_num - 1) * vmp_chunk_size
-        end_idx = min(start_idx + vmp_chunk_size, len(all_vmps))
-        chunk_vmps = all_vmps[start_idx:end_idx]
+        end_idx = min(start_idx + vmp_chunk_size, len(quantity_vmps))
+        chunk_vmps = quantity_vmps[start_idx:end_idx]
 
-        chunk_df = extract_ingredient_data_by_vmps(chunk_vmps, chunk_num, total_chunks)
+        chunk_df = extract_ingredient_data_by_vmps(chunk_vmps, chunk_num, quantity_total_chunks)
 
         if len(chunk_df) == 0:
             logger.info(
-                f"Chunk {chunk_num}: No data returned for VMPs {start_idx+1}-{end_idx}"
+                f"Quantity chunk {chunk_num}: No data returned for VMPs {start_idx+1}-{end_idx}"
             )
             continue
 
-        chunk_result = transform_and_load_chunk(
-            chunk_df, foreign_key_cache, ingredient_logic_dict, chunk_num, total_chunks
+        chunk_result = transform_and_load_ingredient_quantity_chunk(
+            chunk_df, foreign_key_cache, chunk_num, quantity_total_chunks
         )
 
         total_stats["total_created"] += chunk_result["created"]
         total_stats["total_skipped"] += chunk_result["skipped"]
-        total_stats["total_logic_created"] += chunk_result["logic_created"]
-        total_stats["total_logic_conflicts"] += chunk_result["logic_conflicts"]
         total_stats["total_processed_chunks"] += 1
 
         chunk_duration = time.time() - chunk_start_time
-        progress_pct = (chunk_num / total_chunks) * 100
+        progress_pct = (chunk_num / quantity_total_chunks) * 100
 
         logger.info(
-            f"Chunk {chunk_num}/{total_chunks} complete in {chunk_duration:.1f}s ({progress_pct:.1f}% done). "
+            f"Quantity chunk {chunk_num}/{quantity_total_chunks} complete in {chunk_duration:.1f}s ({progress_pct:.1f}% done). "
             f"Processed VMPs {start_idx+1}-{end_idx}. "
-            f"Running totals - Created: {total_stats['total_created']:,}, Logic created: {total_stats['total_logic_created']:,}, "
-            f"Logic conflicts: {total_stats['total_logic_conflicts']:,}, Skipped: {total_stats['total_skipped']:,}. "
+            f"Running totals - Quantity created: {total_stats['total_created']:,}, "
+            f"Quantity skipped: {total_stats['total_skipped']:,}. "
         )
 
     total_time = time.time() - start_time
@@ -472,7 +514,7 @@ def load_ingredient_quantity_flow(vmp_chunk_size: int = 500):
         f"Ingredient quantity data import completed in {total_time/60:.1f} minutes. "
         f"Deleted: {deleted_count:,}, Created: {total_stats['total_created']:,}, "
         f"Logic deleted: {logic_deleted_count:,}, Logic created: {total_stats['total_logic_created']:,}, "
-        f"Logic conflicts: {total_stats['total_logic_conflicts']:,}, "
+        f"Logic missing: {total_stats['total_logic_missing']:,}, "
         f"Skipped: {total_stats['total_skipped']:,}, Chunks processed: {total_stats['total_processed_chunks']}. "
     )
 
@@ -481,22 +523,31 @@ def load_ingredient_quantity_flow(vmp_chunk_size: int = 500):
         "created": total_stats["total_created"],
         "logic_deleted": logic_deleted_count,
         "logic_created": total_stats["total_logic_created"],
-        "logic_conflicts": total_stats["total_logic_conflicts"],
+        "logic_missing": total_stats["total_logic_missing"],
         "skipped": total_stats["total_skipped"],
     }
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Load ingredient quantity data using VMP-based chunking"
+        description="Load ingredient quantity data from BigQuery"
+    )
+    parser.add_argument(
+        "--combination-chunk-size",
+        type=int,
+        default=1000,
+        help="Number of VMP-ingredient combinations per logic chunk (default: 1000)",
     )
     parser.add_argument(
         "--vmp-chunk-size",
         type=int,
         default=500,
-        help="Number of VMPs per chunk (default: 500)",
+        help="Number of VMPs per quantity chunk (default: 500)",
     )
 
     args = parser.parse_args()
 
-    load_ingredient_quantity_flow(vmp_chunk_size=args.vmp_chunk_size)
+    load_ingredient_quantity_flow(
+        combination_chunk_size=args.combination_chunk_size,
+        vmp_chunk_size=args.vmp_chunk_size
+    )

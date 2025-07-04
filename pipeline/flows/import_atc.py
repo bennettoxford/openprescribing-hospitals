@@ -200,12 +200,11 @@ def process_atc_data(
         if alterations_comment and alterations_comment.strip():
             comments.append(alterations_comment.strip())
         
-        # Add default comment if no alterations comment
-        if not alterations_comment or not alterations_comment.strip():
-            comments.append(default_comment)
+        if not comments:
+            return None
         
         final_comment = '; '.join(comments)
-        return None if not final_comment else final_comment.strip()
+        return final_comment.strip() if final_comment else None
     
     # Delete codes
     deletions_made = 0
@@ -229,7 +228,7 @@ def process_atc_data(
         new_rows.append({
             'atc_code': code,
             'atc_name': substance,
-            'comment': alterations_comment if alterations_comment else 'Added from alterations table'
+            'comment': alterations_comment if alterations_comment and alterations_comment.strip() else None
         })
     
     if new_rows:

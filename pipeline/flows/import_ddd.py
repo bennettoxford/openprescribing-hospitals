@@ -101,7 +101,7 @@ def create_ddd_mappings(ddd_alterations: pd.DataFrame) -> Tuple[Dict, List[Dict]
                     'ddd': float(new_ddd),
                     'ddd_unit': new_unit.lower(),
                     'adm_code': route,
-                    'comment': alterations_comment if alterations_comment else 'Added from alterations table'
+                    'comment': alterations_comment if alterations_comment and alterations_comment.strip() else None
                 })
             continue
             
@@ -147,11 +147,14 @@ def apply_ddd_deletions_and_updates(ddd_df: pd.DataFrame, ddd_updates: Dict, ddd
         if alterations_comment and alterations_comment.strip():
             comments.append(alterations_comment.strip())
         
-        # Add the update note
-        comments.append(f"Updated from alterations table (changed in {year_changed})")
+        if alterations_comment and alterations_comment.strip():
+            comments.append(f"Updated from alterations table (changed in {year_changed})")
+        
+        if not comments:
+            return None
         
         final_comment = '; '.join(comments)
-        return None if not final_comment else final_comment.strip()
+        return final_comment.strip() if final_comment else None
     
     for atc_code, route in ddds_to_delete:
         mask = (
