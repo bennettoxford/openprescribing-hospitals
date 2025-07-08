@@ -15,7 +15,6 @@
   let isOrganisationDropdownOpen = false;
   let showResults = false;
   let analysisData = null;
-  let isAdvancedMode = false;
   let isAnalyseBoxCollapsed = false;
   let isLargeScreen = false;
   let isResultsBoxPopulated = false;
@@ -25,6 +24,7 @@
   export let orgData;
   export let isAuthenticated;
 
+  $: isAdvancedMode = $analyseOptions.isAdvancedMode;
   $: isResultsBoxPopulated = analysisData && analysisData.length > 0;
 
   function handleAnalysisStart() {
