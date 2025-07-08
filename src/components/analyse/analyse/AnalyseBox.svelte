@@ -25,27 +25,17 @@
     $: quantityType = $analyseOptions.quantityType;
     $: searchType = $analyseOptions.searchType;
     $: isAdvancedMode = $analyseOptions.isAdvancedMode;
+    $: isAuthenticated = $analyseOptions.isAuthenticated;
 
-    export let isadvancedmode = false;
-    export let mindate = null;
-    export let maxdate = null;
     export let orgdata = null;
     export let isauthenticated = 'false';
-    
-    $: isAdvancedMode = isadvancedmode;
-    $: orgData = orgdata;
-    $: isAuthenticated = isauthenticated;
-    $: isAuthenticatedBool = isauthenticated === 'true';
-
-    $: {
-        if (isAdvancedMode !== $analyseOptions.isAdvancedMode) {
-            analyseOptions.setAdvancedMode(isAdvancedMode);
-        }
-    }
+    export let isadvancedmode = false;
 
     onMount(async () => {
         try {
-            if (orgData) {
+            analyseOptions.setAuthentication(isauthenticated === 'true');
+            analyseOptions.setAdvancedMode(isadvancedmode);
+
                 try {
                     const parsedData = typeof orgData === 'string' ? JSON.parse(orgData) : orgData;
                     organisationSearchStore.setItems(parsedData.items);

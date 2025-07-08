@@ -37,6 +37,12 @@ const createAnalyseOptionsStore = () => {
                 ...store,
                 isAdvancedMode: isAdvanced
             }));
+        },
+        setAuthentication: (isAuthenticated) => {
+            update(store => ({
+                ...store,
+                isAuthenticated: Boolean(isAuthenticated)
+            }));
         }
     };
 };
