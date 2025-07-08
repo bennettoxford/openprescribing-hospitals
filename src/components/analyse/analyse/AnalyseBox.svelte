@@ -241,17 +241,7 @@
     <!-- Header -->
     <div class="p-4 sm:p-6 bg-white rounded-lg w-full">
       <div class="grid gap-6">
-        <!-- Tabs -->
-        <div>
-          <p class="text-sm text-oxford">
-            {#if isAdvancedMode}
-              Run a custom analysis of hospitals stock control data using the options below. You can analyse 
-              specific medicines or groups of medicines across different NHS Trusts.
-            {:else}
-              Analyse the stock control data for individual products in individual NHS Trusts.
-            {/if}
-          </p>
-        </div>
+
 
         <div class="grid gap-6">
           <!-- Product Selection -->
@@ -267,14 +257,14 @@
                   </svg>
                 </button>
                 <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
-                            group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
+                            group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-5 rounded-md shadow-lg bg-white 
                             ring-1 ring-black ring-opacity-5 p-4">
                   <p class="text-sm text-gray-500">
                     {#if isAdvancedMode}
                       Search for and select products to include to analyse. You can select individual products
-                      or groups of products by ingredient or product group. See <a href="/faq/#data-contents" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+                      or groups of products by ingredient or product group. See <a href="/faq/#which-medicines-and-devices-are-included" class="underline font-semibold" target="_blank">the FAQs</a> for more information of what products are available.
                     {:else}
-                    Search for and select individual products to analyse. See <a href="/faq/#data-contents" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+                      Search for and select individual products to analyse. See <a href="/faq/#which-medicines-and-devices-are-included" class="underline font-semibold" target="_blank">the FAQs</a> for more information of what products are available.
                     {/if}
                   </p>
                 </div>
@@ -286,9 +276,9 @@
           </div>
 
           <!-- Trust Selection -->
-          <div class="grid gap-0">
+          <div class="grid gap-4">
             <div class="flex items-center">
-              <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Select NHS Trust(s)</h3>
+              <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Select NHS Trust(s) (optional)</h3>
               <div class="relative inline-block group">
                 <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
                   <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -296,16 +286,12 @@
                   </svg>
                 </button>
                 <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
-                            group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
+                            group-hover:scale-100 w-[250px] -translate-x-[85%] left-1/2 top-5 rounded-md shadow-lg bg-white 
                             ring-1 ring-black ring-opacity-5 p-4">
                   <p class="text-sm text-gray-500">
-                    {#if isAdvancedMode}
-                      By default, the analysis will include all NHS Trusts in England. You can restrict the analysis by selecting specific trusts below.
-                      See <a href="/faq/#trusts-included" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
-                    {:else}
-                      Select up to 10 NHS Trusts to include in your analysis.
-                      See <a href="/faq/#trusts-included" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
-                    {/if}
+                    Select up to 10 NHS Trusts to see their individual usage.
+                    See <a href="/faq/#which-nhs-trusts-are-included" class="underline font-semibold" target="_blank">the FAQs</a> for more details 
+                    on which trusts are included.
                   </p>
                 </div>
               </div>
@@ -337,7 +323,7 @@
                     </svg>
                   </button>
                   <div class="absolute z-[200] scale-0 transition-all duration-100 origin-top transform 
-                              group-hover:scale-100 w-[200px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
+                              group-hover:scale-100 w-[200px] -translate-x-1/2 left-1/2 top-5 rounded-md shadow-lg bg-white 
                               ring-1 ring-black ring-opacity-5 p-4">
                     <p class="text-sm text-gray-500">
                       Select the quantity unit most relevant to the selected products to use for the analysis.
