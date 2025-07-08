@@ -1,18 +1,14 @@
 /**
  * Calculate percentiles from filtered data
- * Removes organisations with zero usage across all periods, then fills missing months with zeros
  */
-export function calculatePercentiles(filteredData) {
+export function calculatePercentiles(filteredData, predecessorMap = null) {
     if (!Array.isArray(filteredData) || filteredData.length === 0) {
         return { percentiles: [], trustCount: 0, excludedTrusts: [] };
     }
 
-    // First pass: Calculate total usage per organisation to identify those with any usage
     const orgTotalUsage = {};
     const orgNames = {};
     const allMonths = new Set();
-
-    const uniqueOrgs = new Set();
 
     filteredData.forEach(item => {
         const orgId = item.organisation__ods_code;
@@ -22,7 +18,6 @@ export function calculatePercentiles(filteredData) {
             return;
         }
 
-        uniqueOrgs.add(orgId);
         if (orgName) {
             orgNames[orgId] = orgName;
         }
@@ -46,32 +41,40 @@ export function calculatePercentiles(filteredData) {
         }
     });
 
-    const includedOrgs = [];
-    const excludedTrusts = [];
+    const includedOrgs = Object.keys(orgTotalUsage);
     
-    Object.keys(orgTotalUsage).forEach(orgId => {
-        if (orgTotalUsage[orgId] > 0) {
-            includedOrgs.push(orgId);
-        } else {
-            excludedTrusts.push({
-                code: orgId,
-                name: orgNames[orgId] || `Unknown (${orgId})`
-            });
+    // Count additional trusts that should be included due to predecessor relationships
+    let additionalIncludedCount = 0;
+    
+    if (predecessorMap instanceof Map) {
+        for (const [successor, predecessors] of predecessorMap.entries()) {
+            const successorHasData = Object.keys(orgTotalUsage).some(orgId => 
+                orgNames[orgId] === successor
+            );
+            
+            if (successorHasData && Array.isArray(predecessors)) {
+                additionalIncludedCount += predecessors.length;
+            }
         }
-    });
-
-    if (includedOrgs.length === 0) {
-        return { percentiles: [], trustCount: 0, excludedTrusts };
     }
 
-    // Second pass: Collect monthly values for included organisations only
+    const totalIncludedCount = includedOrgs.length + additionalIncludedCount;
+
+    if (includedOrgs.length === 0) {
+        return { 
+            percentiles: [], 
+            trustCount: totalIncludedCount, 
+            excludedTrusts: []
+        };
+    }
+
     const orgMonthlyValues = {};
     const sortedMonths = Array.from(allMonths).sort();
 
     includedOrgs.forEach(orgId => {
         orgMonthlyValues[orgId] = {};
         sortedMonths.forEach(month => {
-            orgMonthlyValues[orgId][month] = 0; // Set missing months to 0
+            orgMonthlyValues[orgId][month] = 0; // Set missing months to 0 - this is in line with the percentiles calculation in measures
         });
     });
 
@@ -126,7 +129,7 @@ export function calculatePercentiles(filteredData) {
 
     return {
         percentiles: percentilesData,
-        trustCount: includedOrgs.length,
-        excludedTrusts: excludedTrusts.sort((a, b) => a.name.localeCompare(b.name))
+        trustCount: totalIncludedCount,
+        excludedTrusts: []
     };
 } 
