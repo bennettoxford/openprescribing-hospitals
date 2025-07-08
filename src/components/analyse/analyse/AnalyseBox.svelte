@@ -11,6 +11,7 @@
     import { createEventDispatcher } from 'svelte';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
+    import { resultsStore } from '../../../stores/resultsStore';
     import { getCookie } from '../../../utils/utils';
     import { modeSelectorStore } from '../../../stores/modeSelectorStore';
     
@@ -36,8 +37,9 @@
             analyseOptions.setAuthentication(isauthenticated === 'true');
             analyseOptions.setAdvancedMode(isadvancedmode);
 
+            if (orgdata) {
                 try {
-                    const parsedData = typeof orgData === 'string' ? JSON.parse(orgData) : orgData;
+                    const parsedData = typeof orgdata === 'string' ? JSON.parse(orgdata) : orgdata;
                     organisationSearchStore.setItems(parsedData.items);
                     organisationSearchStore.setAvailableItems(parsedData.items);
                 } catch (error) {
@@ -189,11 +191,16 @@
     function handleClearAnalysis() {
         resetSelections(isAdvancedMode ? '--' : 'VMP Quantity');
         modeSelectorStore.resetToDefault('total');
+        
+        resultsStore.update(store => ({
+            ...store,
+            showPercentiles: false
+        }));
         dispatch('analysisclear');
     }
 </script>
 <div class="mb-6">
-  {#if isAuthenticatedBool}
+  {#if isAuthenticated}
     <div class="border-b border-gray-200">
       <nav class="flex space-x-0 w-full" aria-label="Tabs">
         <div class="flex items-center gap-2 w-full">
