@@ -1,5 +1,5 @@
 import { writable, derived, get } from 'svelte/store';
-import { regionColors, percentilesLegend } from '../utils/chartConfig.js';
+import { regionColors } from '../utils/chartConfig.js';
 import { organisationSearchStore } from '../stores/organisationSearchStore';
 
 export const orgdata = writable([]);
@@ -25,12 +25,6 @@ export function getOrganisationColor(index) {
   return organisationColors[index % organisationColors.length];
 }
 
-const trustColors = [
-  '#332288', '#117733', '#44AA99', '#88CCEE', 
-  '#DDCC77', '#CC6677', '#AA4499', '#882255'
-];
-
-
 
 export function getOrganisationIndex(orgName, allOrgs) {
     return Array.isArray(allOrgs) ? 
@@ -38,17 +32,6 @@ export function getOrganisationIndex(orgName, allOrgs) {
         Object.keys(allOrgs).indexOf(orgName);
 }
 
-const createDataArrayWithNulls = (data, allDates, field) => {
-  if (!data || !Array.isArray(data)) {
-    return allDates.map(() => null);
-  }
-
-  const dataMap = new Map(data.map(d => [d.month, d[field]]));
-  return allDates.map(date => {
-    const value = dataMap.get(date);
-    return value !== undefined ? value : null;
-  });
-};
 
 export function getOrAssignColor(orgName, index = null) {
     const colorMap = get(organisationColorMap);
@@ -63,7 +46,7 @@ export function getOrAssignColor(orgName, index = null) {
 export function getDatasetVisibility(dataset, mode, visibleTrusts, showPercentiles) {
     const visibleTrustsSet = visibleTrusts instanceof Set ? visibleTrusts : new Set(visibleTrusts);
     
-    if (mode === 'percentiles') {
+    if (mode === 'organisation') {
         if (dataset.isPercentile) {
             return !(!showPercentiles);
         }
@@ -84,65 +67,7 @@ export const filteredData = derived(
     const sortDates = (a, b) => new Date(a) - new Date(b);
 
     switch ($selectedMode) {
-      case 'trust':
-        if (typeof $orgdata === 'object' && !Array.isArray($orgdata)) {
-          const allDates = [...new Set(Object.values($orgdata).flatMap(org => {
-            return org.data && Array.isArray(org.data) ? org.data.map(d => d.month) : [];
-          }))].sort(sortDates);
-          
-          labels = allDates;
-          datasets = Array.from($visibleTrusts).map((trust) => {
-            const trustData = $orgdata[trust]?.data || [];
-            return {
-              label: trust,
-              data: createDataArrayWithNulls(trustData, allDates, 'quantity'),
-              numerator: createDataArrayWithNulls(trustData, allDates, 'numerator'),
-              denominator: createDataArrayWithNulls(trustData, allDates, 'denominator'),
-              color: getOrAssignColor(trust),
-              spanGaps: true,
-              hidden: false,
-              isTrust: true
-            };
-          });
-        }
-        break;
-      case 'region':
-        labels = $regiondata.length > 0 ? 
-          $regiondata[0].data.map(d => d.month).sort(sortDates) : [];
-        datasets = $regiondata
-          .filter(region => $visibleRegions.size === 0 || $visibleRegions.has(region.name))
-          .map((region, index) => {
-            const sortedData = region.data.sort((a, b) => sortDates(a.month, b.month));
-            return {
-              label: region.name,
-              data: sortedData.map(d => d.quantity),
-              numerator: sortedData.map(d => d.numerator),
-              denominator: sortedData.map(d => d.denominator),
-              color: regionColors[region.name] || getOrganisationColor(index),
-              hidden: false
-            };
-          });
-        break;
-      case 'icb':
-        labels = $icbdata.length > 0 ? 
-          $icbdata[0].data.map(d => d.month).sort(sortDates) : [];
-        
-        datasets = $icbdata
-          .filter(icb => $visibleICBs.size === 0 || $visibleICBs.has(icb.name))
-          .map((icb) => {
-            const sortedData = icb.data.sort((a, b) => sortDates(a.month, b.month));
-            return {
-              label: icb.name,
-              data: sortedData.map(d => d.quantity),
-              numerator: sortedData.map(d => d.numerator),
-              denominator: sortedData.map(d => d.denominator),
-              color: getOrAssignColor(icb.name),
-              spanGaps: true,
-              hidden: false
-            };
-          });
-        break;
-      case 'percentiles':
+      case 'organisation':
         const groupedPercentiles = $percentiledata.reduce((acc, item) => {
           if (!acc[item.month]) {
             acc[item.month] = {};
@@ -151,7 +76,13 @@ export const filteredData = derived(
           return acc;
         }, {});
 
-        labels = Object.keys(groupedPercentiles).sort(sortDates);
+        const orgDates = typeof $orgdata === 'object' && !Array.isArray($orgdata) ? 
+          [...new Set(Object.values($orgdata).flatMap(org => {
+            return org.data && Array.isArray(org.data) ? org.data.map(d => d.month) : [];
+          }))] : [];
+        
+        const percentileDates = Object.keys(groupedPercentiles);
+        labels = [...new Set([...orgDates, ...percentileDates])].sort(sortDates);
 
         const percentileRanges = [
           { range: [45, 55], opacity: 0.8 },
@@ -221,6 +152,42 @@ export const filteredData = derived(
             hidden: !getDatasetVisibility(dataset, $selectedMode, visibleNonPredecessorsSet, $showPercentiles)
         }));
         break;
+      case 'region':
+        labels = $regiondata.length > 0 ? 
+          $regiondata[0].data.map(d => d.month).sort(sortDates) : [];
+        datasets = $regiondata
+          .filter(region => $visibleRegions.size === 0 || $visibleRegions.has(region.name))
+          .map((region, index) => {
+            const sortedData = region.data.sort((a, b) => sortDates(a.month, b.month));
+            return {
+              label: region.name,
+              data: sortedData.map(d => d.quantity),
+              numerator: sortedData.map(d => d.numerator),
+              denominator: sortedData.map(d => d.denominator),
+              color: regionColors[region.name] || getOrganisationColor(index),
+              hidden: false
+            };
+          });
+        break;
+      case 'icb':
+        labels = $icbdata.length > 0 ? 
+          $icbdata[0].data.map(d => d.month).sort(sortDates) : [];
+        
+        datasets = $icbdata
+          .filter(icb => $visibleICBs.size === 0 || $visibleICBs.has(icb.name))
+          .map((icb) => {
+            const sortedData = icb.data.sort((a, b) => sortDates(a.month, b.month));
+            return {
+              label: icb.name,
+              data: sortedData.map(d => d.quantity),
+              numerator: sortedData.map(d => d.numerator),
+              denominator: sortedData.map(d => d.denominator),
+              color: getOrAssignColor(icb.name),
+              spanGaps: true,
+              hidden: false
+            };
+          });
+        break;
       case 'national':
         if ($regiondata.length > 0) {
           labels = $regiondata[0].data.map(d => d.month).sort(sortDates);
@@ -261,13 +228,6 @@ export const legendItems = derived(selectedMode, $selectedMode => {
   }
   return [];
 });
-
-function groupBy(array, key) {
-  return array.reduce((result, currentValue) => {
-    (result[currentValue[key]] = result[currentValue[key]] || []).push(currentValue);
-    return result;
-  }, {});
-}
 
 export function formatTooltipValue(value, numerator, denominator) {
     if (value === null || value === undefined) return 'No data';
