@@ -2,16 +2,38 @@ import { writable } from 'svelte/store';
 import { clearResults } from './resultsStore';
 import { organisationSearchStore } from './organisationSearchStore';
 
+export const VIEW_MODES = [
+    { value: 'organisation', label: 'NHS Trust' },
+    { value: 'icb', label: 'ICB' },
+    { value: 'region', label: 'Region' },
+    { value: 'total', label: 'National Total' }
+];
+
+export const ANALYSIS_DEFAULTS = {
+    selectedVMPs: [],
+    quantityType: '--',
+    searchType: 'vmp',
+    isAdvancedMode: false,
+    selectedOrganisations: [],
+    isAuthenticated: false
+};
+
+export const CHART_DEFAULTS = {
+    yAxisBehavior: {
+        forceZero: true,
+        padTop: 1.1,
+        resetToInitial: true
+    }
+};
+
+
+
 const createAnalyseOptionsStore = () => {
     const { subscribe, set, update } = writable({
-        selectedVMPs: [],
-        quantityType: '--',
-        searchType: 'vmp',
+        ...ANALYSIS_DEFAULTS,
         vmpNames: [],
         vtmNames: [],
-        ingredientNames: [],
-        isAdvancedMode: false,
-        selectedOrganisations: []
+        ingredientNames: []
     });
 
     const runAnalysis = (options) => {
@@ -52,10 +74,7 @@ export const analyseOptions = createAnalyseOptionsStore();
 export function clearAnalysisOptions() {
     analyseOptions.update(store => ({
         ...store,
-        selectedVMPs: [],
-        quantityType: '--',
-        searchType: 'vmp',
-        selectedOrganisations: []
+        ...ANALYSIS_DEFAULTS
     }));
     organisationSearchStore.reset();
     clearResults();
