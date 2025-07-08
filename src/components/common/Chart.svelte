@@ -15,7 +15,7 @@
   const dispatch = createEventDispatcher();
 
   export let data = { labels: [], datasets: [] };
-  export let mode = 'percentiles';
+  export let mode = 'organisation';
   export let yAxisLabel = '';
   export let percentileConfig = {
     medianColor: '#DC3220',
@@ -44,7 +44,7 @@
   });
 
   $: shouldUseBoost = visibleDatasets && visibleDatasets.length > 20 && 
-                      mode !== 'percentiles' && mode !== 'trust' && mode !== 'organisation';
+                      mode !== 'organisation';
 
 
 

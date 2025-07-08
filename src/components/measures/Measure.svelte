@@ -44,9 +44,9 @@
     let icbs = [];
     let regions = [];
 
-    $: showFilter = ['percentiles', 'icb', 'region', 'national'].includes($selectedMode);
+    $: showFilter = ['organisation', 'icb', 'region', 'national'].includes($selectedMode);
 
-    $: showLegend = $selectedMode === 'percentiles' || 
+    $: showLegend = $selectedMode === 'organisation' || 
                     $selectedMode === 'region' || 
                     $selectedMode === 'icb' ||
                     $selectedMode === 'national';
@@ -55,7 +55,7 @@
         if ($selectedMode === 'icb') {
             organisationSearchStore.setItems(icbs);
             organisationSearchStore.setFilterType('icb');
-        } else if ($selectedMode === 'percentiles') {
+        } else if ($selectedMode === 'organisation') {
             organisationSearchStore.setItems(trusts);
             organisationSearchStore.setFilterType('trust');
         } else if ($selectedMode === 'region') {
@@ -65,7 +65,7 @@
     }
 
     const measureChartStore = createChartStore({
-        mode: 'percentiles',
+        mode: 'organisation',
         yAxisLabel: '%',
         yAxisBehavior: {
             forceZero: true,
@@ -130,7 +130,8 @@
         regions = parsedRegionData.map(region => region.name);
         
         percentileStore.set(JSON.parse(percentiledata));
-        selectedMode.set('percentiles');
+        modeSelectorStore.setSelectedMode('organisation');
+        selectedMode.set('organisation');
 
         visibleICBs.set(new Set(icbs));
         visibleRegions.set(new Set(regions));
@@ -140,7 +141,7 @@
             organisationSearchStore.updateSelection(Array.from($visibleICBs));
         } else if ($selectedMode === 'region') {
             organisationSearchStore.updateSelection(Array.from($visibleRegions));
-        } else if ($selectedMode === 'percentiles') {
+        } else if ($selectedMode === 'organisation') {
             organisationSearchStore.updateSelection(Array.from($visibleTrusts));
         }
     });
@@ -175,11 +176,11 @@
                 }))
             };
             measureChartStore.setData(updatedData);
-        } else if ($selectedMode === 'percentiles') {
+        } else if ($selectedMode === 'organisation') {
             const itemsArray = Array.isArray(selectedItems) ? selectedItems : Array.from(selectedItems);
             visibleTrusts.set(new Set(itemsArray));
             organisationSearchStore.updateSelection(itemsArray);
-            if ($selectedMode === 'percentiles') {
+            if ($selectedMode === 'organisation') {
                 const updatedData = {
                     ...$filteredData,
                     datasets: $filteredData.datasets.map(dataset => ({
@@ -200,7 +201,7 @@
     }
 
     const modeOptions = [
-        { value: 'percentiles', label: 'NHS Trust' },
+        { value: 'organisation', label: 'NHS Trust' },
         { value: 'icb', label: 'ICB' },
         { value: 'region', label: 'Region' },
         { value: 'national', label: 'National' },
@@ -240,7 +241,7 @@
                     }))
                 };
                 measureChartStore.setData(updatedData);
-            } else if (currentMode === 'percentiles') {
+            } else if (currentMode === 'organisation') {
                 organisationSearchStore.setItems(trusts);
                 organisationSearchStore.setFilterType('trust');
                 const availableTrusts = trusts.filter(trust => $orgdataStore[trust]?.available);
@@ -248,7 +249,7 @@
 
                 organisationSearchStore.updateSelection(Array.from($visibleTrusts));
                 measureChartStore.updateVisibleItems(new Set($visibleTrusts));
-                if (currentMode === 'percentiles') {
+                if (currentMode === 'organisation') {
                     const updatedData = {
                         ...$filteredData,
                         datasets: $filteredData.datasets.map(dataset => ({
@@ -283,7 +284,7 @@
             organisationSearchStore.updateSelection(Array.from($visibleICBs));
         } else if ($selectedMode === 'region') {
             organisationSearchStore.updateSelection(Array.from($visibleRegions));
-        } else if ($selectedMode === 'percentiles') {
+        } else if ($selectedMode === 'organisation') {
             organisationSearchStore.updateSelection(Array.from($visibleTrusts));
         }
     }
@@ -295,7 +296,7 @@
             const updatedData = {
                 ...$filteredData,
                 datasets: $filteredData.datasets.map(dataset => {
-                    if (newMode === 'percentiles') {
+                    if (newMode === 'organisation') {
                         return {
                             ...dataset,
                             hidden: !getDatasetVisibility(dataset, newMode, $visibleTrusts, $showPercentiles)
@@ -322,7 +323,7 @@
             visible: true,
             selectable: true
         })) :
-        $selectedMode === 'percentiles' ?
+        $selectedMode === 'organisation' ?
             [
                 ...$showPercentiles ? [
                     { label: 'Median (50th percentile)', color: '#DC3220', visible: true, selectable: false },
@@ -373,7 +374,7 @@
             ...$filteredData,
             datasets: $filteredData.datasets.map(dataset => ({
                 ...dataset,
-                hidden: $selectedMode === 'percentiles' ?
+                hidden: $selectedMode === 'organisation' ?
                     (!$showPercentiles && (
                         dataset.label === 'Median (50th percentile)' ||
                         dataset.label.includes('th percentile')
@@ -389,7 +390,7 @@
     }
 
     $: {
-        if ($filteredData && $selectedMode === 'percentiles') {
+        if ($filteredData && $selectedMode === 'organisation') {
             const updatedData = {
                 ...$filteredData,
                 datasets: $filteredData.datasets.map(dataset => ({
@@ -429,7 +430,7 @@
             visibleICBs.set(new Set());
         } else if ($selectedMode === 'region') {
             visibleRegions.set(new Set());
-        } else if ($selectedMode === 'percentiles') {
+        } else if ($selectedMode === 'organisation') {
             visibleTrusts.set(new Set());
         }
         
@@ -456,7 +457,7 @@
             organisationSearchStore.setItems(regions);
             organisationSearchStore.setFilterType('region');
             organisationSearchStore.setAvailableItems(regions);
-        } else if ($selectedMode === 'percentiles') {
+        } else if ($selectedMode === 'organisation') {
             organisationSearchStore.setItems(trusts);
             organisationSearchStore.setFilterType('trust');
             const availableTrusts = trusts.filter(trust => $orgdataStore[trust]?.available);
@@ -482,7 +483,7 @@
                 { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index], { addCommas: true }) },
                 { label: 'Value', value }
             );
-        } else if ($selectedMode === 'percentiles') {
+        } else if ($selectedMode === 'organisation') {
             if (d.dataset.label === 'Median (50th percentile)' || d.dataset.name === 'Median (50th percentile)') {
                 tooltipContent.push(
                     { label: 'Date', value: formattedDate },
@@ -525,7 +526,7 @@
         {/if}
 
         <div class="w-full md:w-auto flex justify-between items-end gap-4">
-            {#if $selectedMode === 'percentiles'}
+            {#if $selectedMode === 'organisation'}
             <div class="flex flex-col items-center gap-2">
                 <span class="text-sm text-gray-600 leading-tight text-center">
                     Show<br>percentiles
@@ -560,7 +561,7 @@
             <div>
                 <ModeSelector 
                     options={modeOptions}
-                    initialMode="percentiles"
+                    initialMode="organisation"
                     label="Select Mode"
                     onChange={handleModeChange}
                     variant="dropdown"
