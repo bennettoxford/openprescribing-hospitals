@@ -170,7 +170,7 @@
         if (searchComponent) {
             searchComponent.clearInput();
         }
-        modeSelectorStore.resetToDefault('organisation');
+        modeSelectorStore.resetToDefault('total');
     }
 
     function toggleAdvancedMode() {
@@ -188,7 +188,7 @@
 
     function handleClearAnalysis() {
         resetSelections(isAdvancedMode ? '--' : 'VMP Quantity');
-        modeSelectorStore.resetToDefault('organisation');
+        modeSelectorStore.resetToDefault('total');
         dispatch('analysisclear');
     }
 </script>
