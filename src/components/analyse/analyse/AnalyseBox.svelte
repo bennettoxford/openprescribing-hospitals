@@ -130,10 +130,9 @@
     }
 
     function handleVMPSelection(event) {
-        if (!isAuthenticatedBool) {
+        if (!isAuthenticated) {
             event.detail.items = event.detail.items.slice(0, 1);
         } else if (!isAdvancedMode && event.detail.items.length > 1) {
-            // If not in advanced mode, only allow one product to be selected
             event.detail.items = [event.detail.items[0]];
         }
         analyseOptions.update(options => ({
@@ -175,17 +174,16 @@
     }
 
     function toggleAdvancedMode() {
-        if (!isAuthenticatedBool && !$analyseOptions.isAdvancedMode) {
+        if (!isAuthenticated && !isAdvancedMode) {
             return;
         }
         
-        analyseOptions.setAdvancedMode(!$analyseOptions.isAdvancedMode);
+        analyseOptions.setAdvancedMode(!isAdvancedMode);
         const currentOrgSelections = $organisationSearchStore.selectedItems;
-        resetSelections($analyseOptions.isAdvancedMode ? '--' : 'VMP Quantity');
+        resetSelections(isAdvancedMode ? '--' : 'VMP Quantity');
         if (currentOrgSelections && currentOrgSelections.length > 0) {
             organisationSearchStore.updateSelection(currentOrgSelections);
         }
-        dispatch('advancedmodechange', $analyseOptions.isAdvancedMode);
     }
 
     function handleClearAnalysis() {
