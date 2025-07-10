@@ -33,27 +33,44 @@ calculated_quantities AS (
     *,
     CASE
       -- 1. Check if it has an ingredient
-      WHEN ingredient_code IS NULL THEN 
-        NULL
+      WHEN ingredient_code IS NULL THEN NULL
       -- 2. Check for strength info
-      WHEN strength_numerator_value IS NULL THEN
-        NULL
+      WHEN strength_numerator_value IS NULL THEN NULL
       -- 3. No denominator case: multiply SCMD quantity by strength numerator
       WHEN strength_denominator_value IS NULL THEN
         normalised_quantity * strength_numerator_value
-      -- 4. With denominator case: where bases match, divide quantity by denominator and multiply by numerator
+      -- 4. With denominator case: where bases match, divide quantity by denominator and multiply by numerator (original units)
+      WHEN normalised_uom_name = denominator_basis_unit THEN
+        (normalised_quantity / denominator_basis_value) * strength_numerator_value
+      ELSE NULL
+    END as ingredient_quantity,
+    
+    -- Calculate ingredient quantity in basis units
+    CASE
+      -- 1. Check if it has an ingredient
+      WHEN ingredient_code IS NULL THEN NULL
+      -- 2. Check for strength info
+      WHEN strength_numerator_value IS NULL THEN NULL
+      -- 3. No denominator case: multiply SCMD quantity by strength numerator (basis units)
+      WHEN strength_denominator_value IS NULL THEN
+        normalised_quantity * numerator_basis_value
+      -- 4. With denominator case: where bases match, divide quantity by denominator and multiply by numerator (basis units)
       WHEN normalised_uom_name = denominator_basis_unit THEN
         (normalised_quantity / denominator_basis_value) * numerator_basis_value
-      ELSE
-        NULL
-    END as ingredient_quantity,
+      ELSE NULL
+    END as ingredient_quantity_basis,
+    
     CASE
+      -- 1. Check if it has an ingredient
       WHEN ingredient_code IS NULL THEN 
         'Not calculated: No ingredients'
+      -- 2. Check for strength info
       WHEN strength_numerator_value IS NULL THEN
         'Not calculated: No ingredient strength'
+      -- 3. No denominator case: multiply SCMD quantity by strength numerator
       WHEN strength_denominator_value IS NULL THEN
         'SCMD quantity x ingredient strength numerator'
+      -- 4. With denominator case: where bases match, divide quantity by denominator and multiply by numerator
       WHEN normalised_uom_name = denominator_basis_unit THEN
         'SCMD quantity x (ingredient strength numerator / ingredient strength denominator)'
       ELSE
@@ -76,7 +93,7 @@ SELECT
       ingredient_name,
       ingredient_quantity,
       strength_numerator_unit as ingredient_unit,
-      ingredient_quantity as ingredient_quantity_basis,
+      ingredient_quantity_basis,
       numerator_basis_unit as ingredient_basis_unit,
       strength_numerator_value,
       strength_numerator_unit,
