@@ -291,7 +291,23 @@ class TestProcessATCData:
         assert len(result_df) == 4  # Original 3 + 1 new
         new_row = result_df[result_df['atc_code'] == 'N01AA01'].iloc[0]
         assert new_row['atc_name'] == 'New Substance'
-        assert new_row['comment'] == 'Added from alterations table'
+        assert new_row['comment'] is None
+
+    @patch('pipeline.flows.import_atc.get_run_logger')
+    def test_process_atc_data_add_new_codes_with_comment(self, mock_logger, sample_atc_df):
+        """Test adding new codes with actual alterations comment"""
+        mock_logger.return_value = Mock()
+        
+        atc_mapping = {}
+        new_codes = {'N01AA01': {'substance': 'New Substance', 'alterations_comment': 'New code added'}}
+        deleted_codes = {}
+        
+        result_df = process_atc_data(sample_atc_df, atc_mapping, new_codes, deleted_codes)
+        
+        assert len(result_df) == 4  # Original 3 + 1 new
+        new_row = result_df[result_df['atc_code'] == 'N01AA01'].iloc[0]
+        assert new_row['atc_name'] == 'New Substance'
+        assert new_row['comment'] == 'New code added'
 
     @patch('pipeline.flows.import_atc.get_run_logger')
     def test_process_atc_data_delete_codes(self, mock_logger, sample_atc_df):
@@ -313,7 +329,8 @@ class TestProcessATCData:
         atc_mapping = {
             'A01AA01': {
                 'new_code': 'A01AA99',
-                'substance': 'Updated Substance Name'
+                'substance': 'Updated Substance Name',
+                'alterations_comment': ''
             }
         }
         new_codes = {}
@@ -334,7 +351,8 @@ class TestProcessATCData:
         atc_mapping = {
             'B01AA01': {
                 'new_code': 'B01AA99',
-                'substance': 'Updated Another Substance'
+                'substance': 'Updated Another Substance',
+                'alterations_comment': ''
             }
         }
         new_codes = {'N01AA01': {'substance': 'Brand New Substance', 'alterations_comment': ''}}
@@ -416,7 +434,8 @@ class TestProcessATCData:
         assert result_df[result_df['atc_code'] == 'A01AA04']['comment'].iloc[0] is None
 
     @patch('pipeline.flows.import_atc.get_run_logger')
-    def test_comment_combination(self, mock_logger):
+    def test_comment_combination_with_alterations(self, mock_logger):
+        """Test comment combination when alterations comment has content"""
         mock_logger.return_value = Mock()
         
         test_df = pd.DataFrame([
@@ -431,16 +450,14 @@ class TestProcessATCData:
             'A01AA01': {
                 'new_code': 'A01AA99',
                 'substance': 'Updated Substance',
-                'alterations_comment': '  '
+                'alterations_comment': 'Updated comment'
             }
         }
         
         result_df = process_atc_data(test_df, atc_mapping, {}, {})
         
         updated_comment = result_df[result_df['atc_code'] == 'A01AA99']['comment'].iloc[0]
-        assert updated_comment == 'Original Comment; Updated from alterations table'
-
-
+        assert updated_comment == 'Original Comment; Updated comment'
 class TestAddATCHierarchy:
     def test_add_atc_hierarchy_complete(self, sample_hierarchical_atc_df):
         df = sample_hierarchical_atc_df.copy()
