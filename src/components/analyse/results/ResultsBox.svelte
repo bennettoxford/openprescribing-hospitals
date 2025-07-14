@@ -524,6 +524,98 @@
                                         </p>
                                     {/if}
                                 {/if}
+
+                                {#if $resultsStore.showPercentiles && $resultsStore.trustCount > 0}
+                                <section class="bg-blue-50 border border-blue-200 rounded-lg mb-4">
+                                    <button
+                                        type="button"
+                                        class="w-full px-4 py-3 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+                                        on:click={() => showTrustCountDetails = !showTrustCountDetails}
+                                    >
+                                        <div class="flex items-center">
+                                            <svg class="h-5 w-5 text-blue-400 mr-3 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                            </svg>
+                                            <span class="text-sm text-blue-700 font-medium">
+                                                {$resultsStore.trustCount}/{$organisationSearchStore.items.length} trusts included in percentile calculation
+                                            </span>
+                                        </div>
+                                        <svg
+                                            class="h-5 w-5 text-blue-400 transform transition-transform duration-200 {showTrustCountDetails ? 'rotate-180' : ''}"
+                                            viewBox="0 0 20 20"
+                                            fill="currentColor"
+                                        >
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+
+                                    {#if showTrustCountDetails}
+                                    <div class="px-4 pb-3 space-y-3 border-t border-blue-200 pt-3">
+                                        <p class="text-sm text-blue-700">
+                                            Trusts are only included if they have issued any of the selected products during the time period.
+                                        </p>
+
+                                        <div>
+                                            <button
+                                                type="button"
+                                                class="text-sm text-blue-600 hover:text-blue-800 underline font-medium"
+                                                on:click={() => showIncludedTrusts = !showIncludedTrusts}
+                                            >
+                                                {showIncludedTrusts ? 'Hide' : 'Show'} {$resultsStore.trustCount} trusts included in percentiles calculation
+                                            </button>
+
+                                            {#if showIncludedTrusts}
+                                            <div class="mt-2 p-3 bg-gray-100 rounded border border-gray-200">
+                                                <p class="text-xs text-gray-800 font-medium mb-2">
+                                                    Trusts included in percentile calculation:
+                                                </p>
+                                                <div class="max-h-32 overflow-y-auto">
+                                                    <ul class="text-xs text-gray-700 space-y-1">
+                                                        {#each getIncludedTrusts() as trust}
+                                                        <li class="flex items-center">
+                                                            <span class="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2 flex-shrink-0"></span>
+                                                            <span>{trust.name}</span>
+                                                        </li>
+                                                        {/each}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                            {/if}
+                                        </div>
+
+                                        {#if $resultsStore.trustsWithNoData && $resultsStore.trustsWithNoData.length > 0}
+                                        <div>
+                                            <button
+                                                type="button"
+                                                class="text-sm text-blue-600 hover:text-blue-800 underline font-medium"
+                                                on:click={() => showTrustsWithNoData = !showTrustsWithNoData}
+                                            >
+                                                {showTrustsWithNoData ? 'Hide' : 'Show'} {$resultsStore.trustsWithNoData.length} trusts excluded from percentiles calculation
+                                            </button>
+
+                                            {#if showTrustsWithNoData}
+                                            <div class="mt-2 p-3 bg-gray-100 rounded border border-gray-200">
+                                                <p class="text-xs text-gray-800 font-medium mb-2">
+                                                    Trusts with no data for selected products:
+                                                </p>
+                                                <div class="max-h-32 overflow-y-auto">
+                                                    <ul class="text-xs text-gray-700 space-y-1">
+                                                        {#each $resultsStore.trustsWithNoData as trust}
+                                                        <li class="flex items-center">
+                                                            <span class="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2 flex-shrink-0"></span>
+                                                            <span>{trust.name}</span>
+                                                        </li>
+                                                        {/each}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                            {/if}
+                                        </div>
+                                        {/if}
+                                    </div>
+                                    {/if}
+                                </section>
+                                {/if}
                             {:else if $modeSelectorStore.selectedMode === 'region'}
                                 <p class="text-sm text-gray-700 mb-4">
                                     Showing the total quantity of all selected products issued each month for each NHS Region in England.
