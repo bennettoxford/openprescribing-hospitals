@@ -32,6 +32,7 @@ from .models import (
     IngredientQuantity,
     Ingredient,
     VTM,
+    ATC,
     Measure,
     MeasureVMP,
     PrecomputedMeasure,
@@ -380,6 +381,8 @@ def filtered_quantities(request):
                 query |= Q(vtm__vtm=code)
             elif item_type == 'ingredient':
                 query |= Q(ingredients__code=code)
+            elif item_type == 'atc':
+                query |= Q(atcs__code__startswith=code)
         except ValueError:
             return Response({"error": f"Invalid search item format: {item}"}, status=400)
     
@@ -578,12 +581,10 @@ class OrgsSubmittingDataView(TemplateView):
 def filtered_vmp_count(request):
     search_items = request.data.get("names", [])
     
-    # Initialize empty sets for codes and display names
     vmp_codes = set()
     display_names = {}
+    vmp_details = {}
 
-    print(search_items)
-    # Process each search item
     for item in search_items:
         code, item_type = item.split('|')
         
@@ -605,19 +606,45 @@ def filtered_vmp_count(request):
 
         elif item_type == 'ingredient':
             # Get all VMPs containing this ingredient
-            ingredient_vmps = VMP.objects.filter(ingredients__code=code).values_list('code', flat=True)
-            vmp_codes.update(ingredient_vmps)
-            # Get ingredient display name
+            ingredient_vmps = VMP.objects.filter(ingredients__code=code).select_related('vtm')
+            vmp_list = []
+            for vmp in ingredient_vmps:
+                vmp_codes.add(vmp.code)
+                vmp_list.append({
+                    'code': vmp.code,
+                    'name': vmp.name,
+                    'type': 'vmp'
+                })
+            
             ingredient = Ingredient.objects.filter(code=code).first()
             if ingredient:
                 display_names[f"{code}|ingredient"] = f"{ingredient.name} ({code})"
+                vmp_details[f"{code}|ingredient"] = vmp_list
+        
+        elif item_type == 'atc':
+            # Get all VMPs with ATC codes that start with this code
+            atc_vmps = VMP.objects.filter(atcs__code__startswith=code).select_related('vtm')
+            vmp_list = []
+            for vmp in atc_vmps:
+                vmp_codes.add(vmp.code)
+                vmp_list.append({
+                    'code': vmp.code,
+                    'name': vmp.name,
+                    'type': 'vmp'
+                })
+            
+            atc = ATC.objects.filter(code=code).first()
+            if atc:
+                display_names[f"{code}|atc"] = f"{atc.name} ({code})"
+                vmp_details[f"{code}|atc"] = vmp_list
 
     # Count unique VMPs
     vmp_count = len(vmp_codes)
     
     return Response({
         "vmp_count": vmp_count,
-        "display_names": display_names
+        "display_names": display_names,
+        "vmp_details": vmp_details
     })
 
 
@@ -710,20 +737,113 @@ def search_items(request):
         return JsonResponse({'results': results})
     
     elif search_type == 'ingredient':
-        items = Ingredient.objects.filter(
+        ingredients = Ingredient.objects.filter(
             Q(name__icontains=search_term) | 
             Q(code__icontains=search_term)
-        ).values('name', 'code').distinct().order_by('name')[:50]
-        return JsonResponse({
-            'results': [{
-                'code': item['code'],
-                'name': item['name'],
-                'type': 'ingredient'
-            } for item in items]
-        })
+        ).distinct().order_by('name')[:50]
+        
+        results = []
+        for ingredient in ingredients:
+            vmp_count = VMP.objects.filter(ingredients__code=ingredient.code).count()
+            
+            results.append({
+                'code': ingredient.code,
+                'name': ingredient.name,
+                'type': 'ingredient',
+                'vmp_count': vmp_count
+            })
+        
+        return JsonResponse({'results': results})
     
+    elif search_type == 'atc':
+        matching_atcs = ATC.objects.filter(
+            Q(name__icontains=search_term) | 
+            Q(code__icontains=search_term)
+        ).order_by('code')[:50]
+        
+        results = []
+        
+        def build_hierarchy_path(atc_obj):
+            """Build the full hierarchy path for an ATC code"""
+            path_parts = []
+            if atc_obj.level_1:
+                path_parts.append(atc_obj.level_1)
+            if atc_obj.level_2:
+                path_parts.append(atc_obj.level_2)
+            if atc_obj.level_3:
+                path_parts.append(atc_obj.level_3)
+            if atc_obj.level_4:
+                path_parts.append(atc_obj.level_4)
+            if atc_obj.level_5:
+                path_parts.append(atc_obj.level_5)
+            return path_parts
+        
+        def get_parent_path(code):
+            """Get the hierarchy path for parent codes"""
+            parent_codes = []
+            if len(code) >= 1:
+                parent_codes.append(code[:1])
+            if len(code) >= 3:
+                parent_codes.append(code[:3])
+            if len(code) >= 4:
+                parent_codes.append(code[:4])
+            if len(code) >= 5:
+                parent_codes.append(code[:5])
+            return parent_codes
+        
+        for atc in matching_atcs:
+            code_len = len(atc.code)
+            if code_len == 1:
+                level = 1
+                level_name = atc.level_1
+            elif code_len == 3:
+                level = 2
+                level_name = atc.level_2
+            elif code_len == 4:
+                level = 3
+                level_name = atc.level_3
+            elif code_len == 5:
+                level = 4
+                level_name = atc.level_4
+            elif code_len == 7:
+                level = 5
+                level_name = atc.level_5
+            else:
+                continue
+            
+            # Get VMP count for this ATC code and all its children
+            vmp_count = atc.get_vmps().count()
 
-    
+            hierarchy_path = build_hierarchy_path(atc)
+
+            parent_codes = get_parent_path(atc.code)
+            parent_path = []
+            if parent_codes:
+                parent_atcs = ATC.objects.filter(code__in=parent_codes).order_by('code')
+                for parent in parent_atcs:
+                    if parent.code != atc.code:
+                        parent_hierarchy = build_hierarchy_path(parent)
+                        if parent_hierarchy:
+                            parent_path.append({
+                                'code': parent.code,
+                                'name': parent_hierarchy[-1],
+                                'level': len(parent.code) if len(parent.code) <= 5 else 5
+                            })
+            
+            results.append({
+                'code': atc.code,
+                'name': level_name or atc.name,
+                'full_name': atc.name,
+                'type': 'atc',
+                'level': level,
+                'vmp_count': vmp_count,
+                'hierarchy_path': hierarchy_path,
+                'parent_path': parent_path,
+                'display_name': f"{level_name or atc.name} ({atc.code})"
+            })
+
+        return JsonResponse({'results': results})
+
     return JsonResponse({'results': []})
 
 
@@ -860,6 +980,8 @@ def get_vmp_ids_from_search_items(search_items: List[str]) -> Set[int]:
                 query |= Q(vtm__vtm=code)
             elif item_type == 'ingredient':
                 query |= Q(ingredients__code=code)
+            elif item_type == 'atc':
+                query |= Q(atcs__code__startswith=code)
         except ValueError:
             raise ValueError(f"Invalid search item format: {item}")
     
