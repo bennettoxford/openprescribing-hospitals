@@ -18,8 +18,7 @@ def extract_ddd_data() -> List[Dict]:
     df = fetch_table_data_from_bq(VMP_DDD_MAPPING_TABLE_SPEC)
 
     filtered_df = df[
-        (df["can_calculate_ddd"] == True)
-        & (df["selected_ddd_value"].notna())
+        (df["selected_ddd_value"].notna())
         & (df["selected_ddd_value"] > 0)
         & (df["selected_ddd_unit"].notna())
         & (df["selected_ddd_route_code"].notna())
