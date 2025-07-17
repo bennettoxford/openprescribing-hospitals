@@ -16,7 +16,6 @@ def sample_ddd_bigquery_data():
         {
             "vmp_code": ["12345", "67890", "11111", "22222"],
             "vmp_name": ["Drug A", "Drug B", "Drug C", "Drug D"],
-            "can_calculate_ddd": [True, True, True, False],
             "selected_ddd_value": [1.5, 2.0, None, 3.0],
             "selected_ddd_unit": ["mg", "g", None, "ml"],
             "selected_ddd_route_code": ["O", "P", None, "IM"],
@@ -74,13 +73,13 @@ class TestLoadDDD:
 
         mock_fetch.assert_called_once()
         assert isinstance(result, list)
-        assert len(result) == 2
+        assert len(result) == 3
 
         extracted_codes = {item["vmp_code"] for item in result}
         assert "12345" in extracted_codes
         assert "67890" in extracted_codes
         assert "11111" not in extracted_codes
-        assert "22222" not in extracted_codes
+        assert "22222" in extracted_codes
 
         first_record = result[0]
         assert all(
