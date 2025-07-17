@@ -12,6 +12,15 @@ Unlike primary care prescribing data, hospital stock control data is not based o
 
 All medicines and devices used by NHS Trusts in England with a dm+d code are included.
 
+### Is homecare medicines data included?
+
+Some medicines that are issued by hospitals can be delivered directly to patients' homes. The official release guidance for the SCMD does not indicate whether this data is included in the dataset. However, in the methodology of the [NICE Technology Appraisal Innovation Scorecard](https://www.nhsbsa.nhs.uk/statistical-collections/nice-technology-appraisals/nice-technology-appraisals-nhs-england-innovation-scorecard-december-2023/estimates-report), which uses the SCMD and is published by the NHS Business Services Authority says the following:
+
+> Although the secondary care database captures some data for drugs supplied through homecare services, it is incomplete. Therefore, the actual volume of medicine used may be higher than the volume reported in the observed use.
+
+If you know more details about homecare medicines in the SCMD, please [let us know](https://hospitals.openprescribing.net/contact/).
+
+
 ### Why can't I find the medicine I am looking for?
 
 There are several possible reasons:
