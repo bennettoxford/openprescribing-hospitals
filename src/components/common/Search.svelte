@@ -39,6 +39,10 @@
             filteredItems = filterItems($analyseOptions.productNames, searchTerm);
         } else if (type === 'ingredient') {
             filteredItems = filterItems($analyseOptions.ingredientNames, searchTerm);
+        } else if (type === 'atc') {
+            if (!searchTerm) {
+                filteredItems = [];
+            }
         }
     }
 
@@ -107,6 +111,20 @@
             if (data.display_names) {
                 selectedDisplayNames = data.display_names;
             }
+            if (data.vmp_details) {
+                for (const [itemKey, vmps] of Object.entries(data.vmp_details)) {
+                    if (selectedItemsData[itemKey]) {
+                        selectedItemsData[itemKey].vmps = vmps;
+                    } else {
+                        const [code, itemType] = itemKey.split('|');
+                        selectedItemsData[itemKey] = {
+                            code,
+                            type: itemType,
+                            vmps
+                        };
+                    }
+                }
+            }
         } catch (error) {
             console.error('Error fetching VMP count:', error);
         } finally {
@@ -135,6 +153,14 @@
                     selectedItems = selectedItems.filter(i => i !== itemWithType);
                     delete selectedItemsData[itemWithType];
                 }
+            } else if (item.type === 'atc' || item.type === 'ingredient') {
+                if (!selectedItems.includes(itemWithType)) {
+                    selectedItems = [...selectedItems, itemWithType];
+                    selectedItemsData[itemWithType] = item;
+                } else {
+                    selectedItems = selectedItems.filter(i => i !== itemWithType);
+                    delete selectedItemsData[itemWithType];
+                }
             } else {
                 const parentVtm = filteredItems.find(vtm => 
                     vtm.type === 'vtm' && vtm.vmps?.some(vmp => vmp.code === item.code)
@@ -142,8 +168,10 @@
                 if (!parentVtm || !selectedItems.includes(`${parentVtm.code}|vtm`)) {
                     if (!selectedItems.includes(itemWithType)) {
                         selectedItems = [...selectedItems, itemWithType];
+                        selectedItemsData[itemWithType] = item;
                     } else {
                         selectedItems = selectedItems.filter(i => i !== itemWithType);
+                        delete selectedItemsData[itemWithType];
                     }
                 }
             }
@@ -151,7 +179,8 @@
         
         dispatch('selectionChange', { items: selectedItems });
         fetchVmpCount();
-        filteredItems = lastSearchResults;
+        filteredItems = [];
+        searchTerm = '';
     }
 
     function handleRemove(item) {
@@ -238,6 +267,7 @@
         <div class="flex space-x-2 mb-2 pointer-events-auto">
             <button class="px-2 py-1 rounded {type === 'product' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('product')}>Product</button>
             <button class="px-2 py-1 rounded {type === 'ingredient' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('ingredient')}>Ingredient</button>
+            <button class="px-2 py-1 rounded {type === 'atc' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('atc')}>ATC Code</button>
         </div>
     {/if}
     <div class="grid gap-4">
@@ -368,17 +398,83 @@
                                         </ul>
                                     {/if}
                                 </li>
+                            {:else if item.type === 'atc'}
+                                <li class="group">
+                                    <div 
+                                        class="pt-2 pb-1 px-3 flex items-center justify-between relative transition-colors duration-150 ease-in-out"
+                                        class:bg-oxford-50={selectedItems.includes(`${item.code}|atc`)}
+                                        class:cursor-pointer={isAdvancedMode}
+                                        class:cursor-not-allowed={!isAdvancedMode}
+                                        class:opacity-60={!isAdvancedMode}
+                                        class:hover:bg-gray-50={isAdvancedMode}
+                                        on:click={() => isAdvancedMode ? handleSelect(item) : null}
+                                    >
+                                        <div class="flex-1">
+                                            <div class="flex flex-col">
+                                                <div class="flex items-start gap-3">
+                                                    <span class="text-sm">{item.name}</span>
+                                                    
+                                                    {#if item.hierarchy_path && item.hierarchy_path.length > 1}
+                                                        <div class="flex-shrink-0">
+                                                            <button 
+                                                                class="text-xs text-gray-600 hover:text-gray-800 flex items-center gap-1"
+                                                                on:click|stopPropagation={() => {
+                                                                    item.showHierarchy = !item.showHierarchy;
+                                                                    filteredItems = [...filteredItems];
+                                                                }}
+                                                            >
+                                                                <svg 
+                                                                    class="w-3 h-3 transition-transform {item.showHierarchy ? 'rotate-90' : ''}" 
+                                                                    fill="none" 
+                                                                    stroke="currentColor" 
+                                                                    viewBox="0 0 24 24"
+                                                                >
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                                                </svg>
+                                                                Show hierarchy
+                                                            </button>
+                                                        </div>
+                                                    {/if}
+                                                </div>
+                                                
+                                                {#if item.hierarchy_path && item.hierarchy_path.length > 1 && item.showHierarchy}
+                                                    <div class="mt-2">
+                                                        {#each item.hierarchy_path as pathItem, index}
+                                                            <div class="flex items-start text-xs text-gray-600 mb-1" style="padding-left: {index * 16}px;">
+                                                                <div class="w-3 h-3 border-l border-b border-gray-400 mr-2 flex-shrink-0 mt-1"></div>
+                                                                <span title={pathItem} class="leading-relaxed break-words {index === item.hierarchy_path.length - 1 ? 'font-bold' : ''}">{pathItem}</span>
+                                                            </div>
+                                                        {/each}
+                                                    </div>
+                                                {/if}
+                                            </div>
+                                            <div class="flex items-center gap-2 mt-0.5">
+                                                <span class="text-xs text-gray-500">
+                                                    Code: {item.code}
+                                                </span>
+                                                {#if item.vmp_count !== undefined}
+                                                    <span class="text-xs text-gray-500">
+                                                        {item.vmp_count} product{item.vmp_count !== 1 ? 's' : ''}
+                                                    </span>
+                                                {/if}
+                                            </div>
+                                        </div>
+                                        {#if selectedItems.includes(`${item.code}|atc`)}
+                                            <span class="text-xs font-medium text-oxford-600 ml-2">Selected</span>
+                                        {/if}
+                                    </div>
+                                </li>
                             {:else}
                                 <li 
                                     class="py-1.5 px-3 cursor-pointer relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
-                                    class:bg-oxford-50={selectedItems.includes(`${item.code}|vmp`)}
-                                    class:opacity-50={!item.has_vmps}
-                                    class:pointer-events-none={!item.has_vmps}
-                                    on:click={() => item.has_vmps && handleSelect(item)}
+                                    class:bg-oxford-50={selectedItems.includes(`${item.code}|${item.type}`)}
+                                    class:opacity-50={!item.has_vmps && item.type !== 'atc'}
+                                    class:pointer-events-none={!item.has_vmps && item.type !== 'atc'}
+                                    on:click={() => (item.has_vmps || item.type === 'atc') && handleSelect(item)}
                                 >
                                     <div>
                                         <span class="text-sm">{item.name}</span>
-                                        {#if !item.has_vmps}
+                                        {#if !item.has_vmps && item.type !== 'atc'}
                                             <span class="text-xs text-gray-400">(No products)</span>
                                         {/if}
                                         <div class="flex items-center gap-2 mt-0.5">
@@ -387,14 +483,18 @@
                                                     Code: {item.code}
                                                 </span>
                                             {/if}
-                                            {#if item.vmps?.length}
+                                            {#if item.vmp_count !== undefined}
+                                                <span class="text-xs text-gray-500">
+                                                    {item.vmp_count} product{item.vmp_count !== 1 ? 's' : ''}
+                                                </span>
+                                            {:else if item.vmps?.length}
                                                 <span class="text-xs text-gray-500">
                                                     {item.vmps.length} product{item.vmps.length !== 1 ? 's' : ''}
                                                 </span>
                                             {/if}
                                         </div>
                                     </div>
-                                    {#if selectedItems.includes(`${item.code}|vmp`)}
+                                    {#if selectedItems.includes(`${item.code}|${item.type}`)}
                                         <span class="text-xs font-medium text-oxford-600 mt-0.5 block">Selected</span>
                                     {/if}
                                 </li>
@@ -443,7 +543,7 @@
                                             Code: {code}
                                         </span>
                                         {/if}
-                                        {#if type === 'vtm' && isAdvancedMode}
+                                        {#if (type === 'vtm' || type === 'ingredient' || type === 'atc') && isAdvancedMode && data?.vmps?.length > 0}
                                             <button 
                                                 on:click={() => toggleVTMExpand(item)}
                                                 class="flex items-center gap-1.5 mt-2 text-sm text-gray-500 hover:text-gray-700 transition-colors duration-150"
@@ -466,8 +566,11 @@
                                         {#if isAdvancedMode}
                                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
                                                 {type === 'ingredient' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 
+                                                 type === 'atc' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
                                                  'bg-blue-50 text-blue-700 border border-blue-200'}">
-                                                {type === 'ingredient' ? 'Ingredient' : 'Product'}
+                                                {type === 'ingredient' ? 'Ingredient' : 
+                                                 type === 'atc' ? 'ATC' : 
+                                                 'Product'}
                                             </span>
                                         {/if}
                                         <button 
@@ -480,7 +583,7 @@
                                     </div>
                                 </div>
                             </div>
-                            {#if type === 'vtm' && data?.vmps && expandedItems.has(item)}
+                            {#if (type === 'vtm' || type === 'ingredient' || type === 'atc') && data?.vmps && expandedItems.has(item)}
                                 <ul class="bg-gray-50 border-t border-gray-100 py-2 px-3">
                                     {#each data.vmps as vmp}
                                         <li class="flex items-center py-1">
