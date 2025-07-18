@@ -505,7 +505,7 @@
                                 </tr>
                               </thead>
                               <tbody class="bg-white divide-y divide-gray-200">
-                                {#each ['scmd', 'dose', 'ddd', 'ingredient'] as quantityType}
+                                {#each ['scmd', 'dose', 'ingredient', 'ddd'] as quantityType}
                                   {@const quantityItem = createQuantityItem(product, quantityType)}
                                   
                                   <tr class="hover:bg-gray-50 {quantityItem.hasLogic && expandedLogic[`${product.vmp_code}_${quantityType}`] ? 'has-[+tr:hover]:bg-gray-50' : ''}">
