@@ -453,11 +453,11 @@
                               {/if}
                             </span>
                           </div>
-                          
+
                           <div class="grid grid-cols-[auto_1fr] gap-3 items-baseline">
                             <span class="text-sm font-medium whitespace-nowrap">DDD route:</span>
                             <span class="text-sm break-words hyphens-auto min-w-0">
-                              {#if product.who_routes && product.who_routes.length > 0}
+                              {#if product.ddd_info && product.who_routes && product.who_routes.length > 0}
                                 {product.who_routes.join(', ')}
                               {:else}
                                 <span class="text-gray-400">-</span>
