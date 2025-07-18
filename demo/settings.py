@@ -157,10 +157,9 @@ DJANGO_VITE = {
 }
 
 if DEBUG:
-
     CSP_DEFAULT_SRC = ("'self'",)
-    CSP_SCRIPT_SRC = ("'self' 'unsafe-inline' http://localhost:5173 http://localhost:3000 https://plausible.io")
-    CSP_SCRIPT_SRC_ELEM = ("'self' 'unsafe-inline' http://localhost:5173 http://localhost:3000 https://plausible.io",)
+    CSP_SCRIPT_SRC = ("'self' 'unsafe-inline' http://localhost:5173 http://localhost:3000 https://plausible.io https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js")
+    CSP_SCRIPT_SRC_ELEM = ("'self' 'unsafe-inline' http://localhost:5173 http://localhost:3000 https://plausible.io https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js",)
     CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
     CSP_IMG_SRC = ("'self'", "data:")
     CSP_FONT_SRC = ("'self'",)
@@ -168,7 +167,8 @@ if DEBUG:
 
 else:
     CSP_DEFAULT_SRC = ("'self'",)
-    CSP_SCRIPT_SRC = ("'self'", "https://plausible.io")
+    CSP_SCRIPT_SRC = ("'self'", "https://plausible.io", "https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js")
+    CSP_SCRIPT_SRC_ELEM = ("'self'", "https://plausible.io", "https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js")
     CSP_STYLE_SRC = ("'self'",)
     CSP_IMG_SRC = ("'self'", "data:")
     CSP_FONT_SRC = ("'self'",)

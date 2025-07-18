@@ -21,6 +21,7 @@ class MaintenanceModeMiddleware:
                 '/analyse/',
                 '/measures/',
                 '/submission-history/',
+                '/product-lookup/',
             ]
             
             is_restricted = any(

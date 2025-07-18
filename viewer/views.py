@@ -923,7 +923,7 @@ class AboutView(TemplateView):
         context = super().get_context_data(**kwargs)
         return context
 
-@method_decorator(login_required, name='dispatch')
+
 class ProductDetailsView(TemplateView):
     template_name = "product_details.html"
     
@@ -937,7 +937,6 @@ class ProductDetailsView(TemplateView):
         return context
 
 @csrf_protect
-@login_required
 @api_view(["POST"])
 def product_details_api(request):
     try:
@@ -971,6 +970,7 @@ def get_vmp_ids_from_search_items(search_items: List[str]) -> Set[int]:
         ValueError: If search item format is invalid
     """
     query = Q()
+    
     for item in search_items:
         try:
             code, item_type = item.split('|')
@@ -990,94 +990,155 @@ def get_vmp_ids_from_search_items(search_items: List[str]) -> Set[int]:
 def build_product_details(vmp_ids):
     """Build detailed product information for given VMP IDs."""
     vmps = VMP.objects.filter(id__in=vmp_ids).select_related('vtm').prefetch_related(
-        'ingredients', 'ddds', 'ont_form_routes', 'who_routes', 'atcs',
-        'ingredient_strengths__ingredient', 'calculation_logic'
+        'ingredients',
+        'ddds__who_route', 
+        'ont_form_routes',
+        'who_routes',
+        'atcs',
+        'ingredient_strengths__ingredient',
+        'calculation_logic__ingredient'
     )
+    
+    quantity_data = get_quantity_data_batch(vmp_ids)
     
     products = []
     for vmp in vmps:
-        product_data = build_single_product_data(vmp)
+        product_data = build_single_product_data(vmp, quantity_data.get(vmp.id, {}))
         products.append(product_data)
     
     return products
 
-def build_single_product_data(vmp):
-    """Build detailed data for a single VMP."""
-    ingredient_names = ", ".join([i.name for i in vmp.ingredients.all()])
-
-    ddd_value = None
-    ddd = vmp.ddds.first()
-    if ddd:
-        ddd_value = {
-            'ddd': safe_float(ddd.ddd),
-            'unit_type': ddd.unit_type,
-            'route': ddd.who_route.name
+def get_quantity_data_batch(vmp_ids):
+    """Batch fetch all quantity data"""
+    quantity_data = {}
+    
+    for vmp_id in vmp_ids:
+        quantity_data[vmp_id] = {
+            'has_scmd_quantity': False,
+            'scmd_units': [],
+            'has_dose': False,
+            'dose_units': [],
+            'has_ingredient_quantities': False,
+            'ingredient_units': [],
+            'has_ddd_quantity': False
         }
-
-    ddd_info = None
-    if ddd_value and ddd_value['ddd'] is not None:
-        ddd_info = f"{ddd_value['ddd']} {ddd_value['unit_type']}"
-
-    # Check for existence of quantities and get their units
-    has_scmd_quantity = SCMDQuantity.objects.filter(
-        vmp=vmp,
-        data__0__0__isnull=False
-    ).exists()
-
-    # Get SCMD units information if SCMD quantity data exists
-    scmd_units = []
-    if has_scmd_quantity:
-        scmd_quantity_obj = SCMDQuantity.objects.filter(vmp=vmp).first()
-        if scmd_quantity_obj and scmd_quantity_obj.data:
-            units_set = set()
-            for entry in scmd_quantity_obj.data:
-                if len(entry) >= 3 and entry[2]:
-                    units_set.add(entry[2])
-            scmd_units = sorted(list(units_set))
-
-    # Get dose data and units
-    has_dose = Dose.objects.filter(
-        vmp=vmp,
-        data__0__0__isnull=False
-    ).exists()
     
-    dose_units = []
-    if has_dose:
-        dose_obj = Dose.objects.filter(vmp=vmp).first()
-        if dose_obj and dose_obj.data:
-            units_set = set()
-            for entry in dose_obj.data:
-                if len(entry) >= 3 and entry[2]:
-                    units_set.add(entry[2])
-            dose_units = sorted(list(units_set))
-
-    # Get ingredient quantity data and units
-    has_ingredient_quantities = IngredientQuantity.objects.filter(
-        vmp=vmp,
-        data__0__0__isnull=False
-    ).exists()
+    scmd_quantities = SCMDQuantity.objects.filter(
+        vmp_id__in=vmp_ids
+    ).values('vmp_id', 'data')
     
-    ingredient_units = []
-    if has_ingredient_quantities:
-        ingredient_obj = IngredientQuantity.objects.filter(vmp=vmp).first()
-        if ingredient_obj and ingredient_obj.data:
+    for scmd in scmd_quantities:
+        vmp_id = scmd['vmp_id']
+        if scmd['data']:
+            has_valid_data = any(
+                entry and len(entry) >= 1 and entry[1] is not None 
+                for entry in scmd['data']
+            )
+            if has_valid_data:
+                quantity_data[vmp_id]['has_scmd_quantity'] = True
+                
+                units_set = set()
+                for entry in scmd['data']:
+                    if entry and len(entry) >= 3 and entry[2]:
+                        units_set.add(entry[2])
+                quantity_data[vmp_id]['scmd_units'] = sorted(list(units_set))
+    
+    dose_quantities = Dose.objects.filter(
+        vmp_id__in=vmp_ids,
+        data__0__0__isnull=False
+    ).values('vmp_id', 'data')
+    
+    for dose in dose_quantities:
+        vmp_id = dose['vmp_id']
+        quantity_data[vmp_id]['has_dose'] = True
+        
+        if dose['data']:
             units_set = set()
-            for entry in ingredient_obj.data:
+            for entry in dose['data']:
                 if len(entry) >= 3 and entry[2]:
                     units_set.add(entry[2])
-            ingredient_units = sorted(list(units_set))
-
-    has_ddd_quantity = DDDQuantity.objects.filter(
-        vmp=vmp,
+            quantity_data[vmp_id]['dose_units'] = sorted(list(units_set))
+    
+    ingredient_quantities = IngredientQuantity.objects.filter(
+        vmp_id__in=vmp_ids,
         data__0__0__isnull=False
-    ).exists()
+    ).values('vmp_id', 'data')
+    
+    for ingredient_qty in ingredient_quantities:
+        vmp_id = ingredient_qty['vmp_id']
+        quantity_data[vmp_id]['has_ingredient_quantities'] = True
+        
+        if ingredient_qty['data']:
+            units_set = set()
+            for entry in ingredient_qty['data']:
+                if len(entry) >= 3 and entry[2]:
+                    units_set.add(entry[2])
+            quantity_data[vmp_id]['ingredient_units'] = sorted(list(units_set))
+    
+    ddd_quantities = DDDQuantity.objects.filter(
+        vmp_id__in=vmp_ids,
+        data__0__0__isnull=False
+    ).values_list('vmp_id', flat=True)
+    
+    for vmp_id in ddd_quantities:
+        quantity_data[vmp_id]['has_ddd_quantity'] = True
+    
+    return quantity_data
 
-    # Get calculation logic for each quantity type
+def build_single_product_data(vmp, quantity_data):
+    """Build detailed data for a single VMP."""
+    ingredient_logic_map = {}
+    for calc_logic in vmp.calculation_logic.filter(logic_type='ingredient'):
+        if calc_logic.ingredient:
+            strength_info = None
+            strength = vmp.ingredient_strengths.filter(ingredient=calc_logic.ingredient).first()
+            if strength:
+                strength_info = {
+                    'numerator_value': safe_float(strength.strnt_nmrtr_val),
+                    'numerator_uom': strength.strnt_nmrtr_uom_name,
+                    'denominator_value': safe_float(strength.strnt_dnmtr_val),
+                    'denominator_uom': strength.strnt_dnmtr_uom_name,
+                    'basis_of_strength_type': strength.basis_of_strength_type,
+                    'basis_of_strength_name': strength.basis_of_strength_name
+                }
+            
+            ingredient_logic_map[calc_logic.ingredient.id] = {
+                'ingredient': calc_logic.ingredient.name,
+                'logic': calc_logic.logic,
+                'strength_info': strength_info
+            }
+    
+    ingredient_logic = []
+    ingredient_names_list = []
+    
+    for ingredient in vmp.ingredients.all():
+        ingredient_names_list.append(ingredient.name)
+        
+        if ingredient.id in ingredient_logic_map:
+            ingredient_logic.append(ingredient_logic_map[ingredient.id])
+        else:
+            strength_info = None
+            strength = vmp.ingredient_strengths.filter(ingredient=ingredient).first()
+            if strength:
+                strength_info = {
+                    'numerator_value': safe_float(strength.strnt_nmrtr_val),
+                    'numerator_uom': strength.strnt_nmrtr_uom_name,
+                    'denominator_value': safe_float(strength.strnt_dnmtr_val),
+                    'denominator_uom': strength.strnt_dnmtr_uom_name,
+                    'basis_of_strength_type': strength.basis_of_strength_type,
+                    'basis_of_strength_name': strength.basis_of_strength_name
+                }
+            
+            ingredient_logic.append({
+                'ingredient': ingredient.name,
+                'logic': None,
+                'strength_info': strength_info
+            })
+
     dose_logic = None
     ddd_logic = None
-    ingredient_logic = []
-
-    for calc_logic in vmp.calculation_logic.select_related('ingredient'):
+    
+    for calc_logic in vmp.calculation_logic.all():
         if calc_logic.logic_type == 'dose':
             dose_logic = {
                 'logic': calc_logic.logic,
@@ -1090,27 +1151,25 @@ def build_single_product_data(vmp):
                 'logic': calc_logic.logic,
                 'ingredient': calc_logic.ingredient.name if calc_logic.ingredient else None
             }
-        elif calc_logic.logic_type == 'ingredient':
-            # Get strength information for this ingredient
-            strength_info = None
-            if calc_logic.ingredient:
-                strength = vmp.ingredient_strengths.filter(ingredient=calc_logic.ingredient).first()
-                if strength:
-                    strength_info = {
-                        'numerator_value': safe_float(strength.strnt_nmrtr_val),
-                        'numerator_uom': strength.strnt_nmrtr_uom_name,
-                        'denominator_value': safe_float(strength.strnt_dnmtr_val),
-                        'denominator_uom': strength.strnt_dnmtr_uom_name,
-                        'basis_of_strength_type': strength.basis_of_strength_type,
-                        'basis_of_strength_name': strength.basis_of_strength_name
-                    }
-            
-            ingredient_logic.append({
-                'ingredient': calc_logic.ingredient.name if calc_logic.ingredient else None,
-                'logic': calc_logic.logic,
-                'strength_info': strength_info
-            })
 
+    ddd_values = []
+    for ddd in vmp.ddds.all():
+        ddd_values.append({
+            'value': ddd.ddd,
+            'unit': ddd.unit_type,
+            'route': ddd.who_route.name
+        })
+
+    ddd_info = None
+    if ddd_values:
+        if len(ddd_values) == 1:
+            ddd = ddd_values[0]
+            ddd_info = f"{ddd['value']} {ddd['unit']} ({ddd['route']})"
+        else:
+            ddd_strings = []
+            for ddd in ddd_values:
+                ddd_strings.append(f"{ddd['value']} {ddd['unit']} ({ddd['route']})")
+            ddd_info = " | ".join(ddd_strings)
 
     return {
         'vmp_name': vmp.name,
@@ -1118,18 +1177,18 @@ def build_single_product_data(vmp):
         'vtm_name': vmp.vtm.name if vmp.vtm else None,
         'vtm_code': vmp.vtm.vtm if vmp.vtm else None,
         'routes': [route.name for route in vmp.ont_form_routes.all()],
-        'who_routes': [route.name for route in vmp.who_routes.all()] if ddd_info else [],
+        'who_routes': [route.name for route in vmp.who_routes.all()] if ddd_logic else [],
         'atc_codes': [atc.code for atc in vmp.atcs.all()],
-        'ingredient_names': ingredient_names,
+        'ingredient_names': ", ".join(ingredient_names_list),
         'ddd_info': ddd_info,
         'df_ind': vmp.df_ind,
-        'has_scmd_quantity': has_scmd_quantity,
-        'scmd_units': scmd_units,
-        'has_dose': has_dose,
-        'dose_units': dose_units,
-        'has_ddd_quantity': has_ddd_quantity,
-        'has_ingredient_quantities': has_ingredient_quantities,
-        'ingredient_units': ingredient_units,
+        'has_scmd_quantity': quantity_data.get('has_scmd_quantity', False),
+        'scmd_units': quantity_data.get('scmd_units', []),
+        'has_dose': quantity_data.get('has_dose', False),
+        'dose_units': quantity_data.get('dose_units', []),
+        'has_ddd_quantity': quantity_data.get('has_ddd_quantity', False),
+        'has_ingredient_quantities': quantity_data.get('has_ingredient_quantities', False),
+        'ingredient_units': quantity_data.get('ingredient_units', []),
         'dose_logic': dose_logic,
         'ddd_logic': ddd_logic,
         'ingredient_logic': ingredient_logic
