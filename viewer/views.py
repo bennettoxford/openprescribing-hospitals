@@ -1175,11 +1175,11 @@ def build_single_product_data(vmp, quantity_data):
     if ddd_values:
         if len(ddd_values) == 1:
             ddd = ddd_values[0]
-            ddd_info = f"{ddd['value']} {ddd['unit']} ({ddd['route']})"
+            ddd_info = f"{ddd['value']} {ddd['unit']}"
         else:
             ddd_strings = []
             for ddd in ddd_values:
-                ddd_strings.append(f"{ddd['value']} {ddd['unit']} ({ddd['route']})")
+                ddd_strings.append(f"{ddd['value']} {ddd['unit']}")
             ddd_info = " | ".join(ddd_strings)
 
     return {
