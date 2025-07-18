@@ -358,7 +358,7 @@
                           <div class="grid grid-cols-[auto_1fr] gap-3 items-start">
                             <span class="text-sm font-medium whitespace-nowrap">Ingredients:</span>
                             <div class="text-sm break-words hyphens-auto min-w-0">
-                              {#if product.has_ingredient_quantities && product.ingredient_logic && product.ingredient_logic.length > 0}
+                              {#if product.ingredient_logic && product.ingredient_logic.length > 0}
                                 <div class="space-y-1">
                                   {#each product.ingredient_logic as ingredientCalc}
                                     <div class="flex flex-wrap items-baseline gap-2">
