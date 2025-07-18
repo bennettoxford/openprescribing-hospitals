@@ -47,6 +47,6 @@ jobs:
         DATABASE_PASSWORD: postgres
         DATABASE_HOST: localhost
         DATABASE_PORT: 5432
-        DJANGO_SETTINGS_MODULE: demo.settings
+        DJANGO_SETTINGS_MODULE: openprescribing-hospitals.settings
       run: |
         pytest

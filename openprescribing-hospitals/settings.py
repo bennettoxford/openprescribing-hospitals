@@ -53,7 +53,7 @@ MIDDLEWARE = [
     "viewer.middleware.MaintenanceModeMiddleware",
 ]
 
-ROOT_URLCONF = "demo.urls"
+ROOT_URLCONF = "openprescribing-hospitals.urls"
 
 TEMPLATES = [
     {
@@ -71,7 +71,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "demo.wsgi.application"
+WSGI_APPLICATION = "openprescribing-hospitals.wsgi.application"
 
 
 # Database
