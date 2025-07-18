@@ -7,8 +7,8 @@ from django.utils.safestring import mark_safe
 from collections import defaultdict
 from datetime import datetime
 
-class OrgsSubmittingDataView(TemplateView):
-    template_name = 'org_submissions.html'
+class SubmissionHistoryView(TemplateView):
+    template_name = 'submission_history.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

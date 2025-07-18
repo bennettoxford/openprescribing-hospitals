@@ -19,7 +19,7 @@ from ..utils import safe_float
 
 
 @api_view(["GET"])
-def search_items(request):
+def search_products(request):
     search_type = request.GET.get('type', 'product')
     search_term = request.GET.get('term', '').lower()
     
@@ -211,7 +211,7 @@ def search_items(request):
 
 
 @api_view(["POST"])
-def filtered_vmp_count(request):
+def vmp_count(request):
     search_items = request.data.get("names", [])
     
     vmp_codes = set()
@@ -282,7 +282,7 @@ def filtered_vmp_count(request):
 
 @csrf_protect
 @api_view(["POST"])
-def filtered_quantities(request):
+def get_quantity_data(request):
     search_items = request.data.get("names", None)
     ods_names = request.data.get("ods_names", None)
     quantity_type = request.data.get("quantity_type", None)
@@ -377,7 +377,7 @@ def filtered_quantities(request):
 
 @csrf_protect
 @api_view(["POST"])
-def product_details_api(request):
+def get_product_details(request):
     try:
         search_items = request.data.get("names", [])
         if not search_items:

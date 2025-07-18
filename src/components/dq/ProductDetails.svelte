@@ -21,7 +21,7 @@
   let expandedLogic = {};
 
   const API_ENDPOINTS = {
-    PRODUCT_DETAILS: '/api/product-details/'
+    PRODUCT_DETAILS: '/api/get-product-details/'
   };
 
   const EXTERNAL_LINKS = {

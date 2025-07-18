@@ -91,7 +91,7 @@
             });
         }
         
-        let endpoint = '/api/filtered-quantities/';
+        let endpoint = '/api/get-quantity-data/';
         
         try {
             const response = await fetch(endpoint, {

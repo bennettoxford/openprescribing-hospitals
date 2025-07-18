@@ -67,7 +67,7 @@
         
         searchTimeout = setTimeout(async () => {
             try {
-                const response = await fetch(`/api/search/?type=${type}&term=${encodeURIComponent(searchTerm)}`);
+                const response = await fetch(`/api/search-products/?type=${type}&term=${encodeURIComponent(searchTerm)}`);
                 const data = await response.json();
                 
                 filteredItems = data.results.map(item => ({
@@ -95,7 +95,7 @@
         isCalculating = true;
 
         try {
-            const response = await fetch('/api/filtered-vmp-count/', {
+            const response = await fetch('/api/vmp-count/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

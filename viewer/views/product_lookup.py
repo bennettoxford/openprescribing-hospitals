@@ -3,8 +3,8 @@ from django.utils.safestring import mark_safe
 from django.core.serializers.json import DjangoJSONEncoder
 import json
 
-class ProductDetailsView(TemplateView):
-    template_name = "product_details.html"
+class ProductLookupView(TemplateView):
+    template_name = "product_lookup.html"
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

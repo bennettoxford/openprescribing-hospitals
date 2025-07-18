@@ -4,7 +4,7 @@ from .contact import ContactView
 from .faq import FAQView
 from .blog import BlogListView
 from .research import PapersListView
-from .product_lookup import ProductDetailsView
+from .product_lookup import ProductLookupView
 
 from .measures import (
     MeasuresListView,
@@ -14,15 +14,15 @@ from .measures import (
 from .analyse import AnalyseView
 
 from .api import (
-    filtered_quantities,
-    filtered_vmp_count,
-    search_items,
-    product_details_api,
+    get_quantity_data,
+    vmp_count,
+    search_products,
+    get_product_details,
 )
 
 from .auth import LoginView
 
-from .submission_history import OrgsSubmittingDataView
+from .submission_history import SubmissionHistoryView
 
 from .errors import (
     error_handler,
@@ -41,21 +41,21 @@ __all__ = [
     'FAQView',
     'BlogListView',
     'PapersListView',
-    'ProductDetailsView',
+    'ProductLookupView',
 
     'MeasuresListView',
     'MeasureItemView',
     
     'AnalyseView',
     
-    'filtered_quantities',
-    'filtered_vmp_count',
-    'search_items',
-    'product_details_api',
+    'get_quantity_data',
+    'vmp_count',
+    'search_products',
+    'get_product_details',
 
     'LoginView',
 
-    'OrgsSubmittingDataView',
+    'SubmissionHistoryView',
     
     'error_handler',
     'bad_request',
