@@ -538,7 +538,7 @@ class CalculationLogic(models.Model):
         on_delete=models.CASCADE, 
         null=True, 
         blank=True,
-        help_text="Required for ingredient quantity logic, null for dose/DDD logic"
+        help_text="Required for ingredient quantity logic, null for dose/DDD logic or when no ingredients exist"
     )
     logic_type = models.CharField(max_length=20, choices=LOGIC_TYPES)
     logic = models.TextField()
@@ -554,13 +554,6 @@ class CalculationLogic(models.Model):
                 fields=['vmp', 'ingredient', 'logic_type'], 
                 condition=models.Q(logic_type='ingredient'),
                 name='unique_vmp_ingredient_logic'
-            ),
-            models.CheckConstraint(
-                condition=(
-                    models.Q(logic_type='ingredient', ingredient__isnull=False) |
-                    models.Q(logic_type__in=['dose', 'ddd'], ingredient__isnull=True)
-                ),
-                name='ingredient_required_for_ingredient_logic'
             ),
         ]
 

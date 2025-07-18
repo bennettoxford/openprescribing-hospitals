@@ -362,13 +362,17 @@
                                 <div class="space-y-1">
                                   {#each product.ingredient_logic as ingredientCalc}
                                     <div class="flex flex-wrap items-baseline gap-2">
-                                      <span class="text-gray-900">{ingredientCalc.ingredient}</span>
-                                      {#if ingredientCalc.strength_info}
-                                        <span class="text-xs text-gray-600">
-                                          (<span class="font-medium">Strength:</span> {#if ingredientCalc.strength_info.numerator_value}{formatStrength(ingredientCalc.strength_info.numerator_value)}{ingredientCalc.strength_info.numerator_uom ? ` ${ingredientCalc.strength_info.numerator_uom}` : ''}{#if ingredientCalc.strength_info.denominator_value}/{formatStrength(ingredientCalc.strength_info.denominator_value)}{ingredientCalc.strength_info.denominator_uom ? ` ${ingredientCalc.strength_info.denominator_uom}` : ''}{/if}{/if})
-                                        </span>
+                                      {#if ingredientCalc.ingredient}
+                                        <span class="text-gray-900">{ingredientCalc.ingredient}</span>
+                                        {#if ingredientCalc.strength_info}
+                                          <span class="text-xs text-gray-600">
+                                            (<span class="font-medium">Strength:</span> {#if ingredientCalc.strength_info.numerator_value}{formatStrength(ingredientCalc.strength_info.numerator_value)}{ingredientCalc.strength_info.numerator_uom ? ` ${ingredientCalc.strength_info.numerator_uom}` : ''}{#if ingredientCalc.strength_info.denominator_value}/{formatStrength(ingredientCalc.strength_info.denominator_value)}{ingredientCalc.strength_info.denominator_uom ? ` ${ingredientCalc.strength_info.denominator_uom}` : ''}{/if}{/if})
+                                          </span>
+                                        {:else}
+                                          <span class="text-xs text-gray-400 italic">(no strength info)</span>
+                                        {/if}
                                       {:else}
-                                        <span class="text-xs text-gray-400 italic">(no strength info)</span>
+                                        <span class="text-gray-400">-</span>
                                       {/if}
                                     </div>
                                   {/each}

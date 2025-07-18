@@ -22,7 +22,6 @@ ingredient_logic AS (
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ INGREDIENT_QUANTITY_TABLE_ID }}`,
   UNNEST(ingredients) AS ingredient
   WHERE ingredient.calculation_logic IS NOT NULL
-    AND ingredient.ingredient_code IS NOT NULL
 ),
 
 ddd_logic AS (

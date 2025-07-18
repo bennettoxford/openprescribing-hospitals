@@ -1088,6 +1088,7 @@ def get_quantity_data_batch(vmp_ids):
 def build_single_product_data(vmp, quantity_data):
     """Build detailed data for a single VMP."""
     ingredient_logic_map = {}
+
     for calc_logic in vmp.calculation_logic.filter(logic_type='ingredient'):
         if calc_logic.ingredient:
             strength_info = None
@@ -1107,33 +1108,43 @@ def build_single_product_data(vmp, quantity_data):
                 'logic': calc_logic.logic,
                 'strength_info': strength_info
             }
-    
+        else:
+            ingredient_logic_map['no_ingredients'] = {
+                'ingredient': None,
+                'logic': calc_logic.logic,
+                'strength_info': None
+            }
+
     ingredient_logic = []
     ingredient_names_list = []
     
-    for ingredient in vmp.ingredients.all():
-        ingredient_names_list.append(ingredient.name)
-        
-        if ingredient.id in ingredient_logic_map:
-            ingredient_logic.append(ingredient_logic_map[ingredient.id])
-        else:
-            strength_info = None
-            strength = vmp.ingredient_strengths.filter(ingredient=ingredient).first()
-            if strength:
-                strength_info = {
-                    'numerator_value': safe_float(strength.strnt_nmrtr_val),
-                    'numerator_uom': strength.strnt_nmrtr_uom_name,
-                    'denominator_value': safe_float(strength.strnt_dnmtr_val),
-                    'denominator_uom': strength.strnt_dnmtr_uom_name,
-                    'basis_of_strength_type': strength.basis_of_strength_type,
-                    'basis_of_strength_name': strength.basis_of_strength_name
-                }
+    if vmp.ingredients.exists():
+        for ingredient in vmp.ingredients.all():
+            ingredient_names_list.append(ingredient.name)
             
-            ingredient_logic.append({
-                'ingredient': ingredient.name,
-                'logic': None,
-                'strength_info': strength_info
-            })
+            if ingredient.id in ingredient_logic_map:
+                ingredient_logic.append(ingredient_logic_map[ingredient.id])
+            else:
+                strength_info = None
+                strength = vmp.ingredient_strengths.filter(ingredient=ingredient).first()
+                if strength:
+                    strength_info = {
+                        'numerator_value': safe_float(strength.strnt_nmrtr_val),
+                        'numerator_uom': strength.strnt_nmrtr_uom_name,
+                        'denominator_value': safe_float(strength.strnt_dnmtr_val),
+                        'denominator_uom': strength.strnt_dnmtr_uom_name,
+                        'basis_of_strength_type': strength.basis_of_strength_type,
+                        'basis_of_strength_name': strength.basis_of_strength_name
+                    }
+                
+                ingredient_logic.append({
+                    'ingredient': ingredient.name,
+                    'logic': None,
+                    'strength_info': strength_info
+                })
+    else:
+        if 'no_ingredients' in ingredient_logic_map:
+            ingredient_logic.append(ingredient_logic_map['no_ingredients'])
 
     dose_logic = None
     ddd_logic = None

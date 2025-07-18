@@ -33,14 +33,14 @@ def get_ingredient_calculation_logic() -> Dict[Tuple[str, str], str]:
         logic
     FROM `{CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
     WHERE logic_type = 'ingredient'
-    AND ingredient_code IS NOT NULL
     """
 
     result = client.query(query).to_dataframe(create_bqstorage_client=True)
     
     logic_dict = {}
     for _, row in result.iterrows():
-        key = (row['vmp_code'], row['ingredient_code'])
+        ingredient_code = row['ingredient_code'] if pd.notna(row['ingredient_code']) else None
+        key = (row['vmp_code'], ingredient_code)
         logic_dict[key] = row['logic']
     
     logger.info(f"Downloaded ingredient calculation logic for {len(logic_dict):,} VMP-ingredient combinations")
@@ -58,12 +58,14 @@ def get_all_vmp_ingredient_combinations_with_logic() -> List[Tuple[str, str]]:
     SELECT DISTINCT vmp_code, ingredient_code
     FROM `{CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
     WHERE logic_type = 'ingredient'
-    AND ingredient_code IS NOT NULL
     ORDER BY vmp_code, ingredient_code
     """
 
     result = client.query(query).to_dataframe()
-    combinations = [(row['vmp_code'], row['ingredient_code']) for _, row in result.iterrows()]
+    combinations = []
+    for _, row in result.iterrows():
+        ingredient_code = row['ingredient_code'] if pd.notna(row['ingredient_code']) else None
+        combinations.append((row['vmp_code'], ingredient_code))
     
     logger.info(f"Found {len(combinations):,} unique VMP-ingredient combinations with calculation logic")
     return combinations
@@ -223,26 +225,33 @@ def load_ingredient_logic_for_combinations(
     for (vmp_code, ingredient_code) in combinations:
         logic_key = (vmp_code, ingredient_code)
         
-        if (logic_key in ingredient_logic_dict and 
-            vmp_code in vmps and 
-            ingredient_code in ingredients):
-            
-            logic_objects.append(
-                CalculationLogic(
-                    vmp_id=vmps[vmp_code],
-                    ingredient_id=ingredients[ingredient_code],
-                    logic_type='ingredient',
-                    logic=ingredient_logic_dict[logic_key]
+        if logic_key in ingredient_logic_dict and vmp_code in vmps:
+            if ingredient_code is None:
+                logic_objects.append(
+                    CalculationLogic(
+                        vmp_id=vmps[vmp_code],
+                        ingredient_id=None,
+                        logic_type='ingredient',
+                        logic=ingredient_logic_dict[logic_key]
+                    )
                 )
-            )
+            elif ingredient_code in ingredients:
+                logic_objects.append(
+                    CalculationLogic(
+                        vmp_id=vmps[vmp_code],
+                        ingredient_id=ingredients[ingredient_code],
+                        logic_type='ingredient',
+                        logic=ingredient_logic_dict[logic_key]
+                    )
+                )
+            else:
+                logger.warning(f"Chunk {chunk_num}/{total_chunks}: Ingredient {ingredient_code} not found in database")
+                logic_missing += 1
         elif logic_key not in ingredient_logic_dict:
             logger.warning(f"Chunk {chunk_num}/{total_chunks}: No ingredient logic found for VMP {vmp_code} + Ingredient {ingredient_code}")
             logic_missing += 1
         elif vmp_code not in vmps:
             logger.warning(f"Chunk {chunk_num}/{total_chunks}: VMP {vmp_code} not found in database")
-            logic_missing += 1
-        elif ingredient_code not in ingredients:
-            logger.warning(f"Chunk {chunk_num}/{total_chunks}: Ingredient {ingredient_code} not found in database")
             logic_missing += 1
     
     logic_created = 0

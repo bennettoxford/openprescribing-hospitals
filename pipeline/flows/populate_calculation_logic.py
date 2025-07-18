@@ -34,7 +34,9 @@ def validate_calculation_logic_consistency():
         logic_type,
         COUNT(*) AS count
     FROM `{CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
-    WHERE logic_type = 'ingredient' AND ingredient_code IS NULL
+    WHERE logic_type = 'ingredient' 
+        AND ingredient_code IS NULL
+        AND logic != 'Not calculated: No ingredients'
     GROUP BY vmp_code, logic_type
     """
     results = client.query(missing_ingredient_codes_query).result()
