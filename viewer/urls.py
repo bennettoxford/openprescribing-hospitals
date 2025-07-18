@@ -1,24 +1,23 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from .views import (
-    filtered_vmp_count,
     IndexView,
-    filtered_quantities,
     AnalyseView,
-    MeasuresListView,
-    MeasureItemView,
-    OrgsSubmittingDataView,
-    LoginView,
     ContactView,
     FAQView,
-    search_items,
-    ProductDetailsView,
-    AboutView,
     BlogListView,
     PapersListView,
+    ProductDetailsView,
+    AboutView,
+    MeasuresListView,
+    MeasureItemView,
+    filtered_vmp_count,
+    filtered_quantities,
     product_details_api,
+    search_items,
+    LoginView,
+    OrgsSubmittingDataView,
 )
-
 
 app_name = "viewer"
 
