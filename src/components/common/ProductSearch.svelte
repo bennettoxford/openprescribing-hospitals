@@ -1,5 +1,5 @@
 <svelte:options customElement={{
-    tag: 'search-box',
+    tag: 'product-search-box',
     shadow: 'none'
   }} />
 <script>

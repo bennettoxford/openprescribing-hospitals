@@ -5,7 +5,7 @@
 
 <script>
   import { onMount } from 'svelte';
-  import Search from '../common/Search.svelte';
+  import ProductSearch from '../common/ProductSearch.svelte';
   import { getCookie, formatStrength } from '../../utils/utils';
   import { analyseOptions } from '../../stores/analyseOptionsStore';
   
@@ -212,7 +212,7 @@
     </div>
     
     <div class="relative">
-      <Search 
+      <ProductSearch 
         on:selectionChange={handleSelectionChange} 
         isAdvancedMode={true} 
         type="product"

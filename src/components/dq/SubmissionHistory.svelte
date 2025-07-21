@@ -1,5 +1,5 @@
 <svelte:options customElement={{
-    tag: 'org-submission',
+    tag: 'submission-history',
     shadow: 'none',
     props: {
         orgdata: { type: 'String' },
@@ -14,7 +14,7 @@
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore';
     import OrgSubmissionChart from './OrgSubmissionChart.svelte';
-    import LazyLoad from './LazyLoad.svelte';
+    import OrgSubmissionChartLazy from './OrgSubmissionChartLazy.svelte';
 
     export let orgData = '{}';
     export let latestDates = '{}';
@@ -510,13 +510,13 @@
     {:else}
 
         {#each filteredOrganisations as org (org.name)}
-            <LazyLoad>
+            <OrgSubmissionChartLazy>
                 <OrgSubmissionChart 
                     {org}
                     latestDates={parsedLatestDates}
                     {months}
                 />
-            </LazyLoad>
+            </OrgSubmissionChartLazy>
         {/each}
     {/if}
 

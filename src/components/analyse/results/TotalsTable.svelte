@@ -1,5 +1,5 @@
 <svelte:options customElement={{
-    tag: 'data-table',
+    tag: 'totals-table',
     shadow: 'none'
   }} />
 
