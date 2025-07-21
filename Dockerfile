@@ -38,11 +38,7 @@ COPY --from=node-builder /app/assets /app/assets
 
 # Collect static files
 RUN SECRET_KEY=dummy-key-for-build \
-    DATABASE_NAME=default_db_name \
-    DATABASE_USER=default_user \
-    DATABASE_PASSWORD=default_password \
-    DATABASE_HOST=default_host \
-    DATABASE_PORT=default_port \
+    DATABASE_URL=sqlite:///tmp/build.db \
     python manage.py collectstatic --noinput
 
 # Expose the port the app runs on
