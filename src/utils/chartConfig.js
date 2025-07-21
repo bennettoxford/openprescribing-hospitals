@@ -14,46 +14,6 @@ export const chartOptions = {
     tooltipClass: 'tooltip p-2 bg-gray-800 text-white rounded shadow-lg text-sm'
 };
 
-export const percentilesLegend = [
-    { 
-        label: 'Median (50th percentile)', 
-        color: '#DC3220',
-        strokeWidth: 2.5,
-        strokeDasharray: '5,5',
-        isLine: true
-    },
-    { 
-        label: '45th-55th percentiles', 
-        color: '#005AB5', 
-        fillOpacity: 0.8, 
-        isArea: true 
-    },
-    { 
-        label: '35th-45th and 55th-65th percentiles', 
-        color: '#005AB5', 
-        fillOpacity: 0.6, 
-        isArea: true 
-    },
-    { 
-        label: '25th-35th and 65th-75th percentiles', 
-        color: '#005AB5', 
-        fillOpacity: 0.4, 
-        isArea: true 
-    },
-    { 
-        label: '15th-25th and 75th-85th percentiles', 
-        color: '#005AB5', 
-        fillOpacity: 0.2, 
-        isArea: true 
-    },
-    { 
-        label: '5th-15th and 85th-95th percentiles', 
-        color: '#005AB5', 
-        fillOpacity: 0.1, 
-        isArea: true 
-    }
-];
-
 export const modeOptions = [
     { value: 'trust', label: 'Trust' },
     { value: 'deciles', label: 'Deciles' },
@@ -72,17 +32,5 @@ export const chartConfig = {
     '#AA4499',
     '#882255'
   ],
-  restrictedColours: [
-    '#332288',
-    '#117733',
-    '#DDCC77',
-    '#CC6677',
-    '#AA4499',
-    '#882255'
-  ]
 };
 
-export function getTrustColor(trustIndex, isOverlayingPercentiles = false) {
-  const colours = isOverlayingPercentiles ? chartConfig.restrictedColours : chartConfig.allColours;
-  return colours[trustIndex % colours.length];
-}

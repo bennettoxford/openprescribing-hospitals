@@ -28,7 +28,6 @@
     let months = [];
     let error = null;
     let sortType = 'missing_latest';
-    let searchTerm = '';
     let filteredOrganisations = [];
     let searchableOrgs = [];
     let showScrollButton = false;
@@ -62,23 +61,7 @@
         return deviations.reduce((sum, dev) => sum + dev, 0) / deviations.length;
     }
 
-    function filterOrganisations(orgs, searchTerms) {
-        if (!searchTerms || searchTerms.length === 0) return orgs;
-        
-        return orgs.filter(org => {
-            const matchesOrg = searchTerms.some(term => 
-                org.name.toLowerCase().includes(term.toLowerCase())
-            );
-            
-            const matchesPredecessor = org.predecessors?.some(pred => 
-                searchTerms.some(term => 
-                    pred.name.toLowerCase().includes(term.toLowerCase())
-                )
-            );
-            
-            return matchesOrg || matchesPredecessor;
-        });
-    }
+
 
     function prepareOrganisationsForSearch(orgs) {
         let allOrgs = [];

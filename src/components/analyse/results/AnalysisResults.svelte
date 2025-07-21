@@ -6,7 +6,7 @@
 <script>
     import TotalsTable from './TotalsTable.svelte';
     import ProductsTable from './ProductsTable.svelte';
-    import { resultsStore, updateVisibleItems } from '../../../stores/resultsStore';
+    import { resultsStore } from '../../../stores/resultsStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
     import Chart from '../../common/Chart.svelte';
     import { modeSelectorStore } from '../../../stores/modeSelectorStore';

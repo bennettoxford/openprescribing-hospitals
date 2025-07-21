@@ -112,26 +112,3 @@ function calculateDateRange(data) {
     return { minDate, maxDate };
 }
 
-export function clearResults() {
-    resultsStore.set({
-        isAnalysisRunning: false,
-        showResults: false,
-        analysisData: null,
-        filteredData: null,
-        productData: {},
-        organisationData: {},
-        quantityType: null,
-        searchType: null,
-        dateRange: null,
-        visibleItems: new Set(),
-        isAdvancedMode: false
-    });
-}
-
-export function updateVisibleItems(items) {
-    resultsStore.update(store => ({
-        ...store,
-        visibleItems: new Set(items)
-    }));
-}
-

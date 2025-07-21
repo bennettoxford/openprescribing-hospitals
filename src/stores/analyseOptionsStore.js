@@ -1,5 +1,4 @@
 import { writable } from 'svelte/store';
-import { clearResults } from './resultsStore';
 import { organisationSearchStore } from './organisationSearchStore';
 
 const createAnalyseOptionsStore = () => {
@@ -42,14 +41,4 @@ const createAnalyseOptionsStore = () => {
 
 export const analyseOptions = createAnalyseOptionsStore();
 
-export function clearAnalysisOptions() {
-    analyseOptions.update(store => ({
-        ...store,
-        selectedVMPs: [],
-        quantityType: '--',
-        searchType: 'vmp'
-    }));
-    organisationSearchStore.reset();
-    clearResults();
-}
 
