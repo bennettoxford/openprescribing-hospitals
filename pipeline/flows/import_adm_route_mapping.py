@@ -6,6 +6,7 @@ from pipeline.utils.utils import get_bigquery_client
 from pipeline.bq_tables import (
     ADM_ROUTE_MAPPING_TABLE_SPEC,
     WHO_ROUTES_OF_ADMINISTRATION_TABLE_SPEC,
+    DMD_TABLE_SPEC,
 )
 
 
@@ -294,6 +295,37 @@ def import_adm_route_mapping(route_mapping: Dict) -> List[Dict]:
         f"Successfully imported {len(route_records)} route mapping records to {ADM_ROUTE_MAPPING_TABLE_SPEC.full_table_id}"
     )
 
+@task
+def validate_routes():
+    """Validate that all routes in DMD exist in route mapping table"""
+    logger = get_run_logger()
+    client = get_bigquery_client()
+
+    query = f"""
+    WITH unique_routes AS (
+        SELECT DISTINCT ontformroute_descr
+        FROM `{DMD_TABLE_SPEC.full_table_id}`,
+        UNNEST(ontformroutes)
+    )
+    SELECT ontformroute_descr
+    FROM unique_routes
+    WHERE ontformroute_descr NOT IN (
+        SELECT dmd_ontformroute
+        FROM `{ADM_ROUTE_MAPPING_TABLE_SPEC.full_table_id}`
+    )
+    """
+
+    results = client.query(query).result()
+    missing_routes = [row.ontformroute_descr for row in results]
+
+    if missing_routes:
+        logger.error(
+            f"Found routes in DMD that are not in route mapping table: {missing_routes}"
+        )
+        return {"valid": False, "missing_routes": missing_routes}
+
+    logger.info("All DMD routes are present in route mapping table")
+    return {"valid": True}
 
 @flow(name="Import Administration Route Mapping")
 def import_adm_route_mapping_flow():
@@ -304,6 +336,8 @@ def import_adm_route_mapping_flow():
     dmd_routes = get_distinct_dmd_routes()
     adm_routes = create_adm_route_mapping(dmd_routes)
     adm_result = import_adm_route_mapping(adm_routes)
+
+    validate_routes()
 
     return {"who_routes": who_result, "adm_routes": adm_result}
 

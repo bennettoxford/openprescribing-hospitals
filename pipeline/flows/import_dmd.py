@@ -5,40 +5,8 @@ from pipeline.utils.utils import (
     execute_bigquery_query_from_sql_file,
     validate_table_schema,
 )
-from pipeline.bq_tables import DMD_TABLE_SPEC, ADM_ROUTE_MAPPING_TABLE_SPEC
+from pipeline.bq_tables import DMD_TABLE_SPEC
 
-
-@task
-def validate_routes():
-    """Validate that all routes in DMD exist in route mapping table"""
-    logger = get_run_logger()
-    client = get_bigquery_client()
-
-    query = f"""
-    WITH unique_routes AS (
-        SELECT DISTINCT ontformroute_descr
-        FROM `{DMD_TABLE_SPEC.full_table_id}`,
-        UNNEST(ontformroutes)
-    )
-    SELECT ontformroute_descr
-    FROM unique_routes
-    WHERE ontformroute_descr NOT IN (
-        SELECT dmd_ontformroute
-        FROM `{ADM_ROUTE_MAPPING_TABLE_SPEC.full_table_id}`
-    )
-    """
-
-    results = client.query(query).result()
-    missing_routes = [row.ontformroute_descr for row in results]
-
-    if missing_routes:
-        logger.error(
-            f"Found routes in DMD that are not in route mapping table: {missing_routes}"
-        )
-        return {"valid": False, "missing_routes": missing_routes}
-
-    logger.info("All DMD routes are present in route mapping table")
-    return {"valid": True}
 
 @task
 def validate_vtm_consistency():
@@ -143,7 +111,6 @@ def import_dmd():
     logger.info("dm+d imported")
 
     validations = {
-        "routes": validate_routes(),
         "schema": validate_table_schema(DMD_TABLE_SPEC),
         "vtm": validate_vtm_consistency(),
         "ingredient_units": validate_ingredient_units(),

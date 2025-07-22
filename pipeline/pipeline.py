@@ -59,18 +59,18 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
         ae_status_result = import_ae_status(wait_for=[setup_result])
         atc_ddd_alterations = import_atc_ddd_alterations_flow(wait_for=[setup_result])
 
+        dmd_result = import_dmd(wait_for=[setup_result])
+        dmd_uom = import_dmd_uom(wait_for=[dmd_result])
+        dmd_supp = import_dmd_supp_flow(wait_for=[dmd_uom, atc_ddd_alterations])
+
+        adm_route = import_adm_route_mapping_flow(wait_for=[dmd_result])
+
         atc_result = import_atc_flow(wait_for=[atc_ddd_alterations])
         ddd_result = import_ddd_flow(wait_for=[atc_ddd_alterations])
 
-        adm_route = import_adm_route_mapping_flow(wait_for=[ae_status_result])
-        dmd_result = import_dmd(wait_for=[adm_route])
-        dmd_uom = import_dmd_uom(wait_for=[dmd_result])
-        dmd_supp = import_dmd_supp_flow(wait_for=[dmd_uom, atc_ddd_alterations])
-    
-        vmps = populate_vmp_table(wait_for=[dmd_supp])
+        vmps = populate_vmp_table(wait_for=[dmd_supp, adm_route])
         vmp_unit_standardisation = import_vmp_unit_standardisation_flow(wait_for=[vmps])
         
-
         scmd_pre_apr_result = import_scmd_pre_april_2019(wait_for=[vmp_unit_standardisation])
         scmd_result = scmd_import(wait_for=[scmd_pre_apr_result])
         
@@ -83,10 +83,9 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
         
         calculation_logic = populate_calculation_logic(wait_for=[ddd_quantities])
 
-        load_aware_data(wait_for=[calculation_logic])
 
         logger.info("Import flows completed")
-        last_import_result = load_aware_data
+        last_import_result = calculation_logic
     else:
         last_import_result = None
 
@@ -104,6 +103,7 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
         try:
             status = load_data_status_flow(wait_for=[last_import_result])
             load_organisations_flow(wait_for=[status])
+            load_aware_data(wait_for=[status])
             load_atc_flow(wait_for=[status])
             load_vmp_vtm_data(wait_for=[status])
             load_ddd_flow(wait_for=[status])
