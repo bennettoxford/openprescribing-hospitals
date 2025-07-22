@@ -184,7 +184,8 @@ ddd_route_selection AS (
       WHEN NOT all_matching_ddds_same THEN FALSE
       WHEN (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1) IS NOT NULL 
         AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != '' 
-        AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != 'New DDD' THEN FALSE
+        AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != 'New DDD'
+        AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != 'Independent of strength' THEN FALSE
       ELSE TRUE
     END AS route_match_ok,
     CASE
@@ -196,6 +197,7 @@ ddd_route_selection AS (
       WHEN (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1) IS NOT NULL 
         AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != '' 
         AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != 'New DDD'
+        AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != 'Independent of strength'
         THEN CONCAT('DDD has unsupported comment: ', (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))
       ELSE NULL
     END AS route_matching_issue,
