@@ -117,15 +117,19 @@
                 organisations: $organisationSearchStore.selectedItems
             });
 
+            analyseOptions.setSelectedOrganisations($organisationSearchStore.selectedItems);
+
             updateResults(data, {
                 quantityType,
-                searchType
+                searchType,
+                selectedOrganisations: $organisationSearchStore.selectedItems
             });
 
             dispatch('analysisComplete', { 
                 data: Array.isArray(data) ? data : [data],
                 quantityType,
-                searchType
+                searchType,
+                selectedOrganisations: $organisationSearchStore.selectedItems
             });
         } catch (error) {
             console.error("Error fetching filtered data:", error);

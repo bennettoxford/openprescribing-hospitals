@@ -9,7 +9,8 @@ const createAnalyseOptionsStore = () => {
         vmpNames: [],
         vtmNames: [],
         ingredientNames: [],
-        isAdvancedMode: false
+        isAdvancedMode: false,
+        selectedOrganisations: []
     });
 
     const runAnalysis = (options) => {
@@ -34,6 +35,12 @@ const createAnalyseOptionsStore = () => {
             update(store => ({
                 ...store,
                 isAdvancedMode: isAdvanced
+            }));
+        },
+        setSelectedOrganisations: (organisations) => {
+            update(store => ({
+                ...store,
+                selectedOrganisations: organisations
             }));
         }
     };

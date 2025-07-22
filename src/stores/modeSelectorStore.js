@@ -9,7 +9,13 @@ function createModeSelectorStore() {
     return {
         subscribe,
         setOptions: (options) => {
-            update(state => ({ ...state, options }));
+            update(state => ({ 
+                ...state, 
+                options,
+                selectedMode: options.some(opt => opt.value === state.selectedMode) 
+                    ? state.selectedMode 
+                    : (options.length > 0 ? options[0].value : null)
+            }));
         },
         setSelectedMode: (mode) => {
             update(state => ({ ...state, selectedMode: mode }));

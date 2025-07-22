@@ -93,7 +93,8 @@ export function updateResults(data, options = {}) {
         quantityType: options.quantityType || store.quantityType,
         searchType: options.searchType || store.searchType,
         dateRange: calculateDateRange(data),
-        isAdvancedMode: options.isAdvancedMode
+        isAdvancedMode: options.isAdvancedMode,
+        selectedOrganisations: options.selectedOrganisations || []
     }));
 }
 

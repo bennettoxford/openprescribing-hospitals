@@ -607,22 +607,27 @@
             { value: 'total', label: 'Total' }
         ];
 
-        const organisationsWithData = new Set(
-            selectedData
-                .filter(item => {
-                    const org = item.organisation__ods_name;
-                    const isPredecessor = Array.from($organisationSearchStore.predecessorMap.values())
-                        .some(predecessors => predecessors.includes(org));
-                    
-                    return !isPredecessor && 
-                        item.data && 
-                        item.data.some(([_, value]) => value && !isNaN(parseFloat(value)));
-                })
-                .map(item => item.organisation__ods_code)
-        );
+        const hasSelectedOrganisations = $analyseOptions.selectedOrganisations && 
+                                       $analyseOptions.selectedOrganisations.length > 0;
 
-        if (organisationsWithData.size > 1) {
-            viewModes.push({ value: 'organisation', label: 'NHS Trust' });
+        if (hasSelectedOrganisations) {
+            const organisationsWithData = new Set(
+                selectedData
+                    .filter(item => {
+                        const org = item.organisation__ods_name;
+                        const isPredecessor = Array.from($organisationSearchStore.predecessorMap.values())
+                            .some(predecessors => predecessors.includes(org));
+                        
+                        return !isPredecessor && 
+                            item.data && 
+                            item.data.some(([_, value]) => value && !isNaN(parseFloat(value)));
+                    })
+                    .map(item => item.organisation__ods_code)
+            );
+
+            if (organisationsWithData.size >= 1) {
+                viewModes.push({ value: 'organisation', label: 'NHS Trust' });
+            }
         }
 
         if ($resultsStore.isAdvancedMode) {
