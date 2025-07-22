@@ -30,6 +30,7 @@ from pipeline.utils.config import (
     WHO_ATC_ALTERATIONS_TABLE_ID,
     CALCULATION_LOGIC_TABLE_ID,
     AWARE_VMP_MAPPING_PROCESSED_TABLE_ID,
+    VMP_EXPRESSED_AS_TABLE_ID,
 )
 
 
@@ -1287,6 +1288,51 @@ AWARE_VMP_MAPPING_PROCESSED_TABLE_SPEC = TableSpec(
             "BOOLEAN", 
             mode="NULLABLE",
             description="Flag indicating if the VMP ID was updated through historical mapping"
+        ),
+    ],
+)
+
+VMP_EXPRESSED_AS_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=VMP_EXPRESSED_AS_TABLE_ID,
+    description="For VMPs with a DDD comment indicating that the DDD is expressed as strength of something other than the active ingredient, this table contains the details of the expressed as strength",
+    schema=[
+        bigquery.SchemaField(
+            "vmp_id", 
+            "STRING",
+            mode="REQUIRED",
+            description="VMP ID"
+        ),
+        bigquery.SchemaField(
+            "vmp_name", 
+            "STRING",
+            mode="REQUIRED",
+            description="VMP name"
+        ),
+        bigquery.SchemaField(
+            "ddd_comment", 
+            "STRING",
+            mode="REQUIRED",
+            description="DDD comment"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strnt_nmrtr", 
+            "FLOAT",
+            mode="REQUIRED",
+            description="Expressed as strength numerator"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strnt_nmrtr_uom", 
+            "STRING",
+            mode="REQUIRED",
+            description="Expressed as strength numerator unit of measure"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strnt_nmrtr_uom_name", 
+            "STRING",
+            mode="REQUIRED",
+            description="Expressed as strength numerator unit of measure name"
         ),
     ],
 )
