@@ -64,7 +64,6 @@
         selectedProducts: event.detail.items,
         searchType: event.detail.type
     }));
-    console.log("Selected Items:", $analyseOptions.selectedProducts, "Search Type:", $analyseOptions.searchType);
   }
 
   function toggleAnalyseBox() {

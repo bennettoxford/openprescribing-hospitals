@@ -12,6 +12,7 @@
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
     import { updateResults } from '../../../stores/resultsStore';
+    import { modeSelectorStore } from '../../../stores/modeSelectorStore';
     import { getCookie } from '../../../utils/utils';
     
     const dispatch = createEventDispatcher();
@@ -71,6 +72,8 @@
             errorMessage = "Please select a quantity type before running the analysis.";
             return;
         }
+        
+        modeSelectorStore.reset();
 
         isAnalysisRunning = true;
         dispatch('analysisStart');
@@ -98,7 +101,6 @@
                 body: JSON.stringify({
                     quantity_type: quantityType,
                     names: selectedVMPs,
-                    ods_names: $organisationSearchStore.selectedItems,
                     search_type: searchType
                 })
             });

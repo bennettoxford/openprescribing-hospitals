@@ -16,6 +16,7 @@
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     import { formatNumber } from '../../../utils/utils';
     import pluralize from 'pluralize';
+    import { ChartDataProcessor, ViewModeCalculator, selectDefaultMode } from '../../../utils/analyseUtils.js';
 
     export let className = '';
     export let isAnalysisRunning;
@@ -25,12 +26,9 @@
     let selectedData = [];
     let vmps = [];
     let filteredData = [];
+    let viewModes = [];
+    let viewModeCalculator;
 
-    let viewModes = [
-        { value: 'total', label: 'Total' }
-    ];
-
- 
     const resultsChartStore = createChartStore({
         mode: 'trust',
         yAxisLabel: 'units',
@@ -60,7 +58,6 @@
 
     function getOrganisationColor(index) {
         const allColors = chartConfig.allColours;
-        
         return allColors[index % allColors.length];
     }
 
@@ -74,362 +71,30 @@
     let datasets = [];
 
     function processChartData(data) {
-        if (!Array.isArray(data)) {
-            console.error("Expected array for processChartData, got:", data);
-            return { labels: [], datasets: [] };
-        }
-
-        const uniqueUnits = new Set();
-        data.forEach(item => {
-            item.data.forEach(([_, __, unit]) => {
-                if (unit) uniqueUnits.add(unit);
-            });
-        });
-        
-        const formattedUnits = Array.from(uniqueUnits).map(unit => {
-            const count = data.reduce((acc, item) => {
-                return acc + item.data.filter(([_, __, u]) => u === unit).length;
-            }, 0);
-            
-            if (count > 1) {
-                return pluralize(unit);
+        const processor = new ChartDataProcessor(
+            data,
+            $resultsStore.aggregatedData,
+            {
+                selectedOrganisations: $analyseOptions.selectedOrganisations,
+                predecessorMap: $organisationSearchStore.predecessorMap
             }
-            return unit;
-        });
-        
-        const combinedUnits = formattedUnits.join('/');
-        
-        resultsChartStore.setConfig({
-            ...($resultsChartStore.config || {}),
-            yAxisLabel: combinedUnits || 'units'
-        });
+        );
 
-        const allDates = [...new Set(data.flatMap(item => 
-            item.data.map(([date]) => date)
-        ))].sort();
+        const { datasets, maxValue } = processor.processMode($modeSelectorStore.selectedMode);
+        const combinedUnits = processor.getCombinedUnits();
 
-        let maxValue;
-
-        if ($modeSelectorStore.selectedMode === 'organisation') {
-            const orgData = {};
-            data.forEach(item => {
-                const org = item.organisation__ods_name || 'Unknown';
-                if (!orgData[org]) {
-                    orgData[org] = {
-                        name: org,
-                        data: new Array(allDates.length).fill(0),
-                        isPredecessor: false
-                    };
-                }
-                
-                item.data.forEach(([date, value]) => {
-                    const dateIndex = allDates.indexOf(date);
-                    if (dateIndex !== -1) {
-                        const numValue = parseFloat(value);
-                        if (!isNaN(numValue)) {
-                            orgData[org].data[dateIndex] += numValue;
-                        }
-                    }
-                });
-            });
-
-            for (const [org, orgInfo] of Object.entries(orgData)) {
-                for (const [successor, predecessors] of $organisationSearchStore.predecessorMap.entries()) {
-                    if (predecessors.includes(org)) {
-                        orgData[org].isPredecessor = true;
-        
-                        if (orgData[successor]) {
-                            orgData[successor].data = orgData[successor].data.map(
-                                (value, index) => value + (orgData[org].data[index] || 0)
-                            );
-                        }
-                    }
-                }
-            }
-
-            datasets = Object.entries(orgData)
-                .filter(([_, { isPredecessor }]) => !isPredecessor)
-                .filter(([_, { data }]) => data.some(v => v > 0))
-                .map(([org, { name, data }], index) => ({
-                    label: name,
-                    data: data,
-                    color: getConsistentColor(org, index),
-                    strokeOpacity: 1,
-                    isOrganisation: true
-                }));
-
-            maxValue = Math.max(...Object.values(orgData)
-                .filter(org => !org.isPredecessor)
-                .flatMap(org => org.data)
-                .filter(v => v !== null && !isNaN(v)));
-
-        } else if ($modeSelectorStore.selectedMode === 'product') {
-
-            const productData = {};
-            data.forEach(item => {
-                const productKey = item.vmp__code;
-                const productName = item.vmp__name;
-                
-                if (!productData[productKey]) {
-                    productData[productKey] = {
-                        name: productName,
-                        data: new Array(allDates.length).fill(0)
-                    };
-                }
-                
-                item.data.forEach(([date, value]) => {
-                    const dateIndex = allDates.indexOf(date);
-                    if (dateIndex !== -1) {
-                        const numValue = parseFloat(value);
-                        if (!isNaN(numValue)) {
-                            productData[productKey].data[dateIndex] += numValue;
-                        }
-                    }
-                });
-            });
-
-            datasets = Object.entries(productData)
-                .filter(([_, { data }]) => data.some(v => v > 0))
-                .map(([code, { name, data }], index) => ({
-                    label: name,
-                    data: data,
-                    color: getConsistentColor(code, index),
-                    strokeOpacity: 1,
-                    isProduct: true
-                }));
-
-            maxValue = Math.max(...Object.values(productData)
-                .flatMap(product => product.data)
-                .filter(v => v !== null && !isNaN(v)));
-
-        } else if ($modeSelectorStore.selectedMode === 'total') {
-            datasets = [{
-                label: 'Total',
-                data: allDates.map(date => {
-                    const total = data.reduce((sum, item) => {
-                        const dateData = item.data.find(([d]) => d === date);
-                        return sum + (dateData ? parseFloat(dateData[1]) || 0 : 0);
-                    }, 0);
-                    return total;
-                }),
-                color: '#1e40af',
-                strokeOpacity: 1,
-                alwaysVisible: true
-            }];
-
-            maxValue = Math.max(...datasets[0].data);
-        } else if ($modeSelectorStore.selectedMode === 'productGroup') {
-            const vtmGroups = {};
-            data.forEach(item => {
-                const vtm = item.vmp__vtm__name || item.vtm__name || 'Unknown';
- 
-                if (!vtmGroups[vtm]) {
-                    vtmGroups[vtm] = {
-                        data: new Array(allDates.length).fill(0),
-                        color: getConsistentColor(vtm, Object.keys(vtmGroups).length)
-                    };
-                }
-                
-                item.data.forEach(([date, value]) => {
-                    const dateIndex = allDates.indexOf(date);
-                    if (dateIndex !== -1) {
-                        vtmGroups[vtm].data[dateIndex] += parseFloat(value) || 0;
-                    }
-                });
-            });
-
-            datasets = Object.entries(vtmGroups)
-                .filter(([_, data]) => data.data.some(v => v > 0))
-                .map(([vtm, data]) => ({
-                    label: vtm,
-                    data: data.data,
-                    color: data.color,
-                    strokeOpacity: 1,
-                    isProductGroup: true
-                }));
-
-            maxValue = Math.max(...datasets.flatMap(d => d.data));
-        } else if ($modeSelectorStore.selectedMode === 'unit') {
-            const unitData = {};
-            data.forEach(item => {
-                item.data.forEach(([date, value, unit]) => {
-                    if (!unit) return;
-                    
-                    if (!unitData[unit]) {
-                        unitData[unit] = {
-                            data: new Array(allDates.length).fill(0)
-                        };
-                    }
-                    
-                    const dateIndex = allDates.indexOf(date);
-                    if (dateIndex !== -1) {
-                        const numValue = parseFloat(value);
-                        if (!isNaN(numValue)) {
-                            unitData[unit].data[dateIndex] += numValue;
-                        }
-                    }
-                });
-            });
-
-            datasets = Object.entries(unitData)
-                .filter(([_, { data }]) => data.some(v => v > 0))
-                .map(([unit, { data }], index) => ({
-                    label: unit,
-                    data: data,
-                    color: getConsistentColor(unit, index),
-                    strokeOpacity: 1,
-                    isUnit: true
-                }));
-
-            maxValue = Math.max(...Object.values(unitData)
-                .flatMap(unit => unit.data)
-                .filter(v => v !== null && !isNaN(v)));
-
-        } else if ($modeSelectorStore.selectedMode === 'ingredient') {
-            const ingredientData = {};
-            data.forEach(item => {
-                const ingredients = item.ingredient_names || ['Unknown'];
-                ingredients.forEach((ingredient, index) => {
-                    if (!ingredientData[ingredient]) {
-                        ingredientData[ingredient] = {
-                            data: new Array(allDates.length).fill(0)
-                        };
-                    }
-                    
-                    item.data.forEach(([date, value]) => {
-                        const dateIndex = allDates.indexOf(date);
-                        if (dateIndex !== -1) {
-                            const numValue = parseFloat(value);
-                            if (!isNaN(numValue)) {
-                                // If a product has multiple ingredients, split the quantity equally
-                                ingredientData[ingredient].data[dateIndex] += numValue / ingredients.length;
-                            }
-                        }
-                    });
-                });
-            });
-
-            datasets = Object.entries(ingredientData)
-                .filter(([_, { data }]) => data.some(v => v > 0))
-                .map(([ingredient, { data }], index) => ({
-                    label: ingredient,
-                    data: data,
-                    color: getConsistentColor(ingredient, index),
-                    strokeOpacity: 1,
-                    isIngredient: true
-                }));
-
-            maxValue = Math.max(...Object.values(ingredientData)
-                .flatMap(ingredient => ingredient.data)
-                .filter(v => v !== null && !isNaN(v)));
-        } else if ($modeSelectorStore.selectedMode === 'region') {
-            const regionData = {};
-            
-            data.forEach(item => {
-                const orgName = item.organisation__ods_name;
-                let targetRegion = item.organisation__region;
-                
-                for (const [successor, predecessors] of $organisationSearchStore.predecessorMap.entries()) {
-                    if (predecessors.includes(orgName)) {
-                        const successorData = data.find(d => d.organisation__ods_name === successor);
-                        if (successorData) {
-                            targetRegion = successorData.organisation__region;
-                        }
-                        break;
-                    }
-                }
-                
-                if (!targetRegion) return;
-                
-                if (!regionData[targetRegion]) {
-                    regionData[targetRegion] = {
-                        data: new Array(allDates.length).fill(0)
-                    };
-                }
-                
-                item.data.forEach(([date, value]) => {
-                    const dateIndex = allDates.indexOf(date);
-                    if (dateIndex !== -1) {
-                        const numValue = parseFloat(value);
-                        if (!isNaN(numValue)) {
-                            regionData[targetRegion].data[dateIndex] += numValue;
-                        }
-                    }
-                });
-            });
-
-            datasets = Object.entries(regionData)
-                .filter(([_, { data }]) => data.some(v => v > 0))
-                .map(([region, { data }], index) => ({
-                    label: region,
-                    data: data,
-                    color: getConsistentColor(region, index),
-                    strokeOpacity: 1,
-                    isRegion: true
-                }));
-
-            maxValue = Math.max(...Object.values(regionData)
-                .flatMap(region => region.data)
-                .filter(v => v !== null && !isNaN(v)));
-
-        } else if ($modeSelectorStore.selectedMode === 'icb') {
-            const icbData = {};
-            data.forEach(item => {
-                const orgName = item.organisation__ods_name;
-                let targetICB = item.organisation__icb;
-
-                for (const [successor, predecessors] of $organisationSearchStore.predecessorMap.entries()) {
-                    if (predecessors.includes(orgName)) {
-                        const successorData = data.find(d => d.organisation__ods_name === successor);
-                        if (successorData) {
-                            targetICB = successorData.organisation__icb;
-                        }
-                        break;
-                    }
-                }
-                
-                if (!targetICB) return;
-                
-                if (!icbData[targetICB]) {
-                    icbData[targetICB] = {
-                        data: new Array(allDates.length).fill(0)
-                    };
-                }
-                
-                item.data.forEach(([date, value]) => {
-                    const dateIndex = allDates.indexOf(date);
-                    if (dateIndex !== -1) {
-                        const numValue = parseFloat(value);
-                        if (!isNaN(numValue)) {
-                            icbData[targetICB].data[dateIndex] += numValue;
-                        }
-                    }
-                });
-            });
-
-            datasets = Object.entries(icbData)
-                .filter(([_, { data }]) => data.some(v => v > 0))
-                .map(([icb, { data }], index) => ({
-                    label: icb,
-                    data: data,
-                    color: getConsistentColor(icb, index),
-                    strokeOpacity: 1,
-                    isICB: true
-                }));
-
-            maxValue = Math.max(...Object.values(icbData)
-                .flatMap(icb => icb.data)
-                .filter(v => v !== null && !isNaN(v)));
+        let yAxisLabel;
+        if (processor.uniqueUnits.length === 1) {
+            yAxisLabel = pluralize(processor.uniqueUnits[0]);
+        } else if (processor.uniqueUnits.length > 1) {
+            yAxisLabel = combinedUnits;
+        } else {
+            yAxisLabel = 'units';
         }
-
-        if (maxValue === undefined) {
-            maxValue = Math.max(...datasets.flatMap(d => d.data).filter(v => v !== null && !isNaN(v)));
-        }
-        maxValue = maxValue * 1.1;
 
         const chartConfig = {
             mode: $modeSelectorStore.selectedMode,
-            yAxisLabel: combinedUnits || 'units',
+            yAxisLabel: yAxisLabel,
             visibleItems: new Set(datasets.map(d => d.label)),
             yAxisRange: [0, maxValue],
             yAxisBehavior: {
@@ -439,47 +104,34 @@
             },
             yAxisTickFormat: value => {
                 const range = maxValue;
-                
                 let decimals = 1;
                 if (typeof value === 'number' && !isNaN(value)) {
-                    // Get the magnitude of the difference between consecutive values
                     const step = range / 10;
                     if (step > 0) {
-                        // Calculate required decimals based on step size
                         decimals = Math.min(
-                            Math.max(
-                                1,
-                                Math.ceil(Math.abs(Math.log10(step))) + 1
-                            ),
+                            Math.max(1, Math.ceil(Math.abs(Math.log10(step))) + 1),
                             5
                         );
                     }
                 }
-                
                 return formatNumber(value, { maxDecimals: decimals });
             },
-            tooltipValueFormat: value => formatNumber(value, { showUnit: true, unit: combinedUnits })
+            tooltipValueFormat: value => {
+                const baseUnit = combinedUnits || 'units';
+                const pluralizedUnit = pluralize(baseUnit, value);
+                return formatNumber(value, { showUnit: true, unit: pluralizedUnit });
+            }
         };
 
         const chartData = {
-            labels: allDates,
+            labels: processor.allDates,
             datasets: datasets
         };
 
         resultsChartStore.setData(chartData);
-        resultsChartStore.setDimensions({
-            height: 600,
-            margin: {
-                top: 20,
-                right: 20,
-                bottom: 40,
-                left: 80
-            }
-        });
-
         resultsChartStore.setConfig(chartConfig);
 
-        return { labels: allDates, datasets };
+        return chartData;
     }
 
     function handleUpdateData(data) {
@@ -515,51 +167,33 @@
                     unit: vmp.units.size > 0 ? Array.from(vmp.units).join(', ') : 'nan',
                 }));
 
-            filteredData = selectedData;
-
-
             resultsStore.update(store => ({
                 ...store,
                 analysisData: selectedData,
-                filteredData: selectedData,
-                productData: processProductData(selectedData),
                 showResults: true,
                 searchType: data.searchType || $analyseOptions.searchType,
                 quantityType: data.quantityType || $analyseOptions.quantityType
             }));
+
+            viewModeCalculator = new ViewModeCalculator(
+                $resultsStore,
+                $analyseOptions,
+                $organisationSearchStore,
+                vmps
+            );
+
+            viewModes = viewModeCalculator.calculateAvailableModes();
+
+            if (viewModes.length > 0) {
+                const hasSelectedOrganisations = $analyseOptions.selectedOrganisations && 
+                                               $analyseOptions.selectedOrganisations.length > 0;
+                const defaultMode = selectDefaultMode(viewModes, hasSelectedOrganisations);
+                
+                modeSelectorStore.setSelectedMode(defaultMode);
+            }
         } catch (error) {
             console.error("Error processing data:", error);
         }
-    }
-
-    function processProductData(data) {
-        if (!Array.isArray(data)) {
-            return {};
-        }
-
-        return data.reduce((acc, item) => {
-            if (!item || !item.vmp__code) {
-                return acc;
-            }
-
-            const key = item.vmp__code;
-            try {
-                acc[key] = {
-                    name: item.vmp__name,
-                    code: item.vmp__code,
-                    vtm: item.vmp__vtm__name,
-                    ingredients: item.ingredient_names || [],
-                    data: Array.isArray(item.data) ? item.data.map(([date, quantity, unit]) => ({
-                        date,
-                        quantity: parseFloat(quantity) || 0,
-                        unit
-                    })) : []
-                };
-            } catch (error) {
-                console.error("Error processing item:", item, error);
-            }
-            return acc;
-        }, {});
     }
 
     function handleFilteredData(event) {
@@ -586,112 +220,23 @@
 
     $: if ($modeSelectorStore.selectedMode && selectedData.length > 0) {
         
-        const dataToProcess = filteredData.length > 0 ? filteredData : selectedData;
+        let dataToProcess;
         
-        processChartData(
-            dataToProcess
-        );
+        if ($modeSelectorStore.selectedMode === 'organisation' || 
+            $modeSelectorStore.selectedMode === 'product' || $modeSelectorStore.selectedMode === 'productGroup' ||
+            $modeSelectorStore.selectedMode === 'unit' || $modeSelectorStore.selectedMode === 'ingredient') {
+            
+            dataToProcess = $resultsStore.filteredData && $resultsStore.filteredData.length > 0 ? 
+                $resultsStore.filteredData : selectedData;
+        } else {
+            dataToProcess = null;
+        }
+        
+        processChartData(dataToProcess);
     }
 
     $: if (analysisData) {
         handleUpdateData(analysisData);
-        
-        const initialData = selectedData.length > 0 ? selectedData : analysisData.data;
-        processChartData(
-            initialData,
-        );
-    }
-
-    $: {
-        viewModes = [
-            { value: 'total', label: 'Total' }
-        ];
-
-        const hasSelectedOrganisations = $analyseOptions.selectedOrganisations && 
-                                       $analyseOptions.selectedOrganisations.length > 0;
-
-        if (hasSelectedOrganisations) {
-            const organisationsWithData = new Set(
-                selectedData
-                    .filter(item => {
-                        const org = item.organisation__ods_name;
-                        const isPredecessor = Array.from($organisationSearchStore.predecessorMap.values())
-                            .some(predecessors => predecessors.includes(org));
-                        
-                        return !isPredecessor && 
-                            item.data && 
-                            item.data.some(([_, value]) => value && !isNaN(parseFloat(value)));
-                    })
-                    .map(item => item.organisation__ods_code)
-            );
-
-            if (organisationsWithData.size >= 1) {
-                viewModes.push({ value: 'organisation', label: 'NHS Trust' });
-            }
-        }
-
-        if ($resultsStore.isAdvancedMode) {
-            const mappedICBs = new Set(
-                selectedData.map(item => {
-                    const orgName = item.organisation__ods_name;
-                    let targetICB = item.organisation__icb;
-                    
-                    for (const [successor, predecessors] of $organisationSearchStore.predecessorMap.entries()) {
-                        if (predecessors.includes(orgName)) {
-                            const successorData = selectedData.find(d => d.organisation__ods_name === successor);
-                            if (successorData) {
-                                targetICB = successorData.organisation__icb;
-                            }
-                            break;
-                        }
-                    }
-                    return targetICB;
-                }).filter(Boolean)
-            );
-
-            if (mappedICBs.size > 1) {
-                viewModes.push({ value: 'icb', label: 'ICB' });
-            }
-
-            const uniqueRegions = new Set(selectedData.map(item => item.organisation__region).filter(Boolean));
-            if (uniqueRegions.size > 1) {
-                viewModes.push({ value: 'region', label: 'Region' });
-            }
-        }
-
-        if (vmps.length > 1) {
-            viewModes.push({ value: 'product', label: 'Product' });
-        }
-
-        const uniqueVtms = new Set(vmps.map(vmp => vmp.vtm).filter(vtm => vtm && vtm !== '-' && vtm !== 'nan'));
-        if (uniqueVtms.size > 1) {
-            viewModes.push({ value: 'productGroup', label: 'Product Group' });
-        }
-
-        const uniqueIngredients = new Set(
-            vmps.flatMap(vmp => (vmp.ingredients || []))
-                .filter(ing => ing && ing !== '-' && ing !== 'nan')
-        );
-        if (uniqueIngredients.size > 1) {
-            viewModes.push({ value: 'ingredient', label: 'Ingredient' });
-        }
-
-        const uniqueUnits = new Set(
-            vmps.flatMap(vmp => Array.from(vmp.units))
-                .filter(unit => unit && unit !== '-' && unit !== 'nan')
-        );
-        if (uniqueUnits.size > 1) {
-            viewModes.push({ value: 'unit', label: 'Unit' });
-        }
-
-
-    }
-
-    function handleModeChange() {
-        const dataToProcess = filteredData.length > 0 ? filteredData : selectedData;
-        processChartData(
-            dataToProcess
-        );
     }
 
     $: if (analysisData) {
@@ -711,16 +256,15 @@
         const value = d.value;
         const chartConfig = $resultsChartStore.config;
         
-        // Get the specific unit for products, otherwise use the combined units
         let unit;
         if (d.dataset.isProduct && vmps.length > 0) {
-            // Find the matching VMP to get its specific unit
             const matchingVmp = vmps.find(vmp => vmp.vmp === d.dataset.label);
             const baseUnit = matchingVmp?.unit || chartConfig?.yAxisLabel || 'unit';
             
             unit = pluralize(baseUnit, value);
         } else {
-            unit = chartConfig?.yAxisLabel || 'units';
+            const baseUnit = chartConfig?.yAxisLabel || 'units';
+            unit = pluralize(baseUnit, value);
         }
 
         const tooltipContent = [
@@ -769,10 +313,9 @@
                         <div class="mb-4">
                             <ModeSelector 
                                 options={viewModes}
-                                initialMode="total"
+                                initialMode={selectDefaultMode(viewModes, $analyseOptions.selectedOrganisations?.length > 0)}
                                 label="View Mode"
                                 variant="pill"
-                                onChange={handleModeChange}
                             />
                         </div>
                         <div class="grid grid-cols-1 gap-4">
