@@ -1,5 +1,5 @@
 <svelte:options customElement={{
-    tag: 'collapsible-section',
+    tag: 'measure-products',
     props: {
         title: { type: 'String' },
         description: { type: 'String' },

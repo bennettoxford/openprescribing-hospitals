@@ -240,5 +240,5 @@ def setup_django_environment(db_config=None):
     os.environ["DATABASE_PORT"] = str(db_config['PORT'])
     os.environ["DATABASE_USER"] = str(db_config['USER'])
     
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "demo.settings")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "openprescribing-hospitals.settings")
     django.setup()

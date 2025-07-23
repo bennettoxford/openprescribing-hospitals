@@ -1,12 +1,12 @@
 <svelte:options customElement={{
-    tag: 'results-box',
+    tag: 'analysis-results',
     shadow: 'none'
   }} />
 
 <script>
-    import DataTable from './DataTable.svelte';
-    import ProductList from './ProductList.svelte';
-    import { resultsStore, updateVisibleItems } from '../../../stores/resultsStore';
+    import TotalsTable from './TotalsTable.svelte';
+    import ProductsTable from './ProductsTable.svelte';
+    import { resultsStore } from '../../../stores/resultsStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
     import Chart from '../../common/Chart.svelte';
     import { modeSelectorStore } from '../../../stores/modeSelectorStore';
@@ -757,7 +757,7 @@
             {:else if selectedData.length > 0}
                 <div class="space-y-6 p-6">
                     <section class="bg-white rounded-lg p-4 border-2 border-oxford-300 shadow-sm">
-                        <ProductList {vmps} on:dataFiltered={handleFilteredData} />
+                        <ProductsTable {vmps} on:dataFiltered={handleFilteredData} />
                     </section>
                     {#if hasChartableData(selectedData)}
                     <section class="p-4">
@@ -800,7 +800,7 @@
                     </section>
 
                     <section class="p-4">
-                        <DataTable 
+                        <TotalsTable 
                             data={filteredData} 
                             quantityType={$analyseOptions.quantityType} 
                             searchType={$analyseOptions.searchType} 

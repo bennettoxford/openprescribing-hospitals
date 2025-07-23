@@ -1,5 +1,5 @@
 import { writable, derived, get } from 'svelte/store';
-import { regionColors, percentilesLegend } from '../utils/chartConfig.js';
+import { regionColors } from '../utils/chartConfig.js';
 import { organisationSearchStore } from '../stores/organisationSearchStore';
 
 export const orgdata = writable([]);
@@ -23,19 +23,6 @@ const organisationColors = [
 
 export function getOrganisationColor(index) {
   return organisationColors[index % organisationColors.length];
-}
-
-const trustColors = [
-  '#332288', '#117733', '#44AA99', '#88CCEE', 
-  '#DDCC77', '#CC6677', '#AA4499', '#882255'
-];
-
-
-
-export function getOrganisationIndex(orgName, allOrgs) {
-    return Array.isArray(allOrgs) ? 
-        allOrgs.indexOf(orgName) : 
-        Object.keys(allOrgs).indexOf(orgName);
 }
 
 const createDataArrayWithNulls = (data, allDates, field) => {
@@ -249,47 +236,6 @@ export const filteredData = derived(
     return { labels, datasets };
   }
 );
-
-export const legendItems = derived(selectedMode, $selectedMode => {
-  if ($selectedMode === 'deciles') {
-    return decilesLegend;
-  } else if ($selectedMode === 'region') {
-    return Object.entries(regionColors).map(([region, color]) => ({
-      label: region,
-      style: `background-color: ${color}`
-    }));
-  }
-  return [];
-});
-
-function groupBy(array, key) {
-  return array.reduce((result, currentValue) => {
-    (result[currentValue[key]] = result[currentValue[key]] || []).push(currentValue);
-    return result;
-  }, {});
-}
-
-export function formatTooltipValue(value, numerator, denominator) {
-    if (value === null || value === undefined) return 'No data';
-    
-    let formattedValue = value.toFixed(1) + '%';
-    if (numerator !== undefined && denominator !== undefined) {
-        formattedValue += ` (${numerator}/${denominator})`;
-    }
-    return formattedValue;
-}
-
-export function getTooltipContent(d) {
-    const date = new Date(d.date);
-    const formattedDate = date.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-    const value = formatTooltipValue(d.value * 100, d.dataset.numerator?.[d.index], d.dataset.denominator?.[d.index]);
-    
-    return `
-        <div class="font-medium">${d.dataset.label}</div>
-        <div class="text-sm text-gray-600">${formattedDate}</div>
-        <div class="text-sm">${value}</div>
-    `;
-}
 
 export function updatePercentilesVisibility(showPercentiles) {
     const currentData = get(filteredData);

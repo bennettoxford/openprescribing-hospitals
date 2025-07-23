@@ -1,5 +1,5 @@
 <svelte:options customElement={{
-    tag: 'data-table',
+    tag: 'totals-table',
     shadow: 'none'
   }} />
 
@@ -36,7 +36,6 @@
                 latestMonth = latest.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
                 latestYear = latest.getFullYear().toString();
                 
-                const fyStart = latest.getMonth() >= 3 ? latest.getFullYear() : latest.getFullYear() - 1;
                 currentFY = 'FYTD';
         
                 dateRange = `${startDate}-${endDate}`;
@@ -44,7 +43,7 @@
         }
     }
 
-    function processData(data, quantityType, searchType, period) {
+    function processData(data, searchType, period) {
         if (!data?.length) return [];
 
         let filteredData = data.map(item => ({
@@ -125,15 +124,9 @@
             }));
     }
 
-    $: groupedData = processData(data, quantityType, searchType, selectedPeriod);
+    $: groupedData = processData(data, searchType, selectedPeriod);
 
-    function formatDate(dateStr) {
-        if (!dateStr) return '';
-        return new Date(dateStr).toLocaleDateString('en-GB', { 
-            year: 'numeric', 
-            month: 'short'
-        });
-    }
+
 </script>
 
 <div class="p-4">

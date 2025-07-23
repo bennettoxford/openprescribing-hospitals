@@ -1,12 +1,12 @@
 <svelte:options customElement={{
-    tag: 'analyse-box',
+    tag: 'analysis-builder',
     shadow: 'none'
   }} />
 
 <script>
     import { onMount } from 'svelte';
     import '../../../styles/styles.css';
-    import Search from '../../common/Search.svelte';
+    import ProductSearch from '../../common/ProductSearch.svelte';
     import OrganisationSearch from '../../common/OrganisationSearch.svelte';
     import { createEventDispatcher } from 'svelte';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
@@ -91,7 +91,7 @@
             });
         }
         
-        let endpoint = '/api/filtered-quantities/';
+        let endpoint = '/api/get-quantity-data/';
         
         try {
             const response = await fetch(endpoint, {
@@ -142,7 +142,7 @@
     }
 
     function dispatchAnalysisRunningChange(running) {
-        const analyseBox = document.querySelector('analyse-box');
+        const analyseBox = document.querySelector('analysis-builder');
         if (analyseBox) {
             analyseBox.dispatchEvent(new CustomEvent('analysisRunningChange', { detail: running }));
         }
@@ -191,7 +191,7 @@
 
         errorMessage = '';
 
-        const searchComponent = document.querySelector('analyse-box search-component');
+        const searchComponent = document.querySelector('analysis-builder search-component');
         if (searchComponent) {
             searchComponent.clearInput();
         }
@@ -298,7 +298,7 @@
               </div>
             </div>
             <div class="relative">
-              <Search on:selectionChange={handleVMPSelection} {isAdvancedMode} />
+              <ProductSearch on:selectionChange={handleVMPSelection} {isAdvancedMode} />
             </div>
           </div>
 

@@ -5,8 +5,8 @@
 
 <script>
   import { onMount } from 'svelte';
-  import AnalyseBox from './analyse/AnalyseBox.svelte';
-  import ResultsBox from './results/ResultsBox.svelte';
+  import AnalysisBuilder from './analyse/AnalysisBuilder.svelte';
+  import AnalysisResults from './results/AnalysisResults.svelte';
   import { writable } from 'svelte/store';
   import { analyseOptions } from '../../stores/analyseOptionsStore';
   import { organisationSearchStore } from '../../stores/organisationSearchStore';
@@ -105,7 +105,7 @@
                 <div class="flex-grow overflow-y-auto overflow-x-visible transition-all duration-300 ease-in-out"
                      class:max-h-0={isAnalyseBoxCollapsed && !isLargeScreen}
                      class:max-h-[1000px]={!isAnalyseBoxCollapsed || isLargeScreen}>
-                    <analyse-box 
+                    <analysis-builder 
                         {isAdvancedMode}
                         {minDate}
                         {maxDate}
@@ -118,7 +118,7 @@
                         on:organisationDropdownToggle={handleOrganisationDropdownToggle}
                         on:advancedModeChange={handleAdvancedModeChange}
                         on:vmpSelection={handleVMPSelection}
-                    ></analyse-box>
+                    ></analysis-builder>
                 </div>
                 {#if !isLargeScreen}
                 <button
@@ -150,12 +150,12 @@
                 <div class="bg-gradient-to-r from-oxford-600/60 via-bn-roman-600/70 to-bn-strawberry-600/60 text-white p-2 rounded-t-lg">
                     <h2 class="text-lg font-semibold">Results</h2>
                 </div>
-                <results-box 
+                <analysis-results 
                     className="flex-grow" 
                     isAnalysisRunning={$isAnalysisRunning} 
                     analysisData={analysisData} 
                     {showResults}
-                ></results-box>
+                ></analysis-results>
             </div>
         </div>
     </div>

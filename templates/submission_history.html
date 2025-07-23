@@ -3,7 +3,7 @@
 {% load django_vite %}
 
 {% block head %}
-    {% vite_asset 'src/components/dq/OrgSubmission.svelte' %}
+    {% vite_asset 'src/components/dq/SubmissionHistory.svelte' %}
 {% endblock %}
 
 {% block title %}Submission History{% endblock %}
@@ -60,11 +60,11 @@
         <div class="border-b border-gray-200 mb-6" id="chart-divider"></div>
 
         <div class="w-full">
-            <org-submission 
+            <submission-history
                 orgData="{{ org_data_json|escapejs }}"
                 latestDates="{{ latest_dates|escapejs }}"
                 regionsHierarchy="{{ regions_hierarchy|escapejs }}"
-            ></org-submission>
+            ></submission-history>
         </div>
     </div>
 </div>

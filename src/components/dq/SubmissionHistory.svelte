@@ -1,5 +1,5 @@
 <svelte:options customElement={{
-    tag: 'org-submission',
+    tag: 'submission-history',
     shadow: 'none',
     props: {
         orgdata: { type: 'String' },
@@ -14,7 +14,7 @@
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore';
     import OrgSubmissionChart from './OrgSubmissionChart.svelte';
-    import LazyLoad from './LazyLoad.svelte';
+    import OrgSubmissionChartLazy from './OrgSubmissionChartLazy.svelte';
 
     export let orgData = '{}';
     export let latestDates = '{}';
@@ -28,7 +28,6 @@
     let months = [];
     let error = null;
     let sortType = 'missing_latest';
-    let searchTerm = '';
     let filteredOrganisations = [];
     let searchableOrgs = [];
     let showScrollButton = false;
@@ -62,23 +61,7 @@
         return deviations.reduce((sum, dev) => sum + dev, 0) / deviations.length;
     }
 
-    function filterOrganisations(orgs, searchTerms) {
-        if (!searchTerms || searchTerms.length === 0) return orgs;
-        
-        return orgs.filter(org => {
-            const matchesOrg = searchTerms.some(term => 
-                org.name.toLowerCase().includes(term.toLowerCase())
-            );
-            
-            const matchesPredecessor = org.predecessors?.some(pred => 
-                searchTerms.some(term => 
-                    pred.name.toLowerCase().includes(term.toLowerCase())
-                )
-            );
-            
-            return matchesOrg || matchesPredecessor;
-        });
-    }
+
 
     function prepareOrganisationsForSearch(orgs) {
         let allOrgs = [];
@@ -510,13 +493,13 @@
     {:else}
 
         {#each filteredOrganisations as org (org.name)}
-            <LazyLoad>
+            <OrgSubmissionChartLazy>
                 <OrgSubmissionChart 
                     {org}
                     latestDates={parsedLatestDates}
                     {months}
                 />
-            </LazyLoad>
+            </OrgSubmissionChartLazy>
         {/each}
     {/if}
 

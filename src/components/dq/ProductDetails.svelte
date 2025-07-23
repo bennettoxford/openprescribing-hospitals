@@ -5,7 +5,7 @@
 
 <script>
   import { onMount } from 'svelte';
-  import Search from '../common/Search.svelte';
+  import ProductSearch from '../common/ProductSearch.svelte';
   import { getCookie, formatStrength } from '../../utils/utils';
   import { analyseOptions } from '../../stores/analyseOptionsStore';
   
@@ -21,7 +21,7 @@
   let expandedLogic = {};
 
   const API_ENDPOINTS = {
-    PRODUCT_DETAILS: '/api/product-details/'
+    PRODUCT_DETAILS: '/api/get-product-details/'
   };
 
   const EXTERNAL_LINKS = {
@@ -212,7 +212,7 @@
     </div>
     
     <div class="relative">
-      <Search 
+      <ProductSearch 
         on:selectionChange={handleSelectionChange} 
         isAdvancedMode={true} 
         type="product"

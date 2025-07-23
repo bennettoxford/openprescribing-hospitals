@@ -21,7 +21,6 @@
         visibleRegions,
         visibleTrusts,
         visibleICBs,
-        getOrAssignColor,
         showPercentiles,
         updatePercentilesVisibility,
         getDatasetVisibility
@@ -31,7 +30,6 @@
     import ModeSelector from '../common/ModeSelector.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore';
     import { modeSelectorStore } from '../../stores/modeSelectorStore.js';
-    import { regionColors } from '../../utils/chartConfig.js';
     import { filteredData } from '../../stores/measureChartStore.js';
     import { formatNumber } from '../../utils/utils.js';
 
@@ -45,11 +43,6 @@
     let regions = [];
 
     $: showFilter = ['percentiles', 'icb', 'region', 'national'].includes($selectedMode);
-
-    $: showLegend = $selectedMode === 'percentiles' || 
-                    $selectedMode === 'region' || 
-                    $selectedMode === 'icb' ||
-                    $selectedMode === 'national';
 
     $: {
         if ($selectedMode === 'icb') {
@@ -313,79 +306,6 @@
             };
             measureChartStore.setData(updatedData);
         }
-    }
-
-    $: legendItems = $selectedMode === 'region' ? 
-        Array.from($visibleRegions).map(region => ({
-            label: region,
-            color: regionColors[region],
-            visible: true,
-            selectable: true
-        })) :
-        $selectedMode === 'percentiles' ?
-            [
-                ...$showPercentiles ? [
-                    { label: 'Median (50th percentile)', color: '#DC3220', visible: true, selectable: false },
-                    { label: '5th-95th percentiles', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.1 },
-                    { label: '15th-85th percentiles', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.2 },
-                    { label: '25th-75th percentiles', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.4 },
-                    { label: '35th-65th percentiles', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.6 },
-                    { label: '45th-55th percentiles', color: 'rgb(0, 90, 181)', visible: true, selectable: false, opacity: 0.8 }
-                ] : [],
-                ...Array.from($visibleTrusts || [])
-                    .filter(trust => {
-                        const isPredecessor = Array.from($organisationSearchStore.predecessorMap.entries())
-                            .some(([successor, predecessors]) => predecessors.includes(trust));
-                        return !isPredecessor;
-                    })
-                    .map(trust => {
-                        return {
-                            label: trust,
-                            color: getOrAssignColor(trust),
-                            visible: true,
-                            selectable: true
-                        };
-                    })
-            ].filter(Boolean) :
-        $selectedMode === 'icb' ?
-            Array.from($visibleICBs).map(icb => ({
-                label: icb,
-                color: getOrAssignColor(icb),
-                visible: true,
-                selectable: true
-            })) :
-        $selectedMode === 'national' ?
-            [{ 
-                label: 'National', 
-                color: 'rgb(0, 90, 181)',
-                visible: true, 
-                selectable: false 
-            }] :
-            [];
-
-
-    $: legendKey = $selectedMode + Array.from($visibleTrusts).join(',');
-
-    function handleLegendChange(items) {
-        const newVisible = new Set(items);
-
-        const updatedData = {
-            ...$filteredData,
-            datasets: $filteredData.datasets.map(dataset => ({
-                ...dataset,
-                hidden: $selectedMode === 'percentiles' ?
-                    (!$showPercentiles && (
-                        dataset.label === 'Median (50th percentile)' ||
-                        dataset.label.includes('th percentile')
-                    )) || (
-                        !Array.from($visibleTrusts).includes(dataset.label) && 
-                        !dataset.alwaysVisible
-                    ) :
-                    !Array.from(newVisible).includes(dataset.label)
-            }))
-        };
-        
-        measureChartStore.setData(updatedData);
     }
 
     $: {

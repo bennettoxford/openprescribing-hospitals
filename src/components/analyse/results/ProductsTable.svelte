@@ -10,7 +10,6 @@
 
     let checkedVMPs = {};
 
-    $: currentSearchType = $resultsStore.searchType;
     $: quantityType = $resultsStore.quantityType;
     $: isAdvancedMode = $analyseOptions.isAdvancedMode;
 
