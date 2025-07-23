@@ -7,6 +7,7 @@
   import Exporting from 'highcharts/modules/exporting';
   import ExportData from 'highcharts/modules/export-data';
   import Accessibility from 'highcharts/modules/accessibility';
+  import Boost from 'highcharts/modules/boost';
   import { Chart} from '@highcharts/svelte';
   import { chartStore } from '../../stores/chartStore.js';
 
@@ -41,6 +42,10 @@
     if (dataset.alwaysVisible) return true;
     return config.visibleItems.has(dataset.label);
   });
+
+  $: shouldUseBoost = visibleDatasets && visibleDatasets.length > 20 && 
+                    config.mode !== 'percentiles' && config.mode !== 'trust' && config.mode !== 'organisation';
+
 
   $: finalChartOptions = {
     ...chartOptions,
@@ -106,7 +111,16 @@
           });
         }
       },
-      spacingRight: 20
+      spacingRight: 20,
+      boost: shouldUseBoost ? {
+        enabled: true,
+        useGPUTranslations: true,
+        usePreallocated: true,
+        seriesThreshold: 20,
+        allowForce: true
+      } : {
+        enabled: false
+      }
     },
     title: {
       text: undefined
@@ -119,7 +133,7 @@
       maxHeight: 400,
       navigation: {
         activeColor: '#2563eb',
-        animation: true,
+        animation: false,
         arrowSize: 12,
         inactiveColor: '#94a3b8',
         style: {
@@ -291,7 +305,7 @@
         findNearestPointBy: 'xy',
         stickyTracking: false,
         marker: {
-          enabled: false
+          enabled: shouldUseBoost ? false : false
         },
         states: {
           hover: {
@@ -312,6 +326,16 @@
               }
             }
           }
+        },
+        boostThreshold: shouldUseBoost ? 1 : 2000,
+        cropThreshold: shouldUseBoost ? 1000 : 300,
+        turboThreshold: shouldUseBoost ? 1000 : 1000
+      },
+      line: {
+        lineWidth: shouldUseBoost ? 1 : 2,
+        marker: {
+          enabled: false,
+          radius: shouldUseBoost ? 2 : 3
         }
       },
       arearange: {
@@ -328,12 +352,16 @@
     series: visibleDatasets.map(dataset => ({
       name: dataset.label,
       type: dataset.isRange ? 'arearange' : 'line',
-      data: dataset.data.map((y, i) => ({
-        x: new Date(data.labels[i]),
-        y: dataset.isRange ? undefined : y,
-        low: dataset.isRange ? y.lower : undefined,
-        high: dataset.isRange ? y.upper : undefined
-      })),
+      data: dataset.isRange 
+        ? dataset.data.map((y, i) => [
+            new Date(data.labels[i]).getTime(),
+            y.lower,
+            y.upper
+          ])
+        : dataset.data.map((y, i) => [
+            new Date(data.labels[i]).getTime(),
+            y
+          ]),
       isProduct: dataset.isProduct,
       isOrganisation: dataset.isOrganisation,
       isProductGroup: dataset.isProductGroup,
@@ -415,7 +443,6 @@
 
 <style>
   :global(.tooltip) {
-    transition: opacity 0.2s ease-in-out;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
 
