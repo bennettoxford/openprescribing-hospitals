@@ -349,21 +349,22 @@ export class ViewModeCalculator {
         
         if (!hasSelectedOrganisations) return false;
 
-        const organisationsWithData = new Set(
-            this.resultsStore.analysisData
-                ?.filter(item => {
-                    const org = item.organisation__ods_name;
-                    const isPredecessor = Array.from(this.organisationSearchStore.predecessorMap.values())
-                        .some(predecessors => predecessors.includes(org));
-                    
-                    return !isPredecessor && 
-                        item.data && 
-                        item.data.some(([_, value]) => value && !isNaN(parseFloat(value)));
-                })
-                .map(item => item.organisation__ods_code) || []
-        );
+        const selectedOrgNames = new Set(this.analyseOptions.selectedOrganisations);
 
-        return organisationsWithData.size >= 1;
+        const selectedOrganisationsWithData = this.resultsStore.analysisData
+            ?.filter(item => {
+                const orgName = item.organisation__ods_name;
+                const isSelected = selectedOrgNames.has(orgName);
+                const isPredecessor = Array.from(this.organisationSearchStore.predecessorMap.values())
+                    .some(predecessors => predecessors.includes(orgName));
+                
+                return isSelected && 
+                       !isPredecessor && 
+                       item.data && 
+                       item.data.some(([_, value]) => value && !isNaN(parseFloat(value)));
+            }) || [];
+
+        return selectedOrganisationsWithData.length >= 1;
     }
 
     getAggregationModes() {
