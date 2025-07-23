@@ -92,11 +92,14 @@
         dispatch('dataFiltered', selectedVMPs);
 
         resultsStore.update(store => {
-            const originalData = store.analysisData?.data || [];
+            const originalData = store.analysisData || [];
             
             const filteredData = originalData.filter(item => {
-                const isSelectedVMP = selectedVMPs.some(vmp => vmp.vmp === item.vmp_name);
-                return isSelectedVMP && item.unit !== 'nan';
+                const isSelectedVMP = selectedVMPs.some(vmp => vmp.vmp === item.vmp__name);
+                
+                const hasValidData = item.data && item.data.length > 0 && 
+                    item.data.some(([, quantity, unit]) => quantity && !isNaN(parseFloat(quantity)) && unit !== 'nan');
+                return isSelectedVMP && hasValidData;
             });
 
             return {
@@ -129,7 +132,7 @@
     
     <div class="mb-4 text-sm text-gray-700">
         <p class="mb-2">This table shows all products returned in your analysis. Use the checkboxes to select or deselect products.</p>
-        <p>Only selected products with valid values quantity values will be used in the analysis.</p>
+        <p>Only selected products with valid quantity values will be used in the analysis.</p>
     </div>
 
     <p class="mb-2 text-sm text-gray-600">
