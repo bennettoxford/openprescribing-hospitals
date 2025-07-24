@@ -111,7 +111,12 @@ vmp_ddd_info AS (
     selected_ddd_value * COALESCE(ddd_conv.conversion_factor, 1.0) AS selected_ddd_basis_value,
     COALESCE(ddd_conv.basis, selected_ddd_unit) AS selected_ddd_basis_unit,
     can_calculate_ddd,
-    ddd_calculation_logic
+    ddd_calculation_logic,
+    -- Add expressed_as fields
+    has_expressed_as_data,
+    expressed_as_comment,
+    expressed_as_strength,
+    expressed_as_strength_unit
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_DDD_MAPPING_TABLE_ID }}`
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` ddd_conv
     ON selected_ddd_unit = ddd_conv.unit
@@ -138,7 +143,12 @@ SELECT
   vddd.selected_ddd_basis_value,
   vddd.selected_ddd_basis_unit,
   vddd.can_calculate_ddd,
-  vddd.ddd_calculation_logic
+  vddd.ddd_calculation_logic,
+  -- Add expressed_as fields to final output
+  vddd.has_expressed_as_data,
+  vddd.expressed_as_comment,
+  vddd.expressed_as_strength,
+  vddd.expressed_as_strength_unit
 FROM vmp_base vb
 LEFT JOIN vmp_bnf vbnf ON vb.vmp_code = vbnf.vmp_code
 LEFT JOIN vmp_ingredients vi ON vb.vmp_code = vi.vmp_code

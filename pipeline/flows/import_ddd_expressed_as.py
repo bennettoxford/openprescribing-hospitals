@@ -10,7 +10,9 @@ from pipeline.bq_tables import VMP_EXPRESSED_AS_TABLE_SPEC
 def create_expressed_as_dict() -> Dict:
     expressed_as_dict = {
         "38893611000001108": {
-            "vmp_name": "Aclidinium bromide 375micrograms/dose dry powder inhaler",
+            "vmp_name": (
+                "Aclidinium bromide 375micrograms/dose dry powder inhaler"
+            ),
             "ddd_comment": "Expressed as aclidinium, delivered dose",
             "expressed_as_strnt_nmrtr": 322,
             "expressed_as_strnt_nmrtr_uom": "258685003",
@@ -36,7 +38,9 @@ def import_expressed_as(table_id: str, expressed_as_dict: Dict) -> List[Dict]:
         ddd_comment = values["ddd_comment"]
         expressed_as_strnt_nmrtr = values["expressed_as_strnt_nmrtr"]
         expressed_as_strnt_nmrtr_uom = values["expressed_as_strnt_nmrtr_uom"]
-        expressed_as_strnt_nmrtr_uom_name = values["expressed_as_strnt_nmrtr_uom_name"]
+        expressed_as_strnt_nmrtr_uom_name = values[
+            "expressed_as_strnt_nmrtr_uom_name"
+        ]
 
         if vmp_id is not None:
             vmp_id = str(vmp_id)
@@ -47,12 +51,16 @@ def import_expressed_as(table_id: str, expressed_as_dict: Dict) -> List[Dict]:
             "ddd_comment": ddd_comment,
             "expressed_as_strnt_nmrtr": expressed_as_strnt_nmrtr,
             "expressed_as_strnt_nmrtr_uom": expressed_as_strnt_nmrtr_uom,
-            "expressed_as_strnt_nmrtr_uom_name": expressed_as_strnt_nmrtr_uom_name,
+            "expressed_as_strnt_nmrtr_uom_name": (
+                expressed_as_strnt_nmrtr_uom_name
+            ),
         }
         expressed_as_records.append(record)
         if i % 50 == 0 or i == total_expressed_as:
+            progress_pct = (i / total_expressed_as) * 100
             logger.info(
-                f"Progress: {i}/{total_expressed_as} expressed as records processed ({(i/total_expressed_as)*100:.1f}%)"
+                f"Progress: {i}/{total_expressed_as} expressed as records "
+                f"processed ({progress_pct:.1f}%)"
             )
 
     job_config = bigquery.LoadJobConfig(
@@ -66,7 +74,8 @@ def import_expressed_as(table_id: str, expressed_as_dict: Dict) -> List[Dict]:
     )
     job.result()
     logger.info(
-        f"Successfully imported {len(expressed_as_records)} expressed as records to {table_id}"
+        f"Successfully imported {len(expressed_as_records)} expressed as "
+        f"records to {table_id}"
     )
 
 
@@ -105,7 +114,9 @@ def validate_expressed_as_units(expressed_as_dict: Dict) -> Dict:
 @flow(name="Import Expressed As")
 def import_expressed_as_flow():
     """Import expressed as data into BigQuery."""
-    table_id = f"{PROJECT_ID}.{DATASET_ID}.{VMP_EXPRESSED_AS_TABLE_SPEC.table_id}"
+    table_id = (
+        f"{PROJECT_ID}.{DATASET_ID}.{VMP_EXPRESSED_AS_TABLE_SPEC.table_id}"
+    )
     expressed_as_dict = create_expressed_as_dict()
     validated_dict = validate_expressed_as_units(expressed_as_dict)
     return import_expressed_as(table_id, validated_dict)
