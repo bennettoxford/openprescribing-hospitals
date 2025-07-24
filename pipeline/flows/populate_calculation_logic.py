@@ -81,8 +81,9 @@ def validate_calculation_logic_consistency():
     FROM `{CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
     WHERE logic_type = 'ddd' 
         AND ingredient_code IS NOT NULL
-        AND LOWER(logic) NOT LIKE '%ingredient quantity%'
-        AND logic NOT IN ('Ingredient quantity / DDD')
+        AND logic NOT LIKE '%Ingredient quantity / DDD%'
+        AND logic NOT LIKE '%Expressed as quantity / DDD%'
+        AND logic != 'Ingredient quantity / DDD'
     GROUP BY vmp_code, logic_type, ingredient_code, logic
     """
     results = client.query(invalid_ddd_ingredient_codes_query).result()
@@ -107,7 +108,11 @@ def validate_calculation_logic_consistency():
     FROM `{CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
     WHERE logic_type = 'ddd' 
         AND ingredient_code IS NULL
-        AND (LOWER(logic) LIKE '%ingredient quantity%' OR logic = 'Ingredient quantity / DDD')
+        AND (
+            logic LIKE '%Ingredient quantity / DDD%' 
+            OR logic LIKE '%Expressed as quantity / DDD%'
+            OR logic = 'Ingredient quantity / DDD'
+        )
     GROUP BY vmp_code, logic_type, logic
     """
     results = client.query(missing_ddd_ingredient_codes_query).result()
@@ -121,6 +126,46 @@ def validate_calculation_logic_consistency():
                 f"{record['count']} records with logic '{record['logic']}' "
                 f"but missing ingredient code"
             )
+
+    expressed_as_validation_query = f"""
+    SELECT 
+        logic,
+        COUNT(*) AS count,
+        COUNT(DISTINCT vmp_code) AS unique_vmps
+    FROM `{CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
+    WHERE logic_type = 'ddd' 
+        AND logic LIKE '%Expressed as quantity / DDD%'
+    GROUP BY logic
+    ORDER BY count DESC
+    """
+    results = client.query(expressed_as_validation_query).result()
+    expressed_as_patterns = [dict(row) for row in results]
+
+    for record in expressed_as_patterns:
+        logger.info(
+            f"Expressed as pattern '{record['logic']}': "
+            f"{record['count']} records across {record['unique_vmps']} VMPs"
+        )
+
+    refers_to_validation_query = f"""
+    SELECT 
+        logic,
+        COUNT(*) AS count,
+        COUNT(DISTINCT vmp_code) AS unique_vmps
+    FROM `{CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
+    WHERE logic_type = 'ddd' 
+        AND logic LIKE '%Refers to %'
+    GROUP BY logic
+    ORDER BY count DESC
+    """
+    results = client.query(refers_to_validation_query).result()
+    refers_to_patterns = [dict(row) for row in results]
+
+    for record in refers_to_patterns:
+        logger.info(
+            f"Refers to pattern '{record['logic']}': "
+            f"{record['count']} records across {record['unique_vmps']} VMPs"
+        )
 
     ddd_logic_summary_query = f"""
     SELECT 
@@ -150,6 +195,8 @@ def validate_calculation_logic_consistency():
         "dose_with_ingredient_codes": dose_with_ingredient_codes,
         "invalid_ddd_ingredient_codes": invalid_ddd_ingredient_codes,
         "missing_ddd_ingredient_codes": missing_ddd_ingredient_codes,
+        "expressed_as_patterns": expressed_as_patterns,
+        "refers_to_patterns": refers_to_patterns,
         "valid": (
             len(invalid_types) == 0 and 
             len(missing_ingredient_codes) == 0 and 
