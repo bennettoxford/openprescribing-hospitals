@@ -31,6 +31,7 @@ from pipeline.utils.config import (
     CALCULATION_LOGIC_TABLE_ID,
     AWARE_VMP_MAPPING_PROCESSED_TABLE_ID,
     VMP_EXPRESSED_AS_TABLE_ID,
+    DDD_REFERS_TO_TABLE_ID,
 )
 
 
@@ -1333,6 +1334,47 @@ VMP_EXPRESSED_AS_TABLE_SPEC = TableSpec(
             "STRING",
             mode="REQUIRED",
             description="Expressed as strength numerator unit of measure name"
+        ),
+    ],
+)
+
+DDD_REFERS_TO_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=DDD_REFERS_TO_TABLE_ID,
+    description="For VMPs where there are multiple linked DDDs for the same route, identifies the ingredient quantity that should be used.",
+    schema=[
+        bigquery.SchemaField(
+            "ddd_comment", 
+            "STRING",
+            mode="REQUIRED",
+            description="DDD comment"
+        ),
+        bigquery.SchemaField(
+            "refers_to_ingredient", 
+            "STRING",
+            mode="REQUIRED",
+            description="The ingredient extracted from the DDD comment"
+        ),
+        bigquery.SchemaField(
+            "dmd_ingredients",
+            "RECORD",
+            mode="REPEATED",
+            description="Matching dm+d ingredients",
+            fields=[
+                bigquery.SchemaField(
+                    "dmd_ingredient_code", 
+                    "STRING",
+                    mode="REQUIRED",
+                    description="The dm+d ingredient code"
+                ),
+                bigquery.SchemaField(
+                    "dmd_ingredient_name", 
+                    "STRING",
+                    mode="REQUIRED",
+                    description="The dm+d ingredient name"
+                ),
+            ],
         ),
     ],
 )
