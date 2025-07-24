@@ -824,6 +824,30 @@ VMP_DDD_MAPPING_TABLE_SPEC = TableSpec(
             mode="REQUIRED",
             description="The route code of the selected DDD",
         ),
+        bigquery.SchemaField(
+            "has_expressed_as_data",
+            "BOOLEAN",
+            mode="REQUIRED",
+            description="Flag indicating if this VMP has expressed_as strength data",
+        ),
+        bigquery.SchemaField(
+            "expressed_as_comment",
+            "STRING",
+            mode="NULLABLE",
+            description="The DDD comment for expressed_as cases",
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strength",
+            "FLOAT",
+            mode="NULLABLE",
+            description="The expressed_as strength numerator value",
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strength_unit",
+            "STRING",
+            mode="NULLABLE",
+            description="The expressed_as strength unit",
+        ),
     ],
     cluster_fields=["vmp_code"],
 )
