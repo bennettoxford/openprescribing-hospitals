@@ -16,27 +16,102 @@ WITH normalized_data AS (
 
 ingredient_data AS (
   SELECT
-    year_month,
-    ods_code,
-    vmp_code,
-    -- For single ingredient products, get the basis quantity
+    iq.year_month,
+    iq.ods_code,
+    iq.vmp_code,
+    vmp.can_calculate_ddd,
+    vmp.ddd_calculation_logic,
+    ARRAY_LENGTH(iq.ingredients) AS ingredient_count,
+    
     CASE 
-      WHEN ARRAY_LENGTH(ingredients) = 1 THEN
-        (SELECT ingredient_quantity_basis FROM UNNEST(ingredients) LIMIT 1)
+      -- Single ingredient case (existing logic)
+      WHEN ARRAY_LENGTH(iq.ingredients) = 1 THEN
+        (SELECT ingredient_quantity_basis FROM UNNEST(iq.ingredients) LIMIT 1)
+      
+      -- Multi-ingredient "refers to" case
+      WHEN ARRAY_LENGTH(iq.ingredients) > 1 
+        AND vmp.can_calculate_ddd = TRUE
+        AND vmp.ddd_calculation_logic LIKE 'Ingredient quantity / DDD (Refers to %'
+      THEN
+        -- Extract ingredient name from the calculation logic
+        (SELECT ingredient_quantity_basis 
+         FROM UNNEST(iq.ingredients) ing
+         WHERE UPPER(ing.ingredient_name) = UPPER(
+           TRIM(REGEXP_REPLACE(
+             REGEXP_REPLACE(
+               vmp.ddd_calculation_logic, 
+               r'.*\(Refers to ', ''
+             ), 
+             r'\).*', ''
+           ))
+         )
+         LIMIT 1)
+      
       ELSE NULL
     END AS ingredient_basis_quantity,
+    
     CASE 
-      WHEN ARRAY_LENGTH(ingredients) = 1 THEN
-        (SELECT ingredient_basis_unit FROM UNNEST(ingredients) LIMIT 1)
+      -- Single ingredient case
+      WHEN ARRAY_LENGTH(iq.ingredients) = 1 THEN
+        (SELECT ingredient_basis_unit FROM UNNEST(iq.ingredients) LIMIT 1)
+      
+      -- Multi-ingredient "refers to" case
+      WHEN ARRAY_LENGTH(iq.ingredients) > 1 
+        AND vmp.can_calculate_ddd = TRUE
+        AND vmp.ddd_calculation_logic LIKE 'Ingredient quantity / DDD (Refers to %'
+      THEN
+        (SELECT ingredient_basis_unit 
+         FROM UNNEST(iq.ingredients) ing
+         WHERE UPPER(ing.ingredient_name) = UPPER(
+           TRIM(REGEXP_REPLACE(
+             REGEXP_REPLACE(
+               vmp.ddd_calculation_logic, 
+               r'.*\(Refers to ', ''
+             ), 
+             r'\).*', ''
+           ))
+         )
+         LIMIT 1)
+      
       ELSE NULL
     END AS ingredient_basis_unit,
-    -- Get the ingredient code for single ingredient products
+    
+    -- Get the ingredient code for single ingredient products or "refers to" cases
     CASE 
-      WHEN ARRAY_LENGTH(ingredients) = 1 THEN
-        (SELECT ingredient_code FROM UNNEST(ingredients) LIMIT 1)
+      -- Single ingredient case
+      WHEN ARRAY_LENGTH(iq.ingredients) = 1 THEN
+        (SELECT ingredient_code FROM UNNEST(iq.ingredients) LIMIT 1)
+      
+      -- Multi-ingredient "refers to" case
+      WHEN ARRAY_LENGTH(iq.ingredients) > 1 
+        AND vmp.can_calculate_ddd = TRUE
+        AND vmp.ddd_calculation_logic LIKE 'Ingredient quantity / DDD (Refers to %'
+      THEN
+        (SELECT ingredient_code 
+         FROM UNNEST(iq.ingredients) ing
+         WHERE UPPER(ing.ingredient_name) = UPPER(
+           TRIM(REGEXP_REPLACE(
+             REGEXP_REPLACE(
+               vmp.ddd_calculation_logic, 
+               r'.*\(Refers to ', ''
+             ), 
+             r'\).*', ''
+           ))
+         )
+         LIMIT 1)
+      
       ELSE NULL
-    END AS ingredient_code
-  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ INGREDIENT_QUANTITY_TABLE_ID }}`
+    END AS ingredient_code,
+    
+    -- Get DDD information from VMP table
+    vmp.selected_ddd_value,
+    vmp.selected_ddd_unit,
+    vmp.selected_ddd_basis_value,
+    vmp.selected_ddd_basis_unit
+    
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ INGREDIENT_QUANTITY_TABLE_ID }}` iq
+  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_TABLE_ID }}` vmp
+    ON iq.vmp_code = vmp.vmp_code
 ),
 
 data_with_ddd AS (
@@ -51,19 +126,18 @@ data_with_ddd AS (
     i.ingredient_basis_quantity,
     i.ingredient_basis_unit,
     i.ingredient_code,
-    vmp.can_calculate_ddd,
-    vmp.ddd_calculation_logic,
-    vmp.selected_ddd_value,
-    vmp.selected_ddd_unit,
-    vmp.selected_ddd_basis_value,
-    vmp.selected_ddd_basis_unit
+    i.ingredient_count,
+    i.can_calculate_ddd,
+    i.ddd_calculation_logic,
+    i.selected_ddd_value,
+    i.selected_ddd_unit,
+    i.selected_ddd_basis_value,
+    i.selected_ddd_basis_unit
   FROM normalized_data n
   LEFT JOIN ingredient_data i
     ON n.vmp_code = i.vmp_code 
     AND n.year_month = i.year_month 
     AND n.ods_code = i.ods_code
-  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_TABLE_ID }}` vmp
-    ON n.vmp_code = vmp.vmp_code
 ),
 
 ddd_calculations AS (
@@ -76,7 +150,7 @@ ddd_calculations AS (
         AND uom_name = selected_ddd_basis_unit THEN
           quantity / selected_ddd_basis_value
           
-      -- When using ingredient quantity
+      -- When using ingredient quantity (works for both single and multi-ingredient "refers to" cases)
       WHEN can_calculate_ddd 
         AND selected_ddd_basis_value > 0 
         AND ingredient_basis_quantity IS NOT NULL
@@ -95,7 +169,10 @@ ddd_calculations AS (
         'SCMD quantity / DDD'
       WHEN ingredient_basis_quantity IS NOT NULL 
         AND ingredient_basis_unit = selected_ddd_basis_unit THEN 
-        'Ingredient quantity / DDD'
+        CASE 
+          WHEN ingredient_count = 1 THEN 'Ingredient quantity / DDD'
+          ELSE ddd_calculation_logic
+        END
       ELSE
         'Not calculated: Unit incompatibility'
     END AS calculation_logic
@@ -115,7 +192,7 @@ SELECT
   selected_ddd_unit AS ddd_unit,
   -- Include ingredient code when DDD calculation uses ingredient quantity
   CASE 
-    WHEN calculation_logic = 'Ingredient quantity / DDD' THEN ingredient_code
+    WHEN calculation_logic LIKE '%Ingredient quantity / DDD%' THEN ingredient_code
     ELSE NULL
   END AS ingredient_code,
   calculation_logic
