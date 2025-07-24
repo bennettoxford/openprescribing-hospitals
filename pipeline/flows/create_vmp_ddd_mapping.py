@@ -164,6 +164,9 @@ def validate_calculation_logic():
     2. For VMPs using 'Ingredient quantity / DDD':
        - Verifies the VMP has exactly one ingredient
        - Verifies the ingredient's basis unit matches the selected DDD basis unit
+       
+    3. For VMPs using 'Ingredient quantity / DDD (Refers to: ...)':
+       - Verifies the selected DDD basis unit is valid
     """
     logger = get_run_logger()
     client = get_bigquery_client()
@@ -190,7 +193,9 @@ def validate_calculation_logic():
             ARRAY(
                 SELECT DISTINCT basis_name
                 FROM UNNEST(uoms)
-            ) AS scmd_basis_units
+            ) AS scmd_basis_units,
+            -- Check if this is a "refers to" case
+            STARTS_WITH(ddd_calculation_logic, 'Ingredient quantity / DDD (Refers to') AS is_refers_to_case
         FROM `{VMP_DDD_MAPPING_TABLE_SPEC.full_table_id}`
         WHERE can_calculate_ddd = TRUE
     )
@@ -202,6 +207,7 @@ def validate_calculation_logic():
         selected_ddd_basis_unit,
         single_ingredient_basis_unit,
         scmd_basis_units,
+        is_refers_to_case,
         -- Check if DDD basis unit is in SCMD basis units
         (
             SELECT COUNT(1) 
@@ -218,6 +224,8 @@ def validate_calculation_logic():
             WHEN ddd_calculation_logic = 'Ingredient quantity / DDD'
                 AND ingredient_count = 1 
                 AND single_ingredient_basis_unit = selected_ddd_basis_unit THEN TRUE
+            WHEN is_refers_to_case
+                AND selected_ddd_basis_unit IS NOT NULL THEN TRUE
             ELSE FALSE
         END AS logic_is_valid
     FROM ddd_mapping
@@ -231,6 +239,8 @@ def validate_calculation_logic():
         WHEN ddd_calculation_logic = 'Ingredient quantity / DDD'
             AND ingredient_count = 1 
             AND single_ingredient_basis_unit = selected_ddd_basis_unit THEN TRUE
+        WHEN is_refers_to_case
+            AND selected_ddd_basis_unit IS NOT NULL THEN TRUE
         ELSE FALSE
     END = FALSE
     """
@@ -259,6 +269,17 @@ def validate_calculation_logic():
                         f"- VMP {record['vmp_code']} ({record['vmp_name']}): "
                         f"Ingredient basis unit ({record['single_ingredient_basis_unit']}) "
                         f"doesn't match DDD basis unit ({record['selected_ddd_basis_unit']})"
+                    )
+            elif record.get('is_refers_to_case', False):
+                if record['selected_ddd_basis_unit'] is None:
+                    logger.error(
+                        f"- VMP {record['vmp_code']} ({record['vmp_name']}): "
+                        f"Refers to case but missing DDD basis unit"
+                    )
+                else:
+                    logger.error(
+                        f"- VMP {record['vmp_code']} ({record['vmp_name']}): "
+                        f"Refers to case validation failed: {record['ddd_calculation_logic']}"
                     )
             else:
                 logger.error(
