@@ -1,17 +1,21 @@
-name: AWaRe Watch and Reserve Antibiotics
-short_name: AWaRe Watch+Reserve
-description: Percentage of antibiotic DDDs that are classified as "Watch" or "Reserve" antibiotics according to the WHO AWaRe classification system
+name: Access, Watch and Reserve (AWaRe) Antibiotics
+short_name: AWaRe Antibiotics
+description: Percentage of antibiotic DDDs that are classified as "Watch" or "Reserve" antibiotics according to the UK-AWaRe classification
 why_it_matters: |
-    The WHO AWaRe classification categorises antibiotics into Access, Watch, and Reserve groups to guide appropriate antibiotic selection and promote antimicrobial stewardship. "Watch" antibiotics are second-choice treatments that should be used with caution due to their higher resistance potential, whilst "Reserve" antibiotics are last-resort treatments that should be preserved for critical situations. Monitoring the proportion of Watch and Reserve antibiotics helps identify opportunities to optimise antibiotic prescribing by promoting first-line "Access" antibiotics where clinically appropriate, and ensures that higher-risk antibiotics are used judiciously.
+    The [UK Health Security Agency (UKHSA)](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification) has adapted the [World Health Organization’s (WHO) AWaRe classification](https://www.who.int/publications/i/item/WHO-MHP-HPS-EML-2023.04) to develop the [UK-AWaRe antibiotic classification](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification), taking into account antibiotic resistance profiles, antibiotic prescribing and stewardship practice in the UK. The classification groups antibiotics into four categories: Access, Watch, Reserve and Other, to support appropriate prescribing and promote effective antimicrobial stewardship.  
+    - **Access antibiotics** are generally narrow-spectrum and associated with a lower risk of resistance. They are recommended as first or second choice options for common infections and should be readily available.  
+    - **Watch antibiotics** are broader-spectrum with a higher resistance potential. Their use should be limited to specific indications and monitored closely.  
+    - **Reserve antibiotics** are last-line treatments, often reserved for severe infections caused by multidrug-resistant organisms. These medicines require strict oversight to maintain their effectiveness.  
+    Monitoring the use of Watch and Reserve antibiotics can help identify areas to improve prescribing, encouraging the appropriate use of Access antibiotics where clinically suitable, and ensuring that higher-risk antibiotics are used only when necessary.
 how_is_it_calculated: >
-    The numerator includes all DDDs of antibiotics classified as "Watch" or "Reserve" in the WHO AWaRe 2024 list. 
-    The denominator includes all DDDs of antibiotics classified as "Access", "Watch", or "Reserve" in the WHO AWaRe 2024 list.
+    The numerator includes all DDDs of antibiotics classified as "Watch" or "Reserve" in the [UK-AWaRe list](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification).  
+    The denominator includes all DDDs of antibiotics classified as "Access", "Watch", or "Reserve" in the [UK-AWaRe list](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification).  
     This creates a percentage showing the proportion of higher-concern antibiotics (Watch and Reserve) relative to all classified antibiotics used.
 tags:
     - Antimicrobial stewardship
 quantity_type: ddd
-authored_by: ""
+authored_by: "Chris Wood"
 checked_by: ""
-date_reviewed: 2025-07-01
-next_review: 2026-07-01
+date_reviewed: 2025-07-29
+next_review: 2026-07-29
 draft: true
