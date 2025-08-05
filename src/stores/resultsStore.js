@@ -32,7 +32,8 @@ export function updateResults(data, options = {}) {
 
     const { productData, organisationData, aggregatedData } = processAnalysisData(
         data, 
-        options.selectedOrganisations || []
+        options.selectedOrganisations || [],
+        options.predecessorMap || new Map()
     );
 
     const selectedOrganisations = options.selectedOrganisations || [];

@@ -469,7 +469,7 @@ export function selectDefaultMode(availableModes, hasSelectedOrganisations = fal
     return availableModes[0]?.value || 'organisation';
 }
 
-export function processAnalysisData(data, selectedOrganisations = []) {
+export function processAnalysisData(data, selectedOrganisations = [], predecessorMap = new Map()) {
     if (!Array.isArray(data)) {
         console.error('Invalid data format:', data);
         return {
@@ -517,12 +517,28 @@ export function processAnalysisData(data, selectedOrganisations = []) {
                 }))
             : [];
 
-        if (item.organisation__region) {
-            aggregateByCategory(results.aggregatedData.regions, item.organisation__region, productKey, timeSeriesData);
+        // Determine target region and ICB for aggregation
+        const orgName = item.organisation__ods_name;
+        let targetRegion = item.organisation__region;
+        let targetICB = item.organisation__icb;
+
+        for (const [successor, predecessors] of predecessorMap.entries()) {
+            if (predecessors.includes(orgName)) {
+                const successorData = data.find(d => d.organisation__ods_name === successor);
+                if (successorData) {
+                    targetRegion = successorData.organisation__region;
+                    targetICB = successorData.organisation__icb;
+                }
+                break;
+            }
         }
 
-        if (item.organisation__icb) {
-            aggregateByCategory(results.aggregatedData.icbs, item.organisation__icb, productKey, timeSeriesData);
+        if (targetRegion) {
+            aggregateByCategory(results.aggregatedData.regions, targetRegion, productKey, timeSeriesData);
+        }
+
+        if (targetICB) {
+            aggregateByCategory(results.aggregatedData.icbs, targetICB, productKey, timeSeriesData);
         }
 
         aggregateByCategory(results.aggregatedData.national, 'National', productKey, timeSeriesData);

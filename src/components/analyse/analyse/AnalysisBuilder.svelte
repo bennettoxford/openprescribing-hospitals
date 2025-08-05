@@ -124,7 +124,8 @@
             updateResults(data, {
                 quantityType,
                 searchType,
-                selectedOrganisations: $organisationSearchStore.selectedItems
+                selectedOrganisations: $organisationSearchStore.selectedItems,
+                predecessorMap: $organisationSearchStore.predecessorMap
             });
 
             dispatch('analysisComplete', { 
