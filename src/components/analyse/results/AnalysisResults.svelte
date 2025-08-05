@@ -16,7 +16,7 @@
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     import { formatNumber } from '../../../utils/utils';
     import pluralize from 'pluralize';
-    import { ChartDataProcessor, ViewModeCalculator, selectDefaultMode } from '../../../utils/analyseUtils.js';
+    import { ChartDataProcessor, ViewModeCalculator, selectDefaultMode, processTableDataByMode } from '../../../utils/analyseUtils.js';
 
     export let className = '';
     export let isAnalysisRunning;
@@ -285,15 +285,41 @@
         return tooltipContent;
     }
 
-    function hasChartableData(data) {
-        if (!Array.isArray(data) || data.length === 0) return false;
 
-        return data.some(item => 
-            Array.isArray(item.data) && 
-            item.data.length > 0 &&
-            item.data.some(([_, value]) => value && !isNaN(parseFloat(value)))
+    function hasChartableDataForMode(data, mode) {
+
+        if (mode === 'organisation') {
+            if (!Array.isArray(data) || data.length === 0) return false;
+            
+            const selectedOrgNames = new Set($analyseOptions.selectedOrganisations || []);
+            return data.filter(item => selectedOrgNames.has(item.organisation__ods_name))
+                .some(item => 
+                    Array.isArray(item.data) && 
+                    item.data.length > 0 &&
+                    item.data.some(([_, value]) => value && !isNaN(parseFloat(value)))
+                );
+        }
+        
+        const tableData = processTableDataByMode(
+            data, 
+            mode, 
+            'all',
+            $resultsStore.aggregatedData,
+            null,
+            $analyseOptions.selectedOrganisations || [],
+            $organisationSearchStore.items || [],
+            $organisationSearchStore.predecessorMap || new Map(),
+            new Set()
         );
+        
+        return tableData && tableData.length > 0 && tableData.some(entry => entry.total > 0);
     }
+
+    $: currentModeHasData = hasChartableDataForMode(selectedData, $modeSelectorStore.selectedMode);
+
+    $: isInTrustModeWithNoData = $modeSelectorStore.selectedMode === 'organisation' && 
+           $analyseOptions.selectedOrganisations?.length > 0 &&
+           !currentModeHasData;
 </script>
 
 {#if showResults}
@@ -308,7 +334,8 @@
                     <section class="bg-white rounded-lg p-4 border-2 border-oxford-300 shadow-sm">
                         <ProductsTable {vmps} on:dataFiltered={handleFilteredData} />
                     </section>
-                    {#if hasChartableData(selectedData)}
+                    
+                    {#if viewModes.length > 0}
                     <section class="p-4">
                         <div class="mb-4">
                             <ModeSelector 
@@ -318,15 +345,46 @@
                                 variant="pill"
                             />
                         </div>
-                        <div class="grid grid-cols-1 gap-4">
-                            <div class="relative h-[550px] mb-6 sm:mb-0">
-                                <Chart 
-                                    store={resultsChartStore} 
-                                    data={filteredData.length > 0 ? filteredData : selectedData}
-                                    formatTooltipContent={customTooltipFormatter}
-                                />
+                        
+                        {#if isInTrustModeWithNoData}
+                            <div class="flex items-center justify-center h-[550px] p-6">
+                                <div class="text-center space-y-6">
+                                    <div>
+                                        <p class="text-oxford-600 text-xl font-medium mb-3">No data for selected trusts</p>
+                                        <p class="text-gray-600 text-base max-w-md">
+                                            The selected NHS Trusts have no data for the chosen products and quantity type. 
+                                            <a href="/faq/#why-is-there-no-quantity-for-some-products" class="link-oxford" target="_blank">
+                                                Learn more about why quantities might be missing
+                                            </a>.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        {:else if currentModeHasData}
+                            <div class="grid grid-cols-1 gap-4">
+                                <div class="relative h-[550px] mb-6 sm:mb-0">
+                                    <Chart 
+                                        store={resultsChartStore} 
+                                        data={filteredData.length > 0 ? filteredData : selectedData}
+                                        formatTooltipContent={customTooltipFormatter}
+                                    />
+                                </div>
+                            </div>
+                        {:else}
+                            <div class="flex items-center justify-center h-[550px] p-6">
+                                <div class="text-center space-y-6">
+                                    <div>
+                                        <p class="text-oxford-600 text-xl font-medium mb-3">No data to display</p>
+                                        <p class="text-oxford-400 text-base max-w-md">
+                                            No data was returned for the selected view mode. 
+                                            <a href="/faq/#missing-quantities" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
+                                                Learn more about why quantities might be missing
+                                            </a>.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        {/if}
                     </section>
 
                     <section class="bg-amber-50 border-l-4 border-amber-400 p-4 mx-4 mb-4 mt-2 relative z-10">

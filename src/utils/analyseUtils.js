@@ -332,7 +332,7 @@ export class ViewModeCalculator {
     calculateAvailableModes() {
         const modes = [];
         
-        if (this.hasSelectedOrganisationsWithData()) {
+        if (this.hasSelectedOrganisations()) {
             modes.push({ value: 'organisation', label: 'NHS Trust' });
         }
         
@@ -343,11 +343,13 @@ export class ViewModeCalculator {
         return modes;
     }
 
+    hasSelectedOrganisations() {
+        return this.analyseOptions.selectedOrganisations && 
+               this.analyseOptions.selectedOrganisations.length > 0;
+    }
+
     hasSelectedOrganisationsWithData() {
-        const hasSelectedOrganisations = this.analyseOptions.selectedOrganisations && 
-                                       this.analyseOptions.selectedOrganisations.length > 0;
-        
-        if (!hasSelectedOrganisations) return false;
+        if (!this.hasSelectedOrganisations()) return false;
 
         const selectedOrgNames = new Set(this.analyseOptions.selectedOrganisations);
 
