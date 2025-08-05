@@ -12,6 +12,7 @@
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
     import { updateResults } from '../../../stores/resultsStore';
+    import { modeSelectorStore } from '../../../stores/modeSelectorStore';
     import { getCookie } from '../../../utils/utils';
     
     const dispatch = createEventDispatcher();
@@ -65,17 +66,14 @@
             return;
         }
 
-        if (!$organisationSearchStore.selectedItems || $organisationSearchStore.selectedItems.length === 0) {
-            errorMessage = "Please select at least one trust to analyse.";
-            return;
-        }
-
         if (!isAdvancedMode) {
             quantityType = "VMP Quantity";
         } else if (quantityType === '--') {
             errorMessage = "Please select a quantity type before running the analysis.";
             return;
         }
+        
+        modeSelectorStore.reset();
 
         isAnalysisRunning = true;
         dispatch('analysisStart');
@@ -103,7 +101,6 @@
                 body: JSON.stringify({
                     quantity_type: quantityType,
                     names: selectedVMPs,
-                    ods_names: $organisationSearchStore.selectedItems,
                     search_type: searchType
                 })
             });
@@ -122,15 +119,19 @@
                 organisations: $organisationSearchStore.selectedItems
             });
 
+            analyseOptions.setSelectedOrganisations($organisationSearchStore.selectedItems);
+
             updateResults(data, {
                 quantityType,
-                searchType
+                searchType,
+                selectedOrganisations: $organisationSearchStore.selectedItems
             });
 
             dispatch('analysisComplete', { 
                 data: Array.isArray(data) ? data : [data],
                 quantityType,
-                searchType
+                searchType,
+                selectedOrganisations: $organisationSearchStore.selectedItems
             });
         } catch (error) {
             console.error("Error fetching filtered data:", error);
@@ -284,14 +285,14 @@
                   </svg>
                 </button>
                 <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
-                            group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
+                            group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-5 rounded-md shadow-lg bg-white 
                             ring-1 ring-black ring-opacity-5 p-4">
                   <p class="text-sm text-gray-500">
                     {#if isAdvancedMode}
                       Search for and select products to include to analyse. You can select individual products
-                      or groups of products by ingredient or product group. See <a href="/faq/#data-contents" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+                      or groups of products by ingredient, product group, or ATC code. See <a href="/faq/#which-medicines-and-devices-are-included" class="underline font-semibold" target="_blank">the FAQs</a> for more information of what products are available.
                     {:else}
-                    Search for and select individual products to analyse. See <a href="/faq/#data-contents" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+                      Search for and select individual products to analyse. See <a href="/faq/#which-medicines-and-devices-are-included" class="underline font-semibold" target="_blank">the FAQs</a> for more information of what products are available.
                     {/if}
                   </p>
                 </div>
@@ -305,7 +306,7 @@
           <!-- Trust Selection -->
           <div class="grid gap-0">
             <div class="flex items-center">
-              <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Select NHS Trust(s)</h3>
+              <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Select NHS Trust(s) (optional)</h3>
               <div class="relative inline-block group">
                 <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
                   <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -313,16 +314,12 @@
                   </svg>
                 </button>
                 <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
-                            group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
+                            group-hover:scale-100 w-[250px] -translate-x-[85%] left-1/2 top-5 rounded-md shadow-lg bg-white  
                             ring-1 ring-black ring-opacity-5 p-4">
                   <p class="text-sm text-gray-500">
-                    {#if isAdvancedMode}
-                      By default, the analysis will include all NHS Trusts in England. You can restrict the analysis by selecting specific trusts below.
-                      See <a href="/faq/#trusts-included" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
-                    {:else}
-                      Select up to 10 NHS Trusts to include in your analysis.
-                      See <a href="/faq/#trusts-included" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
-                    {/if}
+                    Select up to 10 NHS Trusts to see their individual usage.
+                    See <a href="/faq/#which-nhs-trusts-are-included" class="underline font-semibold" target="_blank">the FAQs</a> for more details 
+                    on which trusts are included.
                   </p>
                 </div>
               </div>

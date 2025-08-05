@@ -287,7 +287,7 @@ def get_quantity_data(request):
     ods_names = request.data.get("ods_names", None)
     quantity_type = request.data.get("quantity_type", None)
     
-    if not all([search_items, ods_names, quantity_type]) or quantity_type == '--':
+    if not all([search_items, quantity_type]) or quantity_type == '--':
         return Response({"error": "Missing required parameters"}, status=400)
 
 
@@ -346,10 +346,15 @@ def get_quantity_data(request):
         }.get(quantity_type)
 
         if quantity_model:
-            quantity_data = quantity_model.objects.filter(
-                vmp_id__in=vmp_ids,
-                organisation__ods_name__in=ods_names
-            ).select_related('organisation')
+            if ods_names:
+                quantity_data = quantity_model.objects.filter(
+                    vmp_id__in=vmp_ids,
+                    organisation__ods_name__in=ods_names
+                ).select_related('organisation')
+            else:
+                quantity_data = quantity_model.objects.filter(
+                    vmp_id__in=vmp_ids
+                ).select_related('organisation')
 
             for item in quantity_data:
                 response_item = {

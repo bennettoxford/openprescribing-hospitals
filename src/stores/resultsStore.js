@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import { processAnalysisData } from '../utils/analyseUtils.js';
 
 export const resultsStore = writable({
     isAnalysisRunning: false,
@@ -10,90 +11,53 @@ export const resultsStore = writable({
     dateRange: null,
     productData: {},
     organisationData: {},
+    aggregatedData: {
+        regions: {},
+        icbs: {},
+        national: {}
+    },
     visibleItems: new Set(),
     isAdvancedMode: false
 });
 
-function processAnalysisData(data) {
-    const productData = {};
-    const organisationData = {};
-
-    if (!Array.isArray(data)) {
-        console.error('Invalid data format:', data);
-        return { productData, organisationData };
-    }
-
-    data.forEach(item => {
-        if (item.vmp__code) {
-            const productKey = item.vmp__code;
-            
-            if (!productData[productKey]) {
-                productData[productKey] = {
-                    code: item.vmp__code,
-                    name: item.vmp__name,
-                    vtm: item.vmp__vtm__name,
-                    ingredients: item.ingredient_names || [],
-                    ingredient_codes: item.ingredient_codes || [],
-                    organisations: {}
-                };
-            }
-
-            if (item.organisation__ods_code) {
-                const orgKey = item.organisation__ods_code;
-                const timeSeriesData = Array.isArray(item.data) 
-                    ? item.data
-                        .filter(([date, quantity]) => date && quantity)
-                        .map(([date, quantity, unit]) => ({
-                            date,
-                            quantity: parseFloat(quantity) || 0,
-                            unit
-                        }))
-                    : [];
-
-                productData[productKey].organisations[orgKey] = {
-                    ods_code: item.organisation__ods_code,
-                    ods_name: item.organisation__ods_name,
-                    data: timeSeriesData
-                };
-
-                if (!organisationData[orgKey]) {
-                    organisationData[orgKey] = {
-                        ods_code: item.organisation__ods_code,
-                        ods_name: item.organisation__ods_name,
-                        products: {}
-                    };
-                }
-                organisationData[orgKey].products[productKey] = {
-                    code: item.vmp__code,
-                    name: item.vmp__name,
-                    vtm: item.vmp__vtm__name,
-                    ingredients: item.ingredient_names || [],
-                    ingredient_codes: item.ingredient_codes || [],
-                    data: timeSeriesData
-                };
-            }
-        } else {
-            console.warn('Invalid item format:', item);
-        }
-    });
-
-    return { productData, organisationData };
-}
-
 export function updateResults(data, options = {}) {
-    const { productData, organisationData } = processAnalysisData(data);
+    resultsStore.update(store => ({
+        ...store,
+        analysisData: null,
+        filteredData: null,
+        productData: {},
+        organisationData: {},
+        aggregatedData: { regions: {}, icbs: {}, national: {} }
+    }));
+
+    const { productData, organisationData, aggregatedData } = processAnalysisData(
+        data, 
+        options.selectedOrganisations || []
+    );
+
+    const selectedOrganisations = options.selectedOrganisations || [];
+    
+    const filteredData = selectedOrganisations.length === 0 ? 
+        [] :
+        data.filter(item => {
+            const isIncluded = selectedOrganisations.includes(item.organisation__ods_name);
+            return isIncluded;
+        });
 
     resultsStore.update(store => ({
         ...store,
         isAnalysisRunning: false,
         showResults: true,
         analysisData: data,
+        filteredData: filteredData,
         productData,
         organisationData,
+        aggregatedData,
         quantityType: options.quantityType || store.quantityType,
         searchType: options.searchType || store.searchType,
         dateRange: calculateDateRange(data),
-        isAdvancedMode: options.isAdvancedMode
+        isAdvancedMode: options.isAdvancedMode,
+        selectedOrganisations: options.selectedOrganisations || []
     }));
 }
 
@@ -102,11 +66,13 @@ function calculateDateRange(data) {
     let maxDate = null;
 
     data.forEach(item => {
-        item.data.forEach(([date]) => {
-            const currentDate = new Date(date);
-            if (!minDate || currentDate < minDate) minDate = currentDate;
-            if (!maxDate || currentDate > maxDate) maxDate = currentDate;
-        });
+        if (item.data) {
+            item.data.forEach(([date]) => {
+                const currentDate = new Date(date);
+                if (!minDate || currentDate < minDate) minDate = currentDate;
+                if (!maxDate || currentDate > maxDate) maxDate = currentDate;
+            });
+        }
     });
 
     return { minDate, maxDate };

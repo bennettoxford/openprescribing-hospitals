@@ -9,7 +9,8 @@ const createAnalyseOptionsStore = () => {
         vmpNames: [],
         vtmNames: [],
         ingredientNames: [],
-        isAdvancedMode: false
+        isAdvancedMode: false,
+        selectedOrganisations: []
     });
 
     const runAnalysis = (options) => {
@@ -25,7 +26,6 @@ const createAnalyseOptionsStore = () => {
         update,
         runAnalysis,
         updateOrganisations: (organisations) => {
-            console.log('Analysis Options Store - Updating organisations:', organisations);
             organisationSearchStore.setItems(organisations);
             organisationSearchStore.setAvailableItems(organisations);
             organisationSearchStore.setFilterType('trust');
@@ -34,6 +34,12 @@ const createAnalyseOptionsStore = () => {
             update(store => ({
                 ...store,
                 isAdvancedMode: isAdvanced
+            }));
+        },
+        setSelectedOrganisations: (organisations) => {
+            update(store => ({
+                ...store,
+                selectedOrganisations: organisations
             }));
         }
     };
