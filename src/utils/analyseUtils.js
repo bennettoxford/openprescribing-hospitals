@@ -596,3 +596,380 @@ function aggregateByCategory(categoryData, categoryName, productKey, timeSeriesD
         categoryData[categoryName].products[productKey].data[date].quantity += quantity;
     });
 }
+
+export function shouldIncludeDate(date, period, latestDate) {
+    if (period === 'all') return true;
+
+    const dataDate = new Date(date);
+    
+    switch (period) {
+        case 'latest_month':
+            if (!latestDate) return false;
+            return dataDate.getMonth() === latestDate.getMonth() &&
+                   dataDate.getFullYear() === latestDate.getFullYear();
+        case 'latest_year':
+            if (!latestDate) return false;
+            return dataDate.getFullYear() === latestDate.getFullYear();
+        case 'current_fy':
+            if (!latestDate) return false;
+            const fyStart = new Date(latestDate.getFullYear(), 3, 1); // April 1st
+            if (latestDate < fyStart) {
+                fyStart.setFullYear(fyStart.getFullYear() - 1);
+            }
+            return dataDate >= fyStart && dataDate <= latestDate;
+        default:
+            return true;
+    }
+}
+
+export function processTableDataByMode(data, mode, period, aggregatedData, latestDate, selectedOrganisations = [], allOrganisations = [], predecessorMap = new Map(), expandedTrusts = new Set()) {
+    if (!data?.length && !aggregatedData) return [];
+
+    if (['region', 'icb', 'national'].includes(mode) && aggregatedData) {
+        return processAggregatedMode(aggregatedData, mode, period, latestDate);
+    }
+
+    if (mode === 'organisation' && selectedOrganisations.length > 0) {
+        return processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, predecessorMap, expandedTrusts);
+    }
+
+    return processRawDataMode(data, mode, period, latestDate);
+}
+
+function processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, predecessorMap, expandedTrusts) {
+
+    const filteredData = data ? data.map(item => ({
+        ...item,
+        data: item.data ? item.data.filter(([date]) => 
+            shouldIncludeDate(date, period, latestDate)) : []
+    })) : [];
+
+    const selectedSet = new Set(selectedOrganisations);
+    const selectedTrusts = {};
+    const otherTrusts = {};
+    const selectedTotals = { total: 0, units: {} };
+    const otherTotals = { total: 0, units: {} };
+
+    const predecessorToSuccessor = new Map();
+    for (const [successor, predecessors] of predecessorMap.entries()) {
+        predecessors.forEach(pred => {
+            predecessorToSuccessor.set(pred, successor);
+        });
+    }
+
+    const allPredecessors = new Set(Array.from(predecessorMap.values()).flat());
+
+    const mainOrganisations = allOrganisations.filter(org => !allPredecessors.has(org));
+
+    mainOrganisations.forEach(orgName => {
+        const isSelected = selectedSet.has(orgName);
+        const targetGroup = isSelected ? selectedTrusts : otherTrusts;
+        
+        targetGroup[orgName] = { 
+            total: 0, 
+            units: {},
+            predecessors: {}
+        };
+
+        const predecessors = predecessorMap.get(orgName) || [];
+        predecessors.forEach(predName => {
+            targetGroup[orgName].predecessors[predName] = {
+                total: 0,
+                units: {}
+            };
+        });
+    });
+
+    filteredData.forEach(item => {
+        const orgName = item.organisation__ods_name || 'Unknown Organisation';
+
+        let targetOrgName = orgName;
+        let isPredecessor = false;
+        
+        if (predecessorToSuccessor.has(orgName)) {
+            targetOrgName = predecessorToSuccessor.get(orgName);
+            isPredecessor = true;
+        }
+
+        const isSelected = selectedSet.has(targetOrgName);
+        const targetGroup = isSelected ? selectedTrusts : otherTrusts;
+        const targetTotals = isSelected ? selectedTotals : otherTotals;
+
+        if (targetGroup[targetOrgName] !== undefined) {
+            item.data?.forEach(([date, quantity, unit]) => {
+                const parsedQuantity = parseFloat(quantity) || 0;
+                
+                if (isPredecessor) {
+                    targetGroup[targetOrgName].predecessors[orgName].total += parsedQuantity;
+                    if (!targetGroup[targetOrgName].predecessors[orgName].units[unit]) {
+                        targetGroup[targetOrgName].predecessors[orgName].units[unit] = 0;
+                    }
+                    targetGroup[targetOrgName].predecessors[orgName].units[unit] += parsedQuantity;
+                }
+                
+                targetGroup[targetOrgName].total += parsedQuantity;
+                if (!targetGroup[targetOrgName].units[unit]) {
+                    targetGroup[targetOrgName].units[unit] = 0;
+                }
+                targetGroup[targetOrgName].units[unit] += parsedQuantity;
+
+                targetTotals.total += parsedQuantity;
+                if (!targetTotals.units[unit]) {
+                    targetTotals.units[unit] = 0;
+                }
+                targetTotals.units[unit] += parsedQuantity;
+            });
+        }
+    });
+
+    const results = [];
+
+    function countTotalOrgs(trustsGroup) {
+        let count = Object.keys(trustsGroup).length;
+        Object.values(trustsGroup).forEach(trust => {
+            count += Object.keys(trust.predecessors || {}).length;
+        });
+        return count;
+    }
+
+    if (Object.keys(selectedTrusts).length > 0) {
+        const totalSelectedCount = countTotalOrgs(selectedTrusts);
+        
+        results.push({
+            key: `Selected trusts (${totalSelectedCount})`,
+            total: selectedTotals.total,
+            units: Object.entries(selectedTotals.units)
+                .sort(([, a], [, b]) => b - a)
+                .map(([unit, quantity]) => ({ unit, quantity })),
+            isSubtotal: true
+        });
+
+        Object.entries(selectedTrusts)
+            .sort(([, a], [, b]) => b.total - a.total)
+            .forEach(([trustName, trustData]) => {
+                const hasPredecessors = Object.keys(trustData.predecessors).length > 0;
+                const isExpanded = expandedTrusts.has(trustName);
+                
+                let units = Object.entries(trustData.units);
+                if (units.length === 0) {
+                    units = [['--', 0]];
+                }
+                
+                results.push({
+                    key: trustName,
+                    total: trustData.total,
+                    units: units
+                        .sort(([, a], [, b]) => b - a)
+                        .map(([unit, quantity]) => ({ unit, quantity })),
+                    isIndividual: true,
+                    hasPredecessors,
+                    isExpanded
+                });
+
+                if (hasPredecessors && isExpanded) {
+                    Object.entries(trustData.predecessors)
+                        .sort(([, a], [, b]) => b.total - a.total)
+                        .forEach(([predName, predData]) => {
+                            let predUnits = Object.entries(predData.units);
+                            if (predUnits.length === 0) {
+                                predUnits = [['--', 0]];
+                            }
+                            
+                            results.push({
+                                key: predName,
+                                total: predData.total,
+                                units: predUnits
+                                    .sort(([, a], [, b]) => b - a)
+                                    .map(([unit, quantity]) => ({ unit, quantity })),
+                                isPredecessor: true
+                            });
+                        });
+                }
+            });
+    }
+
+    if (Object.keys(otherTrusts).length > 0) {
+        const totalOtherCount = countTotalOrgs(otherTrusts);
+        
+        results.push({
+            key: `All other trusts (${totalOtherCount})`,
+            total: otherTotals.total,
+            units: Object.entries(otherTotals.units)
+                .sort(([, a], [, b]) => b - a)
+                .map(([unit, quantity]) => ({ unit, quantity })),
+            isSubtotal: true
+        });
+
+        Object.entries(otherTrusts)
+            .sort(([, a], [, b]) => b.total - a.total)
+            .forEach(([trustName, trustData]) => {
+                const hasPredecessors = Object.keys(trustData.predecessors).length > 0;
+                const isExpanded = expandedTrusts.has(trustName);
+                
+                let units = Object.entries(trustData.units);
+                if (units.length === 0) {
+                    units = [['--', 0]];
+                }
+                
+                results.push({
+                    key: trustName,
+                    total: trustData.total,
+                    units: units
+                        .sort(([, a], [, b]) => b - a)
+                        .map(([unit, quantity]) => ({ unit, quantity })),
+                    isIndividual: true,
+                    hasPredecessors,
+                    isExpanded
+                });
+
+                if (hasPredecessors && isExpanded) {
+                    Object.entries(trustData.predecessors)
+                        .sort(([, a], [, b]) => b.total - a.total)
+                        .forEach(([predName, predData]) => {
+                            let predUnits = Object.entries(predData.units);
+                            if (predUnits.length === 0) {
+                                predUnits = [['--', 0]];
+                            }
+                            
+                            results.push({
+                                key: predName,
+                                total: predData.total,
+                                units: predUnits
+                                    .sort(([, a], [, b]) => b - a)
+                                    .map(([unit, quantity]) => ({ unit, quantity })),
+                                isPredecessor: true
+                            });
+                        });
+                }
+            });
+    }
+
+    return results;
+}
+
+function processAggregatedMode(aggregatedData, mode, period, latestDate) {
+    const categoryMap = {
+        'region': 'regions',
+        'icb': 'icbs', 
+        'national': 'national'
+    };
+
+    const categoryData = aggregatedData[categoryMap[mode]] || {};
+    const results = [];
+
+    Object.entries(categoryData).forEach(([name, info]) => {
+        if (!info?.products) return;
+
+        const totals = { total: 0, units: {} };
+
+        Object.values(info.products).forEach(product => {
+            if (!product?.data) return;
+
+            Object.entries(product.data).forEach(([date, { quantity, unit }]) => {
+                if (!shouldIncludeDate(date, period, latestDate)) return;
+
+                const parsedQuantity = parseFloat(quantity) || 0;
+                totals.total += parsedQuantity;
+
+                if (!totals.units[unit]) {
+                    totals.units[unit] = 0;
+                }
+                totals.units[unit] += parsedQuantity;
+            });
+        });
+
+        if (totals.total > 0) {
+            results.push({
+                key: name,
+                total: totals.total,
+                units: Object.entries(totals.units)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([unit, quantity]) => ({ unit, quantity }))
+            });
+        }
+    });
+
+    return results.sort((a, b) => b.total - a.total);
+}
+
+function processRawDataMode(data, mode, period, latestDate) {
+    if (!data?.length) return [];
+
+    const filteredData = data.map(item => ({
+        ...item,
+        data: item.data ? item.data.filter(([date]) => 
+            shouldIncludeDate(date, period, latestDate)) : []
+    }));
+
+    const groupedData = {};
+
+    filteredData.forEach(item => {
+        const groupKey = getGroupKey(item, mode);
+        
+        if (Array.isArray(groupKey)) {
+            groupKey.forEach(key => processItemForGroup(groupedData, key, item));
+        } else {
+            processItemForGroup(groupedData, groupKey, item);
+        }
+    });
+
+    return Object.entries(groupedData)
+        .map(([key, value]) => ({
+            key,
+            total: value.total,
+            units: Object.entries(value.units)
+                .sort(([, a], [, b]) => b - a)
+                .map(([unit, quantity]) => ({ unit, quantity }))
+        }))
+        .sort((a, b) => b.total - a.total);
+}
+
+function getGroupKey(item, mode) {
+    switch (mode) {
+        case 'organisation':
+            return item.organisation__ods_name || 'Unknown Organisation';
+        case 'product':
+            return item.vmp__name || 'Unknown Product';
+        case 'productGroup':
+            return item.vmp__vtm__name || 'Unknown Product Group';
+        case 'ingredient':
+            return item.ingredient_names?.length > 0 ? item.ingredient_names : ['Unknown Ingredient'];
+        case 'unit':
+            return item.data?.map(([, , unit]) => unit).filter(Boolean) || [];
+        default:
+            return item.vmp__name || 'Unknown';
+    }
+}
+
+function processItemForGroup(groupedData, groupKey, item) {
+    if (!groupedData[groupKey]) {
+        groupedData[groupKey] = {
+            total: 0,
+            units: {}
+        };
+    }
+
+    item.data?.forEach(([date, quantity, unit]) => {
+        const parsedQuantity = parseFloat(quantity) || 0;
+        groupedData[groupKey].total += parsedQuantity;
+
+        if (!groupedData[groupKey].units[unit]) {
+            groupedData[groupKey].units[unit] = 0;
+        }
+        groupedData[groupKey].units[unit] += parsedQuantity;
+    });
+}
+
+export function getModeDisplayName(mode) {
+    const modeNames = {
+        'organisation': 'NHS Trust',
+        'region': 'Region',
+        'icb': 'ICB', 
+        'national': 'National total',
+        'product': 'Product',
+        'productGroup': 'Product group',
+        'ingredient': 'Ingredient',
+        'unit': 'Unit'
+    };
+    return modeNames[mode] || mode;
+}
