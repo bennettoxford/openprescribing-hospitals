@@ -401,6 +401,7 @@ class Measure(models.Model):
         ('dose', 'Dose'),
         ('ingredient', 'Ingredient Quantity'),
         ('ddd', 'DDD'),
+        ('indicative_cost', 'Indicative Cost'),
     ]
     
     name = models.CharField(max_length=255, unique=True)

@@ -4,7 +4,9 @@
         orgdata: { type: 'String', reflect: true },
         regiondata: { type: 'String', reflect: true },
         icbdata: { type: 'String', reflect: true },
-        percentiledata: { type: 'String', reflect: true }
+        percentiledata: { type: 'String', reflect: true },
+        quantitytype: { type: 'String', reflect: true },
+        hasdenominators: { type: 'String', reflect: true }
     },
     shadow: 'none'
 }} />
@@ -37,10 +39,84 @@
     export let regiondata = '[]';
     export let icbdata = '[]';
     export let percentiledata = '[]';
+    export let quantitytype = 'dose';
+    export let hasdenominators = 'true';
    
     let trusts = [];
     let icbs = [];
     let regions = [];
+
+    $: yAxisLabel = getYAxisLabel(quantitytype, hasdenominators);
+    $: yAxisTickFormatter = getYAxisTickFormatter(quantitytype, hasdenominators);
+    $: yAxisLimits = getYAxisLimits(hasdenominators, $filteredData);
+    
+    function getYAxisLabel(quantityType, hasDenominators) {
+        const hasDenom = hasDenominators === 'true';
+        
+        if (hasDenom) {
+            return '%';
+        } else {
+            return quantityType === 'indicative_cost' ? 'Indicative Cost (£)' : 'Quantity';
+        }
+    }
+
+    function getYAxisTickFormatter(quantityType, hasDenominators) {
+        const hasDenom = hasDenominators === 'true';
+        
+        return function(value, range) {
+            if (hasDenom) {
+                // For measures with denominators, show percentages
+                let decimals = 1;
+                if (range <= 0.1) decimals = 3;
+                else if (range <= 1) decimals = 2;
+                return `${value.toFixed(decimals)}%`;
+            } else if (quantityType === 'indicative_cost') {
+                // For indicative cost, show currency formatting
+                if (value === 0) return '£0';
+                if (value >= 1000) {
+                    return `£${(value / 1000)}K`;
+                } else {
+                    return `£${value}`;
+                }
+            } else {
+                // For other quantity types, show plain numbers
+                if (value === 0) return '0';
+                if (value >= 1000) {
+                    return `${(value / 1000)}K`;
+                } else {
+                    return value.toString();
+                }
+            }
+        };
+    }
+
+    function getYAxisLimits(hasDenominators, chartData) {
+    const hasDenom = hasDenominators === 'true';
+    
+    if (hasDenom) {
+        return [0, 100];
+    } else if (chartData && chartData.datasets && chartData.datasets.length > 0) {
+        let maxValue = 0;
+        
+        chartData.datasets.forEach(dataset => {
+            if (!dataset.hidden && dataset.data && Array.isArray(dataset.data)) {
+                dataset.data.forEach(value => {
+                    if (value !== null && value !== undefined) {
+                        if (typeof value === 'object' && value.upper !== undefined) {
+                            maxValue = Math.max(maxValue, value.upper);
+                        } else if (typeof value === 'number') {
+                            maxValue = Math.max(maxValue, value);
+                        }
+                    }
+                });
+            }
+        });
+        return [0, maxValue * 1.1];
+    } else {
+        return [0, 100];
+    }
+}
+
 
     $: showFilter = ['percentiles', 'icb', 'region', 'national'].includes($selectedMode);
 
@@ -59,20 +135,21 @@
 
     const measureChartStore = createChartStore({
         mode: 'percentiles',
-        yAxisLabel: '%',
+        yAxisLabel: yAxisLabel,
+        yAxisTickFormat: yAxisTickFormatter,
+        yAxisRange: yAxisLimits,
         yAxisBehavior: {
             forceZero: true,
             resetToInitial: true,
-            fixedRange: true
+            fixedRange: hasdenominators === 'true'
         },
-        yAxisRange: [0, 100],
         percentileConfig: {
             medianColor: '#DC3220',
             rangeColor: 'rgb(0, 90, 181)'
         }
     });
 
-    let chartOptions = {
+    $: chartOptions = {
         chart: {
             type: 'line',
             height: 350
@@ -80,11 +157,16 @@
         title: {
             text: undefined
         },
-        yAxis: {
-            min: 0,
-            max: 100,
-            allowDecimals: false,
-            tickInterval: 20
+        yAxis: hasdenominators === 'true' ? {
+        min: 0,
+        max: 100,
+        allowDecimals: false,
+        tickInterval: 20
+        } : {
+            allowDecimals: true,
+            tickAmount: 6,
+            endOnTick: true,
+            startOnTick: true,
         }
     };
 
@@ -327,16 +409,18 @@
         }
     }
 
-    $: if ($selectedMode) {
+    $: if ($selectedMode || yAxisLimits) {
         measureChartStore.setConfig({
             ...$measureChartStore.config,
             mode: $selectedMode,
+            yAxisLabel: yAxisLabel,
+            yAxisTickFormat: yAxisTickFormatter,
+            yAxisRange: yAxisLimits,
             yAxisBehavior: {
                 forceZero: true,
                 resetToInitial: true,
-                fixedRange: true
+                fixedRange: hasdenominators === 'true'
             },
-            yAxisRange: [0, 100],
             percentileConfig: {
                 medianColor: '#DC3220',
                 rangeColor: 'rgb(0, 90, 181)'
@@ -388,7 +472,16 @@
         const label = d.dataset.name || d.dataset.label || 'No label';
         const date = new Date(d.date);
         const formattedDate = date.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
-        const value = (d.value).toFixed(1) + '%';
+        
+        let value;
+        if (hasdenominators === 'true') {
+            value = (d.value).toFixed(1) + '%';
+        } else if (quantitytype === 'indicative_cost') {
+            value = '£' + formatNumber(d.value, { addCommas: true, decimalPlaces: 2 });
+        } else {
+            value = formatNumber(d.value, { addCommas: true });
+        }
+        
         const index = d.index;
 
         const tooltipContent = [
@@ -396,12 +489,19 @@
         ];
 
         if ($selectedMode === 'region' || $selectedMode === 'icb' || $selectedMode === 'national') {
-            tooltipContent.push(
-                { label: 'Date', value: formattedDate },
-                { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index], { addCommas: true }) },
-                { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index], { addCommas: true }) },
-                { label: 'Value', value }
-            );
+            const tooltipEntries = [
+                { label: 'Date', value: formattedDate }
+            ];
+            
+            if (hasdenominators === 'true') {
+                tooltipEntries.push(
+                    { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index], { addCommas: true }) },
+                    { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index], { addCommas: true }) }
+                );
+            }
+            
+            tooltipEntries.push({ label: 'Value', value });
+            tooltipContent.push(...tooltipEntries);
         } else if ($selectedMode === 'percentiles') {
             if (d.dataset.label === 'Median (50th percentile)' || d.dataset.name === 'Median (50th percentile)') {
                 tooltipContent.push(
@@ -409,12 +509,19 @@
                     { label: 'Value', value }
                 );
             } else if (d.dataset.isTrust || d.dataset.isOrganisation) {
-                tooltipContent.push(
-                    { label: 'Date', value: formattedDate },
-                    { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index], { addCommas: true }) },
-                    { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index], { addCommas: true }) },
-                    { label: 'Value', value }
-                );
+                const tooltipEntries = [
+                    { label: 'Date', value: formattedDate }
+                ];
+                
+                if (hasdenominators === 'true') {
+                    tooltipEntries.push(
+                        { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index], { addCommas: true }) },
+                        { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index], { addCommas: true }) }
+                    );
+                }
+                
+                tooltipEntries.push({ label: 'Value', value });
+                tooltipContent.push(...tooltipEntries);
             }
         }
 
@@ -498,7 +605,7 @@
                 <Chart 
                     data={$filteredData}
                     mode={$selectedMode}
-                    yAxisLabel="%"
+                    yAxisLabel={yAxisLabel}
                     formatTooltipContent={customTooltipFormatter}
                     store={measureChartStore}
                     {chartOptions}
