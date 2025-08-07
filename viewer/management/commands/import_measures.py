@@ -148,8 +148,8 @@ def validate_measure_yaml(data):
         'tags': And(list, lambda tags: all(isinstance(t, str) for t in tags), 
                  lambda tags: len(tags) >= 1,
                  error='Tags must be a non-empty list of strings'),
-        'quantity_type': And(str, lambda qt: qt in ['dose', 'ingredient', 'ddd'],
-                           error='quantity_type must be one of: dose, ingredient, ddd'),
+        'quantity_type': And(str, lambda qt: qt in ['scmd', 'dose', 'ingredient', 'ddd', 'indicative_cost'],
+                           error='quantity_type must be one of: scmd, dose, ingredient, ddd, indicative_cost'),
         Optional('authored_by'): And(str),
         Optional('checked_by'): And(str),
         Optional('date_reviewed'): And(

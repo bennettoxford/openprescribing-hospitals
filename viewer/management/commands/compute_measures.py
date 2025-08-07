@@ -15,7 +15,9 @@ from viewer.models import (
     Dose,
     IngredientQuantity,
     DDDQuantity,
-    Organisation
+    Organisation,
+    IndicativeCost,
+    SCMDQuantity
 )
 
 
@@ -45,9 +47,11 @@ class Command(BaseCommand):
         delete_existing_precomputed_data(measure)
 
         model_mapping = {
+            'scmd': SCMDQuantity,
             'dose': Dose,
             'ingredient': IngredientQuantity,
-            'ddd': DDDQuantity
+            'ddd': DDDQuantity,
+            'indicative_cost': IndicativeCost,
         }
 
         model = model_mapping.get(measure.quantity_type)
@@ -106,14 +110,17 @@ class Command(BaseCommand):
             vmp_records = subset.filter(vmp=measurevmp.vmp)
             
             try:
-                unit = get_consistent_unit(vmp_records)
-                if unit:
-                    measurevmp.unit = unit
-                    measurevmp.save()
+                if measure.quantity_type == 'indicative_cost':
+                    unit = '£'
                 else:
-                    self.stdout.write(
-                        self.style.WARNING(f'No unit found for VMP: {measurevmp.vmp.name}')
-                    )
+                    unit = get_consistent_unit(vmp_records)
+                    if unit:
+                        measurevmp.unit = unit
+                        measurevmp.save()
+                    else:
+                        self.stdout.write(
+                            self.style.WARNING(f'No unit found for VMP: {measurevmp.vmp.name}')
+                        )
             except ValueError as e:
                 self.stdout.write(
                     self.style.ERROR(f'Error setting unit for VMP {measurevmp.vmp.name}: {str(e)}')
