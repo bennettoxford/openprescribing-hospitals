@@ -101,7 +101,95 @@ export class ChartDataProcessor {
 
         this.handlePredecessors(orgData);
 
-        return this.createDatasets(orgData, 'organisation');
+        const chartResult = this.createDatasets(orgData, 'organisation');
+
+        if (this.options.showPercentiles && this.rawData && this.rawData.length > 0) {
+            chartResult.needsPercentiles = true;
+            chartResult.percentilesData = this.rawData;
+        }
+
+        return chartResult;
+    }
+
+    createPercentileDatasets(percentiles) {
+        if (!Array.isArray(percentiles) || percentiles.length === 0) {
+            return [];
+        }
+
+        const datasets = [];
+
+        const percentilesByValue = {};
+        percentiles.forEach(p => {
+            if (p && typeof p.percentile !== 'undefined') {
+                if (!percentilesByValue[p.percentile]) {
+                    percentilesByValue[p.percentile] = [];
+                }
+                percentilesByValue[p.percentile].push({
+                    month: p.month,
+                    quantity: p.quantity
+                });
+            }
+        });
+
+        const percentileRanges = [
+            { range: [45, 55], opacity: 0.8 },
+            { range: [35, 65], opacity: 0.6 },
+            { range: [25, 75], opacity: 0.4 },
+            { range: [15, 85], opacity: 0.2 },
+            { range: [5, 95], opacity: 0.1 }
+        ];
+
+        percentileRanges.forEach(({ range: [lower, upper], opacity }) => {
+            if (percentilesByValue[lower] && percentilesByValue[upper]) {
+                const lowerData = percentilesByValue[lower].sort((a, b) => new Date(a.month) - new Date(b.month));
+                const upperData = percentilesByValue[upper].sort((a, b) => new Date(b.month) - new Date(a.month));
+                
+                const rangeData = this.allDates.map(date => {
+                    const lowerValue = lowerData.find(v => v.month === date);
+                    const upperValue = upperData.find(v => v.month === date);
+                    return (lowerValue && upperValue) ? { 
+                        lower: lowerValue.quantity, 
+                        upper: upperValue.quantity 
+                    } : null;
+                });
+
+                datasets.push({
+                    label: `${lower}th-${upper}th percentiles`,
+                    data: rangeData,
+                    color: '#005AB5',
+                    fillOpacity: opacity,
+                    strokeWidth: 0,
+                    fill: true,
+                    isRange: true,
+                    isPercentile: true,
+                    hidden: false,
+                    alwaysVisible: false
+                });
+            }
+        });
+
+        if (percentilesByValue['50']) {
+            const medianData = percentilesByValue['50'].sort((a, b) => new Date(a.month) - new Date(b.month));
+            
+            const medianValues = this.allDates.map(date => {
+                const value = medianData.find(v => v.month === date);
+                return value ? value.quantity : null;
+            });
+
+            datasets.push({
+                label: 'Median (50th percentile)',
+                data: medianValues,
+                color: '#DC3220',
+                strokeWidth: 2,
+                strokeOpacity: 1,
+                fill: false,
+                isPercentile: true,
+                hidden: false,
+                alwaysVisible: false
+            });
+        }
+
+        return datasets;
     }
 
     processAggregatedMode(category) {
@@ -332,9 +420,7 @@ export class ViewModeCalculator {
     calculateAvailableModes() {
         const modes = [];
         
-        if (this.hasSelectedOrganisations()) {
-            modes.push({ value: 'organisation', label: 'NHS Trust' });
-        }
+        modes.push({ value: 'organisation', label: 'NHS Trust' });
         
         modes.push(...this.getAggregationModes());
         
@@ -455,17 +541,12 @@ export class ViewModeCalculator {
 }
 
 export function selectDefaultMode(availableModes, hasSelectedOrganisations = false) {
-    // If trusts are selected, default to organisation mode
-    if (hasSelectedOrganisations) {
-        const organisationMode = availableModes.find(m => m.value === 'organisation');
-        if (organisationMode) return organisationMode.value;
-    }
+    const organisationMode = availableModes.find(m => m.value === 'organisation');
+    if (organisationMode) return organisationMode.value;
     
-    // If no trusts are selected, default to national mode
     const nationalMode = availableModes.find(m => m.value === 'national');
     if (nationalMode) return nationalMode.value;
     
-    // Fallback to first available mode
     return availableModes[0]?.value || 'organisation';
 }
 
@@ -647,7 +728,7 @@ export function processTableDataByMode(data, mode, period, aggregatedData, lates
         return processAggregatedMode(aggregatedData, mode, period, latestDate);
     }
 
-    if (mode === 'organisation' && selectedOrganisations.length > 0) {
+    if (mode === 'organisation') {
         return processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, predecessorMap, expandedTrusts);
     }
 
@@ -809,8 +890,11 @@ function processOrganisationModeWithAggregation(data, period, latestDate, select
     if (Object.keys(otherTrusts).length > 0) {
         const totalOtherCount = countTotalOrgs(otherTrusts);
         
+        const isAllTrusts = selectedOrganisations.length === 0;
+        const keyText = isAllTrusts ? `All trusts (${totalOtherCount})` : `All other trusts (${totalOtherCount})`;
+        
         results.push({
-            key: `All other trusts (${totalOtherCount})`,
+            key: keyText,
             total: otherTotals.total,
             units: Object.entries(otherTotals.units)
                 .sort(([, a], [, b]) => b - a)
@@ -990,4 +1074,269 @@ export function getModeDisplayName(mode) {
         'unit': 'Unit'
     };
     return modeNames[mode] || mode;
+}
+
+export function getChartExplainerText(mode, options = {}) {
+    const { 
+        hasSelectedOrganisations = false, 
+        currentModeHasData = true,
+        vmpsCount = 0
+    } = options;
+
+    const baseExplainers = {
+        'organisation': () => {
+            if (hasSelectedOrganisations) {
+                if (currentModeHasData) {
+                    return "This chart shows the quantity of the selected products issued over time for the selected NHS Trusts. Each colored line represents one trust's issuing pattern for the selected products.";
+                } else {
+                    return "The selected NHS Trusts have no data for these products and quantity type. Try selecting different trusts or changing the quantity type.";
+                }
+            } else {
+                return "This chart would show individual NHS Trust quantities over time. Select specific trusts from the search panel to see their usage patterns.";
+            }
+        },
+
+        'region': () => {
+            return "This chart shows total quantities aggregated by NHS region over time. Each line represents the combined usage across all trusts within that region.";
+        },
+
+        'icb': () => {
+            return "This chart shows total quantities aggregated by Integrated Care Board (ICB) over time. Each line represents the combined usage across all trusts within that ICB.";
+        },
+
+        'national': () => {
+            return "This chart shows the total national quantities over time, representing the combined usage across all NHS Trusts in England.";
+        },
+
+        'product': () => {
+            if (vmpsCount > 1) {
+                return "This chart compares quantities between different products over time. Each line represents one product, showing its total usage across all NHS Trusts.";
+            } else {
+                return "This chart shows quantities for the selected product over time across all NHS Trusts.";
+            }
+        },
+
+        'productGroup': () => {
+            return "This chart shows quantities grouped by product category (VTM - Virtual Therapeutic Moiety) over time. Each line represents a therapeutic group, combining all related products.";
+        },
+
+        'ingredient': () => {
+            return "This chart shows quantities grouped by active ingredient over time. Each line represents one ingredient, combining all products containing that ingredient.";
+        },
+
+        'unit': () => {
+            return "This chart shows quantities grouped by unit of measurement over time. Each line represents one unit type (e.g., tablets, bottles, ampoules).";
+        }
+    };
+
+    const explainerFunc = baseExplainers[mode];
+    if (explainerFunc) {
+        return explainerFunc();
+    }
+
+    return "This chart shows the selected data over time.";
+}
+
+export function calculatePercentiles(data, predecessorMap = new Map(), allTrusts = []) {
+    if (!Array.isArray(data) || data.length === 0) {
+        return { percentiles: [], trustCount: 0, excludedTrusts: [] };
+    }
+
+    const orgTotalUsage = {};
+    const orgNames = {};
+    const allMonths = new Set();
+    const excludedTrusts = [];
+    const seenOrgNames = new Set();
+
+
+    data.forEach(item => {
+        const orgId = item.organisation__ods_code;
+        const orgName = item.organisation__ods_name;
+        
+        if (!orgId) {
+            return;
+        }
+
+        if (orgName) {
+            seenOrgNames.add(orgName);
+            orgNames[orgId] = orgName;
+        }
+        
+        if (!orgTotalUsage[orgId]) {
+            orgTotalUsage[orgId] = 0;
+        }
+
+        let hasValidData = false;
+        if (item.data && Array.isArray(item.data)) {
+            item.data.forEach(entry => {
+                if (entry && entry.length >= 2 && entry[1] !== null && entry[1] !== undefined) {
+                    const month = entry[0];
+                    const quantity = parseFloat(entry[1]);
+                    
+                    if (!isNaN(quantity)) {
+                        orgTotalUsage[orgId] += quantity;
+                        allMonths.add(month);
+                        hasValidData = true;
+                    }
+                }
+            });
+        }
+
+        if (!hasValidData && orgName) {
+            const existingExcluded = excludedTrusts.find(t => t.name === orgName);
+            if (!existingExcluded) {
+                excludedTrusts.push({
+                    name: orgName,
+                    code: orgId,
+                    reason: 'No valid data for selected products'
+                });
+            }
+        }
+    });
+
+    Object.keys(orgTotalUsage).forEach(orgId => {
+        if (orgTotalUsage[orgId] === 0) {
+            delete orgTotalUsage[orgId];
+        }
+    });
+
+    if (Array.isArray(allTrusts) && allTrusts.length > 0) {
+        const allPredecessorNames = new Set();
+        if (predecessorMap instanceof Map) {
+            for (const predecessors of predecessorMap.values()) {
+                if (Array.isArray(predecessors)) {
+                    predecessors.forEach(pred => allPredecessorNames.add(pred));
+                }
+            }
+        }
+
+        allTrusts.forEach(trustName => {
+            if (!seenOrgNames.has(trustName)) {
+                const isPredecessor = allPredecessorNames.has(trustName);
+                excludedTrusts.push({
+                    name: trustName,
+                    code: 'Unknown',
+                    reason: isPredecessor 
+                        ? 'Predecessor trust (merged into successor)' 
+                        : 'Not in analysis data (no matching products or quantity type)'
+                });
+            }
+        });
+    }
+
+    const includedOrgs = Object.keys(orgTotalUsage);
+    
+    const trustCount = includedOrgs.length;
+
+    if (includedOrgs.length === 0) {
+        return { 
+            percentiles: [], 
+            trustCount: 0, 
+            excludedTrusts: []
+        };
+    }
+
+    const orgMonthlyValues = {};
+    const sortedMonths = Array.from(allMonths).sort();
+
+    includedOrgs.forEach(orgId => {
+        orgMonthlyValues[orgId] = {};
+        sortedMonths.forEach(month => {
+            orgMonthlyValues[orgId][month] = 0; // Set missing months to 0 - this is in line with the percentiles calculation in measures
+        });
+    });
+
+    data.forEach(item => {
+        const orgId = item.organisation__ods_code;
+        
+        if (orgId && includedOrgs.includes(orgId)) {
+            if (item.data && Array.isArray(item.data)) {
+                item.data.forEach(entry => {
+                    if (entry && entry.length >= 2 && entry[1] !== null && entry[1] !== undefined) {
+                        const month = entry[0];
+                        const quantity = parseFloat(entry[1]);
+                        
+                        if (!isNaN(quantity)) {
+                            orgMonthlyValues[orgId][month] = quantity;
+                        }
+                    }
+                });
+            }
+        }
+    });
+
+
+    if (predecessorMap instanceof Map) {
+        const orgNameToId = {};
+        Object.entries(orgNames).forEach(([orgId, orgName]) => {
+            orgNameToId[orgName] = orgId;
+        });
+
+
+        for (const [successorName, predecessorNames] of predecessorMap.entries()) {
+            const successorId = orgNameToId[successorName];
+            
+            if (successorId && orgMonthlyValues[successorId]) {
+
+                predecessorNames.forEach(predecessorName => {
+                    const predecessorId = orgNameToId[predecessorName];
+                    
+                    if (predecessorId && orgMonthlyValues[predecessorId]) {
+
+                        sortedMonths.forEach(month => {
+                            orgMonthlyValues[successorId][month] += orgMonthlyValues[predecessorId][month];
+                        });
+                        
+                        // Remove predecessor from ranking (but keep in trust count)
+                        delete orgMonthlyValues[predecessorId];
+                    }
+                });
+            }
+        }
+    }
+
+    const orgsForRanking = Object.keys(orgMonthlyValues);
+
+    const percentilesData = [];
+    
+    sortedMonths.forEach(month => {
+        const monthValues = orgsForRanking.map(orgId => orgMonthlyValues[orgId][month]).sort((a, b) => a - b);
+        const n = monthValues.length;
+
+        if (n > 0) {
+            [5, 15, 25, 35, 45, 50, 55, 65, 75, 85, 95].forEach(percentile => {
+                const k = (n - 1) * (percentile / 100);
+                const f = Math.floor(k);
+                const c = Math.ceil(k);
+
+                let value;
+                if (f === c) {
+                    value = monthValues[f];
+                } else {
+                    const d0 = monthValues[f] * (c - k);
+                    const d1 = monthValues[c] * (k - f);
+                    value = d0 + d1;
+                }
+
+                percentilesData.push({
+                    month,
+                    percentile,
+                    quantity: value
+                });
+            });
+        }
+    });
+
+    return {
+        percentiles: percentilesData,
+        trustCount: trustCount,
+        excludedTrusts: excludedTrusts
+    };
+}
+
+export function getTrustCount(percentilesResult) {
+    if (!percentilesResult || typeof percentilesResult.trustCount !== 'number') {
+        return 0;
+    }
+    return percentilesResult.trustCount;
 }
