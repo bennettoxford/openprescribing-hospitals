@@ -141,7 +141,7 @@ tzlocal==5.3.1
 ujson==5.10.0
 uritemplate==4.1.1
 urllib3==2.5.0
-uv==0.6.12
+uv==0.8.6
 uvicorn==0.34.0
 websockets==15.0.1
 whenever==0.7.3
