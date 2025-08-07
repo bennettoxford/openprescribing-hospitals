@@ -131,6 +131,8 @@ class MeasureItemView(TemplateView):
             "tags": tags_data,
             "denominator_vmps": json.dumps(denominator_vmps, cls=DjangoJSONEncoder),
             "numerator_vmps": json.dumps(numerator_vmps, cls=DjangoJSONEncoder),
+            "measure_quantity_type": measure.quantity_type,
+            "has_denominators": len(denominator_vmps) > 0,
         }
 
     def get_precomputed_data(self, measure):

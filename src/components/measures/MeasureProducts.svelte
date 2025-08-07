@@ -54,6 +54,8 @@
     $: remainingCount = sortedItems.length - previewCount;
     $: numeratorCount = parsedNumeratorItems.length;
     $: denominatorCount = parsedItems.length + parsedNumeratorItems.length;
+    $: hasDenominators = parsedItems.length > 0;
+
 </script>
 
 <div class="border border-gray-200 rounded-lg shadow-sm my-4 overflow-hidden">
@@ -62,33 +64,39 @@
             <h3 class="text-lg font-semibold text-gray-800">{title}</h3>
         </div>
 
-        <p class="text-sm text-gray-600 mb-2">
-            <span class="block mt-1">
-                There are <span class="font-semibold">{denominatorCount} products</span> included in the denominator for this measure, 
-                of which <span class="font-semibold">{numeratorCount}</span> are included in the numerator.
-            </span>
-        </p>
-        
-        <div class="flex flex-wrap gap-2 mb-4 text-xs text-gray-600">
-            <div class="inline-flex items-center gap-1 bg-oxford-50 px-2 py-1 rounded">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24">
-                    <rect x="6" y="3" width="12" height="5" fill="#003D73" rx="1" />
-                    <rect x="6" y="16" width="12" height="5" fill="#003D73" rx="1" />
-                    <rect x="4" y="11.5" width="16" height="1" fill="#003D73" />
-                </svg>
-                <span>Numerator and denominator</span>
+        {#if hasDenominators}
+            <p class="text-sm text-gray-600 mb-2">
+                <span class="block mt-1">
+                    There are <span class="font-semibold">{denominatorCount} products</span> included in the denominator for this measure, 
+                    of which <span class="font-semibold">{numeratorCount}</span> are included in the numerator.
+                </span>
+            </p>
+            
+            <div class="flex flex-wrap gap-2 mb-4 text-xs text-gray-600">
+                <div class="inline-flex items-center gap-1 bg-oxford-50 px-2 py-1 rounded">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24">
+                        <rect x="6" y="3" width="12" height="5" fill="#003D73" rx="1" />
+                        <rect x="6" y="16" width="12" height="5" fill="#003D73" rx="1" />
+                        <rect x="4" y="11.5" width="16" height="1" fill="#003D73" />
+                    </svg>
+                    <span>Numerator and denominator</span>
+                </div>
+                <div class="inline-flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24">
+                        <rect x="6" y="3" width="12" height="5" fill="none" stroke="#9CA3AF" stroke-width="1" rx="1" />
+                        <rect x="6" y="16" width="12" height="5" fill="#9CA3AF" rx="1" />
+                        <rect x="4" y="11.5" width="16" height="1" fill="#9CA3AF" />
+                    </svg>
+                    <span>Denominator only</span>
+                </div>
             </div>
-            <div class="inline-flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24">
-                    <rect x="6" y="3" width="12" height="5" fill="none" stroke="#9CA3AF" stroke-width="1" rx="1" />
-                    <rect x="6" y="16" width="12" height="5" fill="#9CA3AF" rx="1" />
-                    <rect x="4" y="11.5" width="16" height="1" fill="#9CA3AF" />
-                </svg>
-                <span>Denominator only</span>
-            </div>
-        </div>
-     
-      
+        {:else}
+            <p class="text-sm text-gray-600 mb-4">
+                <span class="block mt-1">
+                    There are <span class="font-semibold">{numeratorCount} products</span> included in this measure.
+                </span>
+            </p>
+        {/if}
 
         <div class="overflow-x-auto">
             <div class={`overflow-y-auto transition-all duration-200 ease-in-out ${isExpanded ? 'max-h-[24rem]' : 'max-h-[20rem]'}`}>
@@ -104,21 +112,23 @@
                         {#each displayedItems as item}
                             {@const inNumerator = isInNumerator(item)}
                             <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out"
-                                class:bg-oxford-50={inNumerator}>
+                                class:bg-oxford-50={hasDenominators && inNumerator}>
                                 <td class="px-3 py-2 text-sm font-medium text-gray-900">
                                     <div class="flex items-center gap-2">
-                                        {#if inNumerator}
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24">
-                                                <rect x="6" y="3" width="12" height="5" fill="#003D73" rx="1" />
-                                                <rect x="6" y="16" width="12" height="5" fill="#003D73" rx="1" />
-                                                <rect x="4" y="11.5" width="16" height="1" fill="#003D73" />
-                                            </svg>
-                                        {:else}
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24">
-                                                <rect x="6" y="3" width="12" height="5" fill="none" stroke="#9CA3AF" stroke-width="1" rx="1" />
-                                                <rect x="6" y="16" width="12" height="5" fill="#9CA3AF" rx="1" />
-                                                <rect x="4" y="11.5" width="16" height="1" fill="#9CA3AF" />
-                                            </svg>
+                                        {#if hasDenominators}
+                                            {#if inNumerator}
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24">
+                                                    <rect x="6" y="3" width="12" height="5" fill="#003D73" rx="1" />
+                                                    <rect x="6" y="16" width="12" height="5" fill="#003D73" rx="1" />
+                                                    <rect x="4" y="11.5" width="16" height="1" fill="#003D73" />
+                                                </svg>
+                                            {:else}
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24">
+                                                    <rect x="6" y="3" width="12" height="5" fill="none" stroke="#9CA3AF" stroke-width="1" rx="1" />
+                                                    <rect x="6" y="16" width="12" height="5" fill="#9CA3AF" rx="1" />
+                                                    <rect x="4" y="11.5" width="16" height="1" fill="#9CA3AF" />
+                                                </svg>
+                                            {/if}
                                         {/if}
                                         <span>{item.name}</span>
                                     </div>

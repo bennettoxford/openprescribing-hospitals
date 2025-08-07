@@ -125,10 +125,12 @@ class Command(BaseCommand):
                 )
 
         numerator_vmps = measurevmps.filter(type='numerator').values_list('vmp', flat=True)
-        denominator_vmps = measurevmps.values_list('vmp', flat=True)
+        denominator_vmps = measurevmps.filter(type='denominator').values_list('vmp', flat=True)
+        
+        has_denominators = denominator_vmps.exists()
 
         numerator_records = subset.filter(vmp__in=numerator_vmps)
-        denominator_records = subset.filter(vmp__in=denominator_vmps)
+        denominator_records = subset.filter(vmp__in=denominator_vmps) if has_denominators else subset.none()
 
         numerator_data = (
             numerator_records
@@ -140,7 +142,7 @@ class Command(BaseCommand):
             denominator_records
             .values('normalised_org_id', 'data')
             .iterator(chunk_size=1000)
-        )
+        ) if has_denominators else iter([])
 
         org_monthly_data = defaultdict(lambda: defaultdict(lambda: {'numerator': 0, 'denominator': 0}))
 
@@ -151,12 +153,13 @@ class Command(BaseCommand):
                     month = entry[0]
                     org_monthly_data[org_id][month]['numerator'] += float(entry[1])
         
-        for record in denominator_data:
-            org_id = record['normalised_org_id']
-            for entry in record['data'] or []:
-                if len(entry) >= 2 and entry[1]:
-                    month = entry[0]
-                    org_monthly_data[org_id][month]['denominator'] += float(entry[1])
+        if has_denominators:
+            for record in denominator_data:
+                org_id = record['normalised_org_id']
+                for entry in record['data'] or []:
+                    if len(entry) >= 2 and entry[1]:
+                        month = entry[0]
+                        org_monthly_data[org_id][month]['denominator'] += float(entry[1])
 
         precomputed_measures = []
         for org_id, monthly_data in org_monthly_data.items():
@@ -164,7 +167,11 @@ class Command(BaseCommand):
             for month, values in monthly_data.items():
                 numerator = values['numerator']
                 denominator = values['denominator']
-                quantity = (numerator / denominator * 100) if denominator else 0
+                
+                if has_denominators:
+                    quantity = (numerator / denominator * 100) if denominator else 0
+                else:
+                    quantity = numerator
                 
                 precomputed_measures.append(
                     PrecomputedMeasure(
@@ -208,7 +215,10 @@ class Command(BaseCommand):
                     }
                 else:
                     data = org_monthly_data[org_id][month]
-                    data["value"] = (data["numerator"] / data["denominator"] * 100) if data["denominator"] else 0
+                    if has_denominators:
+                        data["value"] = (data["numerator"] / data["denominator"] * 100) if data["denominator"] else 0
+                    else:
+                        data["value"] = data["numerator"]
         
         for month in all_months:
             month_values = [
@@ -275,14 +285,23 @@ class Command(BaseCommand):
         
         for icb_id, monthly_data in icb_values.items():
             for month, values in monthly_data.items():
-                values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else None
+                if has_denominators:
+                    values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else None
+                else:
+                    values['value'] = values['numerator']
 
         for region_id, monthly_data in region_values.items():
             for month, values in monthly_data.items():
-                values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else None
+                if has_denominators:
+                    values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else None
+                else:
+                    values['value'] = values['numerator']
 
         for month, values in national_values.items():
-            values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else None
+            if has_denominators:
+                values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else None
+            else:
+                values['value'] = values['numerator']
         
         aggregation_time = time.time() - start_time
         self.stdout.write(f"All aggregations completed in: {aggregation_time:.2f}s (no additional queries!)")
