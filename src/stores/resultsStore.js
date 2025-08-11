@@ -17,7 +17,11 @@ export const resultsStore = writable({
         national: {}
     },
     visibleItems: new Set(),
-    isAdvancedMode: false
+    isAdvancedMode: false,
+    showPercentiles: true,
+    percentiles: [],
+    trustCount: 0,
+    excludedTrusts: []
 });
 
 export function updateResults(data, options = {}) {
@@ -37,6 +41,8 @@ export function updateResults(data, options = {}) {
     );
 
     const selectedOrganisations = options.selectedOrganisations || [];
+    
+    const defaultShowPercentiles = selectedOrganisations.length === 0;
     
     const filteredData = selectedOrganisations.length === 0 ? 
         [] :
@@ -58,7 +64,8 @@ export function updateResults(data, options = {}) {
         searchType: options.searchType || store.searchType,
         dateRange: calculateDateRange(data),
         isAdvancedMode: options.isAdvancedMode,
-        selectedOrganisations: options.selectedOrganisations || []
+        selectedOrganisations: options.selectedOrganisations || [],
+        showPercentiles: defaultShowPercentiles
     }));
 }
 
