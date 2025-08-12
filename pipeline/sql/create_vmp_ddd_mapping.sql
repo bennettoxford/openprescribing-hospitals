@@ -96,6 +96,15 @@ base_vmps AS (
   JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_TABLE_ID }}` vmp ON sv.vmp_code = vmp.vmp_code
 ),
 
+vmp_expressed_as AS (
+  SELECT
+    vmp_id AS vmp_code,
+    ddd_comment,
+    expressed_as_strnt_nmrtr,
+    expressed_as_strnt_nmrtr_uom_name
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_EXPRESSED_AS_TABLE_ID }}`
+),
+
 vmp_ingredients AS (
   SELECT
     vmp_code,
@@ -119,6 +128,16 @@ vmp_ingredients AS (
     UNNEST(ingredients) AS ingredient
   )
   GROUP BY vmp_code
+),
+
+ddd_refers_to_mappings AS (
+  SELECT 
+    rt.ddd_comment,
+    rt.refers_to_ingredient,
+    dmd_ing.dmd_ingredient_code,
+    dmd_ing.dmd_ingredient_name
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DDD_REFERS_TO_TABLE_ID }}` rt,
+  UNNEST(dmd_ingredients) AS dmd_ing
 ),
 
 route_matches AS (
@@ -184,7 +203,10 @@ ddd_route_selection AS (
       WHEN NOT all_matching_ddds_same THEN FALSE
       WHEN (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1) IS NOT NULL 
         AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != '' 
-        AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != 'New DDD' THEN FALSE
+        AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != 'New DDD'
+        AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != 'Independent of strength'
+        AND NOT LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))) LIKE 'refers to %'
+        AND NOT LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))) LIKE 'expressed as %' THEN FALSE
       ELSE TRUE
     END AS route_match_ok,
     CASE
@@ -196,6 +218,9 @@ ddd_route_selection AS (
       WHEN (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1) IS NOT NULL 
         AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != '' 
         AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != 'New DDD'
+        AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != 'Independent of strength'
+        AND NOT LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))) LIKE 'refers to %'
+        AND NOT LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))) LIKE 'expressed as %'
         THEN CONCAT('DDD has unsupported comment: ', (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))
       ELSE NULL
     END AS route_matching_issue,
@@ -217,13 +242,20 @@ ddd_route_selection AS (
   FROM ddd_analysis da
 ),
 
--- Check for unit compatibility
+-- Check for unit compatibility and calculate DDD basis value
 unit_compatibility AS (
   SELECT
     drs.*,
     uoms.uoms,
     unit_ddd.basis AS ddd_basis,
     unit_ddd.unit AS ddd_unit,
+    unit_ddd.conversion_factor AS ddd_conversion_factor,
+    -- Calculate the DDD value in basis units
+    CASE 
+      WHEN drs.selected_ddd_value IS NOT NULL AND unit_ddd.conversion_factor IS NOT NULL 
+      THEN drs.selected_ddd_value * unit_ddd.conversion_factor
+      ELSE NULL
+    END AS selected_ddd_basis_value,
     EXISTS(
       SELECT 1
       FROM UNNEST(uoms.uoms) AS uom
@@ -238,6 +270,23 @@ unit_compatibility AS (
   WHERE drs.route_match_ok = TRUE
 ),
 
+vmp_refers_to_ingredients AS (
+  SELECT 
+    ing.vmp_code,
+    uc.selected_ddd_comment,
+    STRING_AGG(vmp_ing.ingredient_name, ', ') AS refers_to_ingredient_names
+  FROM unit_compatibility uc
+  LEFT JOIN vmp_ingredients ing ON uc.vmp_code = ing.vmp_code
+  LEFT JOIN UNNEST(ing.ingredients_info) AS vmp_ing
+  LEFT JOIN ddd_refers_to_mappings rt 
+    ON rt.ddd_comment = uc.selected_ddd_comment
+    AND rt.dmd_ingredient_code = vmp_ing.ingredient_code
+  WHERE uc.selected_ddd_comment IS NOT NULL 
+    AND LOWER(TRIM(uc.selected_ddd_comment)) LIKE 'refers to %'
+    AND rt.dmd_ingredient_code IS NOT NULL
+  GROUP BY ing.vmp_code, uc.selected_ddd_comment
+),
+
 unit_and_ingredient_analysis AS (
   SELECT
     uc.vmp_code,
@@ -246,12 +295,27 @@ unit_and_ingredient_analysis AS (
     uc.selected_ddd_value,
     uc.selected_ddd_unit,
     uc.selected_ddd_route_code,
+    uc.selected_ddd_comment,
     uc.ddd_basis AS selected_ddd_basis_unit,
+    uc.selected_ddd_basis_value,
     ing.ingredients_info,
     -- Check if ingredients
     (ing.ingredients_info IS NOT NULL AND ARRAY_LENGTH(ing.ingredients_info) > 0) AS has_ingredients,
     -- Check if exactly one ingredient
     (ing.ingredients_info IS NOT NULL AND ARRAY_LENGTH(ing.ingredients_info) = 1) AS has_single_ingredient,
+    -- Check if DDD comment starts with "Refers to"
+    (uc.selected_ddd_comment IS NOT NULL 
+     AND LOWER(TRIM(uc.selected_ddd_comment)) LIKE 'refers to %') AS is_refers_to_ddd,
+    -- For "Refers to" DDDs, check if VMP has the referred ingredient
+    EXISTS(
+      SELECT 1
+      FROM UNNEST(ing.ingredients_info) AS vmp_ing
+      JOIN ddd_refers_to_mappings rt 
+        ON rt.ddd_comment = uc.selected_ddd_comment
+        AND rt.dmd_ingredient_code = vmp_ing.ingredient_code
+    ) AS has_refers_to_ingredient,
+    -- Get the specific ingredient name for "refers to" cases
+    vri.refers_to_ingredient_names AS refers_to_ingredient_name,
     -- Get the ingredient basis unit (if there's only one ingredient)
     CASE
       WHEN ing.ingredients_info IS NOT NULL AND ARRAY_LENGTH(ing.ingredients_info) = 1 
@@ -266,6 +330,20 @@ unit_and_ingredient_analysis AS (
       ) = uc.ddd_basis
       ELSE FALSE
     END AS ingredient_basis_matches_ddd,
+    -- For "Refers to" DDDs, check if the referred ingredient's basis unit matches DDD basis
+    CASE
+      WHEN uc.selected_ddd_comment IS NOT NULL 
+           AND LOWER(TRIM(uc.selected_ddd_comment)) LIKE 'refers to %'
+      THEN EXISTS(
+        SELECT 1
+        FROM UNNEST(ing.ingredients_info) AS vmp_ing
+        JOIN ddd_refers_to_mappings rt 
+          ON rt.ddd_comment = uc.selected_ddd_comment
+          AND rt.dmd_ingredient_code = vmp_ing.ingredient_code
+        WHERE vmp_ing.ingredient_basis_unit = uc.ddd_basis
+      )
+      ELSE FALSE
+    END AS refers_to_ingredient_basis_matches_ddd,
     -- Check for route matching
     (
       SELECT COUNT(1) 
@@ -283,68 +361,104 @@ unit_and_ingredient_analysis AS (
   FROM unit_compatibility uc
   LEFT JOIN vmp_ingredients ing ON uc.vmp_code = ing.vmp_code
   LEFT JOIN vmp_routes r ON uc.vmp_code = r.vmp_code
+  LEFT JOIN vmp_refers_to_ingredients vri ON uc.vmp_code = vri.vmp_code
 ),
 
 ddd_calculation_status AS (
   SELECT
-    vmp_code,
-    vmp_name,
-    who_ddds,
+    drs.vmp_code,
+    drs.vmp_name,
+    drs.who_ddds,
     FALSE AS can_calculate_ddd,
-    route_matching_issue AS ddd_calculation_logic,
+    drs.route_matching_issue AS ddd_calculation_logic,
     NULL AS selected_ddd_value,
     NULL AS selected_ddd_unit,
     NULL AS selected_ddd_route_code,
-    NULL AS selected_ddd_basis_unit
-  FROM ddd_route_selection
-  WHERE route_match_ok = FALSE
+    NULL AS selected_ddd_basis_unit,
+    NULL AS selected_ddd_basis_value,
+    expr.vmp_code IS NOT NULL AS has_expressed_as_data,
+    expr.ddd_comment AS expressed_as_comment,
+    expr.expressed_as_strnt_nmrtr AS expressed_as_strength,
+    expr.expressed_as_strnt_nmrtr_uom_name AS expressed_as_strength_unit
+  FROM ddd_route_selection drs
+  LEFT JOIN vmp_expressed_as expr ON drs.vmp_code = expr.vmp_code
+  WHERE drs.route_match_ok = FALSE
   
   UNION ALL
 
   SELECT
-    vmp_code,
-    vmp_name,
-    who_ddds,
+    uc.vmp_code,
+    uc.vmp_name,
+    uc.who_ddds,
     TRUE AS can_calculate_ddd,
-    'SCMD quantity / DDD' AS ddd_calculation_logic,
-    selected_ddd_value,
-    selected_ddd_unit,
-    selected_ddd_route_code,
-    ddd_basis AS selected_ddd_basis_unit
-  FROM unit_compatibility
-  WHERE has_compatible_units = TRUE
+    CASE 
+      WHEN expr.vmp_code IS NOT NULL 
+      THEN CONCAT('Expressed as quantity / DDD (', expr.ddd_comment, ')')
+      ELSE 'SCMD quantity / DDD'
+    END AS ddd_calculation_logic,
+    uc.selected_ddd_value,
+    uc.selected_ddd_unit,
+    uc.selected_ddd_route_code,
+    uc.ddd_basis AS selected_ddd_basis_unit,
+    uc.selected_ddd_basis_value,
+    expr.vmp_code IS NOT NULL AS has_expressed_as_data,
+    expr.ddd_comment AS expressed_as_comment,
+    expr.expressed_as_strnt_nmrtr AS expressed_as_strength,
+    expr.expressed_as_strnt_nmrtr_uom_name AS expressed_as_strength_unit
+  FROM unit_compatibility uc
+  LEFT JOIN vmp_expressed_as expr ON uc.vmp_code = expr.vmp_code
+  WHERE uc.has_compatible_units = TRUE
   
   UNION ALL
   
   SELECT
-    vmp_code,
-    vmp_name,
-    who_ddds,
+    uia.vmp_code,
+    uia.vmp_name,
+    uia.who_ddds,
     CASE 
-      WHEN has_single_ingredient AND ingredient_basis_matches_ddd THEN TRUE
+      -- For expressed_as cases, always allow calculation if we have DDD data
+      WHEN expr.vmp_code IS NOT NULL AND uia.selected_ddd_basis_value IS NOT NULL THEN TRUE
+      -- Allow single ingredient case
+      WHEN uia.has_single_ingredient AND uia.ingredient_basis_matches_ddd THEN TRUE
+      -- Allow "Refers to" case with multiple ingredients if the referred ingredient matches
+      WHEN uia.is_refers_to_ddd AND uia.has_refers_to_ingredient AND uia.refers_to_ingredient_basis_matches_ddd THEN TRUE
       ELSE FALSE
     END AS can_calculate_ddd,
     CASE
-      WHEN has_single_ingredient AND ingredient_basis_matches_ddd 
+      WHEN expr.vmp_code IS NOT NULL 
+      THEN CONCAT('Expressed as quantity / DDD (', expr.ddd_comment, ')')
+      WHEN uia.has_single_ingredient AND uia.ingredient_basis_matches_ddd 
       THEN 'Ingredient quantity / DDD'
-      WHEN NOT routes_match 
+      WHEN uia.is_refers_to_ddd AND uia.has_refers_to_ingredient AND uia.refers_to_ingredient_basis_matches_ddd
+      THEN CONCAT('Ingredient quantity / DDD (Refers to ', LOWER(uia.refers_to_ingredient_name), ')')
+      WHEN NOT uia.routes_match 
       THEN 'Not calculated: DDD route does not match product route'
-      WHEN has_missing_ingredient_units 
+      WHEN uia.has_missing_ingredient_units 
       THEN 'Not calculated: missing ingredient unit information, cannot calculate'
-      WHEN NOT has_ingredients 
+      WHEN NOT uia.has_ingredients 
       THEN CONCAT('Not calculated: DDD unit incompatible with SCMD unit. No ingredients found.')
-      WHEN NOT has_single_ingredient 
+      WHEN uia.is_refers_to_ddd AND NOT uia.has_refers_to_ingredient
+      THEN CONCAT('Not calculated: DDD refers to ingredient not found in VMP (', uia.selected_ddd_comment, ')')
+      WHEN uia.is_refers_to_ddd AND uia.has_refers_to_ingredient AND NOT uia.refers_to_ingredient_basis_matches_ddd
+      THEN CONCAT('Not calculated: referred ingredient unit does not match DDD unit (', uia.selected_ddd_comment, ')')
+      WHEN NOT uia.has_single_ingredient AND NOT uia.is_refers_to_ddd
       THEN CONCAT('Not calculated: DDD unit incompatible with SCMD unit. Multiple ingredients found, fallback not possible.')
-      WHEN NOT ingredient_basis_matches_ddd 
+      WHEN NOT uia.ingredient_basis_matches_ddd 
       THEN CONCAT('Not calculated: DDD unit incompatible with SCMD unit. Ingredient unit does not match DDD unit.')
       ELSE 'Not calculated: unknown route or unit compatibility issue'
     END AS ddd_calculation_logic,
-    selected_ddd_value,
-    selected_ddd_unit,
-    selected_ddd_route_code,
-    selected_ddd_basis_unit
-  FROM unit_and_ingredient_analysis
-  WHERE NOT has_compatible_units
+    uia.selected_ddd_value,
+    uia.selected_ddd_unit,
+    uia.selected_ddd_route_code,
+    uia.selected_ddd_basis_unit,
+    uia.selected_ddd_basis_value,
+    expr.vmp_code IS NOT NULL AS has_expressed_as_data,
+    expr.ddd_comment AS expressed_as_comment,
+    expr.expressed_as_strnt_nmrtr AS expressed_as_strength,
+    expr.expressed_as_strnt_nmrtr_uom_name AS expressed_as_strength_unit
+  FROM unit_and_ingredient_analysis uia
+  LEFT JOIN vmp_expressed_as expr ON uia.vmp_code = expr.vmp_code
+  WHERE NOT uia.has_compatible_units
 ),
 
 missing_cases AS (
@@ -357,9 +471,15 @@ missing_cases AS (
     CAST(NULL AS FLOAT64) AS selected_ddd_value,
     CAST(NULL AS STRING) AS selected_ddd_unit,
     CAST(NULL AS STRING) AS selected_ddd_route_code,
-    CAST(NULL AS STRING) AS selected_ddd_basis_unit
+    CAST(NULL AS STRING) AS selected_ddd_basis_unit,
+    CAST(NULL AS FLOAT64) AS selected_ddd_basis_value,
+    expr.vmp_code IS NOT NULL AS has_expressed_as_data,
+    expr.ddd_comment AS expressed_as_comment,
+    expr.expressed_as_strnt_nmrtr AS expressed_as_strength,
+    expr.expressed_as_strnt_nmrtr_uom_name AS expressed_as_strength_unit
   FROM base_vmps bv
   LEFT JOIN vmp_who_ddds ddds ON bv.vmp_code = ddds.vmp_code
+  LEFT JOIN vmp_expressed_as expr ON bv.vmp_code = expr.vmp_code
   LEFT JOIN ddd_calculation_status dcs ON bv.vmp_code = dcs.vmp_code
   WHERE dcs.vmp_code IS NULL
 ),
@@ -378,7 +498,12 @@ vmp_ddd_final_mapping AS (
     COALESCE(dcs.selected_ddd_value, ms.selected_ddd_value) AS selected_ddd_value,
     COALESCE(dcs.selected_ddd_unit, ms.selected_ddd_unit) AS selected_ddd_unit,
     COALESCE(dcs.selected_ddd_basis_unit, ms.selected_ddd_basis_unit) AS selected_ddd_basis_unit,
-    COALESCE(dcs.selected_ddd_route_code, ms.selected_ddd_route_code) AS selected_ddd_route_code
+    COALESCE(dcs.selected_ddd_basis_value, ms.selected_ddd_basis_value) AS selected_ddd_basis_value,
+    COALESCE(dcs.selected_ddd_route_code, ms.selected_ddd_route_code) AS selected_ddd_route_code,
+    COALESCE(dcs.has_expressed_as_data, ms.has_expressed_as_data, FALSE) AS has_expressed_as_data,
+    COALESCE(dcs.expressed_as_comment, ms.expressed_as_comment) AS expressed_as_comment,
+    COALESCE(dcs.expressed_as_strength, ms.expressed_as_strength) AS expressed_as_strength,
+    COALESCE(dcs.expressed_as_strength_unit, ms.expressed_as_strength_unit) AS expressed_as_strength_unit
   FROM base_vmps bv
   LEFT JOIN vmp_atc_mappings atc ON bv.vmp_code = atc.vmp_code
   LEFT JOIN vmp_routes routes ON bv.vmp_code = routes.vmp_code
@@ -402,5 +527,10 @@ SELECT
   selected_ddd_value,
   selected_ddd_unit,
   selected_ddd_basis_unit,
-  selected_ddd_route_code
+  selected_ddd_basis_value,
+  selected_ddd_route_code,
+  has_expressed_as_data,
+  expressed_as_comment,
+  expressed_as_strength,
+  expressed_as_strength_unit
 FROM vmp_ddd_final_mapping
