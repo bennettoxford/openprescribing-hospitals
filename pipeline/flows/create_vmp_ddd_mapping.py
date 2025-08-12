@@ -1,6 +1,13 @@
 from prefect import flow, task, get_run_logger
-from pipeline.utils.utils import execute_bigquery_query_from_sql_file, get_bigquery_client
-from pipeline.bq_tables import VMP_DDD_MAPPING_TABLE_SPEC, DMD_SUPP_TABLE_SPEC, WHO_DDD_TABLE_SPEC
+from pipeline.utils.utils import (
+    execute_bigquery_query_from_sql_file,
+    get_bigquery_client,
+)
+from pipeline.bq_tables import (
+    VMP_DDD_MAPPING_TABLE_SPEC,
+    DMD_SUPP_TABLE_SPEC,
+    WHO_DDD_TABLE_SPEC,
+)
 from pathlib import Path
 
 
@@ -36,20 +43,25 @@ def validate_ddd_mapping_consistency():
     inconsistent_records = [dict(row) for row in results]
 
     if inconsistent_records:
-        logger.error(f"Found {len(inconsistent_records)} VMPs with inconsistent DDD calculation status")
+        logger.error(
+            f"Found {len(inconsistent_records)} VMPs with inconsistent "
+            f"DDD calculation status"
+        )
         for record in inconsistent_records[:5]:
-            if record['can_calculate_ddd']:
+            if record["can_calculate_ddd"]:
                 logger.error(
-                    f"- VMP {record['vmp_code']}: Marked as calculable but missing required DDD fields"
+                    f"- VMP {record['vmp_code']}: Marked as calculable "
+                    f"but missing required DDD fields"
                 )
             else:
                 logger.error(
-                    f"- VMP {record['vmp_code']}: Marked as non-calculable but missing explanation"
+                    f"- VMP {record['vmp_code']}: Marked as non-calculable "
+                    f"but missing explanation"
                 )
 
     return {
         "inconsistent_records": inconsistent_records,
-        "valid": len(inconsistent_records) == 0
+        "valid": len(inconsistent_records) == 0,
     }
 
 
@@ -80,18 +92,24 @@ def validate_atc_codes_exist():
     LEFT JOIN vmp_atcs a ON v.vmp_code = a.vmp_code
     WHERE COALESCE(a.atc_count, 0) = 0
     """
-    
+
     results = client.query(atc_query).result()
     missing_atc_records = [dict(row) for row in results]
-    
+
     if missing_atc_records:
-        logger.error(f"Found {len(missing_atc_records)} VMPs marked as calculable but with no ATC codes")
+        logger.error(
+            f"Found {len(missing_atc_records)} VMPs marked as calculable "
+            f"but with no ATC codes"
+        )
         for record in missing_atc_records[:5]:
-            logger.error(f"- VMP {record['vmp_code']} ({record['vmp_name']}): No ATC codes")
-    
+            logger.error(
+                f"- VMP {record['vmp_code']} ({record['vmp_name']}): "
+                f"No ATC codes"
+            )
+
     return {
         "missing_atc_records": missing_atc_records,
-        "valid": len(missing_atc_records) == 0
+        "valid": len(missing_atc_records) == 0,
     }
 
 
@@ -121,10 +139,15 @@ def validate_ddd_values_exist():
             v.vmp_code,
             v.vmp_name,
             v.selected_ddd_route_code,
-            COUNT(CASE WHEN who_ddd.ddd IS NOT NULL AND who_ddd.adm_code = v.selected_ddd_route_code THEN 1 END) AS matching_ddd_count
+            COUNT(CASE 
+                WHEN who_ddd.ddd IS NOT NULL 
+                AND who_ddd.adm_code = v.selected_ddd_route_code 
+                THEN 1 
+            END) AS matching_ddd_count
         FROM calculable_vmps v
         LEFT JOIN vmp_atcs a ON v.vmp_code = a.vmp_code
-        LEFT JOIN `{WHO_DDD_TABLE_SPEC.full_table_id}` who_ddd ON a.atc_code = who_ddd.atc_code
+        LEFT JOIN `{WHO_DDD_TABLE_SPEC.full_table_id}` who_ddd 
+            ON a.atc_code = who_ddd.atc_code
         GROUP BY v.vmp_code, v.vmp_name, v.selected_ddd_route_code
     )
     SELECT 
@@ -135,37 +158,46 @@ def validate_ddd_values_exist():
     FROM vmp_ddds
     WHERE matching_ddd_count = 0
     """
-    
+
     results = client.query(ddd_query).result()
     missing_ddd_records = [dict(row) for row in results]
-    
+
     if missing_ddd_records:
-        logger.error(f"Found {len(missing_ddd_records)} VMPs marked as calculable but with no matching WHO DDD values")
+        logger.error(
+            f"Found {len(missing_ddd_records)} VMPs marked as calculable "
+            f"but with no matching WHO DDD values"
+        )
         for record in missing_ddd_records[:5]:
             logger.error(
                 f"- VMP {record['vmp_code']} ({record['vmp_name']}): "
                 f"No DDD values for route {record['selected_ddd_route_code']}"
             )
-    
+
     return {
         "missing_ddd_records": missing_ddd_records,
-        "valid": len(missing_ddd_records) == 0
+        "valid": len(missing_ddd_records) == 0,
     }
 
 
 @task
 def validate_calculation_logic():
-    """Validate that the DDD (Defined Daily Dose) calculation logic is consistent with VMP data.
+    """Validate that the DDD calculation logic is consistent with VMP data.
     This validation checks for calculable VMPs only:
 
     1. For VMPs using 'SCMD quantity / DDD':
-       - Verifies the selected DDD basis unit exists in the VMP's SCMD basis units
+       - Verifies the selected DDD basis unit exists in the VMP's 
+         SCMD basis units
 
     2. For VMPs using 'Ingredient quantity / DDD':
        - Verifies the VMP has exactly one ingredient
-       - Verifies the ingredient's basis unit matches the selected DDD basis unit
-       
+       - Verifies the ingredient's basis unit matches the selected 
+         DDD basis unit
+
     3. For VMPs using 'Ingredient quantity / DDD (Refers to: ...)':
+       - Verifies the selected DDD basis unit is valid
+       
+    4. For VMPs using 'Expressed as quantity / DDD (...)':
+       - Verifies the VMP has expressed_as data
        - Verifies the selected DDD basis unit is valid
     """
     logger = get_run_logger()
@@ -179,6 +211,9 @@ def validate_calculation_logic():
             can_calculate_ddd,
             ddd_calculation_logic,
             selected_ddd_basis_unit,
+            has_expressed_as_data,
+            expressed_as_strength,
+            expressed_as_strength_unit,
             ARRAY_LENGTH(COALESCE(ingredients_info, [])) AS ingredient_count,
             CASE 
                 WHEN ARRAY_LENGTH(COALESCE(ingredients_info, [])) = 1 
@@ -194,8 +229,14 @@ def validate_calculation_logic():
                 SELECT DISTINCT basis_name
                 FROM UNNEST(uoms)
             ) AS scmd_basis_units,
-            -- Check if this is a "refers to" case
-            STARTS_WITH(ddd_calculation_logic, 'Ingredient quantity / DDD (Refers to') AS is_refers_to_case
+            STARTS_WITH(
+                ddd_calculation_logic, 
+                'Ingredient quantity / DDD (Refers to'
+            ) AS is_refers_to_case,
+            STARTS_WITH(
+                ddd_calculation_logic, 
+                'Expressed as quantity / DDD'
+            ) AS is_expressed_as_case
         FROM `{VMP_DDD_MAPPING_TABLE_SPEC.full_table_id}`
         WHERE can_calculate_ddd = TRUE
     )
@@ -208,6 +249,10 @@ def validate_calculation_logic():
         single_ingredient_basis_unit,
         scmd_basis_units,
         is_refers_to_case,
+        is_expressed_as_case,
+        has_expressed_as_data,
+        expressed_as_strength,
+        expressed_as_strength_unit,
         -- Check if DDD basis unit is in SCMD basis units
         (
             SELECT COUNT(1) 
@@ -223,8 +268,14 @@ def validate_calculation_logic():
                 ) > 0 THEN TRUE
             WHEN ddd_calculation_logic = 'Ingredient quantity / DDD'
                 AND ingredient_count = 1 
-                AND single_ingredient_basis_unit = selected_ddd_basis_unit THEN TRUE
+                AND single_ingredient_basis_unit = selected_ddd_basis_unit 
+                THEN TRUE
             WHEN is_refers_to_case
+                AND selected_ddd_basis_unit IS NOT NULL THEN TRUE
+            WHEN is_expressed_as_case
+                AND has_expressed_as_data = TRUE
+                AND expressed_as_strength IS NOT NULL
+                AND expressed_as_strength_unit IS NOT NULL
                 AND selected_ddd_basis_unit IS NOT NULL THEN TRUE
             ELSE FALSE
         END AS logic_is_valid
@@ -238,58 +289,117 @@ def validate_calculation_logic():
             ) > 0 THEN TRUE
         WHEN ddd_calculation_logic = 'Ingredient quantity / DDD'
             AND ingredient_count = 1 
-            AND single_ingredient_basis_unit = selected_ddd_basis_unit THEN TRUE
+            AND single_ingredient_basis_unit = selected_ddd_basis_unit 
+            THEN TRUE
         WHEN is_refers_to_case
+            AND selected_ddd_basis_unit IS NOT NULL THEN TRUE
+        WHEN is_expressed_as_case
+            AND has_expressed_as_data = TRUE
+            AND expressed_as_strength IS NOT NULL
+            AND expressed_as_strength_unit IS NOT NULL
             AND selected_ddd_basis_unit IS NOT NULL THEN TRUE
         ELSE FALSE
     END = FALSE
     """
-    
+
     results = client.query(logic_query).result()
     invalid_logic_records = [dict(row) for row in results]
-    
+
     if invalid_logic_records:
-        logger.error(f"Found {len(invalid_logic_records)} VMPs with inconsistent calculation logic")
+        logger.error(
+            f"Found {len(invalid_logic_records)} VMPs with inconsistent "
+            f"calculation logic"
+        )
         for record in invalid_logic_records[:5]:
-            if record['ddd_calculation_logic'] == 'SCMD quantity / DDD':
-                if not record.get('scmd_basis_matches_ddd', False):
+            if record["ddd_calculation_logic"] == "SCMD quantity / DDD":
+                if not record.get("scmd_basis_matches_ddd", False):
                     logger.error(
-                        f"- VMP {record['vmp_code']} ({record['vmp_name']}): "
-                        f"Using SCMD unit but DDD basis unit ({record['selected_ddd_basis_unit']}) "
-                        f"not in SCMD basis units ({', '.join(record['scmd_basis_units'])})"
+                        f"- VMP {record['vmp_code']} "
+                        f"({record['vmp_name']}): "
+                        f"Using SCMD unit but DDD basis unit "
+                        f"({record['selected_ddd_basis_unit']}) "
+                        f"not in SCMD basis units "
+                        f"({', '.join(record['scmd_basis_units'])})"
                     )
-            elif record['ddd_calculation_logic'] == 'Ingredient quantity / DDD':
-                if record['ingredient_count'] != 1:
+            elif (
+                record["ddd_calculation_logic"] == "Ingredient quantity / DDD"
+            ):
+                if record["ingredient_count"] != 1:
                     logger.error(
-                        f"- VMP {record['vmp_code']} ({record['vmp_name']}): "
-                        f"Using ingredient fallback but has {record['ingredient_count']} ingredients"
+                        f"- VMP {record['vmp_code']} "
+                        f"({record['vmp_name']}): "
+                        f"Using ingredient fallback but has "
+                        f"{record['ingredient_count']} ingredients"
                     )
-                elif record['single_ingredient_basis_unit'] != record['selected_ddd_basis_unit']:
+                elif (
+                    record["single_ingredient_basis_unit"]
+                    != record["selected_ddd_basis_unit"]
+                ):
                     logger.error(
-                        f"- VMP {record['vmp_code']} ({record['vmp_name']}): "
-                        f"Ingredient basis unit ({record['single_ingredient_basis_unit']}) "
-                        f"doesn't match DDD basis unit ({record['selected_ddd_basis_unit']})"
+                        f"- VMP {record['vmp_code']} "
+                        f"({record['vmp_name']}): "
+                        f"Ingredient basis unit "
+                        f"({record['single_ingredient_basis_unit']}) "
+                        f"doesn't match DDD basis unit "
+                        f"({record['selected_ddd_basis_unit']})"
                     )
-            elif record.get('is_refers_to_case', False):
-                if record['selected_ddd_basis_unit'] is None:
+            elif record.get("is_refers_to_case", False):
+                if record["selected_ddd_basis_unit"] is None:
                     logger.error(
-                        f"- VMP {record['vmp_code']} ({record['vmp_name']}): "
+                        f"- VMP {record['vmp_code']} "
+                        f"({record['vmp_name']}): "
                         f"Refers to case but missing DDD basis unit"
                     )
                 else:
                     logger.error(
-                        f"- VMP {record['vmp_code']} ({record['vmp_name']}): "
-                        f"Refers to case validation failed: {record['ddd_calculation_logic']}"
+                        f"- VMP {record['vmp_code']} "
+                        f"({record['vmp_name']}): "
+                        f"Refers to case validation failed: "
+                        f"{record['ddd_calculation_logic']}"
+                    )
+            elif record.get("is_expressed_as_case", False):
+                if not record.get("has_expressed_as_data", False):
+                    logger.error(
+                        f"- VMP {record['vmp_code']} "
+                        f"({record['vmp_name']}): "
+                        f"Marked as expressed_as case but missing "
+                        f"expressed_as data"
+                    )
+                elif record["expressed_as_strength"] is None:
+                    logger.error(
+                        f"- VMP {record['vmp_code']} "
+                        f"({record['vmp_name']}): "
+                        f"Expressed_as case but missing strength value"
+                    )
+                elif record["expressed_as_strength_unit"] is None:
+                    logger.error(
+                        f"- VMP {record['vmp_code']} "
+                        f"({record['vmp_name']}): "
+                        f"Expressed_as case but missing strength unit"
+                    )
+                elif record["selected_ddd_basis_unit"] is None:
+                    logger.error(
+                        f"- VMP {record['vmp_code']} "
+                        f"({record['vmp_name']}): "
+                        f"Expressed_as case but missing DDD basis unit"
+                    )
+                else:
+                    logger.error(
+                        f"- VMP {record['vmp_code']} "
+                        f"({record['vmp_name']}): "
+                        f"Expressed_as case validation failed: "
+                        f"{record['ddd_calculation_logic']}"
                     )
             else:
                 logger.error(
                     f"- VMP {record['vmp_code']} ({record['vmp_name']}): "
-                    f"Invalid calculation logic: {record['ddd_calculation_logic']}"
+                    f"Invalid calculation logic: "
+                    f"{record['ddd_calculation_logic']}"
                 )
-    
+
     return {
         "invalid_logic_records": invalid_logic_records,
-        "valid": len(invalid_logic_records) == 0
+        "valid": len(invalid_logic_records) == 0,
     }
 
 
@@ -298,7 +408,9 @@ def create_vmp_ddd_mapping():
     logger = get_run_logger()
     logger.info("Creating VMP DDD mapping")
 
-    sql_file_path = Path(__file__).parent.parent / "sql" / "create_vmp_ddd_mapping.sql"
+    sql_file_path = (
+        Path(__file__).parent.parent / "sql" / "create_vmp_ddd_mapping.sql"
+    )
 
     sql_result = execute_bigquery_query_from_sql_file(str(sql_file_path))
     logger.info("DDD mapping calculated")
@@ -307,14 +419,14 @@ def create_vmp_ddd_mapping():
         "consistency": validate_ddd_mapping_consistency(),
         "atc_codes": validate_atc_codes_exist(),
         "ddd_values": validate_ddd_values_exist(),
-        "calculation_logic": validate_calculation_logic()
+        "calculation_logic": validate_calculation_logic(),
     }
     validation_failed = False
     for key, result in validation_results.items():
         if not result.get("valid", False):
             validation_failed = True
             logger.error(f"Validation '{key}' failed")
-    
+
     if validation_failed:
         logger.error("DDD mapping validation failed")
     else:
@@ -323,7 +435,7 @@ def create_vmp_ddd_mapping():
     return {
         "sql_result": sql_result,
         "validation": validation_results,
-        "validation_passed": not validation_failed
+        "validation_passed": not validation_failed,
     }
 
 
