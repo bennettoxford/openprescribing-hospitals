@@ -1,0 +1,37 @@
+name: Low value prescribing - lidocaine plasters # Full name of the measure/indicator
+short_name: Low value prescribing - lidocaine plasters # Abbreviated name or acronym
+description: Total lidocaine plasters issued # Brief 1-2 sentence description of what this measure identifies
+why_it_matters: |
+    [NHS England guidance](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/) identifies a number of items which provide low value when prescribed. This guidance has mainly been aimed at primary care but we think it is important to also monitor a selection of these in hospitals - read more about why [in our blog](https://www.bennett.ox.ac.uk/blog/2025/04/low-value-medicines-in-openprescribing-hospitals/).
+
+    [NHS England guidance](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/#lidocaine-plasters-updated-2023) states:
+    > Lidocaine plasters are licensed for symptomatic relief of neuropathic pain associated with previous herpes zoster infection (PHN) in adults.
+    >
+    > NICE guidance on chronic pain does not recommend lidocaine plasters for treating neuropathic pain.
+    >
+    > The [Specialist Pharmacy Service carried out an evidence review](https://www.england.nhs.uk/publication/items-which-should-not-be-routinely-prescribed-in-primary-care-evidence-reviews/) on behalf of NHS England to inform the joint clinical working group’s recommendations. Based on this review, lidocaine plasters can be prescribed only for patients who are intolerant of first-line systemic therapies for PHN or where these therapies have been ineffective.
+    >
+    > Lidocaine plasters are not an alternative to an opioid-based medicine when concerned about dependence and withdrawal.
+
+    NHS England recommend that GPs:
+
+    - Do not initiate.
+    - Deprescribe in patients currently prescribed this medicine.
+    - Prescribe only if no other item or intervention is clinically appropriate.
+    - Prescribe only if no other item or intervention is available.
+    - Prescribe only if for a named indication in this guidance.
+    
+    For guidance on when prescribing may be appropriate in some exceptional circumstances, please see the [full NHS England guidance document](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/#items-where-prescribing-may-be-appropriate-in-some-exceptional-circumstances).
+
+how_is_it_calculated: >
+    We display the total number of lidocaine plasters issued
+tags:
+    # List relevant categories (e.g. Safety, Prescribing, Monitoring)
+    - Low value prescribing
+    - Value
+quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
+authored_by: Chris Wood # Name of original author
+checked_by:  Victoria Speed # 
+date_reviewed: 2025-08-14 # Date of last review (YYYY-MM-DD)
+next_review:  2026-08-14 # Date of next scheduled review (YYYY-MM-DD)
+draft: true # true/false - indicates if measure is in draft
