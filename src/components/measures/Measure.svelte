@@ -223,6 +223,8 @@
 
         const availableTrusts = trusts.filter(trust => parsedOrgData.data[trust].available);
         
+        const shouldDisablePercentiles = availableTrusts.length < 30;
+        
         organisationSearchStore.setItems(trusts);
         organisationSearchStore.setAvailableItems(availableTrusts);
         organisationSearchStore.setFilterType('trust');
@@ -247,7 +249,15 @@
 
         visibleICBs.set(new Set(icbs));
         visibleRegions.set(new Set(regions));
-        visibleTrusts.set(new Set());
+
+        if (shouldDisablePercentiles) {
+            visibleTrusts.set(new Set(availableTrusts));
+            organisationSearchStore.updateSelection(availableTrusts);
+            showPercentiles.set(false);
+        } else {
+            visibleTrusts.set(new Set());
+            organisationSearchStore.updateSelection([]);
+        }
         
         if ($selectedMode === 'icb') {
             organisationSearchStore.updateSelection(Array.from($visibleICBs));
@@ -569,10 +579,14 @@
         return tooltipContent;
     }
 
+    $: percentilesDisabled = trusts.filter(trust => $orgdataStore[trust]?.available).length < 20;
+
     function handlePercentileToggle() {
-        showPercentiles.update(v => !v);
-        const updatedData = updatePercentilesVisibility(!$showPercentiles);
-        measureChartStore.setData(updatedData);
+        if (!percentilesDisabled) {
+            showPercentiles.update(v => !v);
+            const updatedData = updatePercentilesVisibility(!$showPercentiles);
+            measureChartStore.setData(updatedData);
+        }
     }
 </script>
 
@@ -599,14 +613,15 @@
                     Show<br>percentiles
                 </span>
                 <div class="flex items-center gap-2">
-                    <label class="inline-flex items-center cursor-pointer">
+                    <label class="inline-flex items-center cursor-pointer {percentilesDisabled ? 'opacity-50 cursor-not-allowed' : ''}">
                         <input
                             type="checkbox"
                             class="sr-only peer"
                             checked={$showPercentiles}
                             on:change={handlePercentileToggle}
+                            disabled={percentilesDisabled}
                         />
-                        <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 {percentilesDisabled ? 'opacity-50' : ''}"></div>
                     </label>
                     <div class="relative inline-block group">
                         <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
@@ -618,7 +633,10 @@
                                     group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
                                     ring-1 ring-black ring-opacity-5 p-4">
                             <p class="text-sm text-gray-500">
-                                Percentiles show variation in this measure across Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.
+                                {percentilesDisabled 
+                                    ? 'Percentiles are disabled when there are fewer than 30 trusts in a measure.'
+                                    : 'Percentiles show variation in this measure across Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.'
+                                }
                             </p>
                         </div>
                     </div>
