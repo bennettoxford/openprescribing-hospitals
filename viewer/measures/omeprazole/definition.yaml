@@ -1,0 +1,20 @@
+name: Unlicensed liquid omeprazole
+short_name: Unlicensed liquid omeprazole
+description: The measure should show the proportion of omeprazole liquid issued as unlicensed products from all omeprazole liquid products. The lower the use of unlicensed products the better.
+why_it_matters: |
+    Why it matters
+how_is_it_calculated: >
+    We select all omeprazole products with the Virtual Therapeutic Moiety (VTM) code 776991000. 
+    We then filter to liquid products by identifying products with the form and route `suspension.oral` or `solution.oral` (excluding those that additionally have the form and route `tablet.oral`).
+    The subset of these products that are licensed are specified manually.
+    We then divide the monthly Defined Daily Doses of unlicensed omeprazole products by the total monthly Defined Daily Doses of all liquid omeprazole products and multiply by 100 to get the percentage.
+tags:
+    # List relevant categories (e.g. Safety, Prescribing, Monitoring)
+    - Safety
+quantity_type: ddd # Type of measurement (e.g. dose, ingredient, ddd)
+authored_by: John Doe # Name of original author
+checked_by: Jane Smith # Name of clinical/technical reviewer
+date_reviewed: 2025-08-15 # Date of last review (YYYY-MM-DD)
+next_review: 2026-08-15 # Date of next scheduled review (YYYY-MM-DD)
+first_published: 2025-08-15 # Date of first publication (YYYY-MM-DD)
+draft: true # true/false - indicates if measure is in draft ```
