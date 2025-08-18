@@ -4,6 +4,7 @@
         orgdata: { type: 'String', reflect: true },
         regiondata: { type: 'String', reflect: true },
         icbdata: { type: 'String', reflect: true },
+        nationaldata: { type: 'String', reflect: true },
         percentiledata: { type: 'String', reflect: true }
     },
     shadow: 'none'
@@ -17,7 +18,8 @@
         orgdata as orgdataStore, 
         regiondata as regionStore, 
         icbdata as icbStore, 
-        percentiledata as percentileStore, 
+        nationaldata as nationalStore,
+        percentiledata as percentileStore,
         visibleRegions,
         visibleTrusts,
         visibleICBs,
@@ -36,6 +38,7 @@
     export let orgdata = '[]';
     export let regiondata = '[]';
     export let icbdata = '[]';
+    export let nationaldata = '[]';
     export let percentiledata = '[]';
    
     let trusts = [];
@@ -136,6 +139,9 @@
         } else if ($selectedMode === 'percentiles') {
             organisationSearchStore.updateSelection(Array.from($visibleTrusts));
         }
+
+        const parsedNationalData = JSON.parse(nationaldata);
+        nationalStore.set(parsedNationalData);
     });
 
     function handleSelectionChange(event) {
