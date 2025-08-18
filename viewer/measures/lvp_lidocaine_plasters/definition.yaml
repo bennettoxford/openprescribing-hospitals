@@ -29,7 +29,7 @@ tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Low value prescribing
     - Value
-quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
+quantity_type: scmd # Type of measurement (e.g. dose, ingredient, ddd)
 authored_by: Chris Wood # Name of original author
 checked_by:  Victoria Speed # 
 date_reviewed: 2025-08-14 # Date of last review (YYYY-MM-DD)
