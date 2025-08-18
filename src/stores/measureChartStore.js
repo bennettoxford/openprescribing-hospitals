@@ -15,6 +15,7 @@ export const visibleTrusts = writable(new Set());
 export const visibleICBs = writable(new Set());
 export const organisationColorMap = writable(new Map());
 export const showPercentiles = writable(true);
+export const nationaldata = writable([]);
 
 const organisationColors = [
   '#332288', '#117733', '#44AA99', '#88CCEE', 
@@ -63,8 +64,8 @@ export function getDatasetVisibility(dataset, mode, visibleTrusts, showPercentil
 }
 
 export const filteredData = derived(
-  [selectedMode, orgdata, regiondata, icbdata, percentiledata, visibleTrusts, visibleICBs, visibleRegions, showPercentiles],
-  ([$selectedMode, $orgdata, $regiondata, $icbdata, $percentiledata, $visibleTrusts, $visibleICBs, $visibleRegions, $showPercentiles]) => {
+  [selectedMode, orgdata, regiondata, icbdata, percentiledata, visibleTrusts, visibleICBs, visibleRegions, showPercentiles, nationaldata],
+  ([$selectedMode, $orgdata, $regiondata, $icbdata, $percentiledata, $visibleTrusts, $visibleICBs, $visibleRegions, $showPercentiles, $nationaldata]) => {
     let labels = [];
     let datasets = [];
 
@@ -209,21 +210,21 @@ export const filteredData = derived(
         }));
         break;
       case 'national':
-        if ($regiondata.length > 0) {
-          labels = $regiondata[0].data.map(d => d.month).sort(sortDates);
+        if ($nationaldata && $nationaldata.data && $nationaldata.data.length > 0) {
+          labels = $nationaldata.data.map(d => d.month).sort(sortDates);
           
           datasets = [{
             label: 'National',
             data: labels.map(month => {
-              const dataPoint = $regiondata[0].data.find(d => d.month === month);
+              const dataPoint = $nationaldata.data.find(d => d.month === month);
               return dataPoint ? dataPoint.quantity : null;
             }),
             numerator: labels.map(month => {
-              const dataPoint = $regiondata[0].data.find(d => d.month === month);
+              const dataPoint = $nationaldata.data.find(d => d.month === month);
               return dataPoint ? dataPoint.numerator : null;
             }),
             denominator: labels.map(month => {
-              const dataPoint = $regiondata[0].data.find(d => d.month === month);
+              const dataPoint = $nationaldata.data.find(d => d.month === month);
               return dataPoint ? dataPoint.denominator : null;
             }),
             color: '#005AB5',
