@@ -15,7 +15,9 @@ from viewer.models import (
     Dose,
     IngredientQuantity,
     DDDQuantity,
-    Organisation
+    Organisation,
+    IndicativeCost,
+    SCMDQuantity
 )
 
 
@@ -45,9 +47,11 @@ class Command(BaseCommand):
         delete_existing_precomputed_data(measure)
 
         model_mapping = {
+            'scmd': SCMDQuantity,
             'dose': Dose,
             'ingredient': IngredientQuantity,
-            'ddd': DDDQuantity
+            'ddd': DDDQuantity,
+            'indicative_cost': IndicativeCost,
         }
 
         model = model_mapping.get(measure.quantity_type)
@@ -102,42 +106,66 @@ class Command(BaseCommand):
             return first_unit
 
         for measurevmp in measurevmps:
-
             vmp_records = subset.filter(vmp=measurevmp.vmp)
             
             try:
-                unit = get_consistent_unit(vmp_records)
-                if unit:
-                    measurevmp.unit = unit
-                    measurevmp.save()
+                if measure.quantity_type == 'indicative_cost':
+                    unit = '£'
                 else:
-                    self.stdout.write(
-                        self.style.WARNING(f'No unit found for VMP: {measurevmp.vmp.name}')
-                    )
+                    unit = get_consistent_unit(vmp_records)
+                    if unit:
+                        measurevmp.unit = unit
+                        measurevmp.save()
+                    else:
+                        self.stdout.write(
+                            self.style.WARNING(f'No unit found for VMP: {measurevmp.vmp.name}')
+                        )
             except ValueError as e:
                 self.stdout.write(
                     self.style.ERROR(f'Error setting unit for VMP {measurevmp.vmp.name}: {str(e)}')
                 )
 
-        numerator_vmps = measurevmps.filter(type='numerator').values_list('vmp', flat=True)
-        denominator_vmps = measurevmps.values_list('vmp', flat=True)
+        numerator_vmps = measurevmps.filter(
+            type='numerator'
+        ).values_list('vmp', flat=True)
+        denominator_vmps = measurevmps.filter(
+            type='denominator'
+        ).values_list('vmp', flat=True)
+        
+        is_ratio_measure = denominator_vmps.exists()
+        
+        if is_ratio_measure:
+            self.stdout.write(
+                f"Processing ratio measure: {len(numerator_vmps)} numerator VMPs "
+                f"and {len(denominator_vmps)} denominator VMPs"
+            )
+        else:
+            self.stdout.write(
+                f"Processing absolute measure: {len(numerator_vmps)} numerator VMPs "
+                f"(no denominators)"
+            )
 
         numerator_records = subset.filter(vmp__in=numerator_vmps)
-        denominator_records = subset.filter(vmp__in=denominator_vmps)
+
+        if is_ratio_measure:
+            denominator_records = subset.filter(vmp__in=denominator_vmps)
+            denominator_data = (
+                denominator_records
+                .values('normalised_org_id', 'data')
+                .iterator(chunk_size=1000)
+            )
+        else:
+            denominator_data = None
 
         numerator_data = (
             numerator_records
             .values('normalised_org_id', 'data')
             .iterator(chunk_size=1000)
         )
-        
-        denominator_data = (
-            denominator_records
-            .values('normalised_org_id', 'data')
-            .iterator(chunk_size=1000)
-        )
 
-        org_monthly_data = defaultdict(lambda: defaultdict(lambda: {'numerator': 0, 'denominator': 0}))
+        org_monthly_data = defaultdict(
+            lambda: defaultdict(lambda: {'numerator': 0, 'denominator': 0})
+        )
 
         for record in numerator_data:
             org_id = record['normalised_org_id']
@@ -146,12 +174,13 @@ class Command(BaseCommand):
                     month = entry[0]
                     org_monthly_data[org_id][month]['numerator'] += float(entry[1])
         
-        for record in denominator_data:
-            org_id = record['normalised_org_id']
-            for entry in record['data'] or []:
-                if len(entry) >= 2 and entry[1]:
-                    month = entry[0]
-                    org_monthly_data[org_id][month]['denominator'] += float(entry[1])
+        if is_ratio_measure and denominator_data:
+            for record in denominator_data:
+                org_id = record['normalised_org_id']
+                for entry in record['data'] or []:
+                    if len(entry) >= 2 and entry[1]:
+                        month = entry[0]
+                        org_monthly_data[org_id][month]['denominator'] += float(entry[1])
 
         precomputed_measures = []
         for org_id, monthly_data in org_monthly_data.items():
@@ -159,7 +188,16 @@ class Command(BaseCommand):
             for month, values in monthly_data.items():
                 numerator = values['numerator']
                 denominator = values['denominator']
-                quantity = (numerator / denominator * 100) if denominator else 0
+                
+                if is_ratio_measure:
+                    # Ratio measure: calculate percentage
+                    quantity = (
+                        (numerator / denominator * 100) if denominator else 0
+                    )
+                else:
+                    # Absolute measure: quantity is just the numerator value
+                    quantity = numerator
+                    denominator = None
                 
                 precomputed_measures.append(
                     PrecomputedMeasure(
@@ -171,7 +209,6 @@ class Command(BaseCommand):
                         quantity=quantity
                     )
                 )
-
 
         batch_size = 1000
         with transaction.atomic():
@@ -203,7 +240,10 @@ class Command(BaseCommand):
                     }
                 else:
                     data = org_monthly_data[org_id][month]
-                    data["value"] = (data["numerator"] / data["denominator"] * 100) if data["denominator"] else 0
+                    if is_ratio_measure:
+                        data["value"] = (data["numerator"] / data["denominator"] * 100) if data["denominator"] else 0
+                    else:
+                        data["value"] = data["numerator"]
         
         for month in all_months:
             month_values = [
@@ -270,14 +310,23 @@ class Command(BaseCommand):
         
         for icb_id, monthly_data in icb_values.items():
             for month, values in monthly_data.items():
-                values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else None
+                if is_ratio_measure:
+                    values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else None
+                else:
+                    values['value'] = values['numerator']
 
         for region_id, monthly_data in region_values.items():
             for month, values in monthly_data.items():
-                values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else None
+                if is_ratio_measure:
+                    values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else None
+                else:
+                    values['value'] = values['numerator']
 
         for month, values in national_values.items():
-            values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else None
+            if is_ratio_measure:
+                values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else None
+            else:
+                values['value'] = values['numerator']
         
         aggregation_time = time.time() - start_time
         self.stdout.write(f"All aggregations completed in: {aggregation_time:.2f}s (no additional queries!)")

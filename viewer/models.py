@@ -398,9 +398,11 @@ class MeasureVMP(models.Model):
 
 class Measure(models.Model):
     QUANTITY_TYPES = [
+        ('scmd', 'SCMD Quantity'),
         ('dose', 'Dose'),
         ('ingredient', 'Ingredient Quantity'),
         ('ddd', 'DDD'),
+        ('indicative_cost', 'Indicative Cost'),
     ]
     
     name = models.CharField(max_length=255, unique=True)

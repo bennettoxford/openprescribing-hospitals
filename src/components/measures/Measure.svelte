@@ -5,7 +5,11 @@
         regiondata: { type: 'String', reflect: true },
         icbdata: { type: 'String', reflect: true },
         nationaldata: { type: 'String', reflect: true },
-        percentiledata: { type: 'String', reflect: true }
+        percentiledata: { type: 'String', reflect: true },
+        quantitytype: { type: 'String', reflect: true },
+        hasdenominators: { type: 'String', reflect: true },
+        denominatorvmps: { type: 'String', reflect: true },
+        numeratorvmps: { type: 'String', reflect: true }
     },
     shadow: 'none'
 }} />
@@ -34,16 +38,121 @@
     import { modeSelectorStore } from '../../stores/modeSelectorStore.js';
     import { filteredData } from '../../stores/measureChartStore.js';
     import { formatNumber } from '../../utils/utils.js';
+    import pluralize from 'pluralize';
 
     export let orgdata = '[]';
     export let regiondata = '[]';
     export let icbdata = '[]';
     export let nationaldata = '[]';
     export let percentiledata = '[]';
+    export let quantitytype = 'dose';
+    export let hasdenominators = 'true';
+    export let denominatorvmps = '[]';
+    export let numeratorvmps = '[]';
    
     let trusts = [];
     let icbs = [];
     let regions = [];
+    let uniqueUnits = [];
+
+    function extractUniqueUnits() {
+        try {
+            const parsedDenominatorVmps = JSON.parse(denominatorvmps || '[]');
+            const parsedNumeratorVmps = JSON.parse(numeratorvmps || '[]');
+            
+            const allProducts = [...parsedDenominatorVmps, ...parsedNumeratorVmps];
+            const units = allProducts
+                .map(product => pluralize(product.unit))
+                .filter(unit => unit && unit !== 'null' && unit !== 'undefined');
+            
+            return [...new Set(units)].sort();
+        } catch (error) {
+            console.error('Failed to parse products data:', error);
+            return [];
+        }
+    }
+
+    $: yAxisLabel = getYAxisLabel(quantitytype, hasdenominators, uniqueUnits);
+    $: yAxisTickFormatter = getYAxisTickFormatter(quantitytype, hasdenominators);
+    $: yAxisLimits = getYAxisLimits(hasdenominators, $filteredData);
+    
+    function getYAxisLabel(quantityType, hasDenominators, units) {
+        const hasDenom = hasDenominators === 'true';
+        
+        if (hasDenom) {
+            return '%';
+        } else {
+            if (quantityType === 'indicative_cost') {
+                return 'Indicative Cost (£)';
+            } else {
+
+                if (units && units.length > 0) {
+                    const unitsString = units.join(' / ');
+                    return `Quantity (${unitsString})`;
+                } else {
+                    return 'Quantity';
+                }
+            }
+        }
+    }
+
+    function getYAxisTickFormatter(quantityType, hasDenominators) {
+        const hasDenom = hasDenominators === 'true';
+        
+        return function(value, range) {
+            if (hasDenom) {
+                // For measures with denominators, show percentages
+                let decimals = 1;
+                if (range <= 0.1) decimals = 3;
+                else if (range <= 1) decimals = 2;
+                return `${value.toFixed(decimals)}%`;
+            } else if (quantityType === 'indicative_cost') {
+                // For indicative cost, show currency formatting
+                if (value === 0) return '£0';
+                if (value >= 1000) {
+                    return `£${(value / 1000)}K`;
+                } else {
+                    return `£${value}`;
+                }
+            } else {
+                // For other quantity types, show plain numbers
+                if (value === 0) return '0';
+                if (value >= 1000) {
+                    return `${(value / 1000)}K`;
+                } else {
+                    return value.toString();
+                }
+            }
+        };
+    }
+
+    function getYAxisLimits(hasDenominators, chartData) {
+    const hasDenom = hasDenominators === 'true';
+    
+    if (hasDenom) {
+        return [0, 100];
+    } else if (chartData && chartData.datasets && chartData.datasets.length > 0) {
+        let maxValue = 0;
+        
+        chartData.datasets.forEach(dataset => {
+            if (!dataset.hidden && dataset.data && Array.isArray(dataset.data)) {
+                dataset.data.forEach(value => {
+                    if (value !== null && value !== undefined) {
+                        if (typeof value === 'object' && value.upper !== undefined) {
+                            maxValue = Math.max(maxValue, value.upper);
+                        } else if (typeof value === 'number') {
+                            maxValue = Math.max(maxValue, value);
+                        }
+                    }
+                });
+            }
+        });
+        return [0, maxValue * 1.1];
+    } else {
+        return [0, 100];
+    }
+}
+
 
     $: showFilter = ['percentiles', 'icb', 'region', 'national'].includes($selectedMode);
 
@@ -62,20 +171,21 @@
 
     const measureChartStore = createChartStore({
         mode: 'percentiles',
-        yAxisLabel: '%',
+        yAxisLabel: yAxisLabel,
+        yAxisTickFormat: yAxisTickFormatter,
+        yAxisRange: yAxisLimits,
         yAxisBehavior: {
             forceZero: true,
             resetToInitial: true,
-            fixedRange: true
+            fixedRange: hasdenominators === 'true'
         },
-        yAxisRange: [0, 100],
         percentileConfig: {
             medianColor: '#DC3220',
             rangeColor: 'rgb(0, 90, 181)'
         }
     });
 
-    let chartOptions = {
+    $: chartOptions = {
         chart: {
             type: 'line',
             height: 350
@@ -83,11 +193,16 @@
         title: {
             text: undefined
         },
-        yAxis: {
-            min: 0,
-            max: 100,
-            allowDecimals: false,
-            tickInterval: 20
+        yAxis: hasdenominators === 'true' ? {
+        min: 0,
+        max: 100,
+        allowDecimals: false,
+        tickInterval: 20
+        } : {
+            allowDecimals: true,
+            tickAmount: 6,
+            endOnTick: true,
+            startOnTick: true,
         }
     };
 
@@ -96,15 +211,19 @@
 
         orgdataStore.set(parsedOrgData.data || {});
         
+
+        uniqueUnits = extractUniqueUnits();
+        
         measureChartStore.setDimensions({
             height: 500,
             margin: { top: 10, right: 20, bottom: 30, left: 80 }
         });
-        
-        // Get all trusts and available trusts
+
         trusts = Object.keys(parsedOrgData.data || {});
 
         const availableTrusts = trusts.filter(trust => parsedOrgData.data[trust].available);
+        
+        const shouldDisablePercentiles = availableTrusts.length < 30;
         
         organisationSearchStore.setItems(trusts);
         organisationSearchStore.setAvailableItems(availableTrusts);
@@ -130,7 +249,15 @@
 
         visibleICBs.set(new Set(icbs));
         visibleRegions.set(new Set(regions));
-        visibleTrusts.set(new Set());
+
+        if (shouldDisablePercentiles) {
+            visibleTrusts.set(new Set(availableTrusts));
+            organisationSearchStore.updateSelection(availableTrusts);
+            showPercentiles.set(false);
+        } else {
+            visibleTrusts.set(new Set());
+            organisationSearchStore.updateSelection([]);
+        }
         
         if ($selectedMode === 'icb') {
             organisationSearchStore.updateSelection(Array.from($visibleICBs));
@@ -333,16 +460,18 @@
         }
     }
 
-    $: if ($selectedMode) {
+    $: if ($selectedMode || yAxisLimits) {
         measureChartStore.setConfig({
             ...$measureChartStore.config,
             mode: $selectedMode,
+            yAxisLabel: yAxisLabel,
+            yAxisTickFormat: yAxisTickFormatter,
+            yAxisRange: yAxisLimits,
             yAxisBehavior: {
                 forceZero: true,
                 resetToInitial: true,
-                fixedRange: true
+                fixedRange: hasdenominators === 'true'
             },
-            yAxisRange: [0, 100],
             percentileConfig: {
                 medianColor: '#DC3220',
                 rangeColor: 'rgb(0, 90, 181)'
@@ -394,7 +523,16 @@
         const label = d.dataset.name || d.dataset.label || 'No label';
         const date = new Date(d.date);
         const formattedDate = date.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
-        const value = (d.value).toFixed(1) + '%';
+        
+        let value;
+        if (hasdenominators === 'true') {
+            value = (d.value).toFixed(1) + '%';
+        } else if (quantitytype === 'indicative_cost') {
+            value = '£' + formatNumber(d.value, { addCommas: true, decimalPlaces: 2 });
+        } else {
+            value = formatNumber(d.value, { addCommas: true });
+        }
+        
         const index = d.index;
 
         const tooltipContent = [
@@ -402,12 +540,19 @@
         ];
 
         if ($selectedMode === 'region' || $selectedMode === 'icb' || $selectedMode === 'national') {
-            tooltipContent.push(
-                { label: 'Date', value: formattedDate },
-                { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index], { addCommas: true }) },
-                { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index], { addCommas: true }) },
-                { label: 'Value', value }
-            );
+            const tooltipEntries = [
+                { label: 'Date', value: formattedDate }
+            ];
+            
+            if (hasdenominators === 'true') {
+                tooltipEntries.push(
+                    { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index], { addCommas: true }) },
+                    { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index], { addCommas: true }) }
+                );
+            }
+            
+            tooltipEntries.push({ label: 'Value', value });
+            tooltipContent.push(...tooltipEntries);
         } else if ($selectedMode === 'percentiles') {
             if (d.dataset.label === 'Median (50th percentile)' || d.dataset.name === 'Median (50th percentile)') {
                 tooltipContent.push(
@@ -415,22 +560,33 @@
                     { label: 'Value', value }
                 );
             } else if (d.dataset.isTrust || d.dataset.isOrganisation) {
-                tooltipContent.push(
-                    { label: 'Date', value: formattedDate },
-                    { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index], { addCommas: true }) },
-                    { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index], { addCommas: true }) },
-                    { label: 'Value', value }
-                );
+                const tooltipEntries = [
+                    { label: 'Date', value: formattedDate }
+                ];
+                
+                if (hasdenominators === 'true') {
+                    tooltipEntries.push(
+                        { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index], { addCommas: true }) },
+                        { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index], { addCommas: true }) }
+                    );
+                }
+                
+                tooltipEntries.push({ label: 'Value', value });
+                tooltipContent.push(...tooltipEntries);
             }
         }
 
         return tooltipContent;
     }
 
+    $: percentilesDisabled = trusts.filter(trust => $orgdataStore[trust]?.available).length < 20;
+
     function handlePercentileToggle() {
-        showPercentiles.update(v => !v);
-        const updatedData = updatePercentilesVisibility(!$showPercentiles);
-        measureChartStore.setData(updatedData);
+        if (!percentilesDisabled) {
+            showPercentiles.update(v => !v);
+            const updatedData = updatePercentilesVisibility(!$showPercentiles);
+            measureChartStore.setData(updatedData);
+        }
     }
 </script>
 
@@ -457,14 +613,15 @@
                     Show<br>percentiles
                 </span>
                 <div class="flex items-center gap-2">
-                    <label class="inline-flex items-center cursor-pointer">
+                    <label class="inline-flex items-center cursor-pointer {percentilesDisabled ? 'opacity-50 cursor-not-allowed' : ''}">
                         <input
                             type="checkbox"
                             class="sr-only peer"
                             checked={$showPercentiles}
                             on:change={handlePercentileToggle}
+                            disabled={percentilesDisabled}
                         />
-                        <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 {percentilesDisabled ? 'opacity-50' : ''}"></div>
                     </label>
                     <div class="relative inline-block group">
                         <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
@@ -476,7 +633,10 @@
                                     group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
                                     ring-1 ring-black ring-opacity-5 p-4">
                             <p class="text-sm text-gray-500">
-                                Percentiles show variation in this measure across Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.
+                                {percentilesDisabled 
+                                    ? 'Percentiles are disabled when there are fewer than 30 trusts in a measure.'
+                                    : 'Percentiles show variation in this measure across Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.'
+                                }
                             </p>
                         </div>
                     </div>
@@ -504,7 +664,7 @@
                 <Chart 
                     data={$filteredData}
                     mode={$selectedMode}
-                    yAxisLabel="%"
+                    yAxisLabel={yAxisLabel}
                     formatTooltipContent={customTooltipFormatter}
                     store={measureChartStore}
                     {chartOptions}

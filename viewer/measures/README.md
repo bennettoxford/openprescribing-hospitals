@@ -21,7 +21,7 @@ how_is_it_calculated: >
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Safety
-quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
+quantity_type: dose # Type of measurement (e.g. scmd, dose, ingredient, ddd, indicative_cost)
 authored_by: John Doe # Name of original author
 checked_by: Jane Smith # Name of clinical/technical reviewer
 date_reviewed: 2024-03-20 # Date of last review (YYYY-MM-DD)

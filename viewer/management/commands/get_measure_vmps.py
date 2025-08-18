@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction, connection
-from viewer.models import Measure, VMP, MeasureVMP, Dose, IngredientQuantity
+from viewer.models import Measure, VMP, MeasureVMP, Dose, IngredientQuantity, IndicativeCost, SCMDQuantity, DDDQuantity
 from pathlib import Path
 
 
@@ -74,9 +74,14 @@ class Command(BaseCommand):
                     has_data = False
                     if measure.quantity_type == 'dose':
                         has_data = Dose.objects.filter(vmp=vmp).exclude(data=[]).exists()
-                    else:  # ingredient
+                    elif measure.quantity_type == 'ingredient':
                         has_data = IngredientQuantity.objects.filter(vmp=vmp).exclude(data=[]).exists()
-                    
+                    elif measure.quantity_type == 'ddd':
+                        has_data = DDDQuantity.objects.filter(vmp=vmp).exclude(data=[]).exists()
+                    elif measure.quantity_type == 'indicative_cost':
+                        has_data = IndicativeCost.objects.filter(vmp=vmp).exclude(data=[]).exists()
+                    elif measure.quantity_type == 'scmd':
+                        has_data = SCMDQuantity.objects.filter(vmp=vmp).exclude(data=[]).exists()
                     if has_data:
                         measure_vmps.append(
                             MeasureVMP(
