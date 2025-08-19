@@ -14,7 +14,7 @@ how_is_it_calculated: >
     We then filter to liquid products by identifying products with the form and route `suspension.oral` or `solution.oral` (excluding those that additionally have the form and route `tablet.oral`, 
     which is the case for  the dispersible gastro-resistant tablets forms of omeprazole).
     The subset of these products that are licensed are specified manually.
-    We then divide the monthly Defined Daily Doses of unlicensed omeprazole products by the total monthly Defined Daily Doses of all liquid omeprazole products and multiply by 100 to get the percentage.
+    We then divide the monthly [Defined Daily Doses](/faq/#what-is-a-defined-daily-dose-ddd) of unlicensed omeprazole products by the total monthly Defined Daily Doses of all liquid omeprazole products and multiply by 100 to get the percentage.
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Safety
