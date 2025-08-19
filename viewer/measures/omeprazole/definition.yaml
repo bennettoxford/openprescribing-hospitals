@@ -1,12 +1,13 @@
 name: Unlicensed omeprazole liquid
 short_name: Unlicensed omeprazole liquid
 description: The proportion of omeprazole liquid issued as unlicensed products from all omeprazole liquid products.
-why_it_matters: An unlicensed medicine (sometimes called a special or special-order medicine) is a medicine that does not hold a UK marketing authorisation (product licence) from the Medicines and Healthcare products Regulatory Agency (MHRA).  
+why_it_matters: |
+    An unlicensed medicine (sometimes called a special or special-order medicine) is a medicine that does not hold a UK marketing authorisation (product licence) from the Medicines and Healthcare products Regulatory Agency (MHRA).  
 
-That means it has not gone through the usual MHRA approval process for safety, quality, and efficacy for its intended use.  
+    That means it has not gone through the usual MHRA approval process for safety, quality, and efficacy for its intended use.  
 
-The Association of the British Pharmaceutical Industry (ABPI) states that the use of unlicensed medicines should be limited to occasions where there is no suitable licensed alternative available.  
-[ABPI policy position on the use of unlicensed medicines](https://www.abpi.org.uk/media/f01jspbi/policy-position-the-use-of-unlicensed-specials-to-treat-nhs-patients-v2.pdf) 
+    The Association of the British Pharmaceutical Industry (ABPI) states that the use of unlicensed medicines should be limited to occasions where there is no suitable licensed alternative available (see the 
+    [ABPI policy position on the use of unlicensed medicines](https://www.abpi.org.uk/media/f01jspbi/policy-position-the-use-of-unlicensed-specials-to-treat-nhs-patients-v2.pdf)).
 
 how_is_it_calculated: >
     We select all omeprazole products with the Virtual Therapeutic Moiety (VTM) code 776991000. 
