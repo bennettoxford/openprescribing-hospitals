@@ -29,4 +29,4 @@ authored_by: Chris Wood # Name of original author
 checked_by: Richard Croker # Name of clinical/technical reviewer
 date_reviewed: 2025-03-11 # Date of last review (YYYY-MM-DD)
 next_review: 2026-03-11 # Date of next scheduled review (YYYY-MM-DD)
-draft: true # true/false - indicates if measure is in draft
+status: in_development
