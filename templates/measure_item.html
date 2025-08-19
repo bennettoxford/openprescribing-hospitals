@@ -14,9 +14,9 @@
         <nav class="flex mb-6" aria-label="Breadcrumb">
             <ol class="inline-flex items-center space-x-1 md:space-x-3">
                 <li class="inline-flex items-center">
-                    <a href="{% url 'viewer:measures_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <a href="{% if status == 'preview' or status == 'in_development' %}{% url 'viewer:measures_preview_list' %}{% else %}{% url 'viewer:measures_list' %}{% endif %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
                         <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
-                        Measures
+                        {% if status == 'preview' or status == 'in_development' %}Measure Previews{% else %}Measures{% endif %}
                     </a>
                 </li>
                 <li aria-current="page">
@@ -33,13 +33,6 @@
             <div class="absolute top-2 right-2 z-10">
                 <span class="inline-flex items-center justify-center text-4xl" aria-label="New measure">
                     🆕
-                </span>
-            </div>
-            {% endif %}
-            {% if is_draft %}
-            <div class="w-full">
-                <span class="flex items-center justify-center w-full py-1 text-sm font-medium bg-amber-50 text-amber-800">
-                    <span class="mr-1.5">🚧</span> In development
                 </span>
             </div>
             {% endif %}
@@ -71,6 +64,26 @@
                         {% endif %}
                     </div>
                 </div>
+                {% if status == 'in_development' or status == 'preview' %}
+                <div class="px-4 sm:px-8 py-4">
+                    <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-md" role="alert">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-amber-800">Preview Measures Warning</h3>
+                                <div class="mt-2 text-sm text-amber-700">
+                                    <p>These measures are in preview and may not be fully developed or validated. They are provided for early feedback and testing purposes.
+                                    The text, products selected, and data shown may be incorrect or incomplete. They should not be used for decision making.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
                 {% if error %}
                     <div class="mt-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded" role="alert">
                         <p class="font-bold">Error</p>

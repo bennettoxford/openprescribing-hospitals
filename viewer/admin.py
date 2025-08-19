@@ -83,9 +83,9 @@ class IngredientQuantityAdmin(admin.ModelAdmin):
 
 @admin.register(Measure)
 class MeasureAdmin(admin.ModelAdmin):
-    list_display = ("name", "slug", "draft")
+    list_display = ("name", "slug", "status")
     search_fields = ("name", "slug")
-    list_filter = ("draft", "tags")
+    list_filter = ("status", "tags")
     actions = ['import_measure', 'get_measure_vmps', 'compute_measure']
     
     def get_urls(self):
