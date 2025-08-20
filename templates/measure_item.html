@@ -29,12 +29,14 @@
         </nav>
 
         <div class="overflow-hidden bg-white rounded-lg shadow-md relative">
-            {% if is_new %}
-            <div class="absolute top-2 right-2 z-10">
-                <span class="inline-flex items-center justify-center text-4xl" aria-label="New measure">
-                    🆕
-                </span>
-            </div>
+            {% if status == 'published' %}
+                {% if is_new %}
+                <div class="absolute top-2 right-2 z-10">
+                    <span class="inline-flex items-center justify-center text-4xl" aria-label="New measure">
+                        🆕
+                    </span>
+                </div>
+                {% endif %}
             {% endif %}
             <div class="space-y-8">
                 <div class="flex items-start justify-between mb-4 px-4 pt-8 sm:px-8">
