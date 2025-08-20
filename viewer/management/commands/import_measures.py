@@ -72,7 +72,7 @@ class Command(BaseCommand):
                     'date_reviewed': data.get('date_reviewed', None),
                     'next_review': data.get('next_review', None),
                     'first_published': data.get('first_published', None),
-                    'draft': data.get('draft', True)
+                    'status': data.get('status', 'in_development')
                 }
             )
             
@@ -167,7 +167,11 @@ def validate_measure_yaml(data):
             validate_date_format,
             error='first_published must be in format YYYY-MM-DD or a valid date object'
         ),
-        Optional('draft'): And(bool)
+        Optional('status'): And(
+            str,
+            lambda status: status in [choice[0] for choice in Measure.STATUS_CHOICES],
+            error='status must be one of: in_development, preview, published'
+        )
     })
     
     schema.validate(data)

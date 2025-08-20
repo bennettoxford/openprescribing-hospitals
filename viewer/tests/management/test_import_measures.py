@@ -33,7 +33,7 @@ def valid_measure_data():
         'checked_by': 'Test Checker',
         'date_reviewed': today.strftime('%Y-%m-%d'),
         'next_review': (today + timedelta(days=180)).strftime('%Y-%m-%d'),
-        'draft': True
+        'status': 'in_development'
     }
 
 @pytest.mark.django_db()
@@ -105,7 +105,7 @@ authored_by: Test Author
 checked_by: Test Checker
 date_reviewed: '{today}'
 next_review: '{next_review}'
-draft: true
+status: in_development
 """
         (test_measure_dir / 'definition.yaml').write_text(yaml_content)
         (test_measure_dir / 'vmps.sql').write_text('')

@@ -397,6 +397,12 @@ class MeasureVMP(models.Model):
         return f"{self.measure.name} - {self.vmp.name} ({self.type})"
 
 class Measure(models.Model):
+    STATUS_CHOICES = [
+        ('in_development', 'In Development'),
+        ('preview', 'Preview'),
+        ('published', 'Published'),
+    ]
+    
     QUANTITY_TYPES = [
         ('scmd', 'SCMD Quantity'),
         ('dose', 'Dose'),
@@ -412,7 +418,11 @@ class Measure(models.Model):
     why_it_matters = models.TextField()
     how_is_it_calculated = models.TextField(null=True)
     tags = models.ManyToManyField(MeasureTag, related_name="measures")
-    draft = models.BooleanField(default=True)
+    status = models.CharField(
+        max_length=20, 
+        choices=STATUS_CHOICES, 
+        default='in_development'
+    )
     vmps = models.ManyToManyField(VMP, through='MeasureVMP', related_name='measures')
     quantity_type = models.CharField(max_length=20, choices=QUANTITY_TYPES, default='dose')
     authored_by = models.CharField(max_length=255, null=True)

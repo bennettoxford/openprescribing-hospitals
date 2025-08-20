@@ -21,7 +21,9 @@ class MeasuresListView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        measures = Measure.objects.prefetch_related('tags').order_by('draft', 'name')
+        measures = Measure.objects.filter(
+            status='published'
+        ).prefetch_related('tags').order_by('name')
         measure_tags = MeasureTag.objects.all()
         
         markdowner = Markdown()
@@ -38,24 +40,54 @@ class MeasuresListView(TemplateView):
         
         context["measures"] = measures
         context["measure_tags"] = measure_tags
+        context["preview_mode"] = False
         return context
-    
-class MeasureItemView(TemplateView):
-    template_name = "measure_item.html"
 
-    def dispatch(self, request, *args, **kwargs):
-        try:
-            slug = kwargs.get("slug")
-            measure = self.get_measure(slug)
-            if measure.draft:
-                if request.user.is_authenticated:
-                    return super().dispatch(request, *args, **kwargs)
-                else:
-                    return redirect('viewer:measures_list')
-        except Exception:
-            pass
+
+class MeasuresPreviewListView(TemplateView):
+    template_name = "measures_list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        preview_measures = Measure.objects.filter(
+            status='preview'
+        ).prefetch_related('tags').order_by('name')
         
-        return super().dispatch(request, *args, **kwargs)
+        if self.request.user.is_authenticated:
+            in_development_measures = Measure.objects.filter(
+                status='in_development'
+            ).prefetch_related('tags').order_by('name')
+        else:
+            in_development_measures = []
+        
+        all_measures = list(preview_measures) + list(in_development_measures)
+        measure_tags = MeasureTag.objects.all()
+        
+        markdowner = Markdown()
+        for measure in all_measures:
+            measure.why_it_matters = markdowner.convert(measure.why_it_matters)
+        
+        for tag in measure_tags:
+            if tag.description:
+                tag.description = markdowner.convert(tag.description)
+        
+        one_month_ago = datetime.now().date() - timedelta(days=30)
+        for measure in all_measures:
+            measure.is_new = (
+                measure.first_published and 
+                measure.first_published >= one_month_ago
+            )
+        
+        context["preview_measures"] = preview_measures
+        context["in_development_measures"] = in_development_measures
+        context["measure_tags"] = measure_tags
+        context["preview_mode"] = True
+        return context
+
+
+class BaseMeasureItemView(TemplateView):
+    template_name = "measure_item.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -115,7 +147,10 @@ class MeasureItemView(TemplateView):
         tags_data = [
             {
                 'name': tag.name,
-                'description': markdowner.convert(tag.description) if tag.description else None,
+                'description': (
+                    markdowner.convert(tag.description) 
+                    if tag.description else None
+                ),
                 'colour': tag.colour
             }
             for tag in measure.tags.all()
@@ -124,20 +159,24 @@ class MeasureItemView(TemplateView):
         return {
             "measure_name": measure.name,
             "measure_name_short": measure.short_name,
-            "is_draft": measure.draft,
+            "status": measure.status,
             "why_it_matters": markdowner.convert(measure.why_it_matters),
-            "how_is_it_calculated": markdowner.convert(measure.how_is_it_calculated),
+            "how_is_it_calculated": (
+                markdowner.convert(measure.how_is_it_calculated)
+            ),
             "measure_description": markdowner.convert(measure.description),
             "tags": tags_data,
-            "denominator_vmps": json.dumps(denominator_vmps, cls=DjangoJSONEncoder),
-            "numerator_vmps": json.dumps(numerator_vmps, cls=DjangoJSONEncoder),
+            "denominator_vmps": json.dumps(
+                denominator_vmps, cls=DjangoJSONEncoder
+            ),
+            "numerator_vmps": json.dumps(
+                numerator_vmps, cls=DjangoJSONEncoder
+            ),
             "measure_quantity_type": measure.quantity_type,
             "has_denominators": len(denominator_vmps) > 0,
         }
 
     def get_precomputed_data(self, measure):
-       
-
         org_measures = PrecomputedMeasure.objects.filter(
             measure=measure
         ).select_related('organisation')
@@ -164,17 +203,23 @@ class MeasureItemView(TemplateView):
             successor__isnull=True
         ).values('ods_code', 'ods_name').order_by('ods_name')
         
-        measure_orgs = set(org_measures.values_list('organisation__ods_code', flat=True).distinct())
+        measure_orgs = set(
+            org_measures.values_list(
+                'organisation__ods_code', flat=True
+            ).distinct()
+        )
         
         predecessor_map = {}
         predecessor_to_successor = {}
  
-        for org in Organisation.objects.exclude(successor__isnull=True).values(
-            'ods_code', 'ods_name', 'successor__ods_code', 'successor__ods_name'
+        for org in Organisation.objects.exclude(
+            successor__isnull=True
+        ).values(
+            'ods_code', 'ods_name', 'successor__ods_code', 
+            'successor__ods_name'
         ):
             successor_name = org['successor__ods_name']
             predecessor_name = org['ods_name']
-            
             
             if successor_name not in predecessor_map:
                 predecessor_map[successor_name] = []
@@ -199,7 +244,8 @@ class MeasureItemView(TemplateView):
                 available_orgs.add(org_name)
         
         for successor, predecessors in predecessor_map.items():
-            if successor in org_data['data'] and org_data['data'][successor]['available']:
+            if (successor in org_data['data'] and 
+                    org_data['data'][successor]['available']):
                 for predecessor in predecessors:
                     org_data['data'][predecessor] = {
                         'available': True,
@@ -208,7 +254,8 @@ class MeasureItemView(TemplateView):
                     available_orgs.add(predecessor)
         
         for measure in org_measures.values(
-            'organisation__ods_code', 'organisation__ods_name', 'month', 'quantity', 'numerator', 'denominator'
+            'organisation__ods_code', 'organisation__ods_name', 
+            'month', 'quantity', 'numerator', 'denominator'
         ):
             org_name = measure['organisation__ods_name']
             if org_name in org_data['data']:
@@ -269,5 +316,44 @@ class MeasureItemView(TemplateView):
     def get_percentile_data(self, percentiles):
         percentiles_list = list(percentiles.values())
         return {
-            "percentile_data": json.dumps(percentiles_list, cls=DjangoJSONEncoder),
+            "percentile_data": json.dumps(
+                percentiles_list, cls=DjangoJSONEncoder
+            ),
         }
+
+
+class MeasureItemView(BaseMeasureItemView):
+    """View for published measures only"""
+
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            slug = kwargs.get("slug")
+            measure = self.get_measure(slug)
+            
+            if measure.status != 'published':
+                return redirect('viewer:measures_list')
+            
+            return super().dispatch(request, *args, **kwargs)
+            
+        except Exception:
+            return redirect('viewer:measures_list')
+
+
+class MeasurePreviewItemView(BaseMeasureItemView):
+    """View for preview and in-development measures"""
+
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            slug = kwargs.get("slug")
+            measure = self.get_measure(slug)
+            
+            if (measure.status == 'in_development' and 
+                    not request.user.is_authenticated):
+                return redirect('viewer:measures_list')
+            elif measure.status == 'published':
+                return redirect('viewer:measure_item', slug=slug)
+            
+            return super().dispatch(request, *args, **kwargs)
+            
+        except Exception:
+            return redirect('viewer:measures_list')

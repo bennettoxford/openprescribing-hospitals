@@ -9,6 +9,8 @@ from .product_lookup import ProductLookupView
 from .measures import (
     MeasuresListView,
     MeasureItemView,
+    MeasurePreviewItemView,
+    MeasuresPreviewListView,
 )
 
 from .analyse import AnalyseView
@@ -45,6 +47,8 @@ __all__ = [
 
     'MeasuresListView',
     'MeasureItemView',
+    'MeasurePreviewItemView',
+    'MeasuresPreviewListView',
     
     'AnalyseView',
     
