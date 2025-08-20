@@ -131,7 +131,7 @@ class Command(BaseCommand):
         denominator_vmps = measurevmps.filter(
             type='denominator'
         ).values_list('vmp', flat=True)
-        
+        all_vmps = list(numerator_vmps) + list(denominator_vmps)
         is_ratio_measure = denominator_vmps.exists()
         
         if is_ratio_measure:
@@ -148,7 +148,7 @@ class Command(BaseCommand):
         numerator_records = subset.filter(vmp__in=numerator_vmps)
 
         if is_ratio_measure:
-            denominator_records = subset.filter(vmp__in=denominator_vmps)
+            denominator_records = subset.filter(vmp__in=all_vmps)
             denominator_data = (
                 denominator_records
                 .values('normalised_org_id', 'data')
