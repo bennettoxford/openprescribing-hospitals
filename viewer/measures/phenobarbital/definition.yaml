@@ -1,0 +1,22 @@
+name: Liquid phenobarbital
+short_name: Liquid phenobarbital
+description: |
+    The proportion of liquid phenobarbital products issued as alcohol-containing preparations.
+why_it_matters: |
+    The RCPCH and NPPG position statement [Choosing an Oral Liquid Medicine for Children](https://nppg.org.uk/wp-content/uploads/2025/06/Position-Statement-Liquid-Choice-V1a.pdf)
+    states that recommended practice in the UK is to use an ethanol-free unlicensed 50 mg/5 mL liquid for the oral administration of phenobarbital to children when an oral liquid 
+    is required. Phenobarbital Elixir BP (15 mg/5 mL) contains 38% v/v of ethanol (alcohol), and so there is potential for accumulation when ingested repeatedly, especially in 
+    young children with low or immature metabolic capacity.
+how_is_it_calculated: >
+    We select all phenobarbital or phenobarbital sodium products prepared as a solution or suspension.  The quantity of each product issued as DDDs is calculated.
+    We then divide the DDDs of `Phenobarbital 15mg/5ml elixir` by the total DDDs of all selected phenobarbital products and then multiply that by 100 to 
+    obtain a percentage each month.
+tags:
+    - Safety
+quantity_type: ddd
+authored_by: John Doe
+checked_by: Jane Smith
+date_reviewed: 2025-08-21
+next_review: 2026-08-21
+first_published: 2025-08-21
+status: in_development
