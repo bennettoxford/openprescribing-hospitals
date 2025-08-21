@@ -27,7 +27,8 @@ from pipeline.bq_tables import (
     DMD_UOM_TABLE_SPEC,
     WHO_DDD_ALTERATIONS_TABLE_SPEC,
     WHO_ATC_ALTERATIONS_TABLE_SPEC,
-    CALCULATION_LOGIC_TABLE_SPEC
+    CALCULATION_LOGIC_TABLE_SPEC,
+    DDD_REFERS_TO_TABLE_SPEC
 )
 from pipeline.utils.utils import get_bigquery_client
 
@@ -89,6 +90,7 @@ def setup_tables():
         WHO_DDD_ALTERATIONS_TABLE_SPEC,
         WHO_ATC_ALTERATIONS_TABLE_SPEC,
         CALCULATION_LOGIC_TABLE_SPEC,
+        DDD_REFERS_TO_TABLE_SPEC
     ]
 
     results = []

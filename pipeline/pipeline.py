@@ -67,6 +67,7 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
 
         atc_result = import_atc_flow(wait_for=[atc_ddd_alterations])
         ddd_result = import_ddd_flow(wait_for=[atc_ddd_alterations])
+        ddd_mapping = create_vmp_ddd_mapping(wait_for=[dmd_supp, adm_route, ddd_result])
 
         vmps = populate_vmp_table(wait_for=[dmd_supp, adm_route])
         vmp_unit_standardisation = import_vmp_unit_standardisation_flow(wait_for=[vmps])
@@ -78,8 +79,8 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
         doses = calculate_doses(wait_for=[processed])
         ingredients = calculate_ingredient_quantity(wait_for=[doses])
     
-        ddd_mapping = create_vmp_ddd_mapping(wait_for=[ingredients, atc_result, ddd_result])
-        ddd_quantities = calculate_ddd_quantity(wait_for=[ddd_mapping])
+        
+        ddd_quantities = calculate_ddd_quantity(wait_for=[ingredients])
         
         calculation_logic = populate_calculation_logic(wait_for=[ddd_quantities])
 

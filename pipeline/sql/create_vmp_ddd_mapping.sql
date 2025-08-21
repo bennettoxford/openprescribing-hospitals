@@ -121,6 +121,16 @@ vmp_ingredients AS (
   GROUP BY vmp_code
 ),
 
+ddd_refers_to_mappings AS (
+  SELECT 
+    rt.ddd_comment,
+    rt.refers_to_ingredient,
+    dmd_ing.dmd_ingredient_code,
+    dmd_ing.dmd_ingredient_name
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DDD_REFERS_TO_TABLE_ID }}` rt,
+  UNNEST(dmd_ingredients) AS dmd_ing
+),
+
 route_matches AS (
   SELECT
     vmp_code,
@@ -184,7 +194,9 @@ ddd_route_selection AS (
       WHEN NOT all_matching_ddds_same THEN FALSE
       WHEN (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1) IS NOT NULL 
         AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != '' 
-        AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != 'New DDD' THEN FALSE
+        AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != 'New DDD'
+        AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != 'Independent of strength'
+        AND NOT LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))) LIKE 'refers to %' THEN FALSE
       ELSE TRUE
     END AS route_match_ok,
     CASE
@@ -196,6 +208,8 @@ ddd_route_selection AS (
       WHEN (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1) IS NOT NULL 
         AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != '' 
         AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != 'New DDD'
+        AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != 'Independent of strength'
+        AND NOT LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))) LIKE 'refers to %'
         THEN CONCAT('DDD has unsupported comment: ', (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))
       ELSE NULL
     END AS route_matching_issue,
@@ -238,6 +252,23 @@ unit_compatibility AS (
   WHERE drs.route_match_ok = TRUE
 ),
 
+vmp_refers_to_ingredients AS (
+  SELECT 
+    ing.vmp_code,
+    uc.selected_ddd_comment,
+    STRING_AGG(vmp_ing.ingredient_name, ', ') AS refers_to_ingredient_names
+  FROM unit_compatibility uc
+  LEFT JOIN vmp_ingredients ing ON uc.vmp_code = ing.vmp_code
+  LEFT JOIN UNNEST(ing.ingredients_info) AS vmp_ing
+  LEFT JOIN ddd_refers_to_mappings rt 
+    ON rt.ddd_comment = uc.selected_ddd_comment
+    AND rt.dmd_ingredient_code = vmp_ing.ingredient_code
+  WHERE uc.selected_ddd_comment IS NOT NULL 
+    AND LOWER(TRIM(uc.selected_ddd_comment)) LIKE 'refers to %'
+    AND rt.dmd_ingredient_code IS NOT NULL
+  GROUP BY ing.vmp_code, uc.selected_ddd_comment
+),
+
 unit_and_ingredient_analysis AS (
   SELECT
     uc.vmp_code,
@@ -246,12 +277,26 @@ unit_and_ingredient_analysis AS (
     uc.selected_ddd_value,
     uc.selected_ddd_unit,
     uc.selected_ddd_route_code,
+    uc.selected_ddd_comment,
     uc.ddd_basis AS selected_ddd_basis_unit,
     ing.ingredients_info,
     -- Check if ingredients
     (ing.ingredients_info IS NOT NULL AND ARRAY_LENGTH(ing.ingredients_info) > 0) AS has_ingredients,
     -- Check if exactly one ingredient
     (ing.ingredients_info IS NOT NULL AND ARRAY_LENGTH(ing.ingredients_info) = 1) AS has_single_ingredient,
+    -- Check if DDD comment starts with "Refers to"
+    (uc.selected_ddd_comment IS NOT NULL 
+     AND LOWER(TRIM(uc.selected_ddd_comment)) LIKE 'refers to %') AS is_refers_to_ddd,
+    -- For "Refers to" DDDs, check if VMP has the referred ingredient
+    EXISTS(
+      SELECT 1
+      FROM UNNEST(ing.ingredients_info) AS vmp_ing
+      JOIN ddd_refers_to_mappings rt 
+        ON rt.ddd_comment = uc.selected_ddd_comment
+        AND rt.dmd_ingredient_code = vmp_ing.ingredient_code
+    ) AS has_refers_to_ingredient,
+    -- Get the specific ingredient name for "refers to" cases
+    vri.refers_to_ingredient_names AS refers_to_ingredient_name,
     -- Get the ingredient basis unit (if there's only one ingredient)
     CASE
       WHEN ing.ingredients_info IS NOT NULL AND ARRAY_LENGTH(ing.ingredients_info) = 1 
@@ -266,6 +311,20 @@ unit_and_ingredient_analysis AS (
       ) = uc.ddd_basis
       ELSE FALSE
     END AS ingredient_basis_matches_ddd,
+    -- For "Refers to" DDDs, check if the referred ingredient's basis unit matches DDD basis
+    CASE
+      WHEN uc.selected_ddd_comment IS NOT NULL 
+           AND LOWER(TRIM(uc.selected_ddd_comment)) LIKE 'refers to %'
+      THEN EXISTS(
+        SELECT 1
+        FROM UNNEST(ing.ingredients_info) AS vmp_ing
+        JOIN ddd_refers_to_mappings rt 
+          ON rt.ddd_comment = uc.selected_ddd_comment
+          AND rt.dmd_ingredient_code = vmp_ing.ingredient_code
+        WHERE vmp_ing.ingredient_basis_unit = uc.ddd_basis
+      )
+      ELSE FALSE
+    END AS refers_to_ingredient_basis_matches_ddd,
     -- Check for route matching
     (
       SELECT COUNT(1) 
@@ -283,6 +342,7 @@ unit_and_ingredient_analysis AS (
   FROM unit_compatibility uc
   LEFT JOIN vmp_ingredients ing ON uc.vmp_code = ing.vmp_code
   LEFT JOIN vmp_routes r ON uc.vmp_code = r.vmp_code
+  LEFT JOIN vmp_refers_to_ingredients vri ON uc.vmp_code = vri.vmp_code
 ),
 
 ddd_calculation_status AS (
@@ -321,19 +381,28 @@ ddd_calculation_status AS (
     vmp_name,
     who_ddds,
     CASE 
+      -- Allow single ingredient case
       WHEN has_single_ingredient AND ingredient_basis_matches_ddd THEN TRUE
+      -- Allow "Refers to" case with multiple ingredients if the referred ingredient matches
+      WHEN is_refers_to_ddd AND has_refers_to_ingredient AND refers_to_ingredient_basis_matches_ddd THEN TRUE
       ELSE FALSE
     END AS can_calculate_ddd,
     CASE
       WHEN has_single_ingredient AND ingredient_basis_matches_ddd 
       THEN 'Ingredient quantity / DDD'
+      WHEN is_refers_to_ddd AND has_refers_to_ingredient AND refers_to_ingredient_basis_matches_ddd
+      THEN CONCAT('Ingredient quantity / DDD (Refers to ', LOWER(refers_to_ingredient_name), ')')
       WHEN NOT routes_match 
       THEN 'Not calculated: DDD route does not match product route'
       WHEN has_missing_ingredient_units 
       THEN 'Not calculated: missing ingredient unit information, cannot calculate'
       WHEN NOT has_ingredients 
       THEN CONCAT('Not calculated: DDD unit incompatible with SCMD unit. No ingredients found.')
-      WHEN NOT has_single_ingredient 
+      WHEN is_refers_to_ddd AND NOT has_refers_to_ingredient
+      THEN CONCAT('Not calculated: DDD refers to ingredient not found in VMP (', selected_ddd_comment, ')')
+      WHEN is_refers_to_ddd AND has_refers_to_ingredient AND NOT refers_to_ingredient_basis_matches_ddd
+      THEN CONCAT('Not calculated: referred ingredient unit does not match DDD unit (', selected_ddd_comment, ')')
+      WHEN NOT has_single_ingredient AND NOT is_refers_to_ddd
       THEN CONCAT('Not calculated: DDD unit incompatible with SCMD unit. Multiple ingredients found, fallback not possible.')
       WHEN NOT ingredient_basis_matches_ddd 
       THEN CONCAT('Not calculated: DDD unit incompatible with SCMD unit. Ingredient unit does not match DDD unit.')
