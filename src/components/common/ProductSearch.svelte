@@ -9,7 +9,6 @@
     import { analyseOptions } from '../../stores/analyseOptionsStore';
     const dispatch = createEventDispatcher();
 
-    export let placeholder = "Search by product name or code...";
     export let type = "product";
     export let isAdvancedMode = false;
 
@@ -255,8 +254,13 @@
         } else {
             expandedItems.add(itemCode);
         }
-        expandedItems = expandedItems; // Trigger reactivity
+        expandedItems = expandedItems;
     }
+
+    $: placeholder = type === 'product' ? "Search by product name or code..." :
+                     type === 'ingredient' ? "Search by ingredient name..." :
+                     type === 'atc' ? "Search by ATC level name or code..." :
+                     "Search by product name or code...";
 </script>
 
 <div 
