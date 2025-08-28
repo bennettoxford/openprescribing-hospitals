@@ -9,7 +9,6 @@
     import { analyseOptions } from '../../stores/analyseOptionsStore';
     const dispatch = createEventDispatcher();
 
-    export let placeholder = "Search by product name or code...";
     export let type = "product";
     export let isAdvancedMode = false;
 
@@ -255,8 +254,13 @@
         } else {
             expandedItems.add(itemCode);
         }
-        expandedItems = expandedItems; // Trigger reactivity
+        expandedItems = expandedItems;
     }
+
+    $: placeholder = type === 'product' ? "Search by product name or code..." :
+                     type === 'ingredient' ? "Search by ingredient name..." :
+                     type === 'atc' ? "Search by ATC level name or code..." :
+                     "Search by product name or code...";
 </script>
 
 <div 
@@ -267,7 +271,7 @@
         <div class="flex space-x-2 mb-2 pointer-events-auto">
             <button class="px-2 py-1 rounded {type === 'product' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('product')}>Product</button>
             <button class="px-2 py-1 rounded {type === 'ingredient' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('ingredient')}>Ingredient</button>
-            <button class="px-2 py-1 rounded {type === 'atc' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('atc')}>ATC Code</button>
+            <button class="px-2 py-1 rounded {type === 'atc' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('atc')}>ATC</button>
         </div>
     {/if}
     <div class="grid gap-4">

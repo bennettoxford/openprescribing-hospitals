@@ -291,7 +291,7 @@
                   <p class="text-sm text-gray-500">
                     {#if isAdvancedMode}
                       Search for and select products to include to analyse. You can select individual products
-                      or groups of products by ingredient, product group, or ATC code. See <a href="/faq/#which-medicines-and-devices-are-included" class="underline font-semibold" target="_blank">the FAQs</a> for more information of what products are available.
+                      or groups of products by ingredient, product group, or ATC. See <a href="/faq/#which-medicines-and-devices-are-included" class="underline font-semibold" target="_blank">the FAQs</a> for more information of what products are available.
                     {:else}
                       Search for and select individual products to analyse. See <a href="/faq/#which-medicines-and-devices-are-included" class="underline font-semibold" target="_blank">the FAQs</a> for more information of what products are available.
                     {/if}
