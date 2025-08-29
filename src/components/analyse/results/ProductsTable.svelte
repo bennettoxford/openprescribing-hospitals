@@ -30,16 +30,17 @@
     
     $: selectedCount = Object.values(checkedVMPs).filter(Boolean).length;
 
-    // Warning 1: Multiple different units across products
-    $: uniqueUnits = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => vmp.unit))];
-    $: uniqueNormalisedUnits = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => normaliseDDDUnit(vmp.unit)))];
+    // Warning 1: Multiple different units across selected products
+    $: selectedVMPs = vmps.filter(vmp => checkedVMPs[vmp.vmp] && vmp.unit !== 'nan');
+    $: uniqueUnits = [...new Set(selectedVMPs.map(vmp => vmp.unit))];
+    $: uniqueNormalisedUnits = [...new Set(selectedVMPs.map(vmp => normaliseDDDUnit(vmp.unit)))];
     $: showMultipleUnitsWarning = uniqueNormalisedUnits.length > 1;
 
-    // Warning 2: Multiple different ingredients across products
-    $: allIngredients = vmps.flatMap(vmp => vmp.ingredients || []);
-    $: uniqueIngredients = [...new Set(allIngredients.filter(ingredient => ingredient && ingredient.trim()))];
+    // Warning 2: Multiple different ingredients across selected products
+    $: selectedIngredients = selectedVMPs.flatMap(vmp => vmp.ingredients || []);
+    $: uniqueIngredients = [...new Set(selectedIngredients.filter(ingredient => ingredient && ingredient.trim()))];
     $: showMultipleIngredientsWarning = uniqueIngredients.length > 1;
-    
+
     // Warning 3: Multiple products selected when quantity type is "SCMD Quantity" or "Unit Dose Quantity"
     // Only shown if the other warnings are not shown
     $: showProductAggregationWarning = (quantityType === 'SCMD Quantity' || quantityType === 'Unit Dose Quantity') && 

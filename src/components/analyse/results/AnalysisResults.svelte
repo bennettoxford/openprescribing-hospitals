@@ -291,9 +291,41 @@
             selectedVMPs.some(vmp => vmp.vmp === item.vmp__name)
         );
 
-        const chartData = processChartData(
-            filteredData
+        // Recalculate available view modes based on selected VMPs
+        const filteredVMPs = vmps.filter(vmp => 
+            selectedVMPs.some(selectedVmp => selectedVmp.vmp === vmp.vmp)
         );
+
+        const vmpsWithValidData = filteredVMPs.filter(vmp => vmp.unit !== 'nan');
+
+        if (vmpsWithValidData.length > 0) {
+            viewModeCalculator = new ViewModeCalculator(
+                $resultsStore,
+                $analyseOptions,
+                $organisationSearchStore,
+                vmpsWithValidData
+            );
+
+            const newViewModes = viewModeCalculator.calculateAvailableModes();
+            viewModes = newViewModes;
+
+            // Check if current mode is still available, if not select new default
+            const currentModeStillAvailable = newViewModes.some(mode => 
+                mode.value === $modeSelectorStore.selectedMode
+            );
+
+            if (!currentModeStillAvailable && newViewModes.length > 0) {
+                const hasSelectedOrganisations = $analyseOptions.selectedOrganisations && 
+                                               $analyseOptions.selectedOrganisations.length > 0;
+                const newDefaultMode = selectDefaultMode(newViewModes, hasSelectedOrganisations);
+                modeSelectorStore.setSelectedMode(newDefaultMode);
+            }
+        } else {
+            viewModes = [];
+            modeSelectorStore.setSelectedMode(null);
+        }
+
+        const chartData = processChartData(filteredData);
 
         resultsChartStore.setData({
             ...chartData,
