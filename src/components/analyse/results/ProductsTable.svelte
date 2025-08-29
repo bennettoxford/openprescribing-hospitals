@@ -221,7 +221,7 @@
     {#if hasMissingVMPs}
         <div class="mt-4 p-3 bg-red-100 border border-red-200 rounded-lg text-red-700 text-sm">
             Products shaded in red have no quantity data and will be excluded from the analysis.
-            <a href="/faq#missing-quantities" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
+            <a href="/faq/#why-is-there-no-quantity-for-some-products" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
                 Find out why in the FAQs.
             </a>
             {#if allVMPsMissing}

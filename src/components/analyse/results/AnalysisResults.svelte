@@ -561,7 +561,7 @@
                                         <p class="text-oxford-600 text-xl font-medium mb-3">No data to display</p>
                                         <p class="text-oxford-400 text-base max-w-md">
                                             No data was returned for the selected view mode. 
-                                            <a href="/faq/#missing-quantities" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
+                                            <a href="/faq/#why-is-there-no-quantity-for-some-products" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
                                                 Learn more about why quantities might be missing
                                             </a>.
                                         </p>
@@ -603,7 +603,7 @@
                                     <p class="text-oxford-600 text-xl font-medium mb-3">No data to display</p>
                                     <p class="text-oxford-400 text-base max-w-md">
                                         No data was returned for the selected quantity type of the chosen products. 
-                                        <a href="/faq/#missing-quantities" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
+                                        <a href="/faq/#why-is-there-no-quantity-for-some-products" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
                                             Learn more about why quantities might be missing
                                         </a>.
                                     </p>

@@ -355,7 +355,7 @@
                 <div class="space-y-3">
                   <h4 class="text-sm font-medium text-oxford">Quantity Type</h4>
                   <p class="text-xs text-gray-600">
-                    There are different ways to <a href="/faq/#what-does-quantity-mean" class="underline font-semibold" target="_blank">measure the quantity of medicines issued</a>. The most appropriate quantity for the selected products is automatically selected. If you would like to select an alternative quantity type, you can do so below.
+                    There are different ways to <a href="/faq/#what-does-quantity-mean" class="underline font-semibold" target="_blank">measure the quantity of medicines issued</a>. The most appropriate quantity for the selected products is automatically selected (<a href="/faq/#how-is-the-quantity-type-used-for-an-analysis-chosen" class="underline font-semibold" target="_blank">see how in the FAQs</a>). If you would like to select an alternative quantity type, you can do so below.
                   </p>
                   <div class="space-y-2">
                       <div class="quantity-dropdown-container relative">

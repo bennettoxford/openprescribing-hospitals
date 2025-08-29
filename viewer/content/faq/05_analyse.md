@@ -8,7 +8,7 @@ Quantity is the total amount of a medicine that has been issued as reported in t
 
 ### Why is there no quantity for some products?
 
-There is no quantity reported when a Trust has not issued a product.
+There is no quantity reported when a trust has not issued a product or the selected [quantity type](/faq/#what-does-quantity-mean) is not available for the product. See [How is the quantity type used for an analysis chosen?](faq/#how-is-the-quantity-type-used-for-an-analysis-chosen).
 
 ### How do I see ICB, regional, and national breakdowns?
 
@@ -46,3 +46,14 @@ Using the [dm+d](/faq/#what-is-the-dmd) the individual ingredients within a prod
 <img src="/static/faq/ddd-calc-examples.png" 
      alt="DDD calculation" 
      style="max-height: 20rem; margin-left: auto; margin-right: auto; max-width: 100%;" />
+
+### How is the quantity type used for an analysis chosen?
+
+When you select products for analysis, the most appropriate quantity type to use is automatically selected based on the information available for the products. The selection is designed to improve the likelihood that the quantities being compared are clinically meaningful and that quantity data is available for the greatest number of the selected products.
+
+<img src="/static/faq/choosing-quantity-type.png" 
+     alt="Quantity type selectionlogic" 
+     style="max-height: 52rem; margin-left: auto; margin-right: auto; max-width: 100%;" />
+
+There may be some selections of products where the chosen quantity type is not what you want for your analysis. You can change the quantity type in the advanced options of the analysis builder, but pay attention to any additional warning messages indicating the appropriateness of the comparison. To see what quantity types are available for your selected products, use the [Product Lookup](/product-lookup/) tool.
+
