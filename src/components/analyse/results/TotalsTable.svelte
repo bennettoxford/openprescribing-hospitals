@@ -9,7 +9,7 @@
     import { resultsStore } from '../../../stores/resultsStore';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     import { formatNumber } from '../../../utils/utils';
-    import { processTableDataByMode, getModeDisplayName } from '../../../utils/analyseUtils';
+    import { processTableDataByMode, getModeDisplayName, getTableExplainerText } from '../../../utils/analyseUtils';
 
     export let data = [];
     export let quantityType = 'SCMD Quantity';
@@ -64,6 +64,25 @@
     $: titleText = selectedMode === 'national' 
         ? 'National total' 
         : `Total quantity by ${getModeDisplayName(selectedMode)}`;
+
+    $: hasSelectedTrusts = $analyseOptions.selectedOrganisations && $analyseOptions.selectedOrganisations.length > 0;
+    
+    $: quantityColumnHeader = (() => {
+        if (hasSelectedTrusts && selectedMode !== 'organisation') {
+            return 'Quantity (selected trusts)';
+        } else {
+            return 'Quantity';
+        }
+    })();
+
+    $: tableExplainerText = getTableExplainerText(selectedMode, {
+        hasSelectedTrusts: hasSelectedTrusts,
+        selectedTrustsCount: $analyseOptions.selectedOrganisations?.length || 0,
+        selectedPeriod: selectedPeriod,
+        latestMonth: latestMonth,
+        latestYear: latestYear,
+        dateRange: dateRange
+    });
 
     function toggleTrustExpansion(trustName) {
         if (expandedTrusts.has(trustName)) {
@@ -137,6 +156,13 @@
             </div>
         </div>
     </div>
+    
+    <div class="mb-4">
+        <p class="text-sm text-gray-700">
+            {tableExplainerText}
+        </p>
+    </div>
+    
     <div class="overflow-x-auto">
         <div class="max-h-96 overflow-y-auto relative">
             <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
@@ -150,7 +176,9 @@
                         {#if selectedMode !== 'unit'}
                             <th class="py-3 px-6 text-left">Unit</th>
                         {/if}
-                        <th class="py-3 px-6 text-right">Quantity</th>
+                        <th class="py-3 px-6 text-right">
+                            {quantityColumnHeader}
+                        </th>
                     </tr>
                 </thead>
                 <tbody class="text-gray-600 text-sm">
@@ -169,7 +197,7 @@
                             </tr>
                         {:else if quantityType === 'DDD'}
                             <tr class="border-b border-gray-200 hover:bg-gray-100 
-                                {group.isSubtotal ? 'bg-blue-50 font-semibold' : ''} 
+                                {group.isSubtotal ? (group.section === 'selected' ? 'bg-green-50 font-semibold' : 'bg-blue-50 font-semibold') : ''} 
                                 {group.isPredecessor ? 'bg-gray-50' : ''}">
                                 {#if selectedMode !== 'national'}
                                     <td class="py-3 px-6 text-left {group.isPredecessor ? 'pl-16' : ''}">
@@ -208,9 +236,9 @@
                                     {formatNumber(group.total)}
                                 </td>
                             </tr>
-                        {:else if !$analyseOptions.isAdvancedMode || group.units.length === 1}
+                        {:else if group.units.length === 1}
                             <tr class="border-b border-gray-200 hover:bg-gray-100 
-                                {group.isSubtotal ? 'bg-blue-50 font-semibold' : ''} 
+                                {group.isSubtotal ? (group.section === 'selected' ? 'bg-green-50 font-semibold' : 'bg-blue-50 font-semibold') : ''} 
                                 {group.isPredecessor ? 'bg-gray-50' : ''}">
                                 {#if selectedMode !== 'national'}
                                     <td class="py-3 px-6 text-left {group.isPredecessor ? 'pl-16' : ''}">
@@ -251,7 +279,7 @@
                             </tr>
                         {:else}
                             <tr class="border-b border-gray-200 hover:bg-gray-100 font-bold 
-                                {group.isSubtotal ? 'bg-blue-50 font-semibold' : ''} 
+                                {group.isSubtotal ? (group.section === 'selected' ? 'bg-green-50 font-semibold' : 'bg-blue-50 font-semibold') : ''} 
                                 {group.isPredecessor ? 'bg-gray-50' : ''}">
                                 {#if selectedMode !== 'national'}
                                     <td class="py-3 px-6 text-left {group.isPredecessor ? 'pl-16' : ''}" 
