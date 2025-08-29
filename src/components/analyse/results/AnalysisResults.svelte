@@ -159,6 +159,8 @@
 
             if (unit && unit.startsWith('DDD (')) {
                 yAxisLabel = 'DDDs';
+            } else if (unit === 'DDD') {
+                yAxisLabel = 'DDDs';
             } else {
                 yAxisLabel = pluralize(unit);
             }
@@ -200,7 +202,7 @@
             },
             tooltipValueFormat: value => {
                 const baseUnit = combinedUnits || 'units';
-                const pluralizedUnit = pluralize(baseUnit, value);
+                const pluralizedUnit = formatUnitForTooltip(baseUnit, value);
                 return formatNumber(value, { showUnit: true, unit: pluralizedUnit });
             }
         };
@@ -332,6 +334,26 @@
         return `${months[d.getMonth()]} ${d.getFullYear()}`;
     }
 
+    function formatUnitForTooltip(baseUnit, value) {
+        if (!baseUnit) return 'units';
+        
+        // Handle DDD units with dose information like "DDD (60.0mg)"
+        if (baseUnit.startsWith('DDD (') && baseUnit.includes(')')) {
+            const doseMatch = baseUnit.match(/^DDD (\(.+\))$/);
+            if (doseMatch) {
+                const doseInfo = doseMatch[1];
+                return value === 1 ? `DDD ${doseInfo}` : `DDDs ${doseInfo}`;
+            }
+        }
+        
+        // Handle plain "DDD" units
+        if (baseUnit === 'DDD') {
+            return value === 1 ? 'DDD' : 'DDDs';
+        }
+        
+        return pluralize(baseUnit, value);
+    }
+
     function customTooltipFormatter(d) {
         const label = d.dataset.label || 'No label';
         const date = formatDate(d.date);
@@ -343,10 +365,10 @@
             const matchingVmp = vmps.find(vmp => vmp.vmp === d.dataset.label);
             const baseUnit = matchingVmp?.unit || chartConfig?.yAxisLabel || 'unit';
             
-            unit = pluralize(baseUnit, value);
+            unit = formatUnitForTooltip(baseUnit, value);
         } else {
             const baseUnit = chartConfig?.yAxisLabel || 'units';
-            unit = pluralize(baseUnit, value);
+            unit = formatUnitForTooltip(baseUnit, value);
         }
 
         const tooltipContent = [
