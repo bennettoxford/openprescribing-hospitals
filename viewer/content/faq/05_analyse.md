@@ -4,7 +4,7 @@ title: Analyse
 
 ### What does quantity mean?
 
-Quantity is the total amount of a medicine that has been issued as reported in the SCMD. The unit of measure used to measure the quantity varies across different products. Where possible, units are mapped to a consistent unit basis (e.g. quantities reported in micrograms and milligrams are both converted to quantity in grams) to allow for comparison between different products. Quantities reported in different unit bases may not be comparable.
+Quantity is the total amount of a medicine that has been issued as reported in the SCMD. The unit of measure used to measure the quantity varies across different products. Where possible, units are mapped to a consistent unit basis (e.g. quantities reported in micrograms and milligrams are both converted to quantity in grams) to allow for comparison between different products. Quantities reported in different unit bases may not be comparable. For this reason, we calculate alternative measures of quantity from the quantity reported in the SCMD. These include [SCMD quantity](/faq/#what-is-scmd-quantity), [unit dose quantity](/faq/#what-is-unit-dose-quantity), [ingredient quantity](/faq/#what-is-ingredient-quantity) and [DDD quantity](/faq/#what-is-ddd-quantity).
 
 ### Why is there no quantity for some products?
 
