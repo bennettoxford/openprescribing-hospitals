@@ -340,9 +340,10 @@ def get_quantity_data(request):
             response_data.append(response_item)
 
         quantity_model = {
-            "VMP Quantity": SCMDQuantity,
+            "SCMD Quantity": SCMDQuantity,
+            "Unit Dose Quantity": Dose,
             "Ingredient Quantity": IngredientQuantity,
-            "Daily Defined Doses": DDDQuantity
+            "Defined Daily Dose Quantity": DDDQuantity
         }.get(quantity_type)
 
         if quantity_model:

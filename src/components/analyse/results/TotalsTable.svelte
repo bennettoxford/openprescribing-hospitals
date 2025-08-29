@@ -12,7 +12,7 @@
     import { processTableDataByMode, getModeDisplayName } from '../../../utils/analyseUtils';
 
     export let data = [];
-    export let quantityType = 'VMP Quantity';
+    export let quantityType = 'SCMD Quantity';
     export let searchType = 'vmp';
 
     let selectedPeriod = 'all';
