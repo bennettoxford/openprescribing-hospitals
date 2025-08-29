@@ -20,6 +20,7 @@ from .api import (
     vmp_count,
     search_products,
     get_product_details,
+    select_quantity_type,
 )
 
 from .auth import LoginView
@@ -54,6 +55,7 @@ __all__ = [
     
     'get_quantity_data',
     'vmp_count',
+    'select_quantity_type',
     'search_products',
     'get_product_details',
 

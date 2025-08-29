@@ -14,6 +14,7 @@ from .views import (
     MeasureItemView,
     MeasurePreviewItemView,
     vmp_count,
+    select_quantity_type,
     get_quantity_data,
     get_product_details,
     search_products,
@@ -44,6 +45,7 @@ urlpatterns = [
     path('research/', PapersListView.as_view(), name='papers_list'),
     path("api/vmp-count/", vmp_count, name="vmp_count"),
     path("api/get-quantity-data/", get_quantity_data, name="get_quantity_data"),
+    path("api/select-quantity-type/", select_quantity_type, name="select_quantity_type"),
     path("api/get-product-details/", get_product_details, name="get_product_details"),
     path("api/search-products/", search_products, name="search_products"),
 ]

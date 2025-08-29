@@ -20,9 +20,11 @@
     let isAnalysisRunning = false;
     let errorMessage = '';
     let isOrganisationDropdownOpen = false;
+    let isSelectingQuantityTypes = false;
 
     $: selectedVMPs = $analyseOptions.selectedVMPs;
     $: searchType = $analyseOptions.searchType;
+    $: selectedQuantityType = $analyseOptions.quantityType;
 
     export let orgData = null;
     export let mindate = null;
@@ -46,7 +48,44 @@
     });
 
     const csrftoken = getCookie('csrftoken');
-    const quantityOptions = ['--', 'SCMD Quantity', 'Unit Dose Quantity', 'Ingredient Quantity', 'Defined Daily Dose Quantity'];
+    
+    async function selectQuantityType(selectedVMPs) {
+
+        if (!selectedVMPs || selectedVMPs.length === 0) {
+
+            analyseOptions.setQuantityType(null);
+            recommendedQuantityTypes = [];
+            selectedQuantityType = null;
+            return;
+        }
+        
+        isSelectingQuantityTypes = true;
+        
+        try {
+            const response = await fetch('/api/select-quantity-type/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    names: selectedVMPs
+                })
+            });
+            
+            if (!response.ok) {
+                return;
+            }
+            
+            const data = await response.json();
+            analyseOptions.setQuantityType(data.selected_quantity_type);
+            
+        } catch (error) {
+            console.error('Error selecting quantity type:', error);
+        } finally {
+            isSelectingQuantityTypes = false;
+        }
+    }
 
     async function runAnalysis() {
         if (isAnalysisRunning) return;
@@ -86,7 +125,8 @@
                 },
                 body: JSON.stringify({
                     names: selectedVMPs,
-                    search_type: searchType
+                    search_type: searchType,
+                    quantity_type: $analyseOptions.quantityType
                 })
             });
 
@@ -107,6 +147,7 @@
 
             updateResults(data, {
                 searchType,
+                quantityType: $analyseOptions.quantityType,
                 selectedOrganisations: $organisationSearchStore.selectedItems,
                 predecessorMap: $organisationSearchStore.predecessorMap
             });
@@ -133,12 +174,13 @@
     }
 
     function handleVMPSelection(event) {
-        event.detail.items = event.detail.items.slice(0, 1);
         
         analyseOptions.update(options => ({
             ...options,
             selectedVMPs: event.detail.items
         }));
+
+        selectQuantityType(event.detail.items);
     }
 
     function handleODSSelection(event) {
@@ -157,8 +199,8 @@
             ...options,
             selectedVMPs: [],
             searchType: 'vmp',
+            quantityType: null
         }));
-        
         organisationSearchStore.updateSelection([]);
 
         errorMessage = '';
@@ -174,6 +216,7 @@
         resetSelections();
         dispatch('analysisClear');
     }
+
 </script>
 <div class="mb-6">
   <div>
@@ -277,7 +320,7 @@
             <div class="flex gap-2 justify-between">
               <button
                 on:click={runAnalysis}
-                disabled={isAnalysisRunning}
+                disabled={isAnalysisRunning || isSelectingQuantityTypes}
                 class="w-64 px-6 sm:px-8 py-2 sm:py-2.5 bg-oxford-50 text-oxford-600 font-semibold rounded-md hover:bg-oxford-100 transition-colors duration-200
                      disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
               >
