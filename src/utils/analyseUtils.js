@@ -1,4 +1,5 @@
 import { chartConfig } from './chartConfig.js';
+import { normaliseDDDUnit } from './utils';
 import pluralize from 'pluralize';
 
 export class ChartDataProcessor {
@@ -531,6 +532,7 @@ export class ViewModeCalculator {
         const uniqueUnits = new Set(
             this.vmps.flatMap(vmp => Array.from(vmp.units || []))
                 .filter(unit => unit && unit !== '-' && unit !== 'nan')
+                .map(unit => normaliseDDDUnit(unit))
         );
         if (uniqueUnits.size > 1) {
             modes.push({ value: 'unit', label: 'Unit' });
@@ -797,26 +799,27 @@ function processOrganisationModeWithAggregation(data, period, latestDate, select
         if (targetGroup[targetOrgName] !== undefined) {
             item.data?.forEach(([date, quantity, unit]) => {
                 const parsedQuantity = parseFloat(quantity) || 0;
+                const normalisedUnit = normaliseDDDUnit(unit);
                 
                 if (isPredecessor) {
                     targetGroup[targetOrgName].predecessors[orgName].total += parsedQuantity;
-                    if (!targetGroup[targetOrgName].predecessors[orgName].units[unit]) {
-                        targetGroup[targetOrgName].predecessors[orgName].units[unit] = 0;
+                    if (!targetGroup[targetOrgName].predecessors[orgName].units[normalisedUnit]) {
+                        targetGroup[targetOrgName].predecessors[orgName].units[normalisedUnit] = 0;
                     }
-                    targetGroup[targetOrgName].predecessors[orgName].units[unit] += parsedQuantity;
+                    targetGroup[targetOrgName].predecessors[orgName].units[normalisedUnit] += parsedQuantity;
                 }
                 
                 targetGroup[targetOrgName].total += parsedQuantity;
-                if (!targetGroup[targetOrgName].units[unit]) {
-                    targetGroup[targetOrgName].units[unit] = 0;
+                if (!targetGroup[targetOrgName].units[normalisedUnit]) {
+                    targetGroup[targetOrgName].units[normalisedUnit] = 0;
                 }
-                targetGroup[targetOrgName].units[unit] += parsedQuantity;
+                targetGroup[targetOrgName].units[normalisedUnit] += parsedQuantity;
 
                 targetTotals.total += parsedQuantity;
-                if (!targetTotals.units[unit]) {
-                    targetTotals.units[unit] = 0;
+                if (!targetTotals.units[normalisedUnit]) {
+                    targetTotals.units[normalisedUnit] = 0;
                 }
-                targetTotals.units[unit] += parsedQuantity;
+                targetTotals.units[normalisedUnit] += parsedQuantity;
             });
         }
     });
@@ -971,12 +974,13 @@ function processAggregatedMode(aggregatedData, mode, period, latestDate) {
                 if (!shouldIncludeDate(date, period, latestDate)) return;
 
                 const parsedQuantity = parseFloat(quantity) || 0;
+                const normalisedUnit = normaliseDDDUnit(unit);
                 totals.total += parsedQuantity;
 
-                if (!totals.units[unit]) {
-                    totals.units[unit] = 0;
+                if (!totals.units[normalisedUnit]) {
+                    totals.units[normalisedUnit] = 0;
                 }
-                totals.units[unit] += parsedQuantity;
+                totals.units[normalisedUnit] += parsedQuantity;
             });
         });
 
@@ -1053,12 +1057,13 @@ function processItemForGroup(groupedData, groupKey, item) {
 
     item.data?.forEach(([date, quantity, unit]) => {
         const parsedQuantity = parseFloat(quantity) || 0;
+        const normalisedUnit = normaliseDDDUnit(unit);
         groupedData[groupKey].total += parsedQuantity;
 
-        if (!groupedData[groupKey].units[unit]) {
-            groupedData[groupKey].units[unit] = 0;
+        if (!groupedData[groupKey].units[normalisedUnit]) {
+            groupedData[groupKey].units[normalisedUnit] = 0;
         }
-        groupedData[groupKey].units[unit] += parsedQuantity;
+        groupedData[groupKey].units[normalisedUnit] += parsedQuantity;
     });
 }
 

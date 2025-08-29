@@ -3,6 +3,7 @@
     import { slide } from 'svelte/transition';
     import { resultsStore } from '../../../stores/resultsStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
+    import { normaliseDDDUnit } from '../../../utils/utils';
 
     export let vmps = [];
     
@@ -32,7 +33,8 @@
 
     // Warning 1: Multiple different units across products
     $: uniqueUnits = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => vmp.unit))];
-    $: showMultipleUnitsWarning = uniqueUnits.length > 1;
+    $: uniqueNormalisedUnits = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => normaliseDDDUnit(vmp.unit)))];
+    $: showMultipleUnitsWarning = uniqueNormalisedUnits.length > 1;
 
     // Warning 2: Multiple different ingredients across products
     $: allIngredients = vmps.flatMap(vmp => vmp.ingredients || []);
