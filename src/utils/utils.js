@@ -73,3 +73,15 @@ export function formatStrength(value) {
     // If more than 5 decimal places, round to 5 decimal places
     return num.toFixed(5);
 }
+
+export function normaliseDDDUnit(unit) {
+    if (!unit || typeof unit !== 'string') {
+        return unit;
+    }
+    
+    if (unit.startsWith('DDD (') && unit.endsWith(')')) {
+        return 'DDD';
+    }
+
+    return unit;
+}
