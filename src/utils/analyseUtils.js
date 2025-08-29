@@ -441,11 +441,14 @@ export class ViewModeCalculator {
     calculateAvailableModes() {
         const modes = [];
         
-        modes.push({ value: 'organisation', label: 'NHS Trust' });
-        
-        modes.push(...this.getAggregationModes());
-        
-        modes.push(...this.getProductModes());
+        // Only add modes if there are VMPs with valid data
+        if (this.vmps && this.vmps.length > 0) {
+            modes.push({ value: 'organisation', label: 'NHS Trust' });
+            
+            modes.push(...this.getAggregationModes());
+            
+            modes.push(...this.getProductModes());
+        }
         
         return modes;
     }

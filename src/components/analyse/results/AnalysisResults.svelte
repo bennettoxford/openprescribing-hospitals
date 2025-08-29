@@ -259,11 +259,13 @@
                 quantityType: data.quantityType || $analyseOptions.quantityType
             }));
 
+            const vmpsWithValidData = vmps.filter(vmp => vmp.unit !== 'nan');
+
             viewModeCalculator = new ViewModeCalculator(
                 $resultsStore,
                 $analyseOptions,
                 $organisationSearchStore,
-                vmps
+                vmpsWithValidData
             );
 
             viewModes = viewModeCalculator.calculateAvailableModes();
@@ -274,6 +276,8 @@
                 const defaultMode = selectDefaultMode(viewModes, hasSelectedOrganisations);
                 
                 modeSelectorStore.setSelectedMode(defaultMode);
+            } else {
+                modeSelectorStore.setSelectedMode(null);
             }
         } catch (error) {
             console.error("Error processing data:", error);

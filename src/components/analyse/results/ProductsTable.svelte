@@ -127,6 +127,7 @@
 
     $: missingVMPs = vmps.filter(vmp => vmp.unit === 'nan').map(vmp => vmp.vmp);
     $: hasMissingVMPs = missingVMPs.length > 0;
+    $: allVMPsMissing = vmps.length > 0 && missingVMPs.length === vmps.length;
 
 
     $: hasWarnings = (showMultipleUnitsWarning || showMultipleIngredientsWarning || showProductAggregationWarning);
@@ -221,8 +222,11 @@
         <div class="mt-4 p-3 bg-red-100 border border-red-200 rounded-lg text-red-700 text-sm">
             Products shaded in red have no quantity data and will be excluded from the analysis.
             <a href="/faq#missing-quantities" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
-                Find out why in the FAQs
+                Find out why in the FAQs.
             </a>
+            {#if allVMPsMissing}
+                Try changing the quantity type selected in the advanced options of the analysis builder, but pay attention to any additional warning messages indicating the appropriateness of the comparison.
+            {/if}
         </div>
     {/if}
 
