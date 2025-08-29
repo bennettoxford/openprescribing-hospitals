@@ -155,9 +155,21 @@
 
         let yAxisLabel;
         if (processor.uniqueUnits.length === 1) {
-            yAxisLabel = pluralize(processor.uniqueUnits[0]);
+            const unit = processor.uniqueUnits[0];
+
+            if (unit && unit.startsWith('DDD (')) {
+                yAxisLabel = 'DDDs';
+            } else {
+                yAxisLabel = pluralize(unit);
+            }
         } else if (processor.uniqueUnits.length > 1) {
-            yAxisLabel = combinedUnits;
+
+            const allDDD = processor.uniqueUnits.every(unit => unit && unit.startsWith('DDD ('));
+            if (allDDD) {
+                yAxisLabel = 'DDDs';
+            } else {
+                yAxisLabel = combinedUnits;
+            }
         } else {
             yAxisLabel = 'units';
         }
