@@ -315,13 +315,23 @@
                   </svg>
                 </button>
                 <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
-                            group-hover:scale-100 w-[250px] -translate-x-[85%] left-1/2 top-5 rounded-md shadow-lg bg-white  
-                            ring-1 ring-black ring-opacity-5 p-4">
-                  <p class="text-sm text-gray-500">
-                    Select up to 10 NHS Trusts to see their individual usage.
-                    See <a href="/faq/#which-nhs-trusts-are-included" class="underline font-semibold" target="_blank">the FAQs</a> for more details 
-                    on which trusts are included.
-                  </p>
+                  group-hover:scale-100 w-[300px] -translate-x-[85%] left-1/2 top-5 rounded-md shadow-lg bg-white  
+                  ring-1 ring-black ring-opacity-5 p-4">
+                  <div class="text-sm text-gray-500 space-y-3">
+                    <div class="space-y-1 text-xs">
+                      <p>Select up to 10 NHS Trusts.</p>
+                      <ul>
+                        <li><strong>No trusts selected:</strong> Shows national data with regional/ICB breakdowns available</li>
+                        <li><strong>Trusts selected:</strong> Filters analysis results to the selected trusts</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <p class="text-xs">
+                        See <a href="/faq/#how-do-i-see-icb-regional-and-national-breakdowns" class="underline font-semibold" target="_blank">the FAQs</a> for more details
+                        of how trust selection affects analysis modes and <a href="/faq/#which-nhs-trusts-are-included" class="underline font-semibold" target="_blank">which trusts are included</a>.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

@@ -10,6 +10,14 @@ Quantity is the total amount of a medicine that has been issued as reported in t
 
 There is no quantity reported when a Trust has not issued a product.
 
+### How do I see ICB, regional, and national breakdowns?
+
+To view ICB, regional, and national analysis breakdowns, as well as national trust-level variation as a percentiles chart, run an analysis **without selecting any NHS Trusts** in the analysis builder. These geographic breakdown modes are only available when analysing data across all trusts.
+
+### How do I restrict an analysis to a specific set of NHS Trusts?
+
+To restrict an analysis to a specific set of NHS Trusts, select the NHS Trusts you want to include in the analysis builder. This will filter the analysis to show only data from your selected trusts.
+
 ### What is SCMD quantity?
 
 SCMD quantity is a normalised version of the raw [quantity](/faq/#what-does-quantity-mean) available in the SCMD. This quantity measure is available for all products reported in the SCMD. You can read more about how it is calculated in our blog post, [Measuring quantity in the Secondary Care Medicines Data](https://www.bennett.ox.ac.uk/blog/2025/05/measuring-quantity-in-the-secondary-care-medicines-data/). For examples of reported SCMD quantities, search for a product on the [Product Lookup page](https://hospitals.openprescribing.net/product-lookup/).

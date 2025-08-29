@@ -255,8 +255,13 @@ export class ChartDataProcessor {
 
     processProductMode() {
         const productData = {};
+        const selectedOrganisations = this.options.selectedOrganisations || [];
         
-        this.rawData.forEach(item => {
+        const dataToUse = selectedOrganisations.length > 0 ? 
+            this.rawData.filter(item => selectedOrganisations.includes(item.organisation__ods_name)) : 
+            this.rawData;
+        
+        dataToUse.forEach(item => {
             if (item.vmp__code && item.data) {
                 const productKey = item.vmp__code;
                 const productName = item.vmp__name;
@@ -277,8 +282,13 @@ export class ChartDataProcessor {
 
     processProductGroupMode() {
         const vtmGroups = {};
+        const selectedOrganisations = this.options.selectedOrganisations || [];
         
-        this.rawData.forEach(item => {
+        const dataToUse = selectedOrganisations.length > 0 ? 
+            this.rawData.filter(item => selectedOrganisations.includes(item.organisation__ods_name)) : 
+            this.rawData;
+        
+        dataToUse.forEach(item => {
             if (item.vmp__vtm__name && item.data) {
                 const vtm = item.vmp__vtm__name || item.vtm__name || 'Unknown';
                 
@@ -298,8 +308,13 @@ export class ChartDataProcessor {
 
     processUnitMode() {
         const unitData = {};
+        const selectedOrganisations = this.options.selectedOrganisations || [];
         
-        this.rawData.forEach(item => {
+        const dataToUse = selectedOrganisations.length > 0 ? 
+            this.rawData.filter(item => selectedOrganisations.includes(item.organisation__ods_name)) : 
+            this.rawData;
+        
+        dataToUse.forEach(item => {
             if (item.data) {
                 item.data.forEach(([date, value, unit]) => {
                     if (!unit) return;
@@ -326,8 +341,13 @@ export class ChartDataProcessor {
 
     processIngredientMode() {
         const ingredientData = {};
+        const selectedOrganisations = this.options.selectedOrganisations || [];
+
+        const dataToUse = selectedOrganisations.length > 0 ? 
+            this.rawData.filter(item => selectedOrganisations.includes(item.organisation__ods_name)) : 
+            this.rawData;
         
-        this.rawData.forEach(item => {
+        dataToUse.forEach(item => {
             if (item.ingredient_names && item.data) {
                 const ingredients = item.ingredient_names || ['Unknown'];
                 ingredients.forEach(ingredient => {
@@ -458,6 +478,11 @@ export class ViewModeCalculator {
 
     getAggregationModes() {
         const modes = [];
+        
+        // Only show aggregation modes if no trusts are selected
+        if (this.hasSelectedOrganisations()) {
+            return modes;
+        }
         
         if (!this.resultsStore.aggregatedData) return modes;
         
@@ -734,7 +759,7 @@ export function processTableDataByMode(data, mode, period, aggregatedData, lates
         return processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, predecessorMap, expandedTrusts);
     }
 
-    return processRawDataMode(data, mode, period, latestDate);
+    return processRawDataMode(data, mode, period, latestDate, selectedOrganisations);
 }
 
 function processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, predecessorMap, expandedTrusts) {
@@ -998,7 +1023,7 @@ function processAggregatedMode(aggregatedData, mode, period, latestDate) {
     return results.sort((a, b) => b.total - a.total);
 }
 
-function processRawDataMode(data, mode, period, latestDate) {
+function processRawDataMode(data, mode, period, latestDate, selectedOrganisations = []) {
     if (!data?.length) return [];
 
     const filteredData = data.map(item => ({
@@ -1007,9 +1032,13 @@ function processRawDataMode(data, mode, period, latestDate) {
             shouldIncludeDate(date, period, latestDate)) : []
     }));
 
+    const dataToProcess = selectedOrganisations.length > 0 
+        ? filteredData.filter(item => selectedOrganisations.includes(item.organisation__ods_name))
+        : filteredData;
+
     const groupedData = {};
 
-    filteredData.forEach(item => {
+    dataToProcess.forEach(item => {
         const groupKey = getGroupKey(item, mode);
         
         if (Array.isArray(groupKey)) {
@@ -1082,55 +1111,64 @@ export function getModeDisplayName(mode) {
 }
 
 export function getChartExplainerText(mode, options = {}) {
-    const { 
-        hasSelectedOrganisations = false, 
-        currentModeHasData = true,
-        vmpsCount = 0
-    } = options;
+    const { hasSelectedOrganisations = false, currentModeHasData = true, vmpsCount = 0 } = options;
 
     const baseExplainers = {
         'organisation': () => {
             if (hasSelectedOrganisations) {
                 if (currentModeHasData) {
-                    return "This chart shows the quantity of the selected products issued over time for the selected NHS Trusts. Each colored line represents one trust's issuing pattern for the selected products.";
+                    return "This chart shows individual NHS Trust quantities over time for your selected trusts. Each line represents one trust, allowing you to compare their usage patterns.";
                 } else {
-                    return "The selected NHS Trusts have no data for these products and quantity type. Try selecting different trusts or changing the quantity type.";
+                    return "This chart would show individual NHS Trust quantities, but the selected trusts have no data for these products.";
                 }
             } else {
-                return "This chart would show individual NHS Trust quantities over time. Select specific trusts from the search panel to see their usage patterns.";
+                return "This chart shows individual NHS Trust quantities over time. Each line represents one trust, allowing you to compare usage patterns across different trusts.";
             }
         },
 
-        'region': () => {
-            return "This chart shows total quantities aggregated by NHS region over time. Each line represents the combined usage across all trusts within that region.";
+        'icb': () => {
+            return "This chart shows quantities grouped by integrated care board (ICB) over time. Each line represents one ICB, combining data from all trusts within that area.";
         },
 
-        'icb': () => {
-            return "This chart shows total quantities aggregated by Integrated Care Board (ICB) over time. Each line represents the combined usage across all trusts within that ICB.";
+        'region': () => {
+            return "This chart shows quantities grouped by NHS region over time. Each line represents one region, combining data from all trusts within that area.";
         },
 
         'national': () => {
-            return "This chart shows the total national quantities over time, representing the combined usage across all NHS Trusts in England.";
+            return "This chart shows the total national quantities over time, combining data from all NHS Trusts in England.";
         },
 
         'product': () => {
+            const trustContext = hasSelectedOrganisations ? 
+                "across the selected NHS Trusts" : 
+                "across all NHS Trusts";
+            
             if (vmpsCount > 1) {
-                return "This chart compares quantities between different products over time. Each line represents one product, showing its total usage across all NHS Trusts.";
+                return `This chart compares quantities between different products over time. Each line represents one product, showing its total usage ${trustContext}.`;
             } else {
-                return "This chart shows quantities for the selected product over time across all NHS Trusts.";
+                return `This chart shows quantities for the selected product over time ${trustContext}.`;
             }
         },
 
         'productGroup': () => {
-            return "This chart shows quantities grouped by product category (VTM - Virtual Therapeutic Moiety) over time. Each line represents a therapeutic group, combining all related products.";
+            const trustContext = hasSelectedOrganisations ? 
+                "within the selected NHS Trusts" : 
+                "across all NHS Trusts";
+            return `This chart shows quantities grouped by product category (VTM - Virtual Therapeutic Moiety) over time ${trustContext}. Each line represents a therapeutic group, combining all related products.`;
         },
 
         'ingredient': () => {
-            return "This chart shows quantities grouped by active ingredient over time. Each line represents one ingredient, combining all products containing that ingredient.";
+            const trustContext = hasSelectedOrganisations ? 
+                "within the selected NHS Trusts" : 
+                "across all NHS Trusts";
+            return `This chart shows quantities grouped by active ingredient over time ${trustContext}. Each line represents one ingredient, combining all products containing that ingredient.`;
         },
 
         'unit': () => {
-            return "This chart shows quantities grouped by unit of measurement over time. Each line represents one unit type (e.g., tablets, bottles, ampoules).";
+            const trustContext = hasSelectedOrganisations ? 
+                "within the selected NHS Trusts" : 
+                "across all NHS Trusts";
+            return `This chart shows quantities grouped by unit of measurement over time ${trustContext}. Each line represents one unit type (e.g., tablets, bottles, ampoules).`;
         }
     };
 
@@ -1140,6 +1178,102 @@ export function getChartExplainerText(mode, options = {}) {
     }
 
     return "This chart shows the selected data over time.";
+}
+
+export function getTableExplainerText(mode, options = {}) {
+    const { 
+        hasSelectedTrusts = false, 
+        selectedTrustsCount = 0,
+        selectedPeriod = 'all',
+        latestMonth = '',
+        latestYear = '',
+        dateRange = ''
+    } = options;
+
+    function getPeriodText() {
+        switch (selectedPeriod) {
+            case 'all':
+                return dateRange ? `across the period ${dateRange}` : 'across the entire period';
+            case 'latest_month':
+                return latestMonth ? `for ${latestMonth}` : 'for the latest month';
+            case 'latest_year':
+                return latestYear ? `for ${latestYear}` : 'for the latest year';
+            case 'current_fy':
+                if (latestMonth) {
+                    const latestDate = new Date(latestMonth);
+                    const fyStartYear = latestDate.getMonth() >= 3 ? 
+                        latestDate.getFullYear() : 
+                        latestDate.getFullYear() - 1;
+                    return `for the current financial year to date (April ${fyStartYear} - ${latestMonth})`;
+                }
+                return 'for the current financial year to date';
+            default:
+                return 'across the entire period';
+        }
+    }
+
+    const periodText = getPeriodText();
+
+    const baseExplainers = {
+        'organisation': () => {
+            if (hasSelectedTrusts) {
+                return `This table shows the total quantities of the selected products issued by NHS trust ${periodText}. Data is grouped into "Selected trusts" (${selectedTrustsCount} trusts) and "All other trusts", allowing you to compare your selected NHS trusts against others.`;
+            } else {
+                return `This table shows the total quantities of the selected products issued by NHS trust ${periodText} for all trusts in England.`;
+            }
+        },
+
+        'region': () => {
+            return `This table shows the total quantities of the selected products issued in all NHS trusts in England by NHS region ${periodText}.`;
+        },
+
+        'icb': () => {
+            return `This table shows the total quantities of the selected products issued in all NHS trusts in England by integrated care board (ICB) ${periodText}.`;
+        },
+
+        'national': () => {
+            return `This table shows the total national quantity of the selected products issued in all NHS trusts in England ${periodText}.`;
+        },
+
+        'product': () => {
+            if (hasSelectedTrusts) {
+                return `This table shows the total quantities of each of the selected products issued ${periodText}, filtered to only include data from your ${selectedTrustsCount} selected NHS trusts.`;
+            } else {
+                return `This table shows the total quantities of each of the selected products issued ${periodText}, in all NHS trusts in England.`;
+            }
+        },
+
+        'productGroup': () => {
+            if (hasSelectedTrusts) {
+                return `This table shows the total quantities of the selected products issued by product group ${periodText}, filtered to only include data from your ${selectedTrustsCount} selected NHS trusts.`;
+            } else {
+                return `This table shows the total quantities of the selected products issued by product group ${periodText} for all NHS trusts in England.`;
+            }
+        },
+
+        'ingredient': () => {
+            if (hasSelectedTrusts) {
+                return `This table shows total quantities by active ingredient ${periodText}, filtered to only include data from your ${selectedTrustsCount} selected trusts.`;
+            } else {
+                return `This table shows total quantities by active ingredient ${periodText} for all trusts in England.`;
+            }
+        },
+
+        'unit': () => {
+            if (hasSelectedTrusts) {
+                return `This table shows total quantities by unit of measurement ${periodText}, filtered to only include data from your ${selectedTrustsCount} selected trusts.`;
+            } else {
+                return `This table shows total quantities by unit of measurement ${periodText} for all trusts in England.`;
+            }
+        }
+    };
+
+    const explainerFunc = baseExplainers[mode];
+    if (explainerFunc) {
+        return explainerFunc();
+    }
+
+    return `This table shows the total quantities of the selected products issued ${periodText}.`;
 }
 
 export function calculatePercentiles(data, predecessorMap = new Map(), allTrusts = []) {
