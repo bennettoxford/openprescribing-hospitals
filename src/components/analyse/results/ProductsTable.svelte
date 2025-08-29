@@ -27,15 +27,24 @@
         }
     }
 
-    $: hasIngredients = vmps.some(vmp => vmp.ingredients);
     
     $: selectedCount = Object.values(checkedVMPs).filter(Boolean).length;
 
+    // Warning 1: Multiple different units across products
     $: uniqueUnits = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => vmp.unit))];
-    $: showUnitWarning = uniqueUnits.length > 1;
+    $: showMultipleUnitsWarning = uniqueUnits.length > 1;
 
-    $: uniqueUnitIngredientPairs = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => `${vmp.unit}-${vmp.ingredient || ''}`))]
-    $: showUnitIngredientWarning = quantityType === 'Ingredient' && hasIngredients && uniqueUnitIngredientPairs.length > 1;
+    // Warning 2: Multiple different ingredients across products
+    $: allIngredients = vmps.flatMap(vmp => vmp.ingredients || []);
+    $: uniqueIngredients = [...new Set(allIngredients.filter(ingredient => ingredient && ingredient.trim()))];
+    $: showMultipleIngredientsWarning = uniqueIngredients.length > 1;
+    
+    // Warning 3: Multiple products selected when quantity type is "SCMD Quantity" or "Unit Dose Quantity"
+    // Only shown if the other warnings are not shown
+    $: showProductAggregationWarning = (quantityType === 'SCMD Quantity' || quantityType === 'Unit Dose Quantity') && 
+        selectedCount > 1 && 
+        !showMultipleUnitsWarning && 
+        !showMultipleIngredientsWarning;
 
     let sortColumn = 'vmp';
     let sortDirection = 1;
@@ -118,9 +127,8 @@
     $: missingVMPs = vmps.filter(vmp => vmp.unit === 'nan').map(vmp => vmp.vmp);
     $: hasMissingVMPs = missingVMPs.length > 0;
 
-    $: hasMultipleIngredients = vmps.some(vmp => vmp.ingredients && vmp.ingredients.length > 1);
-    
-    $: hasWarnings = isAdvancedMode && (showUnitWarning || showUnitIngredientWarning || hasMultipleIngredients);
+
+    $: hasWarnings = (showMultipleUnitsWarning || showMultipleIngredientsWarning || showProductAggregationWarning);
 
     let showWarnings = false;
 </script>
@@ -236,24 +244,19 @@
             {#if showWarnings}
                 <div transition:slide class="p-4 bg-yellow-50 border border-yellow-200 rounded-b-lg">
                     <ul class="list-disc list-inside space-y-2">
-                        {#if showUnitWarning}
+                        {#if showMultipleUnitsWarning}
                             <li class="text-yellow-700">
-                                This list contains multiple units. Please review carefully.
+                                This analysis contains products with multiple different units ({uniqueUnits.join(', ')}). Please review carefully to ensure meaningful comparisons.
                             </li>
                         {/if}
-                        {#if showUnitIngredientWarning}
+                        {#if showMultipleIngredientsWarning}
                             <li class="text-yellow-700">
-                                This list contains multiple unit-ingredient combinations. Please review carefully.
+                                This analysis contains products with different active ingredients ({uniqueIngredients.map(ingredient => ingredient.toLowerCase()).join(', ')}). Please review carefully to ensure meaningful comparisons.
                             </li>
                         {/if}
-                        {#if hasMultipleIngredients}
+                        {#if showProductAggregationWarning}
                             <li class="text-yellow-700">
-                                Some products have multiple ingredients. When viewing by ingredient, quantities will be split equally between each ingredient for these products:
-                                <ul class="list-disc list-inside ml-4 mt-1">
-                                    {#each vmps.filter(vmp => vmp.ingredients && vmp.ingredients.length > 1) as vmp}
-                                        <li>{vmp.vmp}: {vmp.ingredients.join(', ')}</li>
-                                    {/each}
-                                </ul>
+                                Aggregation of the quantities for these products may not be appropriate, even if the units of measure and ingredients are the same.
                             </li>
                         {/if}
                     </ul>
