@@ -459,6 +459,11 @@ export class ViewModeCalculator {
     getAggregationModes() {
         const modes = [];
         
+        // Only show aggregation modes if no trusts are selected
+        if (this.hasSelectedOrganisations()) {
+            return modes;
+        }
+        
         if (!this.resultsStore.aggregatedData) return modes;
         
         const { regions = {}, icbs = {}, national = {} } = this.resultsStore.aggregatedData;
