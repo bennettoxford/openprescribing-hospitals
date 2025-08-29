@@ -10,7 +10,6 @@
     const dispatch = createEventDispatcher();
 
     export let type = "product";
-    export let isAdvancedMode = false;
 
     let searchTerm = '';
     let filteredItems = [];
@@ -133,48 +132,40 @@
 
     function handleSelect(item) {
         const itemWithType = `${item.code}|${item.type}`;
-        if (!isAdvancedMode) {
-            if (selectedItems.includes(itemWithType)) {
-                selectedItems = [];
-                selectedItemsData = {};
-            } else {
-                selectedItems = [itemWithType];
+       
+        if (item.type === 'vtm') {
+            if (!selectedItems.includes(itemWithType)) {
+                const vmpCodes = item.vmps.map(vmp => `${vmp.code}|vmp`);
+                selectedItems = selectedItems.filter(i => !vmpCodes.includes(i));
+                selectedItems = [...selectedItems, itemWithType];
                 selectedItemsData[itemWithType] = item;
+            } else {
+                selectedItems = selectedItems.filter(i => i !== itemWithType);
+                delete selectedItemsData[itemWithType];
+            }
+        } else if (item.type === 'atc' || item.type === 'ingredient') {
+            if (!selectedItems.includes(itemWithType)) {
+                selectedItems = [...selectedItems, itemWithType];
+                selectedItemsData[itemWithType] = item;
+            } else {
+                selectedItems = selectedItems.filter(i => i !== itemWithType);
+                delete selectedItemsData[itemWithType];
             }
         } else {
-            if (item.type === 'vtm') {
-                if (!selectedItems.includes(itemWithType)) {
-                    const vmpCodes = item.vmps.map(vmp => `${vmp.code}|vmp`);
-                    selectedItems = selectedItems.filter(i => !vmpCodes.includes(i));
-                    selectedItems = [...selectedItems, itemWithType];
-                    selectedItemsData[itemWithType] = item;
-                } else {
-                    selectedItems = selectedItems.filter(i => i !== itemWithType);
-                    delete selectedItemsData[itemWithType];
-                }
-            } else if (item.type === 'atc' || item.type === 'ingredient') {
+            const parentVtm = filteredItems.find(vtm => 
+                vtm.type === 'vtm' && vtm.vmps?.some(vmp => vmp.code === item.code)
+            );
+            if (!parentVtm || !selectedItems.includes(`${parentVtm.code}|vtm`)) {
                 if (!selectedItems.includes(itemWithType)) {
                     selectedItems = [...selectedItems, itemWithType];
                     selectedItemsData[itemWithType] = item;
                 } else {
                     selectedItems = selectedItems.filter(i => i !== itemWithType);
                     delete selectedItemsData[itemWithType];
-                }
-            } else {
-                const parentVtm = filteredItems.find(vtm => 
-                    vtm.type === 'vtm' && vtm.vmps?.some(vmp => vmp.code === item.code)
-                );
-                if (!parentVtm || !selectedItems.includes(`${parentVtm.code}|vtm`)) {
-                    if (!selectedItems.includes(itemWithType)) {
-                        selectedItems = [...selectedItems, itemWithType];
-                        selectedItemsData[itemWithType] = item;
-                    } else {
-                        selectedItems = selectedItems.filter(i => i !== itemWithType);
-                        delete selectedItemsData[itemWithType];
-                    }
                 }
             }
         }
+        
         
         dispatch('selectionChange', { items: selectedItems });
         fetchVmpCount();
@@ -267,13 +258,13 @@
     class="w-full search-box relative"
     bind:this={searchBoxRef}
 >
-    {#if isAdvancedMode}
-        <div class="flex space-x-2 mb-2 pointer-events-auto">
-            <button class="px-2 py-1 rounded {type === 'product' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('product')}>Product</button>
-            <button class="px-2 py-1 rounded {type === 'ingredient' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('ingredient')}>Ingredient</button>
-            <button class="px-2 py-1 rounded {type === 'atc' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('atc')}>ATC</button>
-        </div>
-    {/if}
+
+    <div class="flex space-x-2 mb-2 pointer-events-auto">
+        <button class="px-2 py-1 rounded {type === 'product' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('product')}>Product</button>
+        <button class="px-2 py-1 rounded {type === 'ingredient' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('ingredient')}>Ingredient</button>
+        <button class="px-2 py-1 rounded {type === 'atc' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('atc')}>ATC Code</button>
+    </div>
+
     <div class="grid gap-4">
         <div class="relative pointer-events-auto">
             <div class="relative">
@@ -330,11 +321,11 @@
                                     <div 
                                         class="pt-2 pb-1 px-3 flex items-center justify-between relative transition-colors duration-150 ease-in-out"
                                         class:bg-oxford-50={selectedItems.includes(`${item.code}|vtm`)}
-                                        class:cursor-pointer={isAdvancedMode}
-                                        class:cursor-not-allowed={!isAdvancedMode}
-                                        class:opacity-60={!isAdvancedMode}
-                                        class:hover:bg-gray-50={isAdvancedMode}
-                                        on:click={() => isAdvancedMode ? handleSelect(item) : null}
+                                        class:cursor-pointer={true}
+                                        class:cursor-not-allowed={false}
+                                        class:opacity-60={false}
+                                        class:hover:bg-gray-50={true}
+                                        on:click={() => handleSelect(item)}
                                     >
                                         <div class="flex-1">
                                             <div class="flex items-center gap-2">
@@ -357,11 +348,6 @@
                                                 <span class="font-medium text-sm">{item.name}</span>
                                             </div>
                                             <div class="flex items-center gap-2 mt-0.5">
-                                                {#if isAdvancedMode}
-                                                    <span class="text-xs text-gray-500">
-                                                        Code: {item.code}
-                                                    </span>
-                                                {/if}
                                                 {#if item.vmps?.length}
                                                     <span class="text-xs text-gray-500">
                                                         {item.vmps.length} product{item.vmps.length !== 1 ? 's' : ''}
@@ -386,13 +372,6 @@
                                                 >
                                                     <div>
                                                         <span class="text-sm">{vmp.name}</span>
-                                                        <div class="mt-0.5">
-                                                            {#if isAdvancedMode}
-                                                                <span class="text-xs text-gray-500">
-                                                                    Code: {vmp.code}
-                                                                </span>
-                                                            {/if}
-                                                        </div>
                                                     </div>
                                                     {#if selectedItems.includes(`${vmp.code}|vmp`) && !selectedItems.includes(`${item.code}|vtm`)}
                                                         <span class="text-xs font-medium text-oxford-600 ml-2">Selected</span>
@@ -405,13 +384,9 @@
                             {:else if item.type === 'atc'}
                                 <li class="group">
                                     <div 
-                                        class="pt-2 pb-1 px-3 flex items-center justify-between relative transition-colors duration-150 ease-in-out"
+                                        class="pt-2 pb-1 px-3 flex items-center justify-between relative transition-colors duration-150 ease-in-out cursor-pointer hover:bg-gray-50"
                                         class:bg-oxford-50={selectedItems.includes(`${item.code}|atc`)}
-                                        class:cursor-pointer={isAdvancedMode}
-                                        class:cursor-not-allowed={!isAdvancedMode}
-                                        class:opacity-60={!isAdvancedMode}
-                                        class:hover:bg-gray-50={isAdvancedMode}
-                                        on:click={() => isAdvancedMode ? handleSelect(item) : null}
+                                        on:click={() => handleSelect(item)}
                                     >
                                         <div class="flex-1">
                                             <div class="flex flex-col">
@@ -482,11 +457,7 @@
                                             <span class="text-xs text-gray-400">(No products)</span>
                                         {/if}
                                         <div class="flex items-center gap-2 mt-0.5">
-                                            {#if isAdvancedMode}
-                                                <span class="text-xs text-gray-500">
-                                                    Code: {item.code}
-                                                </span>
-                                            {/if}
+                                            
                                             {#if item.vmp_count !== undefined}
                                                 <span class="text-xs text-gray-500">
                                                     {item.vmp_count} product{item.vmp_count !== 1 ? 's' : ''}
@@ -542,12 +513,8 @@
                                               data?.display_name || 
                                               item).replace(/\([^)]*\)/g, '').trim()}
                                         </span>
-                                        {#if isAdvancedMode}
-                                        <span class="text-xs text-gray-500 mt-1">
-                                            Code: {code}
-                                        </span>
-                                        {/if}
-                                        {#if (type === 'vtm' || type === 'ingredient' || type === 'atc') && isAdvancedMode && data?.vmps?.length > 0}
+                                       
+                                        {#if (type === 'vtm' || type === 'ingredient' || type === 'atc') && data?.vmps?.length > 0}
                                             <button 
                                                 on:click={() => toggleVTMExpand(item)}
                                                 class="flex items-center gap-1.5 mt-2 text-sm text-gray-500 hover:text-gray-700 transition-colors duration-150"
@@ -567,7 +534,6 @@
                                         {/if}
                                     </div>
                                     <div class="flex flex-col items-center gap-2">
-                                        {#if isAdvancedMode}
                                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
                                                 {type === 'ingredient' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 
                                                  type === 'atc' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
@@ -576,7 +542,6 @@
                                                  type === 'atc' ? 'ATC' : 
                                                  'Product'}
                                             </span>
-                                        {/if}
                                         <button 
                                             on:click={() => handleRemove(item)}
                                             class="px-2 py-1 text-xs font-medium text-white bg-red-600 
@@ -602,7 +567,6 @@
                         </li>
                     {/each}
                 </ul>
-                {#if isAdvancedMode}
                     <p class="mt-3 text-sm text-gray-600">
                         {#if isCalculating}
                             <span class="flex items-center gap-2">
@@ -622,7 +586,6 @@
                             {/if}
                         {/if}
                     </p>
-                {/if}
             </div>
         {/if}
     </div>

@@ -500,7 +500,7 @@ export class ViewModeCalculator {
             modes.push({ value: 'national', label: 'National' });
         }
 
-        if (this.resultsStore.isAdvancedMode && this.resultsStore.analysisData) {
+        if (this.resultsStore.analysisData) {
             const mappedICBs = new Set(
                 this.resultsStore.analysisData.map(item => {
                     const orgName = item.organisation__ods_name;

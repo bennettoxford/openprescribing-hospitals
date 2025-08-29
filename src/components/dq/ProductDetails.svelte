@@ -34,7 +34,6 @@
     analyseOptions.update(options => ({
       ...options,
       selectedVMPs: [],
-      isAdvancedMode: true,
       searchType: 'product'
     }));
   });
@@ -214,7 +213,6 @@
     <div class="relative">
       <ProductSearch 
         on:selectionChange={handleSelectionChange} 
-        isAdvancedMode={true} 
         type="product"
         bind:this={searchRef}
       />

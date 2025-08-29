@@ -285,12 +285,11 @@ def vmp_count(request):
 def get_quantity_data(request):
     search_items = request.data.get("names", None)
     ods_names = request.data.get("ods_names", None)
-    quantity_type = request.data.get("quantity_type", None)
     
-    if not all([search_items, quantity_type]) or quantity_type == '--':
+    if not all([search_items]):
         return Response({"error": "Missing required parameters"}, status=400)
 
-
+    quantity_type = "SCMD Quantity"
     vmp_ids = set()
     query = Q()
     for item in search_items:

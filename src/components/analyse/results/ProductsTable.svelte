@@ -12,7 +12,6 @@
     let checkedVMPs = {};
 
     $: quantityType = $resultsStore.quantityType;
-    $: isAdvancedMode = $analyseOptions.isAdvancedMode;
 
     onMount(() => {
         initializeCheckedVMPs();
@@ -155,23 +154,21 @@
                 <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
                     <thead class="bg-gray-200 text-gray-600 text-sm leading-normal sticky top-0 z-10">
                         <tr>
-                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('vmp')}>
-                                Product {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('vmp')}</span>{/if}
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={true} on:click={() => sortBy('vmp')}>
+                                Product <span class="text-gray-400">{getSortIndicator('vmp')}</span>
                             </th>
-                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('vtm')}>
-                                Product Group {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('vtm')}</span>{/if}
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={true} on:click={() => sortBy('vtm')}>
+                                Product Group <span class="text-gray-400">{getSortIndicator('vtm')}</span>
                             </th>
-                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('ingredients')}>
-                                Ingredient {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('ingredients')}</span>{/if}
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={true} on:click={() => sortBy('ingredients')}>
+                                Ingredient <span class="text-gray-400">{getSortIndicator('ingredients')}</span>
                             </th>
-                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('unit')}>
-                                Unit {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('unit')}</span>{/if}
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={true} on:click={() => sortBy('unit')}>
+                                Unit <span class="text-gray-400">{getSortIndicator('unit')}</span>
                             </th>
-                            {#if isAdvancedMode}
                             <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('selected')}>
                                 Select <span class="text-gray-400">{getSortIndicator('selected')}</span>
                             </th>
-                            {/if}
                         </tr>
                     </thead>
                     <tbody class="text-gray-600 text-sm">
@@ -190,7 +187,7 @@
                                     {/if}
                                 </td>
                                 <td class="py-3 px-6 text-left">{vmp.unit === 'nan' ? '-' : vmp.unit}</td>
-                                {#if isAdvancedMode}
+                                
                                 <td class="py-3 px-6 text-left">
                                     <div class="relative inline-block group">
                                         <input 
@@ -212,7 +209,6 @@
                                         {/if}
                                     </div>
                                 </td>
-                                {/if}
                             </tr>
                         {/each}
                     </tbody>
