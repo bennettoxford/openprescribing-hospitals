@@ -54,7 +54,7 @@
     });
 
     const csrftoken = getCookie('csrftoken');
-    const quantityOptions = ['--', 'VMP Quantity', 'Ingredient Quantity', 'Daily Defined Doses'];
+    const quantityOptions = ['--', 'SCMD Quantity', 'Unit Dose Quantity', 'Ingredient Quantity', 'Defined Daily Dose Quantity'];
 
     async function runAnalysis() {
         if (isAnalysisRunning) return;
@@ -67,7 +67,7 @@
         }
 
         if (!isAdvancedMode) {
-            quantityType = "VMP Quantity";
+            quantityType = "SCMD Quantity";
         } else if (quantityType === '--') {
             errorMessage = "Please select a quantity type before running the analysis.";
             return;
@@ -206,7 +206,7 @@
         
         analyseOptions.setAdvancedMode(!$analyseOptions.isAdvancedMode);
         const currentOrgSelections = $organisationSearchStore.selectedItems;
-        resetSelections($analyseOptions.isAdvancedMode ? '--' : 'VMP Quantity');
+        resetSelections($analyseOptions.isAdvancedMode ? '--' : 'SCMD Quantity');
         if (currentOrgSelections && currentOrgSelections.length > 0) {
             organisationSearchStore.updateSelection(currentOrgSelections);
         }
@@ -214,7 +214,7 @@
     }
 
     function handleClearAnalysis() {
-        resetSelections(isAdvancedMode ? '--' : 'VMP Quantity');
+        resetSelections(isAdvancedMode ? '--' : 'SCMD Quantity');
         dispatch('analysisClear');
     }
 </script>
