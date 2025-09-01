@@ -1164,7 +1164,7 @@ export function getChartExplainerText(mode, options = {}) {
             const trustContext = hasSelectedOrganisations ? 
                 "within the selected NHS Trusts" : 
                 "across all NHS Trusts";
-            return `This chart shows quantities grouped by active ingredient over time ${trustContext}. Each line represents one ingredient, combining all products containing that ingredient.`;
+            return `This chart shows quantities grouped by active ingredient over time ${trustContext}. Each line represents one ingredient, combining the amount of that ingredient in the selected products.`;
         },
 
         'unit': () => {
