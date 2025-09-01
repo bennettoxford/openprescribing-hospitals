@@ -196,6 +196,10 @@ export class ChartDataProcessor {
     processAggregatedMode(category) {
         const categoryData = {};
         const sourceData = this.aggregatedData[category] || {};
+        
+        const selectedProductCodes = this.rawData && this.rawData.length > 0 
+            ? new Set(this.rawData.map(item => item.vmp__code).filter(Boolean))
+            : null;
 
         Object.entries(sourceData).forEach(([name, info]) => {
             if (info?.products) {
@@ -203,7 +207,11 @@ export class ChartDataProcessor {
                     data: new Array(this.allDates.length).fill(0)
                 };
                 
-                Object.values(info.products).forEach(product => {
+                Object.entries(info.products).forEach(([productKey, product]) => {
+                    if (selectedProductCodes && !selectedProductCodes.has(productKey)) {
+                        return;
+                    }
+                    
                     if (product?.data) {
                         Object.entries(product.data).forEach(([date, { quantity }]) => {
                             const dateIndex = this.allDates.indexOf(date);
@@ -228,8 +236,16 @@ export class ChartDataProcessor {
     processNationalMode() {
         const nationalData = new Array(this.allDates.length).fill(0);
         
+        const selectedProductCodes = this.rawData && this.rawData.length > 0 
+            ? new Set(this.rawData.map(item => item.vmp__code).filter(Boolean))
+            : null;
+        
         const nationalProducts = this.aggregatedData.national?.National?.products || {};
-        Object.values(nationalProducts).forEach(product => {
+        Object.entries(nationalProducts).forEach(([productKey, product]) => {
+            if (selectedProductCodes && !selectedProductCodes.has(productKey)) {
+                return;
+            }
+            
             if (product?.data) {
                 Object.entries(product.data).forEach(([date, { quantity }]) => {
                     const dateIndex = this.allDates.indexOf(date);
@@ -755,7 +771,10 @@ export function processTableDataByMode(data, mode, period, aggregatedData, lates
     if (!data?.length && !aggregatedData) return [];
 
     if (['region', 'icb', 'national'].includes(mode) && aggregatedData) {
-        return processAggregatedMode(aggregatedData, mode, period, latestDate);
+        const selectedProductCodes = data && data.length > 0 
+            ? new Set(data.map(item => item.vmp__code).filter(Boolean))
+            : null;
+        return processAggregatedMode(aggregatedData, mode, period, latestDate, selectedProductCodes);
     }
 
     if (mode === 'organisation') {
@@ -980,7 +999,7 @@ function processOrganisationModeWithAggregation(data, period, latestDate, select
     return results;
 }
 
-function processAggregatedMode(aggregatedData, mode, period, latestDate) {
+function processAggregatedMode(aggregatedData, mode, period, latestDate, selectedProductCodes = null) {
     const categoryMap = {
         'region': 'regions',
         'icb': 'icbs', 
@@ -995,7 +1014,11 @@ function processAggregatedMode(aggregatedData, mode, period, latestDate) {
 
         const totals = { total: 0, units: {} };
 
-        Object.values(info.products).forEach(product => {
+        Object.entries(info.products).forEach(([productKey, product]) => {
+            if (selectedProductCodes && !selectedProductCodes.has(productKey)) {
+                return;
+            }
+            
             if (!product?.data) return;
 
             Object.entries(product.data).forEach(([date, { quantity, unit }]) => {
