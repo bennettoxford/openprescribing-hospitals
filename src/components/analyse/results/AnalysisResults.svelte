@@ -340,17 +340,8 @@
 
     $: if ($modeSelectorStore.selectedMode && selectedData.length > 0) {
         
-        let dataToProcess;
-        
-        if ($modeSelectorStore.selectedMode === 'organisation' || 
-            $modeSelectorStore.selectedMode === 'product' || $modeSelectorStore.selectedMode === 'productGroup' ||
-            $modeSelectorStore.selectedMode === 'unit' || $modeSelectorStore.selectedMode === 'ingredient') {
-            
-            dataToProcess = $resultsStore.filteredData && $resultsStore.filteredData.length > 0 ? 
-                $resultsStore.filteredData : selectedData;
-        } else {
-            dataToProcess = null;
-        }
+        const dataToProcess = $resultsStore.filteredData && $resultsStore.filteredData.length > 0 ? 
+            $resultsStore.filteredData : selectedData;
         
         processChartData(dataToProcess);
     }
