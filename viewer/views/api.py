@@ -24,11 +24,22 @@ def search_products(request):
     search_term = request.GET.get('term', '').lower()
     
     if search_type == 'product':
-        # First get matching VMPs (both with and without VTMs)
-        matching_vmps = VMP.objects.filter(
+        # Get VMPs that start with search term (prioritised)
+        priority_vmps = VMP.objects.filter(
+            Q(name__istartswith=search_term) | 
+            Q(code__istartswith=search_term)
+        ).select_related('vtm').order_by('name')
+        
+        # Get VMPs that contain search term but don't start with it
+        remaining_vmps = VMP.objects.filter(
             Q(name__icontains=search_term) | 
             Q(code__icontains=search_term)
-        ).select_related('vtm')
+        ).exclude(
+            Q(name__istartswith=search_term) | 
+            Q(code__istartswith=search_term)
+        ).select_related('vtm').order_by('name')
+
+        matching_vmps = list(priority_vmps) + list(remaining_vmps)
 
         # Organize VMPs by VTM
         vmp_by_vtm = {}
@@ -47,10 +58,20 @@ def search_products(request):
                 standalone_vmps.append(vmp)
 
         # Get additional VTMs that match the search term
-        additional_vtms = VTM.objects.filter(
+        priority_vtms = VTM.objects.filter(
+            Q(name__istartswith=search_term) | 
+            Q(vtm__istartswith=search_term)
+        ).exclude(vtm__in=vmp_by_vtm.keys()).order_by('name')
+        
+        remaining_vtms = VTM.objects.filter(
             Q(name__icontains=search_term) | 
             Q(vtm__icontains=search_term)
-        ).exclude(vtm__in=vmp_by_vtm.keys())
+        ).exclude(
+            Q(name__istartswith=search_term) | 
+            Q(vtm__istartswith=search_term)
+        ).exclude(vtm__in=vmp_by_vtm.keys()).order_by('name')
+        
+        additional_vtms = list(priority_vtms) + list(remaining_vtms)
 
         # Build results
         results = []
@@ -89,7 +110,6 @@ def search_products(request):
                 } for vmp in vmps]
             })
 
-        # Add standalone VMPs
         results.extend([{
             'code': vmp.code,
             'name': vmp.name,
@@ -97,17 +117,38 @@ def search_products(request):
             'display_name': f"{vmp.name} ({vmp.code})"
         } for vmp in standalone_vmps])
 
+        def sort_key(item):
+            name = item['name'].lower()
+            starts_with_term = name.startswith(search_term)
+            return (not starts_with_term, name)
+        
+        results.sort(key=sort_key)
+
         return JsonResponse({'results': results})
     
     elif search_type == 'ingredient':
-        ingredients = Ingredient.objects.filter(
+
+        priority_ingredients = Ingredient.objects.filter(
+            Q(name__istartswith=search_term) | 
+            Q(code__istartswith=search_term)
+        ).distinct().order_by('name')
+        
+        remaining_ingredients = Ingredient.objects.filter(
             Q(name__icontains=search_term) | 
             Q(code__icontains=search_term)
-        ).distinct().order_by('name')[:50]
+        ).exclude(
+            Q(name__istartswith=search_term) | 
+            Q(code__istartswith=search_term)
+        ).distinct().order_by('name')
+        
+        all_ingredients = (list(priority_ingredients) + 
+                          list(remaining_ingredients))[:50]
         
         results = []
-        for ingredient in ingredients:
-            vmp_count = VMP.objects.filter(ingredients__code=ingredient.code).count()
+        for ingredient in all_ingredients:
+            vmp_count = VMP.objects.filter(
+                ingredients__code=ingredient.code
+            ).count()
             
             results.append({
                 'code': ingredient.code,
@@ -119,10 +160,21 @@ def search_products(request):
         return JsonResponse({'results': results})
     
     elif search_type == 'atc':
-        matching_atcs = ATC.objects.filter(
+        priority_atcs = ATC.objects.filter(
+            Q(name__istartswith=search_term) | 
+            Q(code__istartswith=search_term)
+        ).order_by('name')
+        
+        remaining_atcs = ATC.objects.filter(
             Q(name__icontains=search_term) | 
             Q(code__icontains=search_term)
-        ).order_by('code')[:50]
+        ).exclude(
+            Q(name__istartswith=search_term) | 
+            Q(code__istartswith=search_term)
+        ).order_by('name')
+
+        all_atcs = (list(priority_atcs) + 
+                   list(remaining_atcs))[:50]
         
         results = []
         
@@ -154,7 +206,7 @@ def search_products(request):
                 parent_codes.append(code[:5])
             return parent_codes
         
-        for atc in matching_atcs:
+        for atc in all_atcs:
             code_len = len(atc.code)
             if code_len == 1:
                 level = 1
@@ -182,7 +234,9 @@ def search_products(request):
             parent_codes = get_parent_path(atc.code)
             parent_path = []
             if parent_codes:
-                parent_atcs = ATC.objects.filter(code__in=parent_codes).order_by('code')
+                parent_atcs = ATC.objects.filter(
+                    code__in=parent_codes
+                ).order_by('code')
                 for parent in parent_atcs:
                     if parent.code != atc.code:
                         parent_hierarchy = build_hierarchy_path(parent)
@@ -190,7 +244,8 @@ def search_products(request):
                             parent_path.append({
                                 'code': parent.code,
                                 'name': parent_hierarchy[-1],
-                                'level': len(parent.code) if len(parent.code) <= 5 else 5
+                                'level': (len(parent.code) 
+                                         if len(parent.code) <= 5 else 5)
                             })
             
             results.append({
