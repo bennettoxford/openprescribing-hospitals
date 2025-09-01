@@ -221,10 +221,15 @@
 
     {#if hasMissingVMPs}
         <div class="mt-4 p-3 bg-red-100 border border-red-200 rounded-lg text-red-700 text-sm">
-            Products shaded in red have no quantity data and will be excluded from the analysis.
-            <a href="/faq/#why-is-there-no-quantity-for-some-products" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
-                Find out why in the FAQs.
+            The chosen quantity type ({quantityType || 'Unknown'}) could not be calculated for the products shaded in red and are excluded from the analysis.
+            <a href="/faq/#how-is-the-quantity-type-used-for-an-analysis-chosen" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
+                See how quantity types are chosen
             </a>
+            and
+            <a href="/faq/#why-is-there-no-quantity-for-some-products" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
+                find out why there's no quantity for some products
+            </a>
+            in the FAQs.
             {#if allVMPsMissing}
                 Try changing the quantity type selected in the advanced options of the analysis builder, but pay attention to any additional warning messages indicating the appropriateness of the comparison.
             {/if}
