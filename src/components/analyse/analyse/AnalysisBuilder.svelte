@@ -358,7 +358,7 @@
               {#if showAdvancedOptions}
                 <div class="space-y-4">
                   <div class="space-y-3">
-                    <h3 class="text-base sm:text-lg font-semibold text-oxford">Quantity Type</h3>
+                    <h3 class="text-base sm:text-lg font-semibold text-oxford">Quantity Type (optional)</h3>
                     <p class="text-sm text-oxford">
                       There are different ways to <a href="/faq/#what-does-quantity-mean" class="underline font-semibold" target="_blank">measure the quantity of medicines issued</a>. The most appropriate quantity for the selected products is automatically selected (<a href="/faq/#how-is-the-quantity-type-used-for-an-analysis-chosen" class="underline font-semibold" target="_blank">see how in the FAQs</a>). If you would like to select an alternative quantity type, you can do so below.
                     </p>
