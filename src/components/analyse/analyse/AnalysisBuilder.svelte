@@ -340,91 +340,92 @@
             </div>
           </div>
 
-          <!-- Advanced Options -->
-          <div class="grid gap-4">
-            <button
-              type="button"
-              on:click={toggleAdvancedOptions}
-              class="text-left text-sm font-medium text-oxford underline transition-colors duration-200"
-            >
-              {showAdvancedOptions ? 'Hide advanced options' : 'Show advanced options'}
-            </button>
-
-            {#if showAdvancedOptions}
-              <div class="space-y-4">
-                <div class="space-y-3">
-                  <h4 class="text-sm font-medium text-oxford">Quantity Type</h4>
-                  <p class="text-xs text-gray-600">
-                    There are different ways to <a href="/faq/#what-does-quantity-mean" class="underline font-semibold" target="_blank">measure the quantity of medicines issued</a>. The most appropriate quantity for the selected products is automatically selected (<a href="/faq/#how-is-the-quantity-type-used-for-an-analysis-chosen" class="underline font-semibold" target="_blank">see how in the FAQs</a>). If you would like to select an alternative quantity type, you can do so below.
-                  </p>
-                  <div class="space-y-2">
-                      <div class="quantity-dropdown-container relative">
-                          <button
-                              type="button"
-                              on:click={toggleQuantityDropdown}
-                              disabled={selectedVMPs.length === 0 || isSelectingQuantityTypes}
-                              class="w-full flex items-center justify-between p-2 border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500 text-sm
-                                     disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed
-                                     {isQuantityDropdownOpen ? 'rounded-t-md border-b-0' : 'rounded-md hover:border-gray-400'}"
-                          >
-                              <div class="flex items-center space-x-2">
-                                  {#if selectedQuantityType}
-                                      <span class="text-gray-900">{selectedQuantityType}</span>
-                                  {:else}
-                                      <span class="text-gray-500">
-                                          {isSelectingQuantityTypes ? 'Selecting...' : 'Choose quantity type...'}
-                                      </span>
-                                  {/if}
-                              </div>
-                              
-                              <svg class="w-4 h-4 text-gray-400 transition-transform duration-200 {isQuantityDropdownOpen ? 'rotate-180' : ''}" 
-                                   fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                              </svg>
-                          </button>
-
-                          {#if isQuantityDropdownOpen}
-                              <div class="w-full bg-white border border-gray-300 border-t-0 rounded-b-md shadow-lg divide-y divide-gray-200">
-                                  {#each availableQuantityTypes as quantityType}
-                                      {@const isRecommended = recommendedQuantityTypes.includes(quantityType)}
-                                      {@const isSelected = selectedQuantityType === quantityType}
-                                      
-                                      <button
-                                          type="button"
-                                          on:click={() => selectQuantityTypeFromDropdown(quantityType)}
-                                          class="w-full p-2 text-left transition duration-150 ease-in-out hover:bg-gray-50 focus:bg-gray-50 focus:outline-none
-                                                 {isSelected ? 'bg-oxford-100 text-oxford-500' : 'text-gray-900'}"
-                                      >
-                                          <div class="flex items-center justify-between">
-                                              <div class="flex items-center gap-2">
-                                                  <span class="text-sm">{quantityType}</span>
-                                              </div>
-                                              
-                                              {#if isRecommended}
-                                                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                                                      Recommended
-                                                  </span>
-                                              {/if}
-                                          </div>
-                                      </button>
-                                  {/each}
-                              </div>
-                          {/if}
-                      </div>
-                      
-                      {#if selectedVMPs.length === 0}
-                          <p class="text-xs text-gray-500">Select products first to enable quantity type selection</p>
-                      {/if}
-                  </div>
-                </div>
-              </div>
-            {/if}
-          </div>
         </div>
 
         <!-- Analysis Controls -->
         <div class="mt-2 pt-4 border-t border-gray-200">
           <div class="flex flex-col gap-4">
+            <!-- Advanced Options -->
+            <div class="grid gap-4">
+              <button
+                type="button"
+                on:click={toggleAdvancedOptions}
+                class="text-left text-sm font-medium text-oxford underline transition-colors duration-200"
+              >
+                {showAdvancedOptions ? 'Hide advanced options' : 'Show advanced options'}
+              </button>
+
+              {#if showAdvancedOptions}
+                <div class="space-y-4">
+                  <div class="space-y-3">
+                    <h4 class="text-sm font-medium text-oxford">Quantity Type</h4>
+                    <p class="text-xs text-gray-600">
+                      There are different ways to <a href="/faq/#what-does-quantity-mean" class="underline font-semibold" target="_blank">measure the quantity of medicines issued</a>. The most appropriate quantity for the selected products is automatically selected (<a href="/faq/#how-is-the-quantity-type-used-for-an-analysis-chosen" class="underline font-semibold" target="_blank">see how in the FAQs</a>). If you would like to select an alternative quantity type, you can do so below.
+                    </p>
+                    <div class="space-y-2">
+                        <div class="quantity-dropdown-container relative">
+                            <button
+                                type="button"
+                                on:click={toggleQuantityDropdown}
+                                disabled={selectedVMPs.length === 0 || isSelectingQuantityTypes}
+                                class="w-full flex items-center justify-between p-2 border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500 text-sm
+                                       disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed
+                                       {isQuantityDropdownOpen ? 'rounded-t-md border-b-0' : 'rounded-md hover:border-gray-400'}"
+                            >
+                                <div class="flex items-center space-x-2">
+                                    {#if selectedQuantityType}
+                                        <span class="text-gray-900">{selectedQuantityType}</span>
+                                    {:else}
+                                        <span class="text-gray-500">
+                                            {isSelectingQuantityTypes ? 'Selecting...' : 'Choose quantity type...'}
+                                        </span>
+                                    {/if}
+                                </div>
+                                
+                                <svg class="w-4 h-4 text-gray-400 transition-transform duration-200 {isQuantityDropdownOpen ? 'rotate-180' : ''}" 
+                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            {#if isQuantityDropdownOpen}
+                                <div class="w-full bg-white border border-gray-300 border-t-0 rounded-b-md shadow-lg divide-y divide-gray-200">
+                                    {#each availableQuantityTypes as quantityType}
+                                        {@const isRecommended = recommendedQuantityTypes.includes(quantityType)}
+                                        {@const isSelected = selectedQuantityType === quantityType}
+                                        
+                                        <button
+                                            type="button"
+                                            on:click={() => selectQuantityTypeFromDropdown(quantityType)}
+                                            class="w-full p-2 text-left transition duration-150 ease-in-out hover:bg-gray-50 focus:bg-gray-50 focus:outline-none
+                                                   {isSelected ? 'bg-oxford-100 text-oxford-500' : 'text-gray-900'}"
+                                        >
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-sm">{quantityType}</span>
+                                                </div>
+                                                
+                                                {#if isRecommended}
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                                        Recommended
+                                                    </span>
+                                                {/if}
+                                            </div>
+                                        </button>
+                                    {/each}
+                                </div>
+                            {/if}
+                        </div>
+                        
+                        {#if selectedVMPs.length === 0}
+                            <p class="text-xs text-gray-500">Select products first to enable quantity type selection</p>
+                        {/if}
+                    </div>
+                  </div>
+                </div>
+              {/if}
+            </div>
+
             <!-- Error Message -->
             {#if errorMessage}
               <div class="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
