@@ -517,7 +517,7 @@
                                             This chart shows percentile ranges across all NHS Trusts with data. The selected trusts have no data for these products, but percentile bands show the distribution across all trusts with data.
                                         {/if}
                                     {:else}
-                                        This chart shows percentile ranges across all NHS Trusts with data for the selected products. The bands represent the distribution of quantities across trusts.
+                                        This chart shows percentile ranges across all NHS Trusts with data for the selected products. The bands represent the variation in quantities across trusts.
                                     {/if}
                                     {#if $resultsStore.trustCount > 0}
                                         Trusts are only included if they have issued any of the selected products during the time period. For the selected products above, this is <strong>{$resultsStore.trustCount}/{$organisationSearchStore.items.length} trusts</strong>
