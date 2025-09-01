@@ -12,7 +12,6 @@
     let checkedVMPs = {};
 
     $: quantityType = $resultsStore.quantityType;
-    $: isAdvancedMode = $analyseOptions.isAdvancedMode;
 
     onMount(() => {
         initializeCheckedVMPs();
@@ -31,16 +30,17 @@
     
     $: selectedCount = Object.values(checkedVMPs).filter(Boolean).length;
 
-    // Warning 1: Multiple different units across products
-    $: uniqueUnits = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => vmp.unit))];
-    $: uniqueNormalisedUnits = [...new Set(vmps.filter(vmp => vmp.unit !== 'nan').map(vmp => normaliseDDDUnit(vmp.unit)))];
+    // Warning 1: Multiple different units across selected products
+    $: selectedVMPs = vmps.filter(vmp => checkedVMPs[vmp.vmp] && vmp.unit !== 'nan');
+    $: uniqueUnits = [...new Set(selectedVMPs.map(vmp => vmp.unit))];
+    $: uniqueNormalisedUnits = [...new Set(selectedVMPs.map(vmp => normaliseDDDUnit(vmp.unit)))];
     $: showMultipleUnitsWarning = uniqueNormalisedUnits.length > 1;
 
-    // Warning 2: Multiple different ingredients across products
-    $: allIngredients = vmps.flatMap(vmp => vmp.ingredients || []);
-    $: uniqueIngredients = [...new Set(allIngredients.filter(ingredient => ingredient && ingredient.trim()))];
+    // Warning 2: Multiple different ingredients across selected products
+    $: selectedIngredients = selectedVMPs.flatMap(vmp => vmp.ingredients || []);
+    $: uniqueIngredients = [...new Set(selectedIngredients.filter(ingredient => ingredient && ingredient.trim()))];
     $: showMultipleIngredientsWarning = uniqueIngredients.length > 1;
-    
+
     // Warning 3: Multiple products selected when quantity type is "SCMD Quantity" or "Unit Dose Quantity"
     // Only shown if the other warnings are not shown
     $: showProductAggregationWarning = (quantityType === 'SCMD Quantity' || quantityType === 'Unit Dose Quantity') && 
@@ -128,6 +128,7 @@
 
     $: missingVMPs = vmps.filter(vmp => vmp.unit === 'nan').map(vmp => vmp.vmp);
     $: hasMissingVMPs = missingVMPs.length > 0;
+    $: allVMPsMissing = vmps.length > 0 && missingVMPs.length === vmps.length;
 
 
     $: hasWarnings = (showMultipleUnitsWarning || showMultipleIngredientsWarning || showProductAggregationWarning);
@@ -155,23 +156,21 @@
                 <table class="min-w-full bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
                     <thead class="bg-gray-200 text-gray-600 text-sm leading-normal sticky top-0 z-10">
                         <tr>
-                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('vmp')}>
-                                Product {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('vmp')}</span>{/if}
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={true} on:click={() => sortBy('vmp')}>
+                                Product <span class="text-gray-400">{getSortIndicator('vmp')}</span>
                             </th>
-                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('vtm')}>
-                                Product Group {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('vtm')}</span>{/if}
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={true} on:click={() => sortBy('vtm')}>
+                                Product Group <span class="text-gray-400">{getSortIndicator('vtm')}</span>
                             </th>
-                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('ingredients')}>
-                                Ingredient {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('ingredients')}</span>{/if}
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={true} on:click={() => sortBy('ingredients')}>
+                                Ingredient <span class="text-gray-400">{getSortIndicator('ingredients')}</span>
                             </th>
-                            <th class="py-3 px-6 text-left" class:cursor-pointer={isAdvancedMode} on:click={() => isAdvancedMode && sortBy('unit')}>
-                                Unit {#if isAdvancedMode}<span class="text-gray-400">{getSortIndicator('unit')}</span>{/if}
+                            <th class="py-3 px-6 text-left" class:cursor-pointer={true} on:click={() => sortBy('unit')}>
+                                Unit <span class="text-gray-400">{getSortIndicator('unit')}</span>
                             </th>
-                            {#if isAdvancedMode}
                             <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('selected')}>
                                 Select <span class="text-gray-400">{getSortIndicator('selected')}</span>
                             </th>
-                            {/if}
                         </tr>
                     </thead>
                     <tbody class="text-gray-600 text-sm">
@@ -190,7 +189,7 @@
                                     {/if}
                                 </td>
                                 <td class="py-3 px-6 text-left">{vmp.unit === 'nan' ? '-' : vmp.unit}</td>
-                                {#if isAdvancedMode}
+                                
                                 <td class="py-3 px-6 text-left">
                                     <div class="relative inline-block group">
                                         <input 
@@ -212,7 +211,6 @@
                                         {/if}
                                     </div>
                                 </td>
-                                {/if}
                             </tr>
                         {/each}
                     </tbody>
@@ -224,9 +222,12 @@
     {#if hasMissingVMPs}
         <div class="mt-4 p-3 bg-red-100 border border-red-200 rounded-lg text-red-700 text-sm">
             Products shaded in red have no quantity data and will be excluded from the analysis.
-            <a href="/faq#missing-quantities" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
-                Find out why in the FAQs
+            <a href="/faq/#why-is-there-no-quantity-for-some-products" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
+                Find out why in the FAQs.
             </a>
+            {#if allVMPsMissing}
+                Try changing the quantity type selected in the advanced options of the analysis builder, but pay attention to any additional warning messages indicating the appropriateness of the comparison.
+            {/if}
         </div>
     {/if}
 

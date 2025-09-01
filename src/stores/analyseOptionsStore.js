@@ -4,12 +4,11 @@ import { organisationSearchStore } from './organisationSearchStore';
 const createAnalyseOptionsStore = () => {
     const { subscribe, set, update } = writable({
         selectedVMPs: [],
-        quantityType: '--',
+        quantityType: null,
         searchType: 'vmp',
         vmpNames: [],
         vtmNames: [],
         ingredientNames: [],
-        isAdvancedMode: false,
         selectedOrganisations: []
     });
 
@@ -30,16 +29,16 @@ const createAnalyseOptionsStore = () => {
             organisationSearchStore.setAvailableItems(organisations);
             organisationSearchStore.setFilterType('trust');
         },
-        setAdvancedMode: (isAdvanced) => {
-            update(store => ({
-                ...store,
-                isAdvancedMode: isAdvanced
-            }));
-        },
         setSelectedOrganisations: (organisations) => {
             update(store => ({
                 ...store,
                 selectedOrganisations: organisations
+            }));
+        },
+        setQuantityType: (quantityType) => {
+            update(store => ({
+                ...store,
+                quantityType: quantityType
             }));
         }
     };

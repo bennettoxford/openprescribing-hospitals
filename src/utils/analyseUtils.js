@@ -441,11 +441,14 @@ export class ViewModeCalculator {
     calculateAvailableModes() {
         const modes = [];
         
-        modes.push({ value: 'organisation', label: 'NHS Trust' });
-        
-        modes.push(...this.getAggregationModes());
-        
-        modes.push(...this.getProductModes());
+        // Only add modes if there are VMPs with valid data
+        if (this.vmps && this.vmps.length > 0) {
+            modes.push({ value: 'organisation', label: 'NHS Trust' });
+            
+            modes.push(...this.getAggregationModes());
+            
+            modes.push(...this.getProductModes());
+        }
         
         return modes;
     }
@@ -500,7 +503,7 @@ export class ViewModeCalculator {
             modes.push({ value: 'national', label: 'National' });
         }
 
-        if (this.resultsStore.isAdvancedMode && this.resultsStore.analysisData) {
+        if (this.resultsStore.analysisData) {
             const mappedICBs = new Set(
                 this.resultsStore.analysisData.map(item => {
                     const orgName = item.organisation__ods_name;
@@ -1161,7 +1164,7 @@ export function getChartExplainerText(mode, options = {}) {
             const trustContext = hasSelectedOrganisations ? 
                 "within the selected NHS Trusts" : 
                 "across all NHS Trusts";
-            return `This chart shows quantities grouped by active ingredient over time ${trustContext}. Each line represents one ingredient, combining all products containing that ingredient.`;
+            return `This chart shows quantities grouped by active ingredient over time ${trustContext}. Each line represents one ingredient, combining the amount of that ingredient in the selected products.`;
         },
 
         'unit': () => {

@@ -17,7 +17,6 @@ export const resultsStore = writable({
         national: {}
     },
     visibleItems: new Set(),
-    isAdvancedMode: false,
     showPercentiles: true,
     percentiles: [],
     trustCount: 0,
@@ -63,7 +62,6 @@ export function updateResults(data, options = {}) {
         quantityType: options.quantityType || store.quantityType,
         searchType: options.searchType || store.searchType,
         dateRange: calculateDateRange(data),
-        isAdvancedMode: options.isAdvancedMode,
         selectedOrganisations: options.selectedOrganisations || [],
         showPercentiles: defaultShowPercentiles
     }));

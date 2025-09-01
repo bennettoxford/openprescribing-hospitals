@@ -15,7 +15,6 @@
   let isOrganisationDropdownOpen = false;
   let showResults = false;
   let analysisData = null;
-  let isAdvancedMode = false;
   let isAnalyseBoxCollapsed = false;
   let isLargeScreen = false;
   let isResultsBoxPopulated = false;
@@ -52,10 +51,6 @@
     showResults = false;
     analysisData = null;
     isAnalysisRunning.set(false);
-  }
-
-  function handleAdvancedModeChange(event) {
-    isAdvancedMode = event.detail;
   }
 
   function handleVMPSelection(event) {
@@ -104,18 +99,15 @@
                 <div class="flex-grow overflow-y-auto overflow-x-visible transition-all duration-300 ease-in-out"
                      class:max-h-0={isAnalyseBoxCollapsed && !isLargeScreen}
                      class:max-h-[1000px]={!isAnalyseBoxCollapsed || isLargeScreen}>
-                    <analysis-builder 
-                        {isAdvancedMode}
+                    <analysis-builder
                         {minDate}
                         {maxDate}
                         {orgData}
-                        {isAuthenticated}
                         on:analysisStart={handleAnalysisStart}
                         on:analysisComplete={handleAnalysisComplete}
                         on:analysisError={handleAnalysisError}
                         on:analysisClear={handleAnalysisClear}
                         on:organisationDropdownToggle={handleOrganisationDropdownToggle}
-                        on:advancedModeChange={handleAdvancedModeChange}
                         on:vmpSelection={handleVMPSelection}
                     ></analysis-builder>
                 </div>

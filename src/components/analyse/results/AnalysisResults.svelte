@@ -259,11 +259,13 @@
                 quantityType: data.quantityType || $analyseOptions.quantityType
             }));
 
+            const vmpsWithValidData = vmps.filter(vmp => vmp.unit !== 'nan');
+
             viewModeCalculator = new ViewModeCalculator(
                 $resultsStore,
                 $analyseOptions,
                 $organisationSearchStore,
-                vmps
+                vmpsWithValidData
             );
 
             viewModes = viewModeCalculator.calculateAvailableModes();
@@ -274,6 +276,8 @@
                 const defaultMode = selectDefaultMode(viewModes, hasSelectedOrganisations);
                 
                 modeSelectorStore.setSelectedMode(defaultMode);
+            } else {
+                modeSelectorStore.setSelectedMode(null);
             }
         } catch (error) {
             console.error("Error processing data:", error);
@@ -287,9 +291,41 @@
             selectedVMPs.some(vmp => vmp.vmp === item.vmp__name)
         );
 
-        const chartData = processChartData(
-            filteredData
+        // Recalculate available view modes based on selected VMPs
+        const filteredVMPs = vmps.filter(vmp => 
+            selectedVMPs.some(selectedVmp => selectedVmp.vmp === vmp.vmp)
         );
+
+        const vmpsWithValidData = filteredVMPs.filter(vmp => vmp.unit !== 'nan');
+
+        if (vmpsWithValidData.length > 0) {
+            viewModeCalculator = new ViewModeCalculator(
+                $resultsStore,
+                $analyseOptions,
+                $organisationSearchStore,
+                vmpsWithValidData
+            );
+
+            const newViewModes = viewModeCalculator.calculateAvailableModes();
+            viewModes = newViewModes;
+
+            // Check if current mode is still available, if not select new default
+            const currentModeStillAvailable = newViewModes.some(mode => 
+                mode.value === $modeSelectorStore.selectedMode
+            );
+
+            if (!currentModeStillAvailable && newViewModes.length > 0) {
+                const hasSelectedOrganisations = $analyseOptions.selectedOrganisations && 
+                                               $analyseOptions.selectedOrganisations.length > 0;
+                const newDefaultMode = selectDefaultMode(newViewModes, hasSelectedOrganisations);
+                modeSelectorStore.setSelectedMode(newDefaultMode);
+            }
+        } else {
+            viewModes = [];
+            modeSelectorStore.setSelectedMode(null);
+        }
+
+        const chartData = processChartData(filteredData);
 
         resultsChartStore.setData({
             ...chartData,
@@ -481,7 +517,7 @@
                                             This chart shows percentile ranges across all NHS Trusts with data. The selected trusts have no data for these products, but percentile bands show the distribution across all trusts with data.
                                         {/if}
                                     {:else}
-                                        This chart shows percentile ranges across all NHS Trusts with data for the selected products. The bands represent the distribution of quantities across trusts.
+                                        This chart shows percentile ranges across all NHS Trusts with data for the selected products. The bands represent the variation in quantities across trusts.
                                     {/if}
                                     {#if $resultsStore.trustCount > 0}
                                         Trusts are only included if they have issued any of the selected products during the time period. For the selected products above, this is <strong>{$resultsStore.trustCount}/{$organisationSearchStore.items.length} trusts</strong>
@@ -557,7 +593,7 @@
                                         <p class="text-oxford-600 text-xl font-medium mb-3">No data to display</p>
                                         <p class="text-oxford-400 text-base max-w-md">
                                             No data was returned for the selected view mode. 
-                                            <a href="/faq/#missing-quantities" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
+                                            <a href="/faq/#why-is-there-no-quantity-for-some-products" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
                                                 Learn more about why quantities might be missing
                                             </a>.
                                         </p>
@@ -599,7 +635,7 @@
                                     <p class="text-oxford-600 text-xl font-medium mb-3">No data to display</p>
                                     <p class="text-oxford-400 text-base max-w-md">
                                         No data was returned for the selected quantity type of the chosen products. 
-                                        <a href="/faq/#missing-quantities" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
+                                        <a href="/faq/#why-is-there-no-quantity-for-some-products" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
                                             Learn more about why quantities might be missing
                                         </a>.
                                     </p>
