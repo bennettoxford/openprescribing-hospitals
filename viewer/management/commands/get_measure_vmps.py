@@ -49,10 +49,8 @@ class Command(BaseCommand):
             )
             return
 
-        # Execute the measure's SQL file
         result = execute_measure_sql(measure_slug)
-        
-        # Skip if no SQL file found
+
         if result is None:
             self.stdout.write(
                 self.style.WARNING(f'No SQL file found for measure {measure_slug} - skipping')
@@ -60,43 +58,29 @@ class Command(BaseCommand):
             return
 
         with transaction.atomic():
-            # Clear existing MeasureVMP entries for this measure
             MeasureVMP.objects.filter(measure=measure).delete()
             
-            # Create new MeasureVMP instances
             measure_vmps = []
             for row in result:
                 vmp_id, vmp_type = row
                 try:
                     vmp = VMP.objects.get(id=vmp_id)
                     
-                    # Check for data based on measure's quantity_type
-                    has_data = False
-                    if measure.quantity_type == 'dose':
-                        has_data = Dose.objects.filter(vmp=vmp).exclude(data=[]).exists()
-                    elif measure.quantity_type == 'ingredient':
-                        has_data = IngredientQuantity.objects.filter(vmp=vmp).exclude(data=[]).exists()
-                    elif measure.quantity_type == 'ddd':
-                        has_data = DDDQuantity.objects.filter(vmp=vmp).exclude(data=[]).exists()
-                    elif measure.quantity_type == 'indicative_cost':
-                        has_data = IndicativeCost.objects.filter(vmp=vmp).exclude(data=[]).exists()
-                    elif measure.quantity_type == 'scmd':
-                        has_data = SCMDQuantity.objects.filter(vmp=vmp).exclude(data=[]).exists()
-                    if has_data:
-                        measure_vmps.append(
-                            MeasureVMP(
-                                measure=measure,
-                                vmp=vmp,
-                                type=vmp_type
-                            )
+                    measure_vmps.append(
+                        MeasureVMP(
+                            measure=measure,
+                            vmp=vmp,
+                            type=vmp_type
                         )
+                    )
                 except VMP.DoesNotExist:
                     self.stdout.write(
-                        self.style.WARNING(f'VMP with id {vmp_id} does not exist')
+                        self.style.WARNING(
+                            f'VMP with id {vmp_id} does not exist'
+                        )
                     )
                     continue
-            
-            # Bulk create all MeasureVMP instances
+
             if measure_vmps:
                 MeasureVMP.objects.bulk_create(measure_vmps)
                 self.stdout.write(
