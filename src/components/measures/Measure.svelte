@@ -62,7 +62,7 @@
             
             const allProducts = [...parsedDenominatorVmps, ...parsedNumeratorVmps];
             const units = allProducts
-                .map(product => pluralize(product.unit))
+                .map(product => product.unit ? pluralize(product.unit) : null)
                 .filter(unit => unit && unit !== 'null' && unit !== 'undefined');
             
             return [...new Set(units)].sort();
