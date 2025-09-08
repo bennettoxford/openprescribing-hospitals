@@ -1,11 +1,11 @@
-name: Proportion of sodium-glucose co-transporter 2 (SGLT-2) inhibitors not prescribed as generic dapagliflozin tablets
-short_name: Generic SGLT-2 inhibitors
+name: Proportion of sodium-glucose co-transporter 2 (SGLT-2) inhibitors not prescribed as dapagliflozin tablets
+short_name: SGLT-2 inhibitors
 description: |
-  The proportion of sodium-glucose co-transporter 2 (SGLT-2) inhibitors (excluding combination products) not prescribed as generic dapagliflozin 
+  The proportion of sodium-glucose co-transporter 2 (SGLT-2) inhibitors (excluding combination products) not prescribed as dapagliflozin 
   tablets. Combination products are excluded as they do not have specified [Defined Daily Doses (DDDs)](/faq/#what-is-a-defined-daily-dose-ddd)
   and the quantity of SGLT-2 inhibitors issued as combinations is low.
 
-  There is an equivalent measure on [OpenPrescribing](https://openprescribing.net/measure/dapagliflozin/) for primary care.
+  There is a similar measure on [OpenPrescribing](https://openprescribing.net/measure/dapagliflozin/) for primary care, which reports the use of generic dapagliflozin. In OpenPrescribing Hospitals, [branded and generic products cannot be distinguished](https://www.bennett.ox.ac.uk/blog/2025/07/you-asked-can-we-monitor-the-usage-of-biosimilars-in-secondary-care-using-openprescribing-hospitals/). For this reason, we report dapagliflozin use as a proportion of all SGLT-2 inhibitor use.    
 why_it_matters: |
     Dapagliflozin is a sodium-glucose co-transporter 2 (SGLT-2) inhibitor commonly prescribed in type 2 diabetes, the 
     treatment of chronic heart failure, and chronic kidney disease.
@@ -21,8 +21,8 @@ how_is_it_calculated: >
 tags:
     - Low value prescribing
 quantity_type: ddd
-authored_by: John Doe
-checked_by: Jane Smith
+authored_by: Louis Fisher
+checked_by: Vicky Speed
 date_reviewed: 2025-08-20
 next_review: 2026-08-20
 first_published: 2025-08-20
