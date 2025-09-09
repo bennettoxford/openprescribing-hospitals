@@ -18,15 +18,15 @@ why_it_matters: |
 
     The average cost per item is **£488** (November 2024), which is an increase of **£223** since 2022.
 how_is_it_calculated: >
-    We display the indicative spend for co-proxamol tablets and oral suspension
+    We display the indicative spend for co-proxamol tablets and oral suspension. You can read more about indicative cost in our [FAQs](https://hospitals.openprescribing.net/faq/#what-is-indicative-cost)
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Low value prescribing
     - Safety
     - Value
-quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
+quantity_type: indicative_cost # Type of measurement (e.g. dose, ingredient, ddd)
 authored_by: Chris Wood # Name of original author
-checked_by: Richard Croker # Name of clinical/technical reviewer
-date_reviewed: 2025-03-11 # Date of last review (YYYY-MM-DD)
-next_review: 2026-03-11 # Date of next scheduled review (YYYY-MM-DD)
+checked_by: Victoria Speed # Name of clinical/technical reviewer
+date_reviewed: 2025-09-09 # Date of last review (YYYY-MM-DD)
+next_review: 2026-09-09 # Date of next scheduled review (YYYY-MM-DD)
 status: in_development
