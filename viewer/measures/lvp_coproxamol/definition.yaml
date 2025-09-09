@@ -25,6 +25,7 @@ tags:
 quantity_type: indicative_cost # Type of measurement (e.g. dose, ingredient, ddd)
 authored_by: Chris Wood # Name of original author
 checked_by: Victoria Speed # Name of clinical/technical reviewer
+first_published: 2025-09-09
 date_reviewed: 2025-09-09 # Date of last review (YYYY-MM-DD)
 next_review: 2026-09-09 # Date of next scheduled review (YYYY-MM-DD)
 status: in_development
