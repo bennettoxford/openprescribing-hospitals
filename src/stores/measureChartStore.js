@@ -26,16 +26,13 @@ export function getOrganisationColor(index) {
   return organisationColors[index % organisationColors.length];
 }
 
-const createDataArrayWithNulls = (data, allDates, field) => {
+const createDataArray = (data, allDates, field) => {
   if (!data || !Array.isArray(data)) {
-    return allDates.map(() => null);
+    return allDates.map(() => 0);
   }
 
   const dataMap = new Map(data.map(d => [d.month, d[field]]));
-  return allDates.map(date => {
-    const value = dataMap.get(date);
-    return value !== undefined ? value : null;
-  });
+  return allDates.map(date => dataMap.get(date) || 0);
 };
 
 export function getOrAssignColor(orgName, index = null) {
@@ -83,9 +80,9 @@ export const filteredData = derived(
             const trustData = $orgdata[trust]?.data || [];
             return {
               label: trust,
-              data: createDataArrayWithNulls(trustData, allDates, 'quantity'),
-              numerator: createDataArrayWithNulls(trustData, allDates, 'numerator'),
-              denominator: createDataArrayWithNulls(trustData, allDates, 'denominator'),
+              data: createDataArray(trustData, allDates, 'quantity'),
+              numerator: createDataArray(trustData, allDates, 'numerator'),
+              denominator: createDataArray(trustData, allDates, 'denominator'),
               color: getOrAssignColor(trust),
               spanGaps: true,
               hidden: false,
@@ -158,7 +155,7 @@ export const filteredData = derived(
         datasets = [
           {
             label: 'Median (50th percentile)',
-            data: labels.map(month => groupedPercentiles[month]?.[50] ?? null),
+            data: labels.map(month => groupedPercentiles[month]?.[50] || 0),
             color: '#DC3220',
             strokeWidth: 2,
             fill: false,
@@ -169,8 +166,8 @@ export const filteredData = derived(
           ...percentileRanges.map(({ range: [lower, upper], opacity }) => ({
             label: `${lower}th-${upper}th percentiles`,
             data: labels.map(month => ({
-              lower: groupedPercentiles[month]?.[lower] ?? null,
-              upper: groupedPercentiles[month]?.[upper] ?? null
+              lower: groupedPercentiles[month]?.[lower] || 0,
+              upper: groupedPercentiles[month]?.[upper] || 0
             })),
             color: '#005AB5',
             strokeWidth: 0,
@@ -189,9 +186,9 @@ export const filteredData = derived(
 
             return {
               label: org,
-              data: labels.map(date => orgDataPoints[date]?.quantity ?? null),
-              numerator: labels.map(date => orgDataPoints[date]?.numerator ?? null),
-              denominator: labels.map(date => orgDataPoints[date]?.denominator ?? null),
+              data: labels.map(date => orgDataPoints[date]?.quantity || 0),
+              numerator: labels.map(date => orgDataPoints[date]?.numerator || 0),
+              denominator: labels.map(date => orgDataPoints[date]?.denominator || 0),
               color: getOrAssignColor(org),
               strokeWidth: 2,
               isTrust: true,
@@ -217,15 +214,15 @@ export const filteredData = derived(
             label: 'National',
             data: labels.map(month => {
               const dataPoint = $nationaldata.data.find(d => d.month === month);
-              return dataPoint ? dataPoint.quantity : null;
+              return dataPoint ? dataPoint.quantity : 0;
             }),
             numerator: labels.map(month => {
               const dataPoint = $nationaldata.data.find(d => d.month === month);
-              return dataPoint ? dataPoint.numerator : null;
+              return dataPoint ? dataPoint.numerator : 0;
             }),
             denominator: labels.map(month => {
               const dataPoint = $nationaldata.data.find(d => d.month === month);
-              return dataPoint ? dataPoint.denominator : null;
+              return dataPoint ? dataPoint.denominator : 0;
             }),
             color: '#005AB5',
             strokeWidth: 3

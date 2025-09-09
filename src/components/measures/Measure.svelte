@@ -137,12 +137,10 @@
         chartData.datasets.forEach(dataset => {
             if (!dataset.hidden && dataset.data && Array.isArray(dataset.data)) {
                 dataset.data.forEach(value => {
-                    if (value !== null && value !== undefined) {
-                        if (typeof value === 'object' && value.upper !== undefined) {
-                            maxValue = Math.max(maxValue, value.upper);
-                        } else if (typeof value === 'number') {
-                            maxValue = Math.max(maxValue, value);
-                        }
+                    if (typeof value === 'object' && value.upper !== undefined) {
+                        maxValue = Math.max(maxValue, value.upper);
+                    } else if (typeof value === 'number') {
+                        maxValue = Math.max(maxValue, value);
                     }
                 });
             }
@@ -546,8 +544,8 @@
             
             if (hasdenominators === 'true') {
                 tooltipEntries.push(
-                    { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index], { addCommas: true }) },
-                    { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index], { addCommas: true }) }
+                    { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index] || 0, { addCommas: true }) },
+                    { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index] || 0, { addCommas: true }) }
                 );
             }
             
@@ -566,8 +564,8 @@
                 
                 if (hasdenominators === 'true') {
                     tooltipEntries.push(
-                        { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index], { addCommas: true }) },
-                        { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index], { addCommas: true }) }
+                        { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index] || 0, { addCommas: true }) },
+                        { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index] || 0, { addCommas: true }) }
                     );
                 }
                 
