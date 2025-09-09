@@ -12,6 +12,16 @@ You can read more about measures in our blog, [Introducing OpenPrescribing Hospi
 
 Percentile charts show the extent of variation in medication use at the level of individual trusts. You can read more about why we use them in our blogs, [communicating variation in prescribing](https://www.bennett.ox.ac.uk/blog/2019/04/communicating-variation-in-prescribing-why-we-use-deciles/) and [highlighting variation in hospitals medicines usage](https://www.bennett.ox.ac.uk/blog/2025/04/highlighting-variation-in-hospitals-medicines-usage).
 
+### What does a value of zero mean in a measure?
+
+When viewing measures, you may see trusts with a value of zero for certain months. This can happen for two main reasons:
+
+**1. No usage:** The trust did not issue the relevant products during that month.
+
+**2. No data submission:** The trust did not submit data for the relevant products to the SCMD for that month.
+
+We cannot distinguish between true zeroes and zeroes resulting from missing data submissions. You can see the submission history for an trust on the [Submission History](https://hospitals.openprescribing.net/submission-history/) page to get an idea of the completeness of the data for a specific trust.
+
 ### Why do some trusts have out of range values?
 
 Within the SCMD, it is possible for issued quantity to be negative (see [Why are there negative values for some products?](faq/#why-are-there-negative-values-for-some-products)). When calculting measures with both a numerator and denominator, values are expected to be between 0% and 100%. However, negative values can result in the numerator being greater than the denominator (so the measure value can be greater than 100%) or the denominator being negative (so the measure value can be less than 0%).

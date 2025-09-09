@@ -1,6 +1,8 @@
 import math
 import time
-from django.db.models import F
+from datetime import datetime, date
+from dateutil.relativedelta import relativedelta
+from django.db.models import F, Min, Max
 from django.db.models import Case, When, IntegerField, CharField
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -17,7 +19,8 @@ from viewer.models import (
     DDDQuantity,
     Organisation,
     IndicativeCost,
-    SCMDQuantity
+    SCMDQuantity,
+    DataStatus
 )
 
 
@@ -45,6 +48,25 @@ class Command(BaseCommand):
             self.stdout.write(f"Deleted existing precomputed data for measure: {measure.slug}")
 
         delete_existing_precomputed_data(measure)
+
+        date_range = DataStatus.objects.aggregate(
+            earliest=Min('year_month'),
+            latest=Max('year_month')
+        )
+        
+        if not date_range['earliest'] or not date_range['latest']:
+            self.stdout.write(
+                self.style.ERROR('No data status records found - cannot determine date range')
+            )
+            return
+            
+        all_months = []
+        current_date = date_range['earliest']
+        while current_date <= date_range['latest']:
+            all_months.append(current_date)
+            current_date += relativedelta(months=1)
+            
+        self.stdout.write(f"Processing data for {len(all_months)} months from {date_range['earliest']} to {date_range['latest']}")
 
         model_mapping = {
             'scmd': SCMDQuantity,
@@ -145,6 +167,14 @@ class Command(BaseCommand):
                 f"(no denominators)"
             )
 
+        org_monthly_data = defaultdict(
+            lambda: defaultdict(lambda: {'numerator': 0, 'denominator': 0})
+        )
+
+        for org_id in measure_orgs:
+            for month in all_months:
+                org_monthly_data[org_id][month] = {'numerator': 0, 'denominator': 0}
+
         numerator_records = subset.filter(vmp__in=numerator_vmps)
 
         if is_ratio_measure:
@@ -163,16 +193,19 @@ class Command(BaseCommand):
             .iterator(chunk_size=1000)
         )
 
-        org_monthly_data = defaultdict(
-            lambda: defaultdict(lambda: {'numerator': 0, 'denominator': 0})
-        )
-
         for record in numerator_data:
             org_id = record['normalised_org_id']
             for entry in record['data'] or []:
                 if len(entry) >= 2 and entry[1]:
                     month = entry[0]
-                    org_monthly_data[org_id][month]['numerator'] += float(entry[1])
+                    if isinstance(month, str):
+                        try:
+                            month = datetime.strptime(month, '%Y-%m-%d').date()
+                        except ValueError:
+                            continue
+
+                    if month in all_months:
+                        org_monthly_data[org_id][month]['numerator'] += float(entry[1])
         
         if is_ratio_measure and denominator_data:
             for record in denominator_data:
@@ -180,7 +213,14 @@ class Command(BaseCommand):
                 for entry in record['data'] or []:
                     if len(entry) >= 2 and entry[1]:
                         month = entry[0]
-                        org_monthly_data[org_id][month]['denominator'] += float(entry[1])
+                        if isinstance(month, str):
+                            try:
+                                month = datetime.strptime(month, '%Y-%m-%d').date()
+                            except ValueError:
+                                continue
+
+                        if month in all_months:
+                            org_monthly_data[org_id][month]['denominator'] += float(entry[1])
 
         precomputed_measures = []
         for org_id, monthly_data in org_monthly_data.items():
@@ -222,60 +262,65 @@ class Command(BaseCommand):
 
         precomputed_percentiles = []
         
-        all_months = set()
-        for org_data in org_monthly_data.values():
-            all_months.update(org_data.keys())
-        
-        for org_id in measure_orgs:
-            if org_id not in org_monthly_data:
-                org_monthly_data[org_id] = {}
-            
-            # Add missing months with zero values
-            for month in all_months:
-                if month not in org_monthly_data[org_id]:
-                    org_monthly_data[org_id][month] = {
-                        "numerator": 0,
-                        "denominator": 0,
-                        "value": 0
-                    }
+        for org_id, monthly_data in org_monthly_data.items():
+            for month, data in monthly_data.items():
+                if is_ratio_measure:
+                    data["value"] = (data["numerator"] / data["denominator"] * 100) if data["denominator"] else 0
                 else:
-                    data = org_monthly_data[org_id][month]
-                    if is_ratio_measure:
-                        data["value"] = (data["numerator"] / data["denominator"] * 100) if data["denominator"] else 0
-                    else:
-                        data["value"] = data["numerator"]
+                    data["value"] = data["numerator"]
+        
+        self.stdout.write(f"Total organisations in monthly data: {len(org_monthly_data)} (normalised - predecessors merged into successors)")
+        
+        actual_org_count = len(set(
+            record['organisation_id'] 
+            for record in subset.values('organisation_id').distinct()
+        ))
+        self.stdout.write(f"Actual organisation records in data: {actual_org_count} (including separate predecessor records)")
+        
+        # Remove trusts with 0 quantity for selected products across all months
+        orgs_with_data = set()
+        for org_id, monthly_data in org_monthly_data.items():
+            if is_ratio_measure:
+                if any(data['denominator'] > 0 for data in monthly_data.values()):
+                    orgs_with_data.add(org_id)
+            else:
+                if any(data['numerator'] > 0 for data in monthly_data.values()):
+                    orgs_with_data.add(org_id)
+        
+        self.stdout.write(f"Organisations with data for percentile calculations: {len(orgs_with_data)} (including predecessors)")
         
         for month in all_months:
             month_values = [
-                org_data[month]['value'] if org_data[month]['value'] is not None else 0
-                for org_data in org_monthly_data.values()
+                org_monthly_data[org_id][month]['value']
+                for org_id in orgs_with_data
             ]
             
             month_values.sort()
             n = len(month_values)
             
-            for percentile in [5, 15, 25, 35, 45, 50, 55, 65, 75, 85, 95]:
-                # Calculate index for this percentile
-                k = (n - 1) * (percentile / 100)
-                f = math.floor(k)
-                c = math.ceil(k)
-                
-                if f == c:
-                    value = month_values[int(k)]
-                else:
-                    # Interpolate when k is not an integer
-                    d0 = month_values[int(f)] * (c - k)
-                    d1 = month_values[int(c)] * (k - f)
-                    value = d0 + d1
-                
-                precomputed_percentiles.append(
-                    PrecomputedPercentile(
-                        measure=measure,
-                        month=month,
-                        percentile=percentile,
-                        quantity=value
+            if n > 0:
+                for percentile in [5, 15, 25, 35, 45, 50, 55, 65, 75, 85, 95]:
+                    # Calculate index for this percentile
+                    k = (n - 1) * (percentile / 100)
+                    f = math.floor(k)
+                    c = math.ceil(k)
+                    
+                    if f == c:
+                        value = month_values[int(k)]
+                    else:
+                        # Interpolate when k is not an integer
+                        d0 = month_values[int(f)] * (c - k)
+                        d1 = month_values[int(c)] * (k - f)
+                        value = d0 + d1
+                    
+                    precomputed_percentiles.append(
+                        PrecomputedPercentile(
+                            measure=measure,
+                            month=month,
+                            percentile=percentile,
+                            quantity=value
+                        )
                     )
-                )
         
         PrecomputedPercentile.objects.bulk_create(precomputed_percentiles)
         self.stdout.write(
@@ -311,20 +356,20 @@ class Command(BaseCommand):
         for icb_id, monthly_data in icb_values.items():
             for month, values in monthly_data.items():
                 if is_ratio_measure:
-                    values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else None
+                    values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else 0
                 else:
                     values['value'] = values['numerator']
 
         for region_id, monthly_data in region_values.items():
             for month, values in monthly_data.items():
                 if is_ratio_measure:
-                    values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else None
+                    values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else 0
                 else:
                     values['value'] = values['numerator']
 
         for month, values in national_values.items():
             if is_ratio_measure:
-                values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else None
+                values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else 0
             else:
                 values['value'] = values['numerator']
         
