@@ -55,5 +55,5 @@ When you select products for analysis, the most appropriate quantity type to use
      alt="Quantity type selectionlogic" 
      style="max-height: 52rem; margin-left: auto; margin-right: auto; max-width: 100%;" />
 
+Where there is more than one recommended quantity type for a selection of products, we select a default. We do this because our user testing found that most users wanted to see a quick analysis of the data, and they were not interested in the detail of the quantity type selection.
 There may be some selections of products where the chosen quantity type is not what you want for your analysis. You can change the quantity type in the advanced options of the analysis builder, but pay attention to any additional warning messages indicating the appropriateness of the comparison. To see what quantity types are available for your selected products, use the [Product Lookup](/product-lookup/) tool.
-
