@@ -133,6 +133,8 @@ class Command(BaseCommand):
             try:
                 if measure.quantity_type == 'indicative_cost':
                     unit = '£'
+                    measurevmp.unit = unit
+                    measurevmp.save()
                 else:
                     unit = get_consistent_unit(vmp_records)
                     if unit:
