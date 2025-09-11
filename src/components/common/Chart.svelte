@@ -140,8 +140,8 @@
             fontSize: '12px',
             fontWeight: 'normal',
             width: 'auto',
-            minWidth: '120px',
-            maxWidth: '300px',
+            minWidth: '200px',
+            maxWidth: '500px',
             whiteSpace: 'normal',
             textAlign: 'left',
             cursor: 'ns-resize'
@@ -157,11 +157,11 @@
             y: yAxisRange[1] * 0.9
           },
           text: annotation.description ? 
-            `<div style="padding: 6px 10px; min-width: 120px; max-width: 300px; word-wrap: break-word;">
+            `<div style="padding: 6px 10px; min-width: 200px; max-width: 500px; word-wrap: break-word;">
               <div style="font-weight: 600; margin-bottom: 3px; line-height: 1.2;">${annotation.label}</div>
               <div style="color: #666; font-size: 11px; line-height: 1.3; word-wrap: break-word;">${annotation.description}</div>
             </div>` : 
-            `<div style="padding: 6px 10px; min-width: 120px;">${annotation.label}</div>`,
+            `<div style="font-weight: 600;padding: 6px 10px; min-width: 200px;">${annotation.label}</div>`,
           useHTML: true
         }]
       });
