@@ -15,6 +15,13 @@ why_it_matters: |
     rather than the branded product. [NICE guidance on the treatment of diabetes states that](https://www.nice.org.uk/guidance/ng28/chapter/Recommendations#drug-treatment) 
     if 2 drugs in the same class are appropriate, choose the option with the lowest acquisition cost. Dapagliflozin is 
     likely to have cost-saving opportunities when compared with other SGLT-2s.
+
+    **Note**: Dapagliflozin was [licensed for the treatment of heart failure with reduced ejection fraction](https://www.nice.org.uk/guidance/ta679/chapter/1-Recommendations) in February 2021, 
+    and later for [chronic kidney disease in July 2025](https://www.nice.org.uk/guidance/ta1075). 
+    Empagliflozin was also [licensed for the treatment of heart failure with reduced ejection fraction](https://www.nice.org.uk/guidance/ta773) in March 2022 and for 
+    [chronic kidney disease in December 2023](https://www.nice.org.uk/guidance/ta942).
+    Increasing use of dapagliflozin (and therefore reduction in the proportion of SGLT-2 inhibitors not prescribed as dapagliflozin) is the likely reason for pattern seen in this measure prior
+    to September 2025.
 how_is_it_calculated: >
     We identify all SGLT-2 inhibitor products using Virtual Therapeutic Moieties (VTM) codes. The quantity of each product issued as DDDs is calculated. We then divide the
     DDDs of SGLT-2 inhibtors excluding dapagliflozin by the total DDDs of all SGLT-2 inhibitors and then multiply that by 100 to obtain a percentage each month.
