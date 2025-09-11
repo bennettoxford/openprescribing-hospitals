@@ -2,7 +2,7 @@ import yaml
 from pathlib import Path
 from django.core.management.base import BaseCommand
 from django.utils.text import slugify
-from viewer.models import Measure, MeasureTag
+from viewer.models import Measure, MeasureTag, MeasureAnnotation
 from schema import Schema, And, Optional, SchemaError, Or
 from datetime import datetime, timedelta, date
 
@@ -80,13 +80,33 @@ class Command(BaseCommand):
             tag_objects = validate_measure_tags(tags)
             measure.tags.set(tag_objects)
             
-            if created:
-                self.stdout.write(
-                    self.style.SUCCESS(f'Created measure: {measure.name}')
+            self._handle_annotations(measure, data.get('annotations', []))
+            
+            action = 'Created' if created else 'Updated'
+            self.stdout.write(
+                self.style.SUCCESS(f'{action} measure: {measure.name} ({measure.slug})')
+            )
+
+    def _handle_annotations(self, measure, annotations_data):
+        MeasureAnnotation.objects.filter(measure=measure).delete()
+        
+        for annotation_data in annotations_data:
+            try:
+                if isinstance(annotation_data['date'], str):
+                    date_obj = datetime.strptime(annotation_data['date'], '%Y-%m-%d').date()
+                else:
+                    date_obj = annotation_data['date']
+                
+                MeasureAnnotation.objects.create(
+                    measure=measure,
+                    date=date_obj,
+                    label=annotation_data['label'],
+                    description=annotation_data.get('description', ''),
+                    colour=annotation_data.get('colour', '#DC3220'),
                 )
-            else:
+            except (KeyError, ValueError) as e:
                 self.stdout.write(
-                    self.style.SUCCESS(f'Updated measure: {measure.name}')
+                    self.style.WARNING(f'Invalid annotation data for {measure.slug}: {str(e)}')
                 )
 
 def validate_date_format(date_val):
@@ -171,6 +191,11 @@ def validate_measure_yaml(data):
             str,
             lambda status: status in [choice[0] for choice in Measure.STATUS_CHOICES],
             error='status must be one of: in_development, preview, published'
+        ),
+        Optional('annotations'): And(
+            list,
+            lambda annotations: all(isinstance(a, dict) for a in annotations),
+            error='annotations must be a list of dictionaries'
         )
     })
     
