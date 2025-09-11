@@ -12,6 +12,7 @@ from .models import (
     IngredientQuantity,
     Measure,
     MeasureTag,
+    MeasureAnnotation,
     WHORoute,
     ContentCache,
 )
@@ -278,6 +279,27 @@ class MeasureTagAdmin(admin.ModelAdmin):
 class WHORouteAdmin(admin.ModelAdmin):
     list_display = ("code", "name")
     search_fields = ("code", "name")
+
+
+@admin.register(MeasureAnnotation)
+class MeasureAnnotationAdmin(admin.ModelAdmin):
+    list_display = ('measure', 'date', 'label', 'colour')
+    list_filter = ('measure', 'date', 'colour')
+    search_fields = ('measure__name', 'label', 'description')
+    ordering = ('measure', 'date')
+    
+    fieldsets = (
+        (None, {
+            'fields': ('measure', 'date', 'label')
+        }),
+        ('Additional Information', {
+            'fields': ('description', 'colour'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('measure')
 
 
 class ContentCacheAdmin(admin.ModelAdmin):
