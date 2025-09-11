@@ -140,8 +140,8 @@
             fontSize: '12px',
             fontWeight: 'normal',
             width: 'auto',
-            minWidth: '120px',
-            maxWidth: '300px',
+            minWidth: '200px',
+            maxWidth: '500px',
             whiteSpace: 'normal',
             textAlign: 'left',
             cursor: 'ns-resize'
