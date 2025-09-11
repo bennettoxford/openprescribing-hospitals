@@ -613,3 +613,32 @@ class AWAREVMPMapping(models.Model):
             models.Index(fields=["vmp"]),
             models.Index(fields=["vtm"]),
         ]
+
+class MeasureAnnotation(models.Model):
+    """Data annotations for measures - vertical lines with labels on charts"""
+    measure = models.ForeignKey(
+        Measure, 
+        on_delete=models.CASCADE, 
+        related_name="annotations"
+    )
+    date = models.DateField(help_text="Date when the annotation should appear")
+    label = models.CharField(max_length=255, help_text="Label to display on the annotation")
+    description = models.TextField(
+        null=True, 
+        blank=True, 
+        help_text="Optional description for the annotation"
+    )
+    colour = models.CharField(
+        max_length=7, 
+        default="#DC3220", 
+        help_text="Colour of the annotation line (hex code)"
+    )
+
+    class Meta:
+        ordering = ['date']
+        indexes = [
+            models.Index(fields=['measure', 'date']),
+        ]
+
+    def __str__(self):
+        return f"{self.measure.name} - {self.label} ({self.date})"

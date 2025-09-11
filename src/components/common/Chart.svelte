@@ -8,6 +8,7 @@
   import ExportData from 'highcharts/modules/export-data';
   import Accessibility from 'highcharts/modules/accessibility';
   import Boost from 'highcharts/modules/boost';
+  import Annotations from 'highcharts/modules/annotations';
   import { Chart} from '@highcharts/svelte';
   import { chartStore } from '../../stores/chartStore.js';
 
@@ -24,6 +25,9 @@
   export let store = chartStore;
   export let formatTooltipContent = null;
   export let chartOptions = {};
+  export let annotations = '[]';
+  
+  let showAnnotations = true;
 
   $: config.visibleItems = new Set(data.datasets.map(d => d.label));
 
@@ -46,6 +50,125 @@
   $: shouldUseBoost = visibleDatasets && visibleDatasets.length > 20 && 
                     config.mode !== 'percentiles' && config.mode !== 'trust' && config.mode !== 'organisation';
 
+  $: chartAnnotations = showAnnotations ? createChartAnnotations(annotations, config.yAxisRange || [0, 100]) : [];
+  
+  function toggleAnnotations() {
+    showAnnotations = !showAnnotations;
+  }
+  
+  $: exportMenuItems = [
+    'downloadCSV',
+    {
+      text: 'View in full screen',
+      onclick: function () {
+        this.fullscreen.toggle();
+      }
+    },
+    ...(annotations !== '[]' ? [{
+      text: showAnnotations ? 'Hide annotations' : 'Show annotations',
+      onclick: function () {
+        toggleAnnotations();
+      }
+    }] : [])
+  ];
+
+  function parseAnnotations(annotationsData) {
+    try {
+      if (!annotationsData || annotationsData === '[]' ) {
+        return [];
+      }
+ 
+      if (typeof annotationsData === 'string') {
+        return JSON.parse(annotationsData);
+      } else {
+        return [];
+      }
+    } catch (error) {
+      console.error('Failed to parse annotations:', error);
+      return [];
+    }
+  }
+
+  function createChartAnnotations(annotationsData, yAxisRange = [0, 100]) {
+    const parsedAnnotations = parseAnnotations(annotationsData);
+    
+    if (!parsedAnnotations || parsedAnnotations.length === 0) {
+      return [];
+    }
+    
+    const annotations = [];
+    
+    parsedAnnotations.forEach((annotation, index) => {
+      const annotationDate = new Date(annotation.date).getTime();
+      
+      // First annotation: Fixed vertical line
+      annotations.push({
+        id: `annotation-line-${index}-${annotation.date}`,
+        draggable: false,
+        shapes: [{
+          type: 'path',
+          points: [{
+            xAxis: 0,
+            yAxis: 0,
+            x: annotationDate,
+            y: yAxisRange[0]
+          }, {
+            xAxis: 0,
+            yAxis: 0,
+            x: annotationDate,
+            y: yAxisRange[1]
+          }],
+          stroke: annotation.colour || '#DC3220',
+          strokeWidth: 2,
+          dashStyle: 'Dash',
+          fill: 'none'
+        }]
+      });
+      
+      // Second annotation: Draggable label
+      annotations.push({
+        id: `annotation-label-${index}-${annotation.date}`,
+        draggable: 'y',
+        labelOptions: {
+          allowOverlap: true,
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          borderColor: annotation.colour || '#DC3220',
+          borderRadius: 4,
+          borderWidth: 1,
+          style: {
+            color: '#333',
+            fontSize: '12px',
+            fontWeight: 'normal',
+            width: 'auto',
+            minWidth: '120px',
+            maxWidth: '300px',
+            whiteSpace: 'normal',
+            textAlign: 'left',
+            cursor: 'ns-resize'
+          },
+          useHTML: true,
+          shape: 'rect',
+        },
+        labels: [{
+          point: {
+            xAxis: 0,
+            yAxis: 0,
+            x: annotationDate,
+            y: yAxisRange[1] * 0.9
+          },
+          text: annotation.description ? 
+            `<div style="padding: 6px 10px; min-width: 120px; max-width: 300px; word-wrap: break-word;">
+              <div style="font-weight: 600; margin-bottom: 3px; line-height: 1.2;">${annotation.label}</div>
+              <div style="color: #666; font-size: 11px; line-height: 1.3; word-wrap: break-word;">${annotation.description}</div>
+            </div>` : 
+            `<div style="padding: 6px 10px; min-width: 120px;">${annotation.label}</div>`,
+          useHTML: true
+        }]
+      });
+    });
+    
+    return annotations;
+  }
 
   $: finalChartOptions = {
     ...chartOptions,
@@ -152,7 +275,9 @@
       useHTML: true,
       backgroundColor: '#ffffff',
       borderWidth: 0,
-      y: 30
+      y: 30,
+      symbolWidth: 20,
+      symbolHeight: 12,
     },
     responsive: {
       rules: [{
@@ -384,19 +509,12 @@
         }
       }
     })),
+    annotations: chartAnnotations,
     exporting: {
       enabled: true,
       buttons: {
         contextButton: {
-          menuItems: [
-            'downloadCSV',
-            {
-              text: 'View in full screen',
-              onclick: function () {
-                this.fullscreen.toggle();
-              }
-            }
-          ]
+          menuItems: exportMenuItems
         }
       },
       csv: {

@@ -25,3 +25,22 @@ We cannot distinguish between true zeroes and zeroes resulting from missing data
 ### Why do some trusts have out of range values?
 
 Within the SCMD, it is possible for issued quantity to be negative (see [Why are there negative values for some products?](faq/#why-are-there-negative-values-for-some-products)). When calculting measures with both a numerator and denominator, values are expected to be between 0% and 100%. However, negative values can result in the numerator being greater than the denominator (so the measure value can be greater than 100%) or the denominator being negative (so the measure value can be less than 0%).
+
+### What do annotations on measure charts show?
+
+Measure annotations indicate events that may have influenced issuing patterns of products included a given measure. They help to provide context for changes in the data over time.
+
+For example, annotations might mark:
+- Patent expiries that could affect product choice
+- Changes in clinical guidance
+- Introduction of new treatments
+- Policy changes affecting issuing
+
+### Can I hide annotations on measure charts?
+
+To hide annotations on a measure chart:
+
+1. Click the chart menu in the top-right corner of the chart
+2. Select **"Hide annotations"** from the dropdown menu
+
+To show annotations again, repeat the same steps and select **"Show annotations"**.

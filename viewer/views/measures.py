@@ -14,6 +14,7 @@ from ..models import (
     PrecomputedMeasureAggregated,
     PrecomputedPercentile,
     Organisation,
+    MeasureAnnotation,
 )
 
 class MeasuresListView(TemplateView):
@@ -144,6 +145,20 @@ class BaseMeasureItemView(TemplateView):
             if vmp['type'] == 'numerator'
         ]
 
+        annotations = MeasureAnnotation.objects.filter(
+            measure=measure
+        ).values('date', 'label', 'description', 'colour')
+        
+        annotations_data = [
+            {
+                'date': annotation['date'].isoformat(),
+                'label': annotation['label'],
+                'description': annotation['description'],
+                'colour': annotation['colour'],
+            }
+            for annotation in annotations
+        ]
+
         tags_data = [
             {
                 'name': tag.name,
@@ -174,6 +189,7 @@ class BaseMeasureItemView(TemplateView):
             ),
             "measure_quantity_type": measure.quantity_type,
             "has_denominators": len(denominator_vmps) > 0,
+            "annotations": json.dumps(annotations_data, cls=DjangoJSONEncoder),
         }
 
     def get_precomputed_data(self, measure):
