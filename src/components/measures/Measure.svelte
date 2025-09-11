@@ -9,7 +9,8 @@
         quantitytype: { type: 'String', reflect: true },
         hasdenominators: { type: 'String', reflect: true },
         denominatorvmps: { type: 'String', reflect: true },
-        numeratorvmps: { type: 'String', reflect: true }
+        numeratorvmps: { type: 'String', reflect: true },
+        annotations: { type: 'String', reflect: true }
     },
     shadow: 'none'
 }} />
@@ -49,6 +50,7 @@
     export let hasdenominators = 'true';
     export let denominatorvmps = '[]';
     export let numeratorvmps = '[]';
+    export let annotations = '[]';
    
     let trusts = [];
     let icbs = [];
@@ -127,29 +129,29 @@
     }
 
     function getYAxisLimits(hasDenominators, chartData) {
-    const hasDenom = hasDenominators === 'true';
-    
-    if (hasDenom) {
-        return [0, 100];
-    } else if (chartData && chartData.datasets && chartData.datasets.length > 0) {
-        let maxValue = 0;
+        const hasDenom = hasDenominators === 'true';
         
-        chartData.datasets.forEach(dataset => {
-            if (!dataset.hidden && dataset.data && Array.isArray(dataset.data)) {
-                dataset.data.forEach(value => {
-                    if (typeof value === 'object' && value.upper !== undefined) {
-                        maxValue = Math.max(maxValue, value.upper);
-                    } else if (typeof value === 'number') {
-                        maxValue = Math.max(maxValue, value);
-                    }
-                });
-            }
-        });
-        return [0, maxValue * 1.1];
-    } else {
-        return [0, 100];
+        if (hasDenom) {
+            return [0, 100];
+        } else if (chartData && chartData.datasets && chartData.datasets.length > 0) {
+            let maxValue = 0;
+            
+            chartData.datasets.forEach(dataset => {
+                if (!dataset.hidden && dataset.data && Array.isArray(dataset.data)) {
+                    dataset.data.forEach(value => {
+                        if (typeof value === 'object' && value.upper !== undefined) {
+                            maxValue = Math.max(maxValue, value.upper);
+                        } else if (typeof value === 'number') {
+                            maxValue = Math.max(maxValue, value);
+                        }
+                    });
+                }
+            });
+            return [0, maxValue * 1.1];
+        } else {
+            return [0, 100];
+        }
     }
-}
 
 
     $: showFilter = ['percentiles', 'icb', 'region', 'national'].includes($selectedMode);
@@ -458,13 +460,14 @@
         }
     }
 
-    $: if ($selectedMode || yAxisLimits) {
+    $: if ($selectedMode) {
+        const currentLimits = getYAxisLimits(hasdenominators, $filteredData);
         measureChartStore.setConfig({
             ...$measureChartStore.config,
             mode: $selectedMode,
             yAxisLabel: yAxisLabel,
             yAxisTickFormat: yAxisTickFormatter,
-            yAxisRange: yAxisLimits,
+            yAxisRange: currentLimits,
             yAxisBehavior: {
                 forceZero: true,
                 resetToInitial: true,
@@ -666,6 +669,7 @@
                     formatTooltipContent={customTooltipFormatter}
                     store={measureChartStore}
                     {chartOptions}
+                    {annotations}
                 />
             {/if}
         </div>
