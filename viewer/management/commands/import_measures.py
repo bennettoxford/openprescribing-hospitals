@@ -72,7 +72,8 @@ class Command(BaseCommand):
                     'date_reviewed': data.get('date_reviewed', None),
                     'next_review': data.get('next_review', None),
                     'first_published': data.get('first_published', None),
-                    'status': data.get('status', 'in_development')
+                    'status': data.get('status', 'in_development'),
+                    'default_view_mode': data.get('default_view_mode', 'percentiles')
                 }
             )
             
@@ -191,6 +192,11 @@ def validate_measure_yaml(data):
             str,
             lambda status: status in [choice[0] for choice in Measure.STATUS_CHOICES],
             error='status must be one of: in_development, preview, published'
+        ),
+        Optional('default_view_mode'): And(
+            str,
+            lambda mode: mode in [choice[0] for choice in Measure.VIEW_MODE_CHOICES],
+            error='default_view_mode must be one of: percentiles, icb, region, national'
         ),
         Optional('annotations'): And(
             list,
