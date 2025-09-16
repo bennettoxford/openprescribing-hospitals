@@ -411,6 +411,12 @@ class Measure(models.Model):
         ('indicative_cost', 'Indicative Cost'),
     ]
     
+    VIEW_MODE_CHOICES = [
+        ('percentiles', 'NHS Trust'),
+        ('icb', 'ICB'),
+        ('region', 'Region'),
+        ('national', 'National'),
+    ]
     name = models.CharField(max_length=255, unique=True)
     short_name = models.CharField(max_length=255, null=True)
     slug = models.SlugField(unique=True)
@@ -430,6 +436,12 @@ class Measure(models.Model):
     date_reviewed = models.DateField(null=True)
     next_review = models.DateField(null=True)
     first_published = models.DateField(null=True)
+    default_view_mode = models.CharField(
+        max_length=20, 
+        choices=VIEW_MODE_CHOICES, 
+        default='percentiles',
+        help_text="Default view mode for this measure"
+    )
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
