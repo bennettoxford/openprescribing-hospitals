@@ -28,6 +28,7 @@ date_reviewed: 2024-03-20 # Date of last review (YYYY-MM-DD)
 next_review: 2025-03-20 # Date of next scheduled review (YYYY-MM-DD)
 first_published: 2024-03-20 # Date of first publication (YYYY-MM-DD)
 status: in_development # in_development, preview, published
+default_view_mode: percentiles # Default view mode (percentiles, icb, region, national)
 annotations:  # Optional data annotations - vertical lines with labels on charts
     - date: 2025-08-01
       label: "Annotation label"

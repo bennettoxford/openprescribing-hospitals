@@ -10,7 +10,8 @@
         hasdenominators: { type: 'String', reflect: true },
         denominatorvmps: { type: 'String', reflect: true },
         numeratorvmps: { type: 'String', reflect: true },
-        annotations: { type: 'String', reflect: true }
+        annotations: { type: 'String', reflect: true },
+        defaultviewmode: { type: 'String', reflect: true }
     },
     shadow: 'none'
 }} />
@@ -51,6 +52,7 @@
     export let denominatorvmps = '[]';
     export let numeratorvmps = '[]';
     export let annotations = '[]';
+    export let defaultviewmode = 'percentiles';
    
     let trusts = [];
     let icbs = [];
@@ -245,7 +247,8 @@
         regions = parsedRegionData.map(region => region.name);
         
         percentileStore.set(JSON.parse(percentiledata));
-        selectedMode.set('percentiles');
+        selectedMode.set(defaultviewmode);
+        modeSelectorStore.setSelectedMode(defaultviewmode);
 
         visibleICBs.set(new Set(icbs));
         visibleRegions.set(new Set(regions));
@@ -647,7 +650,7 @@
             <div>
                 <ModeSelector 
                     options={modeOptions}
-                    initialMode="percentiles"
+                    initialMode={defaultviewmode}
                     label="Select Mode"
                     onChange={handleModeChange}
                     variant="dropdown"
