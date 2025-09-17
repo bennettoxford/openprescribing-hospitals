@@ -36,7 +36,8 @@ export default defineConfig({
             'highcharts/modules/accessibility',
             'highcharts/modules/exporting',
             'highcharts/modules/export-data',
-            'highcharts/modules/boost'
+            'highcharts/modules/boost',
+            'highcharts/modules/annotations'
           ]
         }
       },
@@ -49,7 +50,8 @@ export default defineConfig({
       'highcharts/modules/accessibility',
       'highcharts/modules/exporting',
       'highcharts/modules/export-data',
-      'highcharts/modules/boost'
+      'highcharts/modules/boost',
+      'highcharts/modules/annotations'
     ]
   },
   resolve: {
@@ -59,6 +61,7 @@ export default defineConfig({
       'highcharts/modules/accessibility': path.resolve(__dirname, 'node_modules/highcharts/modules/accessibility.js'),
       'highcharts/modules/exporting': path.resolve(__dirname, 'node_modules/highcharts/modules/exporting.js'),
       'highcharts/modules/export-data': path.resolve(__dirname, 'node_modules/highcharts/modules/export-data.js'),
+      'highcharts/modules/annotations': path.resolve(__dirname, 'node_modules/highcharts/modules/annotations.js'),
     }
   },
   server: {
