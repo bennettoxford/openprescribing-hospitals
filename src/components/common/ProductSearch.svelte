@@ -5,7 +5,6 @@
 <script>
     import { onMount, createEventDispatcher } from 'svelte';
     import '../../styles/styles.css';
-    import { getCookie } from '../../utils/utils';
     import { analyseOptions } from '../../stores/analyseOptionsStore';
     const dispatch = createEventDispatcher();
 
@@ -15,9 +14,6 @@
     let filteredItems = [];
     let selectedItems = [];
     let vmpCount = 0;
-    let isCalculating = false;
-
-    const csrftoken = getCookie('csrftoken');
 
     let searchTimeout;
     let isLoading = false;
@@ -82,46 +78,31 @@
         }, 300);
     }
 
-    async function fetchVmpCount() {
+    function calculateVmpCount() {
         if (selectedItems.length === 0) {
             vmpCount = 0;
             return;
         }
 
-        isCalculating = true;
-
-        try {
-            const response = await fetch('/api/vmp-count/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken,
-                },
-                body: JSON.stringify({
-                    names: selectedItems,
-                    search_type: type,
-                }),
-            });
-            const data = await response.json();
-            vmpCount = data.vmp_count;
-            if (data.vmp_details) {
-                for (const detail of data.vmp_details) {
-                    const existingItem = findItemInArray(selectedItemsData, detail.item);
-                    if (existingItem) {
-                        existingItem.vmps = detail.vmps;
-                    } else {
-                        selectedItemsData = [...selectedItemsData, {
-                            ...detail.item,
-                            vmps: detail.vmps
-                        }];
+        const vmpCodes = new Set();
+        
+        for (const item of selectedItems) {
+            const data = findItemInArray(selectedItemsData, item) || 
+                        lastSearchResults.find(i => i.code === item.code) || 
+                        filteredItems.find(i => i.code === item.code);
+            
+            if (data) {
+                if (item.type === 'vmp') {
+                    vmpCodes.add(item.code);
+                } else if (data.vmps) {
+                    for (const vmp of data.vmps) {
+                        vmpCodes.add(vmp.code);
                     }
                 }
             }
-        } catch (error) {
-            console.error('Error fetching VMP count:', error);
-        } finally {
-            isCalculating = false;
         }
+        
+        vmpCount = vmpCodes.size;
     }
 
     function findItemInArray(items, targetItem) {
@@ -173,7 +154,7 @@
         
         
         dispatch('selectionChange', { items: selectedItems });
-        fetchVmpCount();
+        calculateVmpCount();
         filteredItems = [];
         searchTerm = '';
     }
@@ -182,7 +163,7 @@
         selectedItems = removeItemFromSelected(item, selectedItems);
         selectedItemsData = selectedItemsData.filter(data => !(data.code === item.code && data.type === item.type));
         dispatch('selectionChange', { items: selectedItems });
-        fetchVmpCount();
+        calculateVmpCount();
     }
 
     function handleTypeChange(newType) {
@@ -199,6 +180,7 @@
             vmpCount = 0;
             filteredItems = [];
             lastSearchResults = [];
+            selectedItemsData = [];
         }
     }
 
@@ -573,15 +555,7 @@
                     {/each}
                 </ul>
                     <p class="mt-3 text-sm text-gray-600">
-                        {#if isCalculating}
-                            <span class="flex items-center gap-2">
-                                <svg class="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Calculating number of individual products...
-                            </span>
-                        {:else if vmpCount > 0}
+                        {#if vmpCount > 0}
                             This selection will analyse {vmpCount} unique product{vmpCount !== 1 ? 's' : ''}.
                             {#if vmpCount > 100}
                                 <span class="block mt-1 text-amber-600 font-medium">

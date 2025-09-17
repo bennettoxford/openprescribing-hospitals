@@ -17,7 +17,6 @@ from .analyse import AnalyseView
 
 from .api import (
     get_quantity_data,
-    vmp_count,
     search_products,
     get_product_details,
     select_quantity_type,
@@ -54,7 +53,6 @@ __all__ = [
     'AnalyseView',
     
     'get_quantity_data',
-    'vmp_count',
     'select_quantity_type',
     'search_products',
     'get_product_details',
