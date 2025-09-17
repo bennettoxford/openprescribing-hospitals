@@ -47,8 +47,12 @@
             if (orgData) {
                 try {
                     const parsedData = typeof orgData === 'string' ? JSON.parse(orgData) : orgData;
-                    organisationSearchStore.setItems(parsedData.items);
-                    organisationSearchStore.setAvailableItems(parsedData.items);
+
+                    organisationSearchStore.setOrganisationData({
+                        orgs: parsedData.orgs || {},
+                        org_codes: parsedData.org_codes || {},
+                        predecessor_map: parsedData.predecessorMap || {}
+                    });
                 } catch (error) {
                     console.error('Error parsing ODS data:', error);
                 }

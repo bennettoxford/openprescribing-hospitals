@@ -354,7 +354,7 @@
                                 >
                                     <div class="flex items-center justify-between">
                                         <div class="flex items-center gap-2">
-                                            <span>{item.name}</span>
+                                            <span>{source.getDisplayName(item.name)}</span>
                                         </div>
                                         <span class="ml-auto text-sm font-medium">Selected</span>
                                     </div>
@@ -373,7 +373,7 @@
                                                 <div class="flex items-center justify-between">
                                                     <div class="flex items-center">
                                                         <span class="mr-2">↳</span>
-                                                        <span>{predecessor}</span>
+                                                        <span>{source.getDisplayName(predecessor)}</span>
                                                         <span class="mx-2 text-xs">(predecessor)</span>
                                                     </div>
                                                 </div>
@@ -418,7 +418,7 @@
                                 >
                                     <div class="flex items-center justify-between">
                                         <div class="flex items-center gap-2">
-                                            <span>{item.name}</span>
+                                            <span>{source.getDisplayName(item.name)}</span>
                                         </div>
                                         {#if limitReached}
                                             <span class="text-xs text-gray-500">Max limit reached</span>
@@ -440,7 +440,7 @@
                                                 <div class="flex items-center justify-between">
                                                     <div class="flex items-center">
                                                         <span class="mr-2">↳</span>
-                                                        <span>{predecessor}</span>
+                                                        <span>{source.getDisplayName(predecessor)}</span>
                                                         <span class="mx-2 text-xs">(predecessor)</span>
                                                     </div>
                                                 </div>
@@ -477,7 +477,7 @@
                                 <div class="p-2 transition duration-150 ease-in-out relative text-gray-400 cursor-not-allowed">
                                     <div class="flex items-center justify-between">
                                         <div class="flex items-center gap-2">
-                                            <span>{item.name}</span>
+                                            <span>{source.getDisplayName(item.name)}</span>
                                         </div>
                                     </div>
        
@@ -487,7 +487,7 @@
                                                 <div class="flex items-center justify-between">
                                                     <div class="flex items-center">
                                                         <span class="mr-2">↳</span>
-                                                        <span>{predecessor}</span>
+                                                        <span>{source.getDisplayName(predecessor)}</span>
                                                         <span class="mx-2 text-xs">(predecessor)</span>
                                                     </div>
                                                 </div>

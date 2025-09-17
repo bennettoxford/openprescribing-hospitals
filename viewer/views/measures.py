@@ -16,6 +16,8 @@ from ..models import (
     Organisation,
     MeasureAnnotation,
 )
+from ..utils import get_organisation_data
+
 
 class MeasuresListView(TemplateView):
     template_name = "measures_list.html"
@@ -214,7 +216,10 @@ class BaseMeasureItemView(TemplateView):
         return context
 
     def get_org_data(self, org_measures):
+        
         total_orgs = Organisation.objects.count()
+        
+        shared_org_data = get_organisation_data()
 
         current_orgs = Organisation.objects.filter(
             successor__isnull=True
@@ -226,26 +231,15 @@ class BaseMeasureItemView(TemplateView):
             ).distinct()
         )
         
-        predecessor_map = {}
         predecessor_to_successor = {}
- 
-        for org in Organisation.objects.exclude(
-            successor__isnull=True
-        ).values(
-            'ods_code', 'ods_name', 'successor__ods_code', 
-            'successor__ods_name'
-        ):
-            successor_name = org['successor__ods_name']
-            predecessor_name = org['ods_name']
-            
-            if successor_name not in predecessor_map:
-                predecessor_map[successor_name] = []
-            predecessor_map[successor_name].append(predecessor_name)
-            predecessor_to_successor[predecessor_name] = successor_name
+        for successor, predecessors in shared_org_data['predecessor_map'].items():
+            for predecessor in predecessors:
+                predecessor_to_successor[predecessor] = successor
        
         org_data = {
             'data': {},
-            'predecessor_map': predecessor_map
+            'predecessor_map': shared_org_data['predecessor_map'],
+            'org_codes': shared_org_data['org_codes']
         }
         
         available_orgs = set()
@@ -260,7 +254,7 @@ class BaseMeasureItemView(TemplateView):
             if is_available:
                 available_orgs.add(org_name)
         
-        for successor, predecessors in predecessor_map.items():
+        for successor, predecessors in shared_org_data['predecessor_map'].items():
             if (successor in org_data['data'] and 
                     org_data['data'][successor]['available']):
                 for predecessor in predecessors:

@@ -58,6 +58,7 @@
     let icbs = [];
     let regions = [];
     let uniqueUnits = [];
+    let parsedOrgData = {};
 
     function extractUniqueUnits() {
         try {
@@ -160,13 +161,23 @@
 
     $: {
         if ($selectedMode === 'icb') {
-            organisationSearchStore.setItems(icbs);
+            organisationSearchStore.setOrganisationData({
+                orgs: Object.fromEntries(icbs.map(name => [name, name])),
+                predecessor_map: {}
+            });
             organisationSearchStore.setFilterType('icb');
         } else if ($selectedMode === 'percentiles') {
-            organisationSearchStore.setItems(trusts);
+            organisationSearchStore.setOrganisationData({
+                orgs: Object.fromEntries(trusts.map(name => [parsedOrgData.org_codes?.[name] || name, name])),
+                org_codes: parsedOrgData.org_codes || {},
+                predecessor_map: parsedOrgData.predecessor_map || {}
+            });
             organisationSearchStore.setFilterType('trust');
         } else if ($selectedMode === 'region') {
-            organisationSearchStore.setItems(regions);
+            organisationSearchStore.setOrganisationData({
+                orgs: Object.fromEntries(regions.map(name => [name, name])),
+                predecessor_map: {}
+            });
             organisationSearchStore.setFilterType('region');
         }
     }
@@ -209,11 +220,10 @@
     };
 
     onMount(() => {
-        const parsedOrgData = JSON.parse(orgdata);
+        parsedOrgData = JSON.parse(orgdata);
 
         orgdataStore.set(parsedOrgData.data || {});
         
-
         uniqueUnits = extractUniqueUnits();
         
         measureChartStore.setDimensions({
@@ -227,16 +237,13 @@
         
         const shouldDisablePercentiles = availableTrusts.length < 30;
         
-        organisationSearchStore.setItems(trusts);
-        organisationSearchStore.setAvailableItems(availableTrusts);
+        organisationSearchStore.setOrganisationData({
+            orgs: Object.fromEntries(trusts.map(name => [parsedOrgData.org_codes?.[name] || name, name])),
+            org_codes: parsedOrgData.org_codes || {},
+            predecessor_map: parsedOrgData.predecessor_map || {}
+        });
         organisationSearchStore.setFilterType('trust');
-        
-        try {
-            const predecessorMapObj = new Map(Object.entries(parsedOrgData.predecessor_map || {}));
-            organisationSearchStore.setPredecessorMap(predecessorMapObj);
-        } catch (error) {
-            organisationSearchStore.setPredecessorMap(new Map());
-        }
+        organisationSearchStore.setAvailableItems(availableTrusts);
         
         const parsedIcbData = JSON.parse(icbdata);
         icbStore.set(parsedIcbData);
@@ -342,7 +349,10 @@
             
 
             if (currentMode === 'icb') {
-                organisationSearchStore.setItems(icbs);
+                organisationSearchStore.setOrganisationData({
+                    orgs: Object.fromEntries(icbs.map(name => [name, name])),
+                    predecessor_map: {}
+                });
                 organisationSearchStore.setFilterType('icb');
                 organisationSearchStore.setAvailableItems(icbs);
                 organisationSearchStore.updateSelection(Array.from($visibleICBs));
@@ -356,7 +366,10 @@
                 };
                 measureChartStore.setData(updatedData);
             } else if (currentMode === 'region') {
-                organisationSearchStore.setItems(regions);
+                organisationSearchStore.setOrganisationData({
+                    orgs: Object.fromEntries(regions.map(name => [name, name])),
+                    predecessor_map: {}
+                });
                 organisationSearchStore.setFilterType('region');
                 organisationSearchStore.setAvailableItems(regions);
                 organisationSearchStore.updateSelection(Array.from($visibleRegions));
@@ -370,7 +383,11 @@
                 };
                 measureChartStore.setData(updatedData);
             } else if (currentMode === 'percentiles') {
-                organisationSearchStore.setItems(trusts);
+                organisationSearchStore.setOrganisationData({
+                    orgs: Object.fromEntries(trusts.map(name => [parsedOrgData.org_codes?.[name] || name, name])),
+                    org_codes: parsedOrgData.org_codes || {},
+                    predecessor_map: parsedOrgData.predecessor_map || {}
+                });
                 organisationSearchStore.setFilterType('trust');
                 const availableTrusts = trusts.filter(trust => $orgdataStore[trust]?.available);
                 organisationSearchStore.setAvailableItems(availableTrusts);
@@ -508,15 +525,25 @@
 
     $: {
         if ($selectedMode === 'icb') {
-            organisationSearchStore.setItems(icbs);
+            organisationSearchStore.setOrganisationData({
+                orgs: Object.fromEntries(icbs.map(name => [name, name])),
+                predecessor_map: {}
+            });
             organisationSearchStore.setFilterType('icb');
             organisationSearchStore.setAvailableItems(icbs);
         } else if ($selectedMode === 'region') {
-            organisationSearchStore.setItems(regions);
+            organisationSearchStore.setOrganisationData({
+                orgs: Object.fromEntries(regions.map(name => [name, name])),
+                predecessor_map: {}
+            });
             organisationSearchStore.setFilterType('region');
             organisationSearchStore.setAvailableItems(regions);
         } else if ($selectedMode === 'percentiles') {
-            organisationSearchStore.setItems(trusts);
+            organisationSearchStore.setOrganisationData({
+                orgs: Object.fromEntries(trusts.map(name => [parsedOrgData.org_codes?.[name] || name, name])),
+                org_codes: parsedOrgData.org_codes || {},
+                predecessor_map: parsedOrgData.predecessor_map || {}
+            });
             organisationSearchStore.setFilterType('trust');
             const availableTrusts = trusts.filter(trust => $orgdataStore[trust]?.available);
             organisationSearchStore.setAvailableItems(availableTrusts);
