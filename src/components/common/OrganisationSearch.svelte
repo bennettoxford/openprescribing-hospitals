@@ -102,18 +102,31 @@
         predecessors: $source.predecessorMap.get(item) || []
     }));
 
-    $: filteredItems = hierarchicalItems
-        .filter(item => {
-            const matchesMain = normalizeString(item.name).includes(normalizeString(searchTerm));
-            const matchesPredecessor = item.predecessors.some(pred => 
-                normalizeString(pred).includes(normalizeString(searchTerm))
-            );
-            return matchesMain || matchesPredecessor;
-        })
-        .sort((a, b) => {
-            if (isItemSelected(a.name) !== isItemSelected(b.name)) {
-                return isItemSelected(a.name) ? -1 : 1;
-            }
+    $: filteredItems = (() => {
+        if (!searchTerm.trim()) return hierarchicalItems;
+        
+        const normalizedSearchTerm = normalizeString(searchTerm);
+        
+        return hierarchicalItems.filter(item => {
+            const matchesMain = normalizeString(item.name).includes(normalizedSearchTerm);
+            
+            const orgCode = source.getOrgCode(item.name);
+            const matchesCode = orgCode && normalizeString(orgCode).includes(normalizedSearchTerm);
+            
+            const matchesPredecessor = item.predecessors.some(pred => {
+                const normalizedPred = normalizeString(pred);
+                if (normalizedPred.includes(normalizedSearchTerm)) return true;
+                
+                const predCode = source.getOrgCode(pred);
+                return predCode && normalizeString(predCode).includes(normalizedSearchTerm);
+            });
+            
+            return matchesMain || matchesPredecessor || matchesCode;
+        });
+    })().sort((a, b) => {
+        if (isItemSelected(a.name) !== isItemSelected(b.name)) {
+            return isItemSelected(a.name) ? -1 : 1;
+        }
             
             const aSelectable = isItemAvailable(a.name);
             const bSelectable = isItemAvailable(b.name);
