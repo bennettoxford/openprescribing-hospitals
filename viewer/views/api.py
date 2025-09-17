@@ -84,12 +84,10 @@ def search_products(request):
                 'name': vtm.name,
                 'type': 'vtm',
                 'isExpanded': False,
-                'display_name': f"{vtm.name} ({vtm.vtm})",
                 'vmps': [{
                     'code': vmp.code,
                     'name': vmp.name,
-                    'type': 'vmp',
-                    'display_name': f"{vmp.name} ({vmp.code})"
+                    'type': 'vmp'
                 } for vmp in vtm_data['vmps']]
             })
 
@@ -101,20 +99,17 @@ def search_products(request):
                 'name': vtm.name,
                 'type': 'vtm',
                 'isExpanded': False,
-                'display_name': f"{vtm.name} ({vtm.vtm})",
                 'vmps': [{
                     'code': vmp.code,
                     'name': vmp.name,
-                    'type': 'vmp',
-                    'display_name': f"{vmp.name} ({vmp.code})"
+                    'type': 'vmp'
                 } for vmp in vmps]
             })
 
         results.extend([{
             'code': vmp.code,
             'name': vmp.name,
-            'type': 'vmp',
-            'display_name': f"{vmp.name} ({vmp.code})"
+            'type': 'vmp'
         } for vmp in standalone_vmps])
 
         def sort_key(item):
@@ -257,7 +252,6 @@ def search_products(request):
                 'vmp_count': vmp_count,
                 'hierarchy_path': hierarchy_path,
                 'parent_path': parent_path,
-                'display_name': f"{level_name or atc.name} ({atc.code})"
             })
 
         return JsonResponse({'results': results})
@@ -270,27 +264,19 @@ def vmp_count(request):
     search_items = request.data.get("names", [])
     
     vmp_codes = set()
-    display_names = {}
-    vmp_details = {}
+    vmp_details = []
 
     for item in search_items:
-        code, item_type = item.split('|')
+        code = item["code"]
+        item_type = item["type"]
         
         if item_type == 'vtm':
             # Get all VMPs for this VTM
             vtm_vmps = VMP.objects.filter(vtm__vtm=code).values_list('code', flat=True)
             vmp_codes.update(vtm_vmps)
-            # Get VTM display name
-            vtm = VTM.objects.filter(vtm=code).first()
-            if vtm:
-                display_names[f"{code}|vtm"] = f"{vtm.name} ({code})"
 
         elif item_type == 'vmp':
             vmp_codes.add(code)
-            # Get VMP display name
-            vmp = VMP.objects.filter(code=code).first()
-            if vmp:
-                display_names[f"{code}|vmp"] = f"{vmp.name} ({code})"
 
         elif item_type == 'ingredient':
             # Get all VMPs containing this ingredient
@@ -304,10 +290,10 @@ def vmp_count(request):
                     'type': 'vmp'
                 })
             
-            ingredient = Ingredient.objects.filter(code=code).first()
-            if ingredient:
-                display_names[f"{code}|ingredient"] = f"{ingredient.name} ({code})"
-                vmp_details[f"{code}|ingredient"] = vmp_list
+            vmp_details.append({
+                'item': {'code': code, 'type': item_type},
+                'vmps': vmp_list
+            })
         
         elif item_type == 'atc':
             # Get all VMPs with ATC codes that start with this code
@@ -321,17 +307,16 @@ def vmp_count(request):
                     'type': 'vmp'
                 })
             
-            atc = ATC.objects.filter(code=code).first()
-            if atc:
-                display_names[f"{code}|atc"] = f"{atc.name} ({code})"
-                vmp_details[f"{code}|atc"] = vmp_list
+            vmp_details.append({
+                'item': {'code': code, 'type': item_type},
+                'vmps': vmp_list
+            })
 
     # Count unique VMPs
     vmp_count = len(vmp_codes)
     
     return Response({
         "vmp_count": vmp_count,
-        "display_names": display_names,
         "vmp_details": vmp_details
     })
 
@@ -635,7 +620,8 @@ def get_quantity_data(request):
     query = Q()
     for item in search_items:
         try:
-            code, item_type = item.split('|')
+            code = item["code"]
+            item_type = item["type"]
             if item_type == 'vmp':
                 query |= Q(code=code)
             elif item_type == 'vtm':
@@ -644,7 +630,7 @@ def get_quantity_data(request):
                 query |= Q(ingredients__code=code)
             elif item_type == 'atc':
                 query |= Q(atcs__code__startswith=code)
-        except ValueError:
+        except (KeyError, TypeError):
             return Response({"error": f"Invalid search item format: {item}"}, status=400)
     
     vmp_ids = set(VMP.objects.filter(query).values_list('id', flat=True))
@@ -738,12 +724,12 @@ def get_product_details(request):
     except Exception as e:
         return Response({"error": "An error occurred while processing the request"}, status=500)
 
-def get_vmp_ids_from_search_items(search_items: List[str]) -> Set[int]:
+def get_vmp_ids_from_search_items(search_items: List[dict]) -> Set[int]:
     """
     Extract VMP IDs from search items based on type.
     
     Args:
-        search_items: List of search items in format "code|type"
+        search_items: List of search items in format {"code": str, "type": str}
         
     Returns:
         Set of VMP IDs
@@ -755,7 +741,8 @@ def get_vmp_ids_from_search_items(search_items: List[str]) -> Set[int]:
     
     for item in search_items:
         try:
-            code, item_type = item.split('|')
+            code = item["code"]
+            item_type = item["type"]
             if item_type == 'vmp':
                 query |= Q(code=code)
             elif item_type == 'vtm':
@@ -764,7 +751,7 @@ def get_vmp_ids_from_search_items(search_items: List[str]) -> Set[int]:
                 query |= Q(ingredients__code=code)
             elif item_type == 'atc':
                 query |= Q(atcs__code__startswith=code)
-        except ValueError:
+        except (KeyError, TypeError):
             raise ValueError(f"Invalid search item format: {item}")
     
     return set(VMP.objects.filter(query).values_list('id', flat=True))

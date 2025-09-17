@@ -24,12 +24,10 @@
     let lastSearchResults = [];
     let searchBoxRef;
 
-    let selectedDisplayNames = {};
-
     let listContainer;
     let showScrollTop = false;
 
-    let selectedItemsData = {};
+    let selectedItemsData = [];
     let expandedItems = new Set();  // Track which VTMs are expanded
 
     $: {
@@ -106,20 +104,16 @@
             });
             const data = await response.json();
             vmpCount = data.vmp_count;
-            if (data.display_names) {
-                selectedDisplayNames = data.display_names;
-            }
             if (data.vmp_details) {
-                for (const [itemKey, vmps] of Object.entries(data.vmp_details)) {
-                    if (selectedItemsData[itemKey]) {
-                        selectedItemsData[itemKey].vmps = vmps;
+                for (const detail of data.vmp_details) {
+                    const existingItem = findItemInArray(selectedItemsData, detail.item);
+                    if (existingItem) {
+                        existingItem.vmps = detail.vmps;
                     } else {
-                        const [code, itemType] = itemKey.split('|');
-                        selectedItemsData[itemKey] = {
-                            code,
-                            type: itemType,
-                            vmps
-                        };
+                        selectedItemsData = [...selectedItemsData, {
+                            ...detail.item,
+                            vmps: detail.vmps
+                        }];
                     }
                 }
             }
@@ -130,38 +124,49 @@
         }
     }
 
+    function findItemInArray(items, targetItem) {
+        return items.find(item => item.code === targetItem.code && item.type === targetItem.type);
+    }
+    
+    function isItemSelected(item, selectedItems) {
+        return selectedItems.some(selected => selected.code === item.code && selected.type === item.type);
+    }
+    
+    function removeItemFromSelected(item, selectedItems) {
+        return selectedItems.filter(selected => !(selected.code === item.code && selected.type === item.type));
+    }
+
     function handleSelect(item) {
-        const itemWithType = `${item.code}|${item.type}`;
-       
         if (item.type === 'vtm') {
-            if (!selectedItems.includes(itemWithType)) {
-                const vmpCodes = item.vmps.map(vmp => `${vmp.code}|vmp`);
-                selectedItems = selectedItems.filter(i => !vmpCodes.includes(i));
-                selectedItems = [...selectedItems, itemWithType];
-                selectedItemsData[itemWithType] = item;
+            if (!isItemSelected(item, selectedItems)) {
+                const vmpCodes = item.vmps.map(vmp => ({code: vmp.code, type: 'vmp'}));
+                selectedItems = selectedItems.filter(selected => !vmpCodes.some(vmp => vmp.code === selected.code && vmp.type === selected.type));
+                selectedItems = [...selectedItems, item];
+                selectedItemsData = [...selectedItemsData, item];
             } else {
-                selectedItems = selectedItems.filter(i => i !== itemWithType);
-                delete selectedItemsData[itemWithType];
+                selectedItems = removeItemFromSelected(item, selectedItems);
+                selectedItemsData = selectedItemsData.filter(data => !(data.code === item.code && data.type === item.type));
             }
         } else if (item.type === 'atc' || item.type === 'ingredient') {
-            if (!selectedItems.includes(itemWithType)) {
-                selectedItems = [...selectedItems, itemWithType];
-                selectedItemsData[itemWithType] = item;
+            if (!isItemSelected(item, selectedItems)) {
+                selectedItems = [...selectedItems, item];
+                selectedItemsData = [...selectedItemsData, item];
             } else {
-                selectedItems = selectedItems.filter(i => i !== itemWithType);
-                delete selectedItemsData[itemWithType];
+                selectedItems = removeItemFromSelected(item, selectedItems);
+                selectedItemsData = selectedItemsData.filter(data => !(data.code === item.code && data.type === item.type));
             }
         } else {
             const parentVtm = filteredItems.find(vtm => 
                 vtm.type === 'vtm' && vtm.vmps?.some(vmp => vmp.code === item.code)
             );
-            if (!parentVtm || !selectedItems.includes(`${parentVtm.code}|vtm`)) {
-                if (!selectedItems.includes(itemWithType)) {
-                    selectedItems = [...selectedItems, itemWithType];
-                    selectedItemsData[itemWithType] = item;
+            const parentVtmSelected = parentVtm && isItemSelected(parentVtm, selectedItems);
+            if (!parentVtm || !parentVtmSelected) {
+                if (!isItemSelected(item, selectedItems)) {
+                    selectedItems = [...selectedItems, item];
+                    selectedItemsData = [...selectedItemsData, item];
                 } else {
-                    selectedItems = selectedItems.filter(i => i !== itemWithType);
-                    delete selectedItemsData[itemWithType];
+                    selectedItems = removeItemFromSelected(item, selectedItems);
+                    selectedItemsData = selectedItemsData.filter(data => !(data.code === item.code && data.type === item.type));
                 }
             }
         }
@@ -174,7 +179,8 @@
     }
 
     function handleRemove(item) {
-        selectedItems = selectedItems.filter(i => i !== item);
+        selectedItems = removeItemFromSelected(item, selectedItems);
+        selectedItemsData = selectedItemsData.filter(data => !(data.code === item.code && data.type === item.type));
         dispatch('selectionChange', { items: selectedItems });
         fetchVmpCount();
     }
@@ -230,12 +236,12 @@
     }
 
     $: selectedItemsWithData = selectedItems.map(item => {
-        const [code, type] = item.split('|');
+        const data = findItemInArray(selectedItemsData, item) || 
+                     lastSearchResults.find(i => i.code === item.code) || 
+                     filteredItems.find(i => i.code === item.code);
         return {
             item,
-            data: selectedItemsData[item] || 
-                  lastSearchResults.find(i => i.code === code) || 
-                  filteredItems.find(i => i.code === code)
+            data
         };
     });
 
@@ -320,7 +326,7 @@
                                 <li class="group">
                                     <div 
                                         class="pt-2 pb-1 px-3 flex items-center justify-between relative transition-colors duration-150 ease-in-out"
-                                        class:bg-oxford-50={selectedItems.includes(`${item.code}|vtm`)}
+                                        class:bg-oxford-50={isItemSelected(item, selectedItems)}
                                         class:cursor-pointer={true}
                                         class:cursor-not-allowed={false}
                                         class:opacity-60={false}
@@ -355,7 +361,7 @@
                                                 {/if}
                                             </div>
                                         </div>
-                                        {#if selectedItems.includes(`${item.code}|vtm`)}
+                                        {#if isItemSelected(item, selectedItems)}
                                             <span class="text-xs font-medium text-oxford-600 ml-2">Selected (all products)</span>
                                         {/if}
                                     </div>
@@ -365,15 +371,15 @@
                                             {#each item.vmps as vmp}
                                                 <li 
                                                     class="py-1.5 px-3 pl-8 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
-                                                    class:bg-oxford-50={selectedItems.includes(`${vmp.code}|vmp`)}
-                                                    class:opacity-50={selectedItems.includes(`${item.code}|vtm`)}
-                                                    class:pointer-events-none={selectedItems.includes(`${item.code}|vtm`)}
+                                                    class:bg-oxford-50={isItemSelected({code: vmp.code, type: 'vmp'}, selectedItems)}
+                                                    class:opacity-50={isItemSelected(item, selectedItems)}
+                                                    class:pointer-events-none={isItemSelected(item, selectedItems)}
                                                     on:click={() => handleSelect(vmp)}
                                                 >
                                                     <div>
                                                         <span class="text-sm">{vmp.name}</span>
                                                     </div>
-                                                    {#if selectedItems.includes(`${vmp.code}|vmp`) && !selectedItems.includes(`${item.code}|vtm`)}
+                                                    {#if isItemSelected({code: vmp.code, type: 'vmp'}, selectedItems) && !isItemSelected(item, selectedItems)}
                                                         <span class="text-xs font-medium text-oxford-600 ml-2">Selected</span>
                                                     {/if}
                                                 </li>
@@ -385,7 +391,7 @@
                                 <li class="group">
                                     <div 
                                         class="pt-2 pb-1 px-3 flex items-center justify-between relative transition-colors duration-150 ease-in-out cursor-pointer hover:bg-gray-50"
-                                        class:bg-oxford-50={selectedItems.includes(`${item.code}|atc`)}
+                                        class:bg-oxford-50={isItemSelected(item, selectedItems)}
                                         on:click={() => handleSelect(item)}
                                     >
                                         <div class="flex-1">
@@ -438,7 +444,7 @@
                                                 {/if}
                                             </div>
                                         </div>
-                                        {#if selectedItems.includes(`${item.code}|atc`)}
+                                        {#if isItemSelected(item, selectedItems)}
                                             <span class="text-xs font-medium text-oxford-600 ml-2">Selected</span>
                                         {/if}
                                     </div>
@@ -446,7 +452,7 @@
                             {:else}
                                 <li 
                                     class="py-1.5 px-3 cursor-pointer relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
-                                    class:bg-oxford-50={selectedItems.includes(`${item.code}|${item.type}`)}
+                                    class:bg-oxford-50={isItemSelected(item, selectedItems)}
                                     class:opacity-50={!item.has_vmps && item.type !== 'atc'}
                                     class:pointer-events-none={!item.has_vmps && item.type !== 'atc'}
                                     on:click={() => (item.has_vmps || item.type === 'atc') && handleSelect(item)}
@@ -469,7 +475,7 @@
                                             {/if}
                                         </div>
                                     </div>
-                                    {#if selectedItems.includes(`${item.code}|${item.type}`)}
+                                    {#if isItemSelected(item, selectedItems)}
                                         <span class="text-xs font-medium text-oxford-600 mt-0.5 block">Selected</span>
                                     {/if}
                                 </li>
@@ -503,15 +509,14 @@
                 </h3>
                 <ul class="bg-white border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
                     {#each selectedItemsWithData as {item, data}}
-                        {@const [code, type] = item.split('|')}
+                        {@const code = item.code}
+                        {@const type = item.type}
                         <li class="group">
                             <div class="p-3 hover:bg-gray-50 transition-colors duration-150">
                                 <div class="grid grid-cols-[1fr,auto] gap-3">
                                     <div class="flex flex-col min-w-0">
                                         <span class="text-sm text-gray-700 break-words">
-                                            {(selectedDisplayNames[item] || 
-                                              data?.display_name || 
-                                              item).replace(/\([^)]*\)/g, '').trim()}
+                                            {data?.name || `${item.code} (${item.type})`}
                                         </span>
                                        
                                         {#if (type === 'vtm' || type === 'ingredient' || type === 'atc') && data?.vmps?.length > 0}
