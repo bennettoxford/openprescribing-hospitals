@@ -141,15 +141,18 @@ def search_products(request):
         
         results = []
         for ingredient in all_ingredients:
-            vmp_count = VMP.objects.filter(
+            ingredient_vmps = VMP.objects.filter(
                 ingredients__code=ingredient.code
-            ).count()
+            ).select_related('vtm').values('code', 'name')
+            
+            vmp_list = list(ingredient_vmps)
             
             results.append({
                 'code': ingredient.code,
                 'name': ingredient.name,
                 'type': 'ingredient',
-                'vmp_count': vmp_count
+                'vmp_count': len(vmp_list),
+                'vmps': vmp_list
             })
         
         return JsonResponse({'results': results})
@@ -221,8 +224,9 @@ def search_products(request):
             else:
                 continue
             
-            # Get VMP count for this ATC code and all its children
-            vmp_count = atc.get_vmps().count()
+            atc_vmps = atc.get_vmps().select_related('vtm').values('code', 'name')
+            vmp_list = list(atc_vmps)
+            vmp_count = len(vmp_list)
 
             hierarchy_path = build_hierarchy_path(atc)
 
@@ -250,6 +254,7 @@ def search_products(request):
                 'type': 'atc',
                 'level': level,
                 'vmp_count': vmp_count,
+                'vmps': vmp_list,
                 'hierarchy_path': hierarchy_path,
                 'parent_path': parent_path,
             })
@@ -259,66 +264,6 @@ def search_products(request):
     return JsonResponse({'results': []})
 
 
-@api_view(["POST"])
-def vmp_count(request):
-    search_items = request.data.get("names", [])
-    
-    vmp_codes = set()
-    vmp_details = []
-
-    for item in search_items:
-        code = item["code"]
-        item_type = item["type"]
-        
-        if item_type == 'vtm':
-            # Get all VMPs for this VTM
-            vtm_vmps = VMP.objects.filter(vtm__vtm=code).values_list('code', flat=True)
-            vmp_codes.update(vtm_vmps)
-
-        elif item_type == 'vmp':
-            vmp_codes.add(code)
-
-        elif item_type == 'ingredient':
-            # Get all VMPs containing this ingredient
-            ingredient_vmps = VMP.objects.filter(ingredients__code=code).select_related('vtm')
-            vmp_list = []
-            for vmp in ingredient_vmps:
-                vmp_codes.add(vmp.code)
-                vmp_list.append({
-                    'code': vmp.code,
-                    'name': vmp.name,
-                    'type': 'vmp'
-                })
-            
-            vmp_details.append({
-                'item': {'code': code, 'type': item_type},
-                'vmps': vmp_list
-            })
-        
-        elif item_type == 'atc':
-            # Get all VMPs with ATC codes that start with this code
-            atc_vmps = VMP.objects.filter(atcs__code__startswith=code).select_related('vtm')
-            vmp_list = []
-            for vmp in atc_vmps:
-                vmp_codes.add(vmp.code)
-                vmp_list.append({
-                    'code': vmp.code,
-                    'name': vmp.name,
-                    'type': 'vmp'
-                })
-            
-            vmp_details.append({
-                'item': {'code': code, 'type': item_type},
-                'vmps': vmp_list
-            })
-
-    # Count unique VMPs
-    vmp_count = len(vmp_codes)
-    
-    return Response({
-        "vmp_count": vmp_count,
-        "vmp_details": vmp_details
-    })
 
 @csrf_protect
 @api_view(["POST"])
