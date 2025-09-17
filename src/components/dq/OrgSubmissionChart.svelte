@@ -3,6 +3,7 @@
     import * as Highcharts from 'highcharts';
     import { Chart } from '@highcharts/svelte';
     import Accessibility from 'highcharts/modules/accessibility';
+    import { organisationSearchStore } from '../../stores/organisationSearchStore.js';
 
     export let org;
     export let latestDates;
@@ -72,10 +73,10 @@
             },
             accessibility: {
                 enabled: true,
-                description: `Bar chart showing submission history for ${org.name}`
+                description: `Bar chart showing submission history for ${organisationSearchStore.getDisplayName(org.name)}`
             },
             title: {
-                text: org.name,
+                text: organisationSearchStore.getDisplayName(org.name),
                 align: 'left',
                 style: {
                     fontSize: '14px',

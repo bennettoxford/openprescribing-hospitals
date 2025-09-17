@@ -5,6 +5,46 @@ from django.conf import settings
 import os
 
 
+from .models import Organisation
+
+
+def get_organisation_data():
+    """
+    Get standardised organisation data.
+    
+    Returns:
+        dict: Contains orgs (code->name mapping), org_codes (name->code mapping), 
+              and predecessor_map (successor_name->list of predecessor names)
+    """
+    
+    orgs = Organisation.objects.select_related('successor').values(
+        'ods_code', 'ods_name', 'successor__ods_name'
+    ).order_by('ods_name')
+    
+    org_names = {}
+    org_codes = {}
+    predecessor_map = {}
+    
+    for org in orgs:
+        name = org['ods_name']
+        code = org['ods_code']
+        
+        org_names[code] = name
+        org_codes[name] = code
+        
+        if org['successor__ods_name']:
+            successor_name = org['successor__ods_name']
+            if successor_name not in predecessor_map:
+                predecessor_map[successor_name] = []
+            predecessor_map[successor_name].append(name)
+    
+    return {
+        'orgs': org_names,
+        'org_codes': org_codes,
+        'predecessor_map': predecessor_map
+    }
+
+
 def safe_float(value):
     """Convert value to float, handling NaN, inf, and None values."""
     if value is None:

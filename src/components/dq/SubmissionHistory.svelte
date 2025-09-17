@@ -61,8 +61,6 @@
         return deviations.reduce((sum, dev) => sum + dev, 0) / deviations.length;
     }
 
-
-
     function prepareOrganisationsForSearch(orgs) {
         let allOrgs = [];
         function collectOrgs(org) {
@@ -78,10 +76,8 @@
     function handleSearchSelect(event) {
         const { selectedItems, source } = event.detail;
         
-
         if (source === 'clearAll') {
             organisationSearchStore.updateSelection([]);
-            
             filteredOrganisations = [];
         } else {
             const itemsArray = Array.isArray(selectedItems) ? selectedItems : [];
@@ -139,7 +135,9 @@
     onMount(() => {
         try {
             const unescapedData = unescapeUnicode(orgData);
-            parsedOrgData = JSON.parse(unescapedData);
+            const parsedData = JSON.parse(unescapedData);
+
+            parsedOrgData = parsedData.organisations;          
             parsedLatestDates = JSON.parse(unescapeUnicode(latestDates));
             parsedRegions = JSON.parse(unescapeUnicode(regions));
             parsedRegionsHierarchy = JSON.parse(unescapeUnicode(regionsHierarchy));
@@ -159,9 +157,12 @@
             
             if (parsedOrgData.length > 0) {
                 searchableOrgs = prepareOrganisationsForSearch(parsedOrgData);
-                organisationSearchStore.setItems(searchableOrgs);
-                organisationSearchStore.setAvailableItems(searchableOrgs);
-                organisationSearchStore.setPredecessorMap(buildPredecessorMap(parsedOrgData));
+                
+                organisationSearchStore.setOrganisationData({
+                    orgs: Object.fromEntries(searchableOrgs.map(name => [name, name])),
+                    org_codes: parsedData.org_codes || {},
+                    predecessor_map: parsedData.predecessor_map || buildPredecessorMap(parsedOrgData)
+                });
                 organisationSearchStore.updateSelection(searchableOrgs);
             }
             

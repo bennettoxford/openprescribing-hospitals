@@ -75,11 +75,12 @@
     if (orgData) {
         try {
             const parsedData = typeof orgData === 'string' ? JSON.parse(orgData) : orgData;
-            const predecessorMap = new Map(Object.entries(parsedData.predecessorMap));
-            
-            organisationSearchStore.setItems(parsedData.items);
-            organisationSearchStore.setAvailableItems(parsedData.items);
-            organisationSearchStore.setPredecessorMap(predecessorMap);
+
+            organisationSearchStore.setOrganisationData({
+                orgs: parsedData.orgs || {},
+                org_codes: parsedData.org_codes || {},
+                predecessor_map: parsedData.predecessorMap || {}
+            });
             organisationSearchStore.setFilterType('trust');
         } catch (error) {
             console.error('Error parsing ODS data:', error);
