@@ -36,5 +36,5 @@ first_published: 2025-08-20
 status: in_development
 annotations:
     - date: 2021-02-01
-      label: "Dapagliflozin licensed for treatment of heart failure (NICE TA679)"
+      label: "Dapagliflozin licensed for treatment of chronic heart failure (NICE TA679)"
       colour: "#0090C1"
