@@ -200,7 +200,9 @@ def create_org_mapping_df(
         "legal_open_date",
         "operational_open_date",
         "postcode",
+        "region_code",
         "region",
+        "icb_code",
         "icb",
     ]
     org_mapping_df = pd.DataFrame(columns=columns)
@@ -237,7 +239,9 @@ def create_org_mapping_df(
             .get("GeoLoc", {})
             .get("Location", {})
             .get("PostCode", None),
+            "region_code": region,
             "region": region_name,
+            "icb_code": icb,
             "icb": icb_name,
         }
 
