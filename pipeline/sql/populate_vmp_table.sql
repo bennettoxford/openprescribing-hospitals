@@ -118,6 +118,21 @@ vmp_amps AS (
   GROUP BY dmd.vmp_code
 ),
 
+vmp_special_status AS (
+  SELECT
+    dmd.vmp_code,
+    CASE
+      WHEN SUM(CASE WHEN amp.avail_restrict = 'Special' THEN 1 ELSE 0 END) > 0 
+           AND SUM(CASE WHEN amp.avail_restrict != 'Special' OR amp.avail_restrict IS NULL THEN 1 ELSE 0 END) = 0 
+      THEN TRUE
+      ELSE FALSE
+    END AS special
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_TABLE_ID }}` dmd,
+  UNNEST(amps) AS amp
+  JOIN scmd_vmps sv ON dmd.vmp_code = sv.vmp_code
+  GROUP BY dmd.vmp_code
+),
+
 vmp_ddd_info AS (
   SELECT
     vmp_code,
@@ -146,6 +161,7 @@ SELECT
   vb.udfs_basis_uom,
   vb.unit_dose_uom,
   vb.unit_dose_basis_uom,
+  COALESCE(vss.special, FALSE) AS special,
   COALESCE(vi.ingredients, []) AS ingredients,
   COALESCE(vr.ont_form_routes, []) AS ont_form_routes,
   COALESCE(va.atcs, []) AS atcs,
@@ -162,4 +178,5 @@ LEFT JOIN vmp_ingredients vi ON vb.vmp_code = vi.vmp_code
 LEFT JOIN vmp_routes vr ON vb.vmp_code = vr.vmp_code
 LEFT JOIN vmp_atc_mappings va ON vb.vmp_code = va.vmp_code
 LEFT JOIN vmp_amps vamp ON vb.vmp_code = vamp.vmp_code
+LEFT JOIN vmp_special_status vss ON vb.vmp_code = vss.vmp_code
 LEFT JOIN vmp_ddd_info vddd ON vb.vmp_code = vddd.vmp_code 

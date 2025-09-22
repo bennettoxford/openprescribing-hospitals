@@ -864,6 +864,7 @@ VMP_TABLE_SPEC = TableSpec(
         bigquery.SchemaField("udfs_basis_uom", "STRING", mode="NULLABLE", description="Basis unit for the unit dose form size"),
         bigquery.SchemaField("unit_dose_uom", "STRING", mode="NULLABLE", description="Unit dose unit of measure"),
         bigquery.SchemaField("unit_dose_basis_uom", "STRING", mode="NULLABLE", description="Basis unit for the unit dose"),
+        bigquery.SchemaField("special", "BOOLEAN", mode="REQUIRED", description="Whether this VMP is a special (unlicensed medicine)"),
         bigquery.SchemaField(
             "ingredients",
             "RECORD",
