@@ -61,6 +61,7 @@ class VMP(models.Model):
     udfs = models.FloatField(null=True, help_text="Unit dose form size")
     udfs_uom = models.CharField(max_length=100, null=True, help_text="Unit dose form size unit of measure")
     unit_dose_uom = models.CharField(max_length=100, null=True, help_text="Unit dose unit of measure")
+    special = models.BooleanField(default=False, help_text="Whether this VMP is a special (unlicensed medicine)")
 
     def __str__(self):
         return f"{self.name} ({self.code})"
