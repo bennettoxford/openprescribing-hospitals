@@ -335,6 +335,10 @@ def load_vmps(
             udfs_uom_value = row.get("udfs_basis_uom") if pd.notna(row.get("udfs_basis_uom")) else row.get("udfs_uom")
             unit_dose_uom_value = row.get("unit_dose_basis_uom") if pd.notna(row.get("unit_dose_basis_uom")) else row.get("unit_dose_uom")
 
+            special_value = row.get("special", False)
+            if pd.isna(special_value):
+                special_value = False
+
             vmp_obj = VMP(
                 code=vmp_code,
                 name=row["vmp_name"],
@@ -344,6 +348,7 @@ def load_vmps(
                 udfs=udfs_value,
                 udfs_uom=udfs_uom_value,
                 unit_dose_uom=unit_dose_uom_value,
+                special=special_value,
             )
             vmp_objects.append(vmp_obj)
 
