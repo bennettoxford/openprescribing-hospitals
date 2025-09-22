@@ -9,12 +9,11 @@ why_it_matters: |
     The MHRA states that prescribers should be satisfied that an alternative, licensed medicine would not meet the patient’s needs before prescribing an unlicensed medicine see,
     [MHRA Off-label or unlicensed use of medicines: prescribers’ responsibilities](https://www.gov.uk/drug-safety-update/off-label-or-unlicensed-use-of-medicines-prescribers-responsibilities).
 
+    Licensed formulations of omeprazole liquid began to become available in 2020, and prescribers should consider using these in preference to unlicensed products.
+
 how_is_it_calculated: >
-    We select all omeprazole products with the Virtual Therapeutic Moiety (VTM) code 776991000. 
-    We then filter to liquid products by identifying products with the form and route `suspension.oral` or `solution.oral` (excluding those that additionally have the form and route `tablet.oral`, 
-    which is the case for  the dispersible gastro-resistant tablets forms of omeprazole).
-    The subset of these products that are licensed are specified manually.
-    We then divide the monthly [Defined Daily Doses](/faq/#what-is-a-defined-daily-dose-ddd) of unlicensed omeprazole products by the total monthly Defined Daily Doses of all liquid omeprazole products and multiply by 100 to get the percentage.
+    We divide the number of [defined daily doses](/faq/#what-is-a-defined-daily-dose-ddd) of unlicensed liquid omeprazole products by the total number of defined daily doses of all liquid omeprazole products and then multiply by 100 to obtain a percentage each month.
+    
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Safety
