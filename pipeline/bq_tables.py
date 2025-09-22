@@ -932,6 +932,23 @@ VMP_TABLE_SPEC = TableSpec(
                 bigquery.SchemaField("atc_name", "STRING", mode="REQUIRED", description="ATC name"),
             ],
         ),
+        bigquery.SchemaField(
+            "amps",
+            "RECORD",
+            mode="REPEATED",
+            description="Actual Medicinal Products (AMPs) associated with this VMP",
+            fields=[
+                bigquery.SchemaField(
+                    "amp_code", "STRING", mode="REQUIRED", description="AMP code"
+                ),
+                bigquery.SchemaField(
+                    "amp_name", "STRING", mode="REQUIRED", description="AMP name"
+                ),
+                bigquery.SchemaField(
+                    "avail_restrict", "STRING", mode="NULLABLE", description="Availability restriction description"
+                ),
+            ],
+        ),
         bigquery.SchemaField("selected_ddd_value", "FLOAT", mode="NULLABLE", description="Selected DDD value for this VMP"),
         bigquery.SchemaField("selected_ddd_unit", "STRING", mode="NULLABLE", description="Unit of the selected DDD"),
         bigquery.SchemaField("selected_ddd_basis_value", "FLOAT", mode="NULLABLE", description="Selected DDD value converted to basis units"),

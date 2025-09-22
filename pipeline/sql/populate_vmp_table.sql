@@ -102,6 +102,22 @@ vmp_atc_mappings AS (
   GROUP BY atc.vmp_code
 ),
 
+vmp_amps AS (
+  SELECT
+    dmd.vmp_code,
+    ARRAY_AGG(
+      STRUCT(
+        amp.amp_code,
+        amp.amp_name,
+        amp.avail_restrict
+      )
+    ) AS amps
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_TABLE_ID }}` dmd,
+  UNNEST(amps) AS amp
+  JOIN scmd_vmps sv ON dmd.vmp_code = sv.vmp_code
+  GROUP BY dmd.vmp_code
+),
+
 vmp_ddd_info AS (
   SELECT
     vmp_code,
@@ -133,6 +149,7 @@ SELECT
   COALESCE(vi.ingredients, []) AS ingredients,
   COALESCE(vr.ont_form_routes, []) AS ont_form_routes,
   COALESCE(va.atcs, []) AS atcs,
+  COALESCE(vamp.amps, []) AS amps,
   vddd.selected_ddd_value,
   vddd.selected_ddd_unit,
   vddd.selected_ddd_basis_value,
@@ -144,4 +161,5 @@ LEFT JOIN vmp_bnf vbnf ON vb.vmp_code = vbnf.vmp_code
 LEFT JOIN vmp_ingredients vi ON vb.vmp_code = vi.vmp_code
 LEFT JOIN vmp_routes vr ON vb.vmp_code = vr.vmp_code
 LEFT JOIN vmp_atc_mappings va ON vb.vmp_code = va.vmp_code
+LEFT JOIN vmp_amps vamp ON vb.vmp_code = vamp.vmp_code
 LEFT JOIN vmp_ddd_info vddd ON vb.vmp_code = vddd.vmp_code 
