@@ -358,6 +358,23 @@ DMD_TABLE_SPEC = TableSpec(
                 ),
             ],
         ),
+        bigquery.SchemaField(
+            "amps",
+            "RECORD",
+            mode="REPEATED",
+            description="Actual Medicinal Products (AMPs) associated with this VMP",
+            fields=[
+                bigquery.SchemaField(
+                    "amp_code", "STRING", mode="REQUIRED", description="AMP code"
+                ),
+                bigquery.SchemaField(
+                    "amp_name", "STRING", mode="REQUIRED", description="AMP name"
+                ),
+                bigquery.SchemaField(
+                    "avail_restrict", "STRING", mode="NULLABLE", description="Availability restriction description"
+                ),
+            ],
+        ),
     ],
     cluster_fields=["vmp_code"],
 )
