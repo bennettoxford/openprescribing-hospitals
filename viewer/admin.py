@@ -9,6 +9,8 @@ from .models import (
     Ingredient,
     Organisation,
     TrustType,
+    Region,
+    ICB,
     Dose,
     IngredientQuantity,
     Measure,
@@ -44,6 +46,16 @@ class TrustTypeAdmin(admin.ModelAdmin):
     search_fields = ("name", "description")
     list_filter = ("name",)
 
+@admin.register(Region)
+class RegionAdmin(admin.ModelAdmin):
+    list_display = ("code", "name")
+    search_fields = ("code", "name")
+
+@admin.register(ICB)
+class ICBAdmin(admin.ModelAdmin):
+    list_display = ("code", "name", "region")
+    search_fields = ("code", "name", "region__name")
+    list_filter = ("region",)
 
 @admin.register(Organisation)
 class OrganisationAdmin(admin.ModelAdmin):
