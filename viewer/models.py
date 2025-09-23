@@ -167,11 +167,32 @@ class VMPIngredientStrength(models.Model):
     def __str__(self):
         return f"{self.vmp.name} - {self.ingredient.name}"
 
+class TrustType(models.Model):
+    """Trust type classification from ERIC data"""
+    name = models.CharField(max_length=255, unique=True, help_text="Trust type name (e.g., ACUTE - TEACHING, COMMUNITY)")
+    description = models.TextField(null=True, blank=True, help_text="Optional description of the trust type")
+    
+    def __str__(self):
+        return self.name
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=["name"]),
+        ]
+
 class Organisation(models.Model):
     ods_code = models.CharField(max_length=10, unique=True)
     ods_name = models.CharField(max_length=255, null=False)
     region = models.CharField(max_length=100, null=False)
     icb = models.CharField(max_length=100, null=True)
+    trust_type = models.ForeignKey(
+        TrustType, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name="organisations",
+        help_text="Trust type from ERIC data"
+    )
     successor = models.ForeignKey(
         "self",
         on_delete=models.SET_NULL,
