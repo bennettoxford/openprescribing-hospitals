@@ -12,7 +12,7 @@ from pipeline.bq_tables import (
 )
 
 setup_django_environment()
-from viewer.models import VMP, VTM, Ingredient, WHORoute, ATC, OntFormRoute, VMPIngredientStrength
+from viewer.models import VMP, VTM, Ingredient, WHORoute, ATC, OntFormRoute, VMPIngredientStrength, AMP
 
 
 @task()
@@ -159,6 +159,56 @@ def load_ingredients(vmp_data: pd.DataFrame) -> Dict[str, int]:
 
 
 @task()
+def load_amps(vmp_data: pd.DataFrame) -> Dict[str, int]:
+    """Replace all AMPs with new data"""
+    logger = get_run_logger()
+
+    amp_entries = {}
+    for _, row in vmp_data.iterrows():
+        if "amps" in row and (
+            isinstance(row["amps"], list)
+            or isinstance(row["amps"], np.ndarray)
+        ):
+            for amp in row["amps"]:
+                amp_code = amp.get("amp_code")
+                amp_name = amp.get("amp_name")
+                avail_restrict = amp.get("avail_restrict")
+
+                if isinstance(amp, dict) and amp_code and amp_name:
+                    amp_entries[amp_code] = {
+                        "name": amp_name,
+                        "avail_restrict": avail_restrict
+                    }
+
+    logger.info(f"Found {len(amp_entries)} unique AMPs in the data")
+
+    with transaction.atomic():
+        logger.info("Deleting AMP records...")
+        deleted_total = 0
+        while AMP.objects.exists():
+            ids = AMP.objects.values_list('id', flat=True)[:10000]
+            batch_count = AMP.objects.filter(id__in=ids).delete()[0]
+            deleted_total += batch_count
+        logger.info(f"Finished deleting AMP records. Total deleted: {deleted_total}")
+
+        amp_objects = [
+            AMP(
+                code=amp_code,
+                name=amp_data["name"],
+                avail_restrict=amp_data["avail_restrict"]
+            )
+            for amp_code, amp_data in amp_entries.items()
+        ]
+
+        created_objects = AMP.objects.bulk_create(amp_objects, batch_size=1000)
+        logger.info(f"Created {len(created_objects)} AMP records")
+
+        amp_mapping = {amp.code: amp.id for amp in AMP.objects.all()}
+
+    return amp_mapping
+
+
+@task()
 def validate_atcs(vmp_data: pd.DataFrame) -> Dict[str, int]:
     """Get mapping of existing ATC codes"""
     logger = get_run_logger()
@@ -255,6 +305,7 @@ def load_vmps(
     ingredient_mapping: Dict[str, int],
     atc_mapping: Dict[str, int],
     ont_form_route_mapping: Dict[str, int],
+    amp_mapping: Dict[str, int],
 ) -> None:
     """Replace all VMPs with new data"""
     logger = get_run_logger()
@@ -284,6 +335,10 @@ def load_vmps(
             udfs_uom_value = row.get("udfs_basis_uom") if pd.notna(row.get("udfs_basis_uom")) else row.get("udfs_uom")
             unit_dose_uom_value = row.get("unit_dose_basis_uom") if pd.notna(row.get("unit_dose_basis_uom")) else row.get("unit_dose_uom")
 
+            special_value = row.get("special", False)
+            if pd.isna(special_value):
+                special_value = False
+
             vmp_obj = VMP(
                 code=vmp_code,
                 name=row["vmp_name"],
@@ -293,6 +348,7 @@ def load_vmps(
                 udfs=udfs_value,
                 udfs_uom=udfs_uom_value,
                 unit_dose_uom=unit_dose_uom_value,
+                special=special_value,
             )
             vmp_objects.append(vmp_obj)
 
@@ -302,6 +358,7 @@ def load_vmps(
                 "ont_form_route_ids": [],
                 "who_route_ids": [],
                 "atc_ids": [],
+                "amp_ids": [],
             }
 
             if "ingredients" in row and (
@@ -354,6 +411,17 @@ def load_vmps(
                     if isinstance(atc, dict) and atc.get("atc_code") in atc_mapping:
                         relationships["atc_ids"].append(atc_mapping[atc["atc_code"]])
 
+            if (
+                "amps" in row
+                and (
+                    isinstance(row["amps"], list) or isinstance(row["amps"], np.ndarray)
+                )
+                and len(row["amps"]) > 0
+            ):
+                for amp in row["amps"]:
+                    if isinstance(amp, dict) and amp.get("amp_code") in amp_mapping:
+                        relationships["amp_ids"].append(amp_mapping[amp["amp_code"]])
+
             vmp_relationships.append(relationships)
 
         created_objects = VMP.objects.bulk_create(vmp_objects, batch_size=1000)
@@ -367,6 +435,7 @@ def load_vmps(
         ont_form_route_relations = []
         who_route_relations = []
         atc_relations = []
+        amp_relations = []
 
         for rel in vmp_relationships:
             vmp = vmp_lookup[rel["vmp_code"]]
@@ -390,6 +459,11 @@ def load_vmps(
                 atc_relations.append(
                     VMP.atcs.through(vmp_id=vmp.id, atc_id=atc_id)
                 )
+            
+            for amp_id in rel["amp_ids"]:
+                amp_relations.append(
+                    VMP.amps.through(vmp_id=vmp.id, amp_id=amp_id)
+                )
 
         if ingredient_relations:
             VMP.ingredients.through.objects.bulk_create(ingredient_relations, batch_size=1000)
@@ -399,6 +473,8 @@ def load_vmps(
             VMP.who_routes.through.objects.bulk_create(who_route_relations, batch_size=1000)
         if atc_relations:
             VMP.atcs.through.objects.bulk_create(atc_relations, batch_size=1000)
+        if amp_relations:
+            VMP.amps.through.objects.bulk_create(amp_relations, batch_size=1000)
 
         logger.info("Completed VMP creation and relationship setup")
 
@@ -490,6 +566,7 @@ def vacuum_tables() -> None:
         "viewer_whoroute",
         "viewer_ontformroute",
         "viewer_vmpingredientstrength",
+        "viewer_amp",
     ]
 
     m2m_tables = [
@@ -497,6 +574,7 @@ def vacuum_tables() -> None:
         "viewer_vmp_ont_form_routes",
         "viewer_vmp_who_routes",
         "viewer_vmp_atcs",
+        "viewer_vmp_amps",
     ]
 
     cascaded_tables = [
@@ -530,13 +608,14 @@ def load_vmp_vtm_data():
     who_route_mapping = load_who_routes(who_routes_data)
     vtm_mapping = load_vtms(vmp_data)
     ingredient_mapping = load_ingredients(vmp_data)
+    amp_mapping = load_amps(vmp_data)
     atc_mapping = validate_atcs(vmp_data)
     ont_form_route_mapping = load_ont_form_routes(
         vmp_data, route_mapping_data, who_route_mapping
     )
 
     load_vmps(
-        vmp_data, vtm_mapping, ingredient_mapping, atc_mapping, ont_form_route_mapping
+        vmp_data, vtm_mapping, ingredient_mapping, atc_mapping, ont_form_route_mapping, amp_mapping
     )
     
     load_vmp_ingredient_strengths(vmp_data, ingredient_mapping)

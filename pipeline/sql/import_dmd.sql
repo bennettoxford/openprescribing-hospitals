@@ -11,6 +11,17 @@ USING (
     JOIN dmd.ontformroute AS ofr ON o.form = ofr.cd
     GROUP BY vmp
   ),
+  amp_data AS (
+    SELECT 
+      amp_full.vmp,
+      ARRAY_AGG(STRUCT(
+        CAST(amp_full.id AS STRING) AS amp_code,
+        amp_full.descr AS amp_name,
+        amp_full.avail_restrict AS avail_restrict
+      ) ORDER BY amp_full.id) AS amps
+    FROM dmd.amp_full
+    GROUP BY amp_full.vmp
+  ),
   vmp_vpi_ing_data AS (
     SELECT DISTINCT
       vmp_full.id AS vmp_code,
@@ -69,6 +80,7 @@ USING (
     unit_dose_uom,
     dform_form,
     rd.ontformroutes,
+    ad.amps,
     ARRAY_AGG(
       IF(ing IS NOT NULL,
         STRUCT(
@@ -88,6 +100,7 @@ USING (
     ) AS ingredients
   FROM vmp_vpi_ing_data
   LEFT JOIN route_data rd ON CAST(vmp_code AS STRING) = CAST(rd.vmp AS STRING)
+  LEFT JOIN amp_data ad ON CAST(vmp_code AS STRING) = CAST(ad.vmp AS STRING)
   GROUP BY
     vmp_code,
     vmp_name,
@@ -98,7 +111,8 @@ USING (
     udfs_uom,
     unit_dose_uom,
     dform_form,
-    rd.ontformroutes
+    rd.ontformroutes,
+    ad.amps
 ) S
 ON T.vmp_code = S.vmp_code
 WHEN MATCHED THEN
@@ -112,15 +126,16 @@ WHEN MATCHED THEN
     unit_dose_uom = S.unit_dose_uom,
     dform_form = S.dform_form,
     ingredients = S.ingredients,
-    ontformroutes = S.ontformroutes
+    ontformroutes = S.ontformroutes,
+    amps = S.amps
 WHEN NOT MATCHED THEN
   INSERT (
     vmp_code, vmp_name, vtm, vtm_name, df_ind, 
     udfs, udfs_uom, unit_dose_uom, dform_form, 
-    ingredients, ontformroutes
+    ingredients, ontformroutes, amps
   )
   VALUES (
     S.vmp_code, S.vmp_name, S.vtm, S.vtm_name, S.df_ind,
     S.udfs, S.udfs_uom, S.unit_dose_uom, S.dform_form,
-    S.ingredients, S.ontformroutes
+    S.ingredients, S.ontformroutes, S.amps
   )

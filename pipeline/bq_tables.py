@@ -358,6 +358,23 @@ DMD_TABLE_SPEC = TableSpec(
                 ),
             ],
         ),
+        bigquery.SchemaField(
+            "amps",
+            "RECORD",
+            mode="REPEATED",
+            description="Actual Medicinal Products (AMPs) associated with this VMP",
+            fields=[
+                bigquery.SchemaField(
+                    "amp_code", "STRING", mode="REQUIRED", description="AMP code"
+                ),
+                bigquery.SchemaField(
+                    "amp_name", "STRING", mode="REQUIRED", description="AMP name"
+                ),
+                bigquery.SchemaField(
+                    "avail_restrict", "STRING", mode="NULLABLE", description="Availability restriction description"
+                ),
+            ],
+        ),
     ],
     cluster_fields=["vmp_code"],
 )
@@ -847,6 +864,7 @@ VMP_TABLE_SPEC = TableSpec(
         bigquery.SchemaField("udfs_basis_uom", "STRING", mode="NULLABLE", description="Basis unit for the unit dose form size"),
         bigquery.SchemaField("unit_dose_uom", "STRING", mode="NULLABLE", description="Unit dose unit of measure"),
         bigquery.SchemaField("unit_dose_basis_uom", "STRING", mode="NULLABLE", description="Basis unit for the unit dose"),
+        bigquery.SchemaField("special", "BOOLEAN", mode="REQUIRED", description="Whether this VMP is a special (unlicensed medicine)"),
         bigquery.SchemaField(
             "ingredients",
             "RECORD",
@@ -913,6 +931,23 @@ VMP_TABLE_SPEC = TableSpec(
             fields=[
                 bigquery.SchemaField("atc_code", "STRING", mode="REQUIRED", description="ATC code"),
                 bigquery.SchemaField("atc_name", "STRING", mode="REQUIRED", description="ATC name"),
+            ],
+        ),
+        bigquery.SchemaField(
+            "amps",
+            "RECORD",
+            mode="REPEATED",
+            description="Actual Medicinal Products (AMPs) associated with this VMP",
+            fields=[
+                bigquery.SchemaField(
+                    "amp_code", "STRING", mode="REQUIRED", description="AMP code"
+                ),
+                bigquery.SchemaField(
+                    "amp_name", "STRING", mode="REQUIRED", description="AMP name"
+                ),
+                bigquery.SchemaField(
+                    "avail_restrict", "STRING", mode="NULLABLE", description="Availability restriction description"
+                ),
             ],
         ),
         bigquery.SchemaField("selected_ddd_value", "FLOAT", mode="NULLABLE", description="Selected DDD value for this VMP"),

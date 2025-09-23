@@ -27,6 +27,23 @@ class WHORoute(models.Model):
             models.Index(fields=["code"]),
         ]
 
+class AMP(models.Model):
+    code = models.CharField(max_length=30, unique=True)
+    name = models.CharField(max_length=255)
+    avail_restrict = models.CharField(
+        max_length=255, 
+        null=True, 
+        help_text="Availability restriction description"
+    )
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["code"]),
+        ]
+
 class VMP(models.Model):
     code = models.CharField(max_length=30, unique=True)
     name = models.CharField(max_length=255)
@@ -38,11 +55,13 @@ class VMP(models.Model):
     ont_form_routes = models.ManyToManyField("OntFormRoute", related_name="vmps")
     who_routes = models.ManyToManyField("WHORoute", related_name="vmps")
     atcs = models.ManyToManyField("ATC", related_name="vmps")
+    amps = models.ManyToManyField("AMP", related_name="vmps")
     bnf_code = models.CharField(max_length=20, null=True)
     df_ind = models.CharField(max_length=20, null=False, default="Not applicable", help_text="Dose form indicator")
     udfs = models.FloatField(null=True, help_text="Unit dose form size")
     udfs_uom = models.CharField(max_length=100, null=True, help_text="Unit dose form size unit of measure")
     unit_dose_uom = models.CharField(max_length=100, null=True, help_text="Unit dose unit of measure")
+    special = models.BooleanField(default=False, help_text="Whether this VMP is a special (unlicensed medicine)")
 
     def __str__(self):
         return f"{self.name} ({self.code})"

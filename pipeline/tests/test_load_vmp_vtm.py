@@ -9,12 +9,13 @@ from pipeline.flows.load_vmp_vtm import (
     load_vtms,
     load_who_routes,
     load_ingredients,
+    load_amps,
     validate_atcs,
     load_ont_form_routes,
     load_vmps,
     load_vmp_ingredient_strengths,
 )
-from viewer.models import VMP, VTM, Ingredient, WHORoute, ATC, OntFormRoute, VMPIngredientStrength
+from viewer.models import VMP, VTM, Ingredient, WHORoute, ATC, OntFormRoute, VMPIngredientStrength, AMP
 
 
 @pytest.fixture
@@ -71,6 +72,27 @@ def sample_vmp_data():
                 [{"route_code": "RT2", "route_name": "solution.intravenous"}],
             ],
             "atcs": [[{"atc_code": "A01AA01"}], [{"atc_code": "B01AB01"}]],
+            "amps": [
+                [
+                    {
+                        "amp_code": "AMP123",
+                        "amp_name": "Test AMP 1",
+                        "avail_restrict": "Prescription only"
+                    },
+                    {
+                        "amp_code": "AMP456",
+                        "amp_name": "Test AMP 2",
+                        "avail_restrict": None
+                    }
+                ],
+                [
+                    {
+                        "amp_code": "AMP789",
+                        "amp_name": "Test AMP 3",
+                        "avail_restrict": "Hospital only"
+                    }
+                ],
+            ],
         }
     )
 
@@ -185,6 +207,29 @@ class TestLoadVMPVTM:
         assert ing.name == "Ingredient 1"
 
     @pytest.mark.django_db
+    def test_load_amps(self, sample_vmp_data):
+
+        result = load_amps(sample_vmp_data)
+
+        assert isinstance(result, dict)
+        assert len(result) == 3
+
+        amps = AMP.objects.all()
+        assert amps.count() == 3
+
+        amp1 = amps.get(code="AMP123")
+        assert amp1.name == "Test AMP 1"
+        assert amp1.avail_restrict == "Prescription only"
+
+        amp2 = amps.get(code="AMP456")
+        assert amp2.name == "Test AMP 2"
+        assert amp2.avail_restrict is None
+
+        amp3 = amps.get(code="AMP789")
+        assert amp3.name == "Test AMP 3"
+        assert amp3.avail_restrict == "Hospital only"
+
+    @pytest.mark.django_db
     def test_validate_atcs(self, sample_vmp_data):
 
         ATC.objects.create(code="A01AA01", name="Test ATC 1")
@@ -246,6 +291,15 @@ class TestLoadVMPVTM:
         )
         atc_mapping = {atc.code: atc.id for atc in atcs}
 
+        amps = AMP.objects.bulk_create(
+            [
+                AMP(code="AMP123", name="Test AMP 1", avail_restrict="Prescription only"),
+                AMP(code="AMP456", name="Test AMP 2", avail_restrict=None),
+                AMP(code="AMP789", name="Test AMP 3", avail_restrict="Hospital only"),
+            ]
+        )
+        amp_mapping = {amp.code: amp.id for amp in amps}
+
         who_routes = WHORoute.objects.bulk_create(
             [WHORoute(code="O", name="Oral"), WHORoute(code="P", name="Parenteral")]
         )
@@ -264,6 +318,7 @@ class TestLoadVMPVTM:
             ingredient_mapping,
             atc_mapping,
             ont_form_route_mapping,
+            amp_mapping,
         )
 
         vmps = VMP.objects.all()
@@ -281,14 +336,19 @@ class TestLoadVMPVTM:
         assert vmp1.ont_form_routes.count() == 1
         assert vmp1.atcs.count() == 1
         assert vmp1.who_routes.count() == 1
+        assert vmp1.amps.count() == 2
 
         assert "Ingredient 1" in [i.name for i in vmp1.ingredients.all()]
         assert "tablet.oral" in [r.name for r in vmp1.ont_form_routes.all()]
         assert "A01AA01" in [a.code for a in vmp1.atcs.all()]
+        assert "Test AMP 1" in [a.name for a in vmp1.amps.all()]
+        assert "Test AMP 2" in [a.name for a in vmp1.amps.all()]
 
         vmp2 = vmps.get(code="67890")
         assert vmp2.df_ind == "2"
         assert vmp2.udfs == 10.0
+        assert vmp2.amps.count() == 1
+        assert "Test AMP 3" in [a.name for a in vmp2.amps.all()]
 
     @pytest.mark.django_db
     def test_load_vmp_ingredient_strengths(self, sample_vmp_data):
