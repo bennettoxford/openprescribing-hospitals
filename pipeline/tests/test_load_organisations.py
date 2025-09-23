@@ -4,9 +4,10 @@ from unittest.mock import patch
 from pipeline.flows.load_organisations import (
     extract_organisations,
     transform_organisations,
+    create_trust_types,
     load_organisations,
 )
-from viewer.models import Organisation
+from viewer.models import Organisation, TrustType
 
 
 @pytest.fixture
@@ -20,6 +21,7 @@ def sample_bigquery_data():
             "icb": "ICB1",
             "successors": ["DEF456"],
             "ultimate_successors": ["DEF456"],
+            "trust_type": "ACUTE - TEACHING",
         },
         {
             "ods_code": "DEF456",
@@ -28,6 +30,7 @@ def sample_bigquery_data():
             "icb": "ICB2",
             "successors": [],
             "ultimate_successors": [],
+            "trust_type": "COMMUNITY",
         },
         {
             "ods_code": "GHI789",
@@ -36,6 +39,7 @@ def sample_bigquery_data():
             "icb": "ICB3",
             "successors": [],
             "ultimate_successors": [],
+            "trust_type": None,
         },
     ]
 
@@ -50,6 +54,7 @@ def sample_transformed_data():
             "region": "North",
             "icb": "ICB1",
             "successor_code": "DEF456",
+            "trust_type": "ACUTE - TEACHING",
         },
         {
             "ods_code": "DEF456",
@@ -57,6 +62,7 @@ def sample_transformed_data():
             "region": "South",
             "icb": "ICB2",
             "successor_code": None,
+            "trust_type": "COMMUNITY",
         },
         {
             "ods_code": "GHI789",
@@ -64,6 +70,7 @@ def sample_transformed_data():
             "region": "East",
             "icb": "ICB3",
             "successor_code": None,
+            "trust_type": None,
         },
     ]
 
@@ -88,6 +95,7 @@ class TestLoadOrganisations:
                 "icb",
                 "successors",
                 "ultimate_successors",
+                "trust_type",
             ]
         )
 
@@ -103,9 +111,23 @@ class TestLoadOrganisations:
         assert result[1]["successor_code"] is None  # Second org has no successor
         assert all(
             key in result[0]
-            for key in ["ods_code", "ods_name", "region", "icb", "successor_code"]
+            for key in ["ods_code", "ods_name", "region", "icb", "successor_code", "trust_type"]
         )
 
+    @pytest.mark.django_db
+    def test_create_trust_types(self, sample_transformed_data):
+        """Test the create_trust_types task"""
+        result = create_trust_types(sample_transformed_data)
+        
+        assert isinstance(result, dict)
+        assert len(result) == 2  # Should have 2 unique trust types
+        assert "ACUTE - TEACHING" in result
+        assert "COMMUNITY" in result
+        
+        assert TrustType.objects.count() == 2
+        assert TrustType.objects.filter(name="ACUTE - TEACHING").exists()
+        assert TrustType.objects.filter(name="COMMUNITY").exists()
+   
     @pytest.mark.django_db
     def test_load_organisations_with_real_db(self, sample_transformed_data):
 
@@ -117,7 +139,10 @@ class TestLoadOrganisations:
         Organisation.objects.bulk_create(initial_orgs)
         assert Organisation.objects.count() == 1
 
-        result = load_organisations(sample_transformed_data)
+        trust_type_lookup = create_trust_types(sample_transformed_data)
+        assert len(trust_type_lookup) == 2
+
+        result = load_organisations(sample_transformed_data, trust_type_lookup)
 
         assert result["deleted"] == 1
         assert result["created"] == 3
@@ -131,6 +156,10 @@ class TestLoadOrganisations:
         assert orgs_list[0].ods_name == "Test Hospital 1"
         assert orgs_list[0].region == "North"
         assert orgs_list[0].icb == "ICB1"
+        assert orgs_list[0].trust_type.name == "ACUTE - TEACHING"
+
+        assert orgs_list[1].trust_type.name == "COMMUNITY"
+        assert orgs_list[2].trust_type is None  # GHI789 has no trust type
 
         assert (
             orgs_list[0].successor == orgs_list[1]

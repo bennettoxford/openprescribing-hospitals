@@ -8,6 +8,7 @@ from .models import (
     VMP,
     Ingredient,
     Organisation,
+    TrustType,
     Dose,
     IngredientQuantity,
     Measure,
@@ -37,11 +38,18 @@ class IngredientAdmin(admin.ModelAdmin):
     search_fields = ("code", "name")
 
 
+@admin.register(TrustType)
+class TrustTypeAdmin(admin.ModelAdmin):
+    list_display = ("name", "description")
+    search_fields = ("name", "description")
+    list_filter = ("name",)
+
+
 @admin.register(Organisation)
 class OrganisationAdmin(admin.ModelAdmin):
-    list_display = ("ods_code", "ods_name", "region", "successor")
+    list_display = ("ods_code", "ods_name", "region", "trust_type", "successor")
     search_fields = ("ods_code", "ods_name", "region")
-    list_filter = ("region",)
+    list_filter = ("region", "trust_type")
 
 
 @admin.register(Dose)

@@ -9,6 +9,7 @@ from pipeline.utils.maintenance import enable_maintenance_mode, disable_maintena
 from pipeline.flows.setup_bq_tables import setup_tables
 from pipeline.flows.import_unit_conversion import import_unit_conversion_flow
 from pipeline.flows.import_organisations import import_organisations
+from pipeline.flows.import_eric import import_eric_data
 from pipeline.flows.import_scmd import scmd_import
 from pipeline.flows.import_scmd_pre_apr_2019 import import_scmd_pre_april_2019
 from pipeline.flows.import_org_ae_status import import_ae_status
@@ -56,6 +57,7 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
 
         unit_conv = import_unit_conversion_flow(wait_for=[setup_result])
         org_result = import_organisations(wait_for=[setup_result])
+        eric_result = import_eric_data(wait_for=[setup_result])
         ae_status_result = import_ae_status(wait_for=[setup_result])
         atc_ddd_alterations = import_atc_ddd_alterations_flow(wait_for=[setup_result])
 
