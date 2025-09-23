@@ -10,7 +10,7 @@ This does mean that you may encounter occasional issues or features that are sti
 
 ### How can I keep up to date with the platform?
 
-You can sign up to the [OpenPrescribing newsletter](https://openprescribing.us16.list-manage.com/subscribe?u=e88ddd909a00ef5c60300273b&id=b2b7873a73) to receive updates about the platform. See the [Contact page](contact/) for other ways to stay in touch.
+You can [sign up for email alerts](/alerts/) to receive updates about the platform, including new data releases and feature announcements. See the [Contact page](contact/) for other ways to stay in touch.
 
 
 

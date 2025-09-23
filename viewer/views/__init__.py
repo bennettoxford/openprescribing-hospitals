@@ -35,6 +35,7 @@ from .errors import (
     server_error,
 )
 
+from .alerts import AlertsView
 
 __all__ = [
     'IndexView',
@@ -51,6 +52,8 @@ __all__ = [
     'MeasuresPreviewListView',
     
     'AnalyseView',
+    
+    'AlertsView',
     
     'get_quantity_data',
     'select_quantity_type',
