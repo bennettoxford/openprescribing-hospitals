@@ -6,12 +6,14 @@ from pipeline.utils.config import (
     DATASET_ID,
     ORGANISATION_TABLE_ID,
     SCMD_PROCESSED_TABLE_ID,
+    ERIC_TRUST_DATA_TABLE_ID,
 )
 from pipeline.utils.utils import setup_django_environment, execute_bigquery_query
 
 setup_django_environment()
 from viewer.models import (
     Organisation, 
+    TrustType,
     SCMDQuantity, 
     Dose, 
     IngredientQuantity, 
@@ -35,9 +37,13 @@ def extract_organisations() -> List[Dict]:
         org.region, 
         org.icb, 
         org.successors, 
-        org.ultimate_successors
+        org.ultimate_successors,
+        eric.trust_type
     FROM 
         `{PROJECT_ID}.{DATASET_ID}.{ORGANISATION_TABLE_ID}` org
+    LEFT JOIN 
+        `{PROJECT_ID}.{DATASET_ID}.{ERIC_TRUST_DATA_TABLE_ID}` eric
+        ON org.ods_code = eric.trust_code
     WHERE 
         org.ods_code IN (
             SELECT DISTINCT ods_code 
@@ -69,6 +75,7 @@ def transform_organisations(data: List[Dict]) -> List[Dict]:
             "region": row["region"] or "",
             "icb": row["icb"],
             "successor_code": successor_map.get(row["ods_code"]),
+            "trust_type": row.get("trust_type"),
         }
         transformed_data.append(transformed_row)
 
@@ -77,7 +84,35 @@ def transform_organisations(data: List[Dict]) -> List[Dict]:
 
 
 @task
-def load_organisations(data: List[Dict]) -> Dict:
+def create_trust_types(data: List[Dict]) -> Dict:
+    """Create TrustType objects from the data"""
+    logger = get_run_logger()
+
+    trust_types = set()
+    for row in data:
+        if row.get("trust_type"):
+            trust_types.add(row["trust_type"])
+    
+    logger.info(f"Found {len(trust_types)} unique trust types")
+
+    trust_type_objects = []
+    for trust_type_name in trust_types:
+        trust_type_obj, created = TrustType.objects.get_or_create(
+            name=trust_type_name,
+            defaults={'description': f"Trust type: {trust_type_name}"}
+        )
+        trust_type_objects.append(trust_type_obj)
+        if created:
+            logger.info(f"Created new trust type: {trust_type_name}")
+
+    trust_type_lookup = {tt.name: tt for tt in trust_type_objects}
+    
+    logger.info(f"Trust type creation complete. Total trust types: {len(trust_type_lookup)}")
+    return trust_type_lookup
+
+
+@task
+def load_organisations(data: List[Dict], trust_type_lookup: Dict) -> Dict:
     logger = get_run_logger()
     logger.info(f"Loading {len(data)} organisation records")
 
@@ -157,6 +192,7 @@ def load_organisations(data: List[Dict]) -> Dict:
                 ods_name=row["ods_name"],
                 region=row["region"],
                 icb=row["icb"],
+                trust_type=trust_type_lookup.get(row.get("trust_type")),
             )
             for row in data
         ]
@@ -213,7 +249,8 @@ def load_organisations_flow():
 
     org_data = extract_organisations()
     transformed_data = transform_organisations(org_data)
-    result = load_organisations(transformed_data)
+    trust_type_lookup = create_trust_types(transformed_data)
+    result = load_organisations(transformed_data, trust_type_lookup)
 
     logger.info(
         f"Organisation import complete. Related deleted: {result['related_records_deleted']}, "
