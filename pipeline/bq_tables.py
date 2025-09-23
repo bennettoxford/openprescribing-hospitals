@@ -31,6 +31,7 @@ from pipeline.utils.config import (
     CALCULATION_LOGIC_TABLE_ID,
     AWARE_VMP_MAPPING_PROCESSED_TABLE_ID,
     DDD_REFERS_TO_TABLE_ID,
+    ERIC_TRUST_DATA_TABLE_ID,
 )
 
 
@@ -1366,4 +1367,26 @@ DDD_REFERS_TO_TABLE_SPEC = TableSpec(
             ],
         ),
     ],
+)
+
+ERIC_TRUST_DATA_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=ERIC_TRUST_DATA_TABLE_ID,
+    description="Estates Returns Information Collection (ERIC) data for NHS Trusts containing estates, facilities, and infrastructure information",
+    schema=[
+        bigquery.SchemaField(
+            "trust_code", "STRING", mode="REQUIRED", description="Trust ODS code"
+        ),
+        bigquery.SchemaField(
+            "trust_name", "STRING", mode="REQUIRED", description="Name of the NHS Trust"
+        ),
+        bigquery.SchemaField(
+            "trust_type", "STRING", mode="NULLABLE", description="Type of trust (e.g., ACUTE - TEACHING, COMMUNITY)"
+        ),
+        bigquery.SchemaField(
+            "data_year", "STRING", mode="REQUIRED", description="Year of the ERIC data (e.g., 2023_24)"
+        ),
+    ],
+    cluster_fields=["trust_code"],
 )
