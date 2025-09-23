@@ -36,6 +36,7 @@ from pipeline.flows.load_ddd_quantity import load_ddd_quantity_flow
 from pipeline.flows.load_data_status import load_data_status_flow
 from pipeline.flows.calculate_ddd_quantity import calculate_ddd_quantity
 from pipeline.flows.populate_calculation_logic import populate_calculation_logic
+from pipeline.flows.create_aware_vmp_mapping_processed import create_aware_vmp_mapping_processed_flow
 from pipeline.flows.load_aware_data import load_aware_data
 from pipeline.flows.vacuum_tables import vacuum_tables_flow
 from viewer.management.commands.update_org_submission_cache import update_org_submission_cache
@@ -83,10 +84,12 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
         ddd_quantities = calculate_ddd_quantity(wait_for=[ingredients])
         
         calculation_logic = populate_calculation_logic(wait_for=[ddd_quantities])
+        
+        aware_mapping = create_aware_vmp_mapping_processed_flow(wait_for=[calculation_logic])
 
 
         logger.info("Import flows completed")
-        last_import_result = calculation_logic
+        last_import_result = aware_mapping
     else:
         last_import_result = None
 
@@ -104,9 +107,9 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
         try:
             status = load_data_status_flow(wait_for=[last_import_result])
             load_organisations_flow(wait_for=[status])
-            load_aware_data(wait_for=[status])
             load_atc_flow(wait_for=[status])
             load_vmp_vtm_data(wait_for=[status])
+            load_aware_data(wait_for=[status])
             load_ddd_flow(wait_for=[status])
             load_indicative_costs_flow(wait_for=[status])
             load_dose_data_flow(wait_for=[status])
