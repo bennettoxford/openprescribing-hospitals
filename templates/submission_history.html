@@ -16,6 +16,12 @@
         <div class="mb-6">
             <p class="text-gray-600 mb-3">The charts below visualise the data submission history for NHS Trusts within the Secondary Care Medicines Dataset (SCMD). It offers a quick overview of submission patterns, helping to identify gaps and NHS Trust changes over time.</p>
             
+            <div class="bg-oxford-50 border border-oxford-200 rounded-lg p-4 shadow-sm mb-6">
+                <p class="text-oxford-700">
+                    Want to stay updated when new data is available? <a href="{% url 'viewer:alerts' %}" class="underline font-semibold hover:text-oxford-600">Sign up for email alerts</a> to be notified about new submissions and platform updates.
+                </p>
+            </div>
+            
             <details class="group bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300">
                 <summary class="flex justify-between items-center cursor-pointer list-none px-4 py-3 border-b border-gray-100 [&::-webkit-details-marker]:hidden [&::marker]:hidden">
                     <div class="flex items-center gap-2">
