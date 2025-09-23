@@ -2,8 +2,8 @@ name: Insulin detemir discontinuation
 short_name: Insulin detemir discontinuation
 description: Total count of insulin detemir pre-filled pens / cartridges issued.
 why_it_matters: |
-    Novo Nordisk are [discontinuing all formulations of Levemir®](https://www.diabetes.org.uk/about-us/news-and-views/novo-nordisk-to-withdraw-levemir-what-you-need-to-know), the only insulin detemir product available in the UK, with supply due to exhaust by December 2026. 
-    The Primary Care Diabetes & Obesity Society (PCDOS) and Association of British Clinical Diabetologists (ABCD) have [written guidance](https://cms.pcdosociety.org/uploads/Levemir_Discontinuation_Guideline_Final_110825_17d277acd3.pdf) to support clinicians in selecting and safely initiating alternative basal insulins. The guidance recommends local teams diversify prescribing across available options to reduce supply risk, and with significant regional variation in prescribing recommend he use of data to support planning.
+    Novo Nordisk are [discontinuing all formulations of Levemir®](https://www.diabetes.org.uk/about-us/news-and-views/novo-nordisk-to-withdraw-levemir-what-you-need-to-know), the only insulin detemir product available in the UK, with supply due to exhaust by December 2026.   
+    The Primary Care Diabetes & Obesity Society (PCDOS) and Association of British Clinical Diabetologists (ABCD) have [written guidance](https://cms.pcdosociety.org/uploads/Levemir_Discontinuation_Guideline_Final_110825_17d277acd3.pdf) to support clinicians in selecting and safely initiating alternative basal insulins. The guidance recommends local teams diversify prescribing across available options to reduce supply risk, and with significant regional variation in prescribing recommend he use of data to support planning.  
     This OpenPrescribing Hospitals measure, alongside it’s [primary care OpenPrescribing counterpart](#) provides data on variation across primary and secondary care to support this planning.
 
 how_is_it_calculated: >
