@@ -579,9 +579,10 @@ class SystemMaintenance(models.Model):
     
     @classmethod
     def get_instance(cls):
-        """Get or create the singleton maintenance record"""
-        obj, created = cls.objects.get_or_create(pk=1)
-        return obj
+        try:
+            return cls.objects.get(pk=1)
+        except cls.DoesNotExist:
+            return cls(enabled=False)
     
     def get_duration(self):
         """Get maintenance duration if enabled"""
@@ -589,6 +590,7 @@ class SystemMaintenance(models.Model):
             from django.utils import timezone
             return timezone.now() - self.started_at
         return None
+
 class CalculationLogic(models.Model):
     LOGIC_TYPES = [
         ('dose', 'Dose'),

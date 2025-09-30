@@ -10,27 +10,32 @@ class MaintenanceModeMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if (request.user.is_authenticated and request.user.is_staff) or \
-           request.path.startswith('/admin/') or \
-           request.path.startswith('/static/') or \
-           request.path.startswith('/media/'):
+        if request.path.startswith('/static/') or \
+           request.path.startswith('/media/') or \
+           request.path.startswith('/admin/'):
             return self.get_response(request)
 
-        if is_maintenance_mode():
-            restricted_paths = [
-                '/analyse/',
-                '/measures/',
-                '/submission-history/',
-                '/product-lookup/',
-            ]
-            
-            is_restricted = any(
-                request.path == path or request.path.startswith(path)
-                for path in restricted_paths
-            )
-            
-            if is_restricted:
-                return self.maintenance_response(request)
+        restricted_paths = [
+            '/analyse/',
+            '/measures/',
+            '/submission-history/',
+            '/product-lookup/',
+        ]
+        
+        is_restricted = any(
+            request.path == path or request.path.startswith(path)
+            for path in restricted_paths
+        )
+        
+        if is_restricted:
+            try:
+                if is_maintenance_mode():
+                    if request.user.is_authenticated and request.user.is_staff:
+                        return self.get_response(request)
+                    
+                    return self.maintenance_response(request)
+            except Exception as e:
+                logger.error(f"Error checking maintenance mode: {e}", exc_info=True)
 
         return self.get_response(request)
 
