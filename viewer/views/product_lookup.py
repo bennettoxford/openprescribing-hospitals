@@ -3,7 +3,10 @@ from django.utils.safestring import mark_safe
 from django.core.serializers.json import DjangoJSONEncoder
 import json
 
-class ProductLookupView(TemplateView):
+from ..mixins import MaintenanceModeMixin
+
+
+class ProductLookupView(MaintenanceModeMixin, TemplateView):
     template_name = "product_lookup.html"
     
     def get_context_data(self, **kwargs):

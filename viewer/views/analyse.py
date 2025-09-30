@@ -1,11 +1,11 @@
 from django.views.generic import TemplateView
 import json
 
-
+from ..mixins import MaintenanceModeMixin
 from ..utils import get_organisation_data
 
 
-class AnalyseView(TemplateView):
+class AnalyseView(MaintenanceModeMixin, TemplateView):
     template_name = "analyse.html"
 
     def get_context_data(self, **kwargs):
