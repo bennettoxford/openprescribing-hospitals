@@ -1,5 +1,6 @@
 from django.views.generic import TemplateView
 from django.db.models import Max
+from ..mixins import MaintenanceModeMixin
 from ..models import DataStatus, OrgSubmissionCache, Organisation
 from ..utils import get_organisation_data
 from datetime import date
@@ -9,7 +10,7 @@ from datetime import datetime
 from collections import defaultdict
 
 
-class SubmissionHistoryView(TemplateView):
+class SubmissionHistoryView(MaintenanceModeMixin, TemplateView):
     template_name = 'submission_history.html'
 
     def get_context_data(self, **kwargs):

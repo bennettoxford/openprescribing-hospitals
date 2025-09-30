@@ -6,6 +6,7 @@ from django.views.generic import TemplateView
 from django.core.serializers.json import DjangoJSONEncoder
 from django.shortcuts import redirect
 
+from ..mixins import MaintenanceModeMixin
 from ..models import (
     Measure,
     MeasureVMP,
@@ -19,7 +20,7 @@ from ..models import (
 from ..utils import get_organisation_data
 
 
-class MeasuresListView(TemplateView):
+class MeasuresListView(MaintenanceModeMixin, TemplateView):
     template_name = "measures_list.html"
 
     def get_context_data(self, **kwargs):
@@ -47,7 +48,7 @@ class MeasuresListView(TemplateView):
         return context
 
 
-class MeasuresPreviewListView(TemplateView):
+class MeasuresPreviewListView(MaintenanceModeMixin, TemplateView):
     template_name = "measures_list.html"
 
     def get_context_data(self, **kwargs):
@@ -333,7 +334,7 @@ class BaseMeasureItemView(TemplateView):
         }
 
 
-class MeasureItemView(BaseMeasureItemView):
+class MeasureItemView(MaintenanceModeMixin, BaseMeasureItemView):
     """View for published measures only"""
 
     def dispatch(self, request, *args, **kwargs):
@@ -350,7 +351,7 @@ class MeasureItemView(BaseMeasureItemView):
             return redirect('viewer:measures_list')
 
 
-class MeasurePreviewItemView(BaseMeasureItemView):
+class MeasurePreviewItemView(MaintenanceModeMixin, BaseMeasureItemView):
     """View for preview and in-development measures"""
 
     def dispatch(self, request, *args, **kwargs):
