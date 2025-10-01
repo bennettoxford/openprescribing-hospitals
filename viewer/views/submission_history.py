@@ -18,8 +18,8 @@ class SubmissionHistoryView(MaintenanceModeMixin, TemplateView):
         
         shared_org_data = get_organisation_data()
         
-        all_orgs = Organisation.objects.select_related('successor').values(
-            'ods_code', 'ods_name', 'successor__ods_name', 'region', 'icb'
+        all_orgs = Organisation.objects.select_related('successor', 'region', 'icb').values(
+            'ods_code', 'ods_name', 'successor__ods_name', 'region__name', 'region__code', 'icb__name', 'icb__code'
         ).order_by('ods_name')
         
         org_data_template = defaultdict(lambda: {
@@ -28,7 +28,9 @@ class SubmissionHistoryView(MaintenanceModeMixin, TemplateView):
             'predecessors': [], 
             'ods_code': None,
             'region': None,
-            'icb': None
+            'region_code': None,
+            'icb': None,
+            'icb_code': None
         })
         
         regions_with_icbs = {}
@@ -37,19 +39,23 @@ class SubmissionHistoryView(MaintenanceModeMixin, TemplateView):
             name = org['ods_name']
             code = org['ods_code']
             successor_name = org['successor__ods_name']
-            region = org['region']
-            icb = org['icb']
+            region = org['region__name']
+            region_code = org['region__code']
+            icb = org['icb__name']
+            icb_code = org['icb__code']
             
             org_data_template[name]['ods_code'] = code
             org_data_template[name]['successor'] = successor_name
             org_data_template[name]['region'] = region
+            org_data_template[name]['region_code'] = region_code
             org_data_template[name]['icb'] = icb
+            org_data_template[name]['icb_code'] = icb_code
             
             if not successor_name:
                 if region not in regions_with_icbs:
-                    regions_with_icbs[region] = set()
+                    regions_with_icbs[region] = {'icbs': set(), 'region_code': region_code}
                 if icb:
-                    regions_with_icbs[region].add(icb)
+                    regions_with_icbs[region]['icbs'].add((icb, icb_code))
             
             if successor_name:
                 org_data_template[successor_name]['predecessors'].append(name)
@@ -57,9 +63,10 @@ class SubmissionHistoryView(MaintenanceModeMixin, TemplateView):
         hierarchy = [
             {
                 'region': region,
-                'icbs': sorted(list(icbs))
+                'region_code': data['region_code'],
+                'icbs': sorted([{'name': icb_name, 'code': icb_code} for icb_name, icb_code in data['icbs']], key=lambda x: x['name'])
             }
-            for region, icbs in sorted(regions_with_icbs.items())
+            for region, data in sorted(regions_with_icbs.items())
         ]
         
         context['regions_hierarchy'] = json.dumps(hierarchy)
@@ -134,11 +141,15 @@ class SubmissionHistoryView(MaintenanceModeMixin, TemplateView):
                     # Use successor's region/ICB if this org has a successor
                     successor_info = org_data.get(org_info['successor'], {})
                     org_entry['region'] = successor_info.get('region', org_info.get('region'))
+                    org_entry['region_code'] = successor_info.get('region_code', org_info.get('region_code'))
                     org_entry['icb'] = successor_info.get('icb', org_info.get('icb'))
+                    org_entry['icb_code'] = successor_info.get('icb_code', org_info.get('icb_code'))
                 else:
                     # Use own region/ICB
                     org_entry['region'] = org_info.get('region')
+                    org_entry['region_code'] = org_info.get('region_code')
                     org_entry['icb'] = org_info.get('icb')
+                    org_entry['icb_code'] = org_info.get('icb_code')
             
             for pred in org_entry.get('predecessors', []):
                 assign_region_icb(pred)
