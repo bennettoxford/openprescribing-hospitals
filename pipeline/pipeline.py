@@ -25,6 +25,7 @@ from pipeline.flows.calculate_ingredient_quantity import calculate_ingredient_qu
 from pipeline.flows.import_atc_ddd_alterations import import_atc_ddd_alterations_flow
 from pipeline.flows.import_atc import import_atc_flow
 from pipeline.flows.import_ddd import import_ddd_flow
+from pipeline.flows.populate_ddd_refers_to import populate_ddd_refers_to_table
 from pipeline.flows.create_vmp_ddd_mapping import create_vmp_ddd_mapping
 from pipeline.flows.load_organisations import load_organisations_flow
 from pipeline.flows.load_vmp_vtm import load_vmp_vtm_data
@@ -46,6 +47,7 @@ from viewer.management.commands.get_measure_vmps import Command as GetMeasureVMP
 from viewer.management.commands.compute_measures import Command as ComputeMeasuresCommand
 from viewer.models import Measure
 
+
 @flow(name="SCMD Import Pipeline")
 def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
     logger = get_run_logger()
@@ -57,41 +59,46 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
         setup_result = setup_tables()
 
         unit_conv = import_unit_conversion_flow(wait_for=[setup_result])
+        vmp_unit_standardisation = import_vmp_unit_standardisation_flow(wait_for=[setup_result])
+
         org_result = import_organisations(wait_for=[setup_result])
         eric_result = import_eric_data(wait_for=[setup_result])
         ae_status_result = import_ae_status(wait_for=[setup_result])
+
         atc_ddd_alterations = import_atc_ddd_alterations_flow(wait_for=[setup_result])
-
         dmd_result = import_dmd(wait_for=[setup_result])
-        dmd_uom = import_dmd_uom(wait_for=[dmd_result])
-        dmd_supp = import_dmd_supp_flow(wait_for=[dmd_uom, atc_ddd_alterations])
+        dmd_uom = import_dmd_uom(wait_for=[setup_result])
 
+        scmd_pre_apr_result = import_scmd_pre_april_2019(wait_for=[setup_result])
+        scmd_result = scmd_import(wait_for=[setup_result])
+        
+        dmd_supp = import_dmd_supp_flow(wait_for=[atc_ddd_alterations])
         adm_route = import_adm_route_mapping_flow(wait_for=[dmd_result])
 
         atc_result = import_atc_flow(wait_for=[atc_ddd_alterations])
         ddd_result = import_ddd_flow(wait_for=[atc_ddd_alterations])
-        ddd_mapping = create_vmp_ddd_mapping(wait_for=[dmd_supp, adm_route, ddd_result])
 
-        vmps = populate_vmp_table(wait_for=[dmd_supp, adm_route])
-        vmp_unit_standardisation = import_vmp_unit_standardisation_flow(wait_for=[vmps])
+        ddd_refers_to = populate_ddd_refers_to_table(wait_for=[dmd_result, ddd_result])
+                
+        processed = process_scmd(wait_for=[scmd_pre_apr_result, scmd_result, dmd_result, dmd_supp,unit_conv, org_result, vmp_unit_standardisation, dmd_uom])
         
-        scmd_pre_apr_result = import_scmd_pre_april_2019(wait_for=[vmp_unit_standardisation])
-        scmd_result = scmd_import(wait_for=[scmd_pre_apr_result])
-        
-        processed = process_scmd(wait_for=[scmd_result, unit_conv, org_result])
-        doses = calculate_doses(wait_for=[processed])
-        ingredients = calculate_ingredient_quantity(wait_for=[doses])
-    
-        
-        ddd_quantities = calculate_ddd_quantity(wait_for=[ingredients])
-        
-        calculation_logic = populate_calculation_logic(wait_for=[ddd_quantities])
-        
-        aware_mapping = create_aware_vmp_mapping_processed_flow(wait_for=[calculation_logic])
+        vmps = populate_vmp_table(wait_for=[processed, unit_conv, dmd_result, dmd_supp])
+        aware_mapping = create_aware_vmp_mapping_processed_flow(wait_for=[vmps])
+        doses = calculate_doses(wait_for=[vmps])
+        ingredients = calculate_ingredient_quantity(wait_for=[processed, org_result,vmps])
 
+        ddd_mapping = create_vmp_ddd_mapping(wait_for=[vmps, dmd_result, dmd_supp, adm_route, atc_result, ddd_result, processed, unit_conv, ddd_refers_to])
+
+
+        vmps_with_ddd = populate_vmp_table(wait_for=[ddd_mapping])
+        
+        ddd_quantities = calculate_ddd_quantity(wait_for=[vmps_with_ddd, ingredients])
+        
+        calculation_logic = populate_calculation_logic(wait_for=[doses, ingredients, ddd_quantities])
+        
 
         logger.info("Import flows completed")
-        last_import_result = aware_mapping
+        last_import_result = calculation_logic
     else:
         last_import_result = None
 
