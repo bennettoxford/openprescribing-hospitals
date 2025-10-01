@@ -484,9 +484,9 @@
                                                         ring-1 ring-black ring-opacity-5 p-4">
                                                 <p class="text-sm text-gray-500">
                                                     {#if $analyseOptions.selectedOrganisations?.length > 0}
-                                                        Percentiles show variation in product quantity across NHS Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.
+                                                        Percentiles show variation in product quantity across NHS Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#what-are-percentile-charts" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.
                                                     {:else}
-                                                        Percentiles are always shown when no trusts are selected. Select trusts to enable this toggle. See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+                                                        Percentiles are always shown when no trusts are selected. Select trusts to enable this toggle. See <a href="/faq/#what-are-percentile-charts" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
                                                     {/if}
                                                 </p>
                                             </div>
@@ -522,7 +522,7 @@
                                             </button>
                                         {/if}
                                     {/if}
-                                    See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret this chart.
+                                    See <a href="/faq/#what-are-percentile-charts" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret this chart.
                                 {:else}
                                     {chartExplainerText}
                                     See <a href="/faq/" class="underline font-semibold" target="_blank">the FAQs</a> for more details about interpreting charts.

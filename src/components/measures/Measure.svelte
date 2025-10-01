@@ -666,7 +666,7 @@
                             <p class="text-sm text-gray-500">
                                 {percentilesDisabled 
                                     ? 'Percentiles are disabled when there are fewer than 30 trusts in a measure.'
-                                    : 'Percentiles show variation in this measure across Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#percentiles" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.'
+                                    : 'Percentiles show variation in this measure across Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#what-are-percentile-charts" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.'
                                 }
                             </p>
                         </div>
