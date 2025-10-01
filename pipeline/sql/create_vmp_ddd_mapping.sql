@@ -110,13 +110,13 @@ vmp_ingredients AS (
     ) AS ingredients_info
   FROM (
     SELECT DISTINCT
-      iq.vmp_code,
-      ingredient.ingredient_code,
-      ingredient.ingredient_name,
-      ingredient.ingredient_unit,
-      ingredient.ingredient_basis_unit
-    FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ INGREDIENT_QUANTITY_TABLE_ID }}` iq,
-    UNNEST(ingredients) AS ingredient
+      vmp.vmp_code,
+      ing.ingredient_code,
+      ing.ingredient_name,
+      ing.strnt_nmrtr_uom_name AS ingredient_unit,
+      ing.strnt_nmrtr_basis_uom AS ingredient_basis_unit
+    FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_TABLE_ID }}` vmp,
+    UNNEST(ingredients) AS ing
   )
   GROUP BY vmp_code
 ),
