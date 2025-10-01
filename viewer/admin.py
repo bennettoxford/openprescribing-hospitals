@@ -59,9 +59,9 @@ class ICBAdmin(admin.ModelAdmin):
 
 @admin.register(Organisation)
 class OrganisationAdmin(admin.ModelAdmin):
-    list_display = ("ods_code", "ods_name", "region", "trust_type", "successor")
-    search_fields = ("ods_code", "ods_name", "region")
-    list_filter = ("region", "trust_type")
+    list_display = ("ods_code", "ods_name", "icb", "region", "trust_type", "successor")
+    search_fields = ("ods_code", "ods_name", "icb", "region")
+    list_filter = ("icb", "region", "trust_type")
 
 
 @admin.register(Dose)
