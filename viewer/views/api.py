@@ -637,8 +637,8 @@ def get_quantity_data(request):
                     'ingredient_codes': [ing.code for ing in item.vmp.ingredients.all()],
                     'organisation__ods_code': item.organisation.ods_code,
                     'organisation__ods_name': item.organisation.ods_name,
-                    'organisation__region': item.organisation.region,
-                    'organisation__icb': item.organisation.icb,
+                    'organisation__region': item.organisation.region.name if item.organisation.region else None,
+                    'organisation__icb': item.organisation.icb.name if item.organisation.icb else None,
                     'data': item.data
                 }
                 response_data.append(response_item)
