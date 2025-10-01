@@ -16,6 +16,8 @@ from viewer.models import (
     VMP,
     Organisation,
     CalculationLogic,
+    Region,
+    ICB,
 )
 
 
@@ -48,12 +50,15 @@ def sample_foreign_keys(db):
         VMP.objects.create(code="67890", name="Test Drug 2"),
     ]
 
+    region = Region.objects.create(code="REG1", name="Test Region")
+    icb = ICB.objects.create(code="ICB1", name="Test ICB", region=region)
+
     orgs = [
         Organisation.objects.create(
-            ods_code="ORG1", ods_name="Test Org 1", region="Test Region"
+            ods_code="ORG1", ods_name="Test Org 1", region=region, icb=icb
         ),
         Organisation.objects.create(
-            ods_code="ORG2", ods_name="Test Org 2", region="Test Region"
+            ods_code="ORG2", ods_name="Test Org 2", region=region, icb=icb
         ),
     ]
 
@@ -145,8 +150,10 @@ class TestLoadDDDQuantity:
     def test_clear_existing_ddd_data(self):
         with patch("pipeline.flows.load_ddd_quantity.task", lambda x: x):
             vmp = VMP.objects.create(code="12345", name="Test Drug")
+            region = Region.objects.create(code="REG1", name="Test Region")
+            icb = ICB.objects.create(code="ICB1", name="Test ICB", region=region)
             org = Organisation.objects.create(
-                ods_code="ORG1", ods_name="Test Org", region="Test"
+                ods_code="ORG1", ods_name="Test Org", region=region, icb=icb
             )
 
             DDDQuantity.objects.create(
@@ -170,11 +177,13 @@ class TestLoadDDDQuantity:
         with patch("pipeline.flows.load_ddd_quantity.task", lambda x: x):
             vmp1 = VMP.objects.create(code="12345", name="Test Drug 1")
             vmp2 = VMP.objects.create(code="67890", name="Test Drug 2")
+            region = Region.objects.create(code="REG1", name="Test Region")
+            icb = ICB.objects.create(code="ICB1", name="Test ICB", region=region)
             org1 = Organisation.objects.create(
-                ods_code="ORG1", ods_name="Test Org 1", region="Test"
+                ods_code="ORG1", ods_name="Test Org 1", region=region, icb=icb
             )
             org2 = Organisation.objects.create(
-                ods_code="ORG2", ods_name="Test Org 2", region="Test"
+                ods_code="ORG2", ods_name="Test Org 2", region=region, icb=icb
             )
 
             result = cache_foreign_keys()

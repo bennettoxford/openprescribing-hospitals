@@ -9,7 +9,7 @@ from pipeline.flows.load_indicative_cost import (
     cache_foreign_keys,
     transform_and_load_chunk,
 )
-from viewer.models import IndicativeCost, VMP, Organisation
+from viewer.models import IndicativeCost, VMP, Organisation, Region, ICB
 
 
 @pytest.fixture
@@ -31,12 +31,15 @@ def sample_foreign_keys(db):
         VMP.objects.create(code="67890", name="Test Drug 2"),
     ]
 
+    region = Region.objects.create(code="REG1", name="Test Region")
+    icb = ICB.objects.create(code="ICB1", name="Test ICB", region=region)
+
     orgs = [
         Organisation.objects.create(
-            ods_code="ORG1", ods_name="Test Org 1", region="Test Region"
+            ods_code="ORG1", ods_name="Test Org 1", region=region, icb=icb
         ),
         Organisation.objects.create(
-            ods_code="ORG2", ods_name="Test Org 2", region="Test Region"
+            ods_code="ORG2", ods_name="Test Org 2", region=region, icb=icb
         ),
     ]
 
@@ -89,8 +92,10 @@ class TestLoadIndicativeCost:
     def test_clear_existing_data(self):
         vmp1 = VMP.objects.create(code="12345", name="Test Drug 1")
         vmp2 = VMP.objects.create(code="67890", name="Test Drug 2")
+        region = Region.objects.create(code="REG1", name="Test Region")
+        icb = ICB.objects.create(code="ICB1", name="Test ICB", region=region)
         org = Organisation.objects.create(
-            ods_code="ORG1", ods_name="Test Org", region="Test"
+            ods_code="ORG1", ods_name="Test Org", region=region, icb=icb
         )
 
         IndicativeCost.objects.create(
@@ -210,10 +215,13 @@ class TestLoadIndicativeCost:
         vmps = []
         orgs = []
         
+        region = Region.objects.create(code="REG1", name="Test Region")
+        icb = ICB.objects.create(code="ICB1", name="Test ICB", region=region)
+        
         for i in range(5):
             vmps.append(VMP.objects.create(code=f"VMP{i}", name=f"Test Drug {i}"))
             orgs.append(Organisation.objects.create(
-                ods_code=f"ORG{i}", ods_name=f"Test Org {i}", region="Test"
+                ods_code=f"ORG{i}", ods_name=f"Test Org {i}", region=region, icb=icb
             ))
 
         count = 0

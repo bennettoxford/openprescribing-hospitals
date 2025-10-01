@@ -12,7 +12,7 @@ from pipeline.flows.load_dose_data import (
     load_dose_logic,
     ensure_proper_types,
 )
-from viewer.models import Dose, SCMDQuantity, VMP, Organisation, CalculationLogic
+from viewer.models import Dose, SCMDQuantity, VMP, Organisation, CalculationLogic, Region, ICB
 
 
 @pytest.fixture
@@ -45,12 +45,15 @@ def sample_foreign_keys(db):
         VMP.objects.create(code="67890", name="Test Drug 2"),
     ]
 
+    region = Region.objects.create(code="REG1", name="Test Region")
+    icb = ICB.objects.create(code="ICB1", name="Test ICB", region=region)
+
     orgs = [
         Organisation.objects.create(
-            ods_code="ORG1", ods_name="Test Org 1", region="Test Region"
+            ods_code="ORG1", ods_name="Test Org 1", region=region, icb=icb
         ),
         Organisation.objects.create(
-            ods_code="ORG2", ods_name="Test Org 2", region="Test Region"
+            ods_code="ORG2", ods_name="Test Org 2", region=region, icb=icb
         ),
     ]
 
@@ -140,8 +143,10 @@ class TestLoadDoseData:
     def test_clear_existing_dose_data(self):
         with patch("pipeline.flows.load_dose_data.task", lambda x: x):
             vmp = VMP.objects.create(code="12345", name="Test Drug")
+            region = Region.objects.create(code="REG1", name="Test Region")
+            icb = ICB.objects.create(code="ICB1", name="Test ICB", region=region)
             org = Organisation.objects.create(
-                ods_code="ORG1", ods_name="Test Org", region="Test"
+                ods_code="ORG1", ods_name="Test Org", region=region, icb=icb
             )
 
             Dose.objects.create(vmp=vmp, organisation=org, data=[["2024-01-01", 1.5, "mg"]])

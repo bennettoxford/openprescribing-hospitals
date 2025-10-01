@@ -7,7 +7,7 @@ from pipeline.flows.load_organisations import (
     create_trust_types,
     load_organisations,
 )
-from viewer.models import Organisation, TrustType
+from viewer.models import Organisation, TrustType, Region, ICB
 
 
 @pytest.fixture
@@ -18,7 +18,9 @@ def sample_bigquery_data():
             "ods_code": "ABC123",
             "ods_name": "Test Hospital 1",
             "region": "North",
-            "icb": "ICB1",
+            "region_code": "REG001",
+            "icb": "ICB North",
+            "icb_code": "ICB1",
             "successors": ["DEF456"],
             "ultimate_successors": ["DEF456"],
             "trust_type": "ACUTE - TEACHING",
@@ -27,7 +29,9 @@ def sample_bigquery_data():
             "ods_code": "DEF456",
             "ods_name": "Test Hospital 2",
             "region": "South",
-            "icb": "ICB2",
+            "region_code": "REG002",
+            "icb": "ICB South",
+            "icb_code": "ICB2",
             "successors": [],
             "ultimate_successors": [],
             "trust_type": "COMMUNITY",
@@ -36,7 +40,9 @@ def sample_bigquery_data():
             "ods_code": "GHI789",
             "ods_name": "Test Hospital 3",
             "region": "East",
-            "icb": "ICB3",
+            "region_code": "REG003",
+            "icb": "ICB East",
+            "icb_code": "ICB3",
             "successors": [],
             "ultimate_successors": [],
             "trust_type": None,
@@ -52,7 +58,9 @@ def sample_transformed_data():
             "ods_code": "ABC123",
             "ods_name": "Test Hospital 1",
             "region": "North",
-            "icb": "ICB1",
+            "region_code": "REG001",
+            "icb": "ICB North",
+            "icb_code": "ICB1",
             "successor_code": "DEF456",
             "trust_type": "ACUTE - TEACHING",
         },
@@ -60,7 +68,9 @@ def sample_transformed_data():
             "ods_code": "DEF456",
             "ods_name": "Test Hospital 2",
             "region": "South",
-            "icb": "ICB2",
+            "region_code": "REG002",
+            "icb": "ICB South",
+            "icb_code": "ICB2",
             "successor_code": None,
             "trust_type": "COMMUNITY",
         },
@@ -68,7 +78,9 @@ def sample_transformed_data():
             "ods_code": "GHI789",
             "ods_name": "Test Hospital 3",
             "region": "East",
-            "icb": "ICB3",
+            "region_code": "REG003",
+            "icb": "ICB East",
+            "icb_code": "ICB3",
             "successor_code": None,
             "trust_type": None,
         },
@@ -92,7 +104,9 @@ class TestLoadOrganisations:
                 "ods_code",
                 "ods_name",
                 "region",
+                "region_code",
                 "icb",
+                "icb_code",
                 "successors",
                 "ultimate_successors",
                 "trust_type",
@@ -111,7 +125,7 @@ class TestLoadOrganisations:
         assert result[1]["successor_code"] is None  # Second org has no successor
         assert all(
             key in result[0]
-            for key in ["ods_code", "ods_name", "region", "icb", "successor_code", "trust_type"]
+            for key in ["ods_code", "ods_name", "region", "region_code", "icb", "icb_code", "successor_code", "trust_type"]
         )
 
     @pytest.mark.django_db
@@ -131,9 +145,11 @@ class TestLoadOrganisations:
     @pytest.mark.django_db
     def test_load_organisations_with_real_db(self, sample_transformed_data):
 
+        old_region = Region.objects.create(code="REG_OLD", name="West")
+        old_icb = ICB.objects.create(code="ICB_OLD", name="ICB Old", region=old_region)
         initial_orgs = [
             Organisation(
-                ods_code="OLD123", ods_name="Old Hospital", region="West", icb="ICB_OLD"
+                ods_code="OLD123", ods_name="Old Hospital", region=old_region, icb=old_icb
             )
         ]
         Organisation.objects.bulk_create(initial_orgs)
@@ -154,8 +170,10 @@ class TestLoadOrganisations:
         orgs_list = list(stored_orgs)
         assert orgs_list[0].ods_code == "ABC123"
         assert orgs_list[0].ods_name == "Test Hospital 1"
-        assert orgs_list[0].region == "North"
-        assert orgs_list[0].icb == "ICB1"
+        assert orgs_list[0].region.name == "North"
+        assert orgs_list[0].region.code == "REG001"
+        assert orgs_list[0].icb.name == "ICB North"
+        assert orgs_list[0].icb.code == "ICB1"
         assert orgs_list[0].trust_type.name == "ACUTE - TEACHING"
 
         assert orgs_list[1].trust_type.name == "COMMUNITY"
