@@ -105,7 +105,7 @@
 
         if (isFilterOpen && selectedICBs.size > 0) {
             parsedRegionsHierarchy.forEach(region => {
-                const hasSelectedICBs = region.icbs.some(icb => selectedICBs.has(icb));
+                        const hasSelectedICBs = region.icbs.some(icb => selectedICBs.has(icb.name));
                 if (hasSelectedICBs) {
                     expandedRegions.add(region.region);
                 }
@@ -294,8 +294,8 @@
                                 <span class="font-medium">
                                     {(() => {
                                         const totalICBs = parsedRegionsHierarchy.reduce((total, region) => total + region.icbs.length, 0);
-                                        const selectedRegionICBs = Array.from(selectedRegions).reduce((count, region) => {
-                                            const regionData = parsedRegionsHierarchy.find(r => r.region === region);
+                                        const selectedRegionICBs = Array.from(selectedRegions).reduce((count, regionName) => {
+                                            const regionData = parsedRegionsHierarchy.find(r => r.region === regionName);
                                             return count + (regionData?.icbs.length || 0);
                                         }, 0);
                                         return `${selectedRegionICBs + selectedICBs.size}/${totalICBs}`;
@@ -321,7 +321,7 @@
                                                      selectedRegions.delete(region.region);
                                                  } else {
                                                      selectedRegions.add(region.region);
-                                                     region.icbs.forEach(icb => selectedICBs.delete(icb));
+                                                     region.icbs.forEach(icb => selectedICBs.delete(icb.name));
                                                  }
                                                  selectedRegions = selectedRegions;
 
@@ -333,9 +333,9 @@
                                                      availableOrgs.push(...orgsInRegion);
                                                  });
                                                  
-                                                 selectedICBs.forEach(icb => {
+                                                 selectedICBs.forEach(icbName => {
                                                      const orgsInICB = parsedOrgData
-                                                         .filter(org => org.icb === icb)
+                                                         .filter(org => org.icb === icbName)
                                                          .map(org => org.name);
                                                      availableOrgs.push(...orgsInICB);
                                                  });
@@ -364,13 +364,13 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                                 </svg>
                                             </button>
-                                            <span>{region.region}</span>
+                                                    <span>{region.region} ({region.region_code})</span>
                                             <span class="text-sm text-gray-500 ml-auto">
                                                 ({(() => {
                                                     if (selectedRegions.has(region.region)) {
                                                         return `${region.icbs.length}/${region.icbs.length}`;
                                                     }
-                                                    const selectedCount = region.icbs.filter(icb => selectedICBs.has(icb)).length;
+                                                    const selectedCount = region.icbs.filter(icb => selectedICBs.has(icb.name)).length;
                                                     return `${selectedCount}/${region.icbs.length}`;
                                                 })()} ICBs)
                                             </span>
@@ -384,13 +384,13 @@
                                         {#each region.icbs as icb}
                                             <div class="pl-6 transition duration-150 ease-in-out relative p-2
                                                       {selectedRegions.has(region.region) ? 'text-gray-400 cursor-not-allowed' : 
-                                                       selectedICBs.has(icb) ? 'bg-oxford-100 text-oxford-500 hover:bg-oxford-200' : 'cursor-pointer hover:bg-gray-100'}"
+                                                       selectedICBs.has(icb.name) ? 'bg-oxford-100 text-oxford-500 hover:bg-oxford-200' : 'cursor-pointer hover:bg-gray-100'}"
                                                  on:click={() => {
                                                      if (!selectedRegions.has(region.region)) {
-                                                         if (selectedICBs.has(icb)) {
-                                                             selectedICBs.delete(icb);
+                                                         if (selectedICBs.has(icb.name)) {
+                                                             selectedICBs.delete(icb.name);
                                                          } else {
-                                                             selectedICBs.add(icb);
+                                                             selectedICBs.add(icb.name);
                                                          }
                                                          selectedICBs = selectedICBs;
                                                          
@@ -402,9 +402,9 @@
                                                              availableOrgs.push(...orgsInRegion);
                                                          });
                                                          
-                                                         selectedICBs.forEach(icb => {
+                                                         selectedICBs.forEach(icbName => {
                                                              const orgsInICB = parsedOrgData
-                                                                 .filter(org => org.icb === icb)
+                                                                 .filter(org => org.icb === icbName)
                                                                  .map(org => org.name);
                                                              availableOrgs.push(...orgsInICB);
                                                          });
@@ -421,9 +421,9 @@
                                                 <div class="flex items-center justify-between">
                                                     <div class="flex items-center text-sm">
                                                         <span class="mr-2">↳</span>
-                                                        <span>{icb}</span>
+                                                        <span>{icb.name} ({icb.code})</span>
                                                     </div>
-                                                    {#if selectedICBs.has(icb) && !selectedRegions.has(region.region)}
+                                                    {#if selectedICBs.has(icb.name) && !selectedRegions.has(region.region)}
                                                         <span class="ml-auto text-sm font-medium">Selected</span>
                                                     {/if}
                                                 </div>

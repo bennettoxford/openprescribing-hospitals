@@ -166,6 +166,33 @@ class VMPIngredientStrength(models.Model):
 
     def __str__(self):
         return f"{self.vmp.name} - {self.ingredient.name}"
+class Region(models.Model):
+    code = models.CharField(max_length=20, unique=True, help_text="Region code")
+    name = models.CharField(max_length=255, help_text="Region name")
+    
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=["code"]),
+            models.Index(fields=["name"]),
+        ]
+
+class ICB(models.Model):
+    code = models.CharField(max_length=20, unique=True, help_text="ICB code")
+    name = models.CharField(max_length=255, help_text="ICB name")
+    region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name="icbs")
+    
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=["code"]),
+            models.Index(fields=["name"]),
+            models.Index(fields=["region"]),
+        ]
 
 class TrustType(models.Model):
     """Trust type classification from ERIC data"""
@@ -179,12 +206,11 @@ class TrustType(models.Model):
         indexes = [
             models.Index(fields=["name"]),
         ]
-
 class Organisation(models.Model):
     ods_code = models.CharField(max_length=10, unique=True)
     ods_name = models.CharField(max_length=255, null=False)
-    region = models.CharField(max_length=100, null=False)
-    icb = models.CharField(max_length=100, null=True)
+    region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name="organisations", null=True)
+    icb = models.ForeignKey(ICB, on_delete=models.CASCADE, related_name="organisations", null=True)
     trust_type = models.ForeignKey(
         TrustType, 
         on_delete=models.SET_NULL, 

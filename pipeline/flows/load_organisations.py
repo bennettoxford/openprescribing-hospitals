@@ -14,6 +14,8 @@ setup_django_environment()
 from viewer.models import (
     Organisation, 
     TrustType,
+    Region,
+    ICB,
     SCMDQuantity, 
     Dose, 
     IngredientQuantity, 
@@ -34,8 +36,10 @@ def extract_organisations() -> List[Dict]:
     SELECT DISTINCT
         org.ods_code, 
         org.ods_name, 
-        org.region, 
-        org.icb, 
+        org.region,
+        org.region_code,
+        org.icb,
+        org.icb_code,
         org.successors, 
         org.ultimate_successors,
         eric.trust_type
@@ -73,7 +77,9 @@ def transform_organisations(data: List[Dict]) -> List[Dict]:
             "ods_code": row["ods_code"],
             "ods_name": row["ods_name"],
             "region": row["region"] or "",
-            "icb": row["icb"],
+            "region_code": row["region_code"] or "",
+            "icb": row["icb"] or "",
+            "icb_code": row["icb_code"] or "",
             "successor_code": successor_map.get(row["ods_code"]),
             "trust_type": row.get("trust_type"),
         }
@@ -178,24 +184,77 @@ def load_organisations(data: List[Dict], trust_type_lookup: Dict) -> Dict:
         deleted_count = Organisation.objects.all().delete()[0]
         logger.info(f"Deleted {deleted_count} Organisation records")
 
+        logger.info("Deleting ICB records...")
+        icb_deleted_count = ICB.objects.all().delete()[0]
+        logger.info(f"Deleted {icb_deleted_count} ICB records")
+
+        logger.info("Deleting Region records...")
+        region_deleted_count = Region.objects.all().delete()[0]
+        logger.info(f"Deleted {region_deleted_count} Region records")
+
         total_related_deleted = (scmd_deleted_total + dose_deleted_total + ingredient_deleted_total + 
                                ddd_deleted_total + cost_deleted_total + measure_deleted_total + cache_deleted_total)
-        logger.info(f"Deletion summary - Related records: {total_related_deleted}, Organisations: {deleted_count}")
+        logger.info(f"Deletion summary - Related records: {total_related_deleted}, Organisations: {deleted_count}, ICBs: {icb_deleted_count}, Regions: {region_deleted_count}")
         logger.info("Deletion phase complete")
      
     with transaction.atomic():
         logger.info("Starting creation phase...")
 
-        organisation_objects = [
-            Organisation(
-                ods_code=row["ods_code"],
-                ods_name=row["ods_name"],
-                region=row["region"],
-                icb=row["icb"],
-                trust_type=trust_type_lookup.get(row.get("trust_type")),
-            )
-            for row in data
+        unique_regions = {}
+        for row in data:
+            region_code = row.get("region_code")
+            region_name = row.get("region")
+            if region_code and region_name and region_code not in unique_regions:
+                unique_regions[region_code] = region_name
+
+        region_objects = [
+            Region(code=code, name=name) 
+            for code, name in unique_regions.items()
         ]
+        created_regions = Region.objects.bulk_create(region_objects, batch_size=1000)
+        logger.info(f"Created {len(created_regions)} region records")
+
+        unique_icbs = {}
+        for row in data:
+            icb_code = row.get("icb_code")
+            icb_name = row.get("icb")
+            region_code = row.get("region_code")
+            if icb_code and icb_name and region_code and icb_code not in unique_icbs:
+                unique_icbs[icb_code] = {
+                    'name': icb_name,
+                    'region_code': region_code
+                }
+
+        region_lookup = {region.code: region for region in Region.objects.all()}
+        
+        icb_objects = []
+        for icb_code, icb_data in unique_icbs.items():
+            region = region_lookup.get(icb_data['region_code'])
+            if region:
+                icb_objects.append(ICB(
+                    code=icb_code,
+                    name=icb_data['name'],
+                    region=region
+                ))
+
+        created_icbs = ICB.objects.bulk_create(icb_objects, batch_size=1000)
+        logger.info(f"Created {len(created_icbs)} ICB records")
+
+        icb_lookup = {icb.code: icb for icb in ICB.objects.all()}
+
+        organisation_objects = []
+        for row in data:
+            region = region_lookup.get(row.get("region_code"))
+            icb = icb_lookup.get(row.get("icb_code"))
+            
+            if region and icb:
+                organisation_objects.append(Organisation(
+                    ods_code=row["ods_code"],
+                    ods_name=row["ods_name"],
+                    region=region,
+                    icb=icb,
+                    trust_type=trust_type_lookup.get(row.get("trust_type")),
+                ))
 
         created_objects = Organisation.objects.bulk_create(
             organisation_objects, batch_size=1000

@@ -11,7 +11,7 @@ from pipeline.flows.load_ingredient_quantity import (
     transform_and_load_ingredient_quantity_chunk,
     load_ingredient_logic_for_combinations,
 )
-from viewer.models import IngredientQuantity, Ingredient, VMP, Organisation, CalculationLogic
+from viewer.models import IngredientQuantity, Ingredient, VMP, Organisation, CalculationLogic, Region, ICB
 
 
 @pytest.fixture
@@ -75,12 +75,15 @@ def sample_foreign_keys(db):
         VMP.objects.create(code="67890", name="Test Drug 2"),
     ]
 
+    region = Region.objects.create(code="REG1", name="Test Region")
+    icb = ICB.objects.create(code="ICB1", name="Test ICB", region=region)
+
     orgs = [
         Organisation.objects.create(
-            ods_code="ORG1", ods_name="Test Org 1", region="Test Region"
+            ods_code="ORG1", ods_name="Test Org 1", region=region, icb=icb
         ),
         Organisation.objects.create(
-            ods_code="ORG2", ods_name="Test Org 2", region="Test Region"
+            ods_code="ORG2", ods_name="Test Org 2", region=region, icb=icb
         ),
     ]
 
@@ -151,8 +154,10 @@ class TestLoadIngredientQuantity:
         with patch("pipeline.flows.load_ingredient_quantity.task", lambda x: x):
             ingredient = Ingredient.objects.create(code="ING1", name="Test Ingredient")
             vmp = VMP.objects.create(code="12345", name="Test Drug")
+            region = Region.objects.create(code="REG1", name="Test Region")
+            icb = ICB.objects.create(code="ICB1", name="Test ICB", region=region)
             org = Organisation.objects.create(
-                ods_code="ORG1", ods_name="Test Org", region="Test"
+                ods_code="ORG1", ods_name="Test Org", region=region, icb=icb
             )
 
             IngredientQuantity.objects.create(

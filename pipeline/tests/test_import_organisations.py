@@ -534,7 +534,9 @@ class TestCreateOrgMappingDF:
         # Test ABC1 row (active trust)
         abc1_row = df[df["ods_code"] == "ABC1"].iloc[0]
         assert abc1_row["ods_name"] == "Sample Hospital NHS Foundation Trust"
+        assert abc1_row["icb_code"] == "ICB1"
         assert abc1_row["icb"] == "North East ICB"
+        assert abc1_row["region_code"] == "REG1"
         assert abc1_row["region"] == "North East Region"
         assert abc1_row["postcode"] == "SW1A 1AA"
         assert abc1_row["legal_open_date"] == "2020-01-01"
@@ -545,7 +547,9 @@ class TestCreateOrgMappingDF:
         # Test GHI3 row (merged trust)
         ghi3_row = df[df["ods_code"] == "GHI3"].iloc[0]
         assert ghi3_row["ods_name"] == "New Merged Trust NHS Foundation Trust"
+        assert ghi3_row["icb_code"] == "ICB2"
         assert ghi3_row["icb"] == "London ICB"
+        assert ghi3_row["region_code"] == "REG2"
         assert ghi3_row["region"] == "London Region"
         assert ghi3_row["postcode"] == "E1 6AN"
         assert ghi3_row["legal_open_date"] == "2022-04-01"

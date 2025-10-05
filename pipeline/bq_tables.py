@@ -108,10 +108,22 @@ ORGANISATION_TABLE_SPEC = TableSpec(
             "postcode", "STRING", mode="NULLABLE", description="Postcode of the organisation"
         ),
         bigquery.SchemaField(
+            "region_code",
+            "STRING",
+            mode="NULLABLE",
+            description="Region code of the organisation",
+        ),
+        bigquery.SchemaField(
             "region",
             "STRING",
             mode="NULLABLE",
             description="Region of the organisation (through the ICB)",
+        ),
+        bigquery.SchemaField(
+            "icb_code",
+            "STRING",
+            mode="NULLABLE",
+            description="ICB code of the organisation",
         ),
         bigquery.SchemaField("icb", "STRING", mode="NULLABLE", description="ICB of the organisation"),
     ],

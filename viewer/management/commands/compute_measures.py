@@ -86,7 +86,7 @@ class Command(BaseCommand):
         org_lookup = {org.id: org for org in Organisation.objects.all()}
 
         subset = model.objects.filter(vmp__in=measure.vmps.all())
-        subset = subset.annotate(icb=F('organisation__icb'), region=F('organisation__region'))
+        subset = subset.annotate(icb=F('organisation__icb__name'), region=F('organisation__region__name'))
         
         subset = subset.annotate(
             normalised_org_id=Case(
@@ -96,14 +96,14 @@ class Command(BaseCommand):
             ),
             # normalised icb is the icb of the successor if it has one, otherwise the icb of the org
             normalised_icb_id=Case(
-                When(organisation__successor__icb__isnull=True, then=F('organisation__icb')),
-                default=F('organisation__successor__icb'),
+                When(organisation__successor__icb__isnull=True, then=F('organisation__icb__name')),
+                default=F('organisation__successor__icb__name'),
                 output_field=CharField(),
             ),
             # normalised region is the region of the successor if it has one, otherwise the region of the org
             normalised_region_id=Case(
-                When(organisation__successor__region__isnull=True, then=F('organisation__region')),
-                default=F('organisation__successor__region'),
+                When(organisation__successor__region__isnull=True, then=F('organisation__region__name')),
+                default=F('organisation__successor__region__name'),
                 output_field=CharField(),
             )
         )
@@ -340,8 +340,8 @@ class Command(BaseCommand):
         for org_id, monthly_data in org_monthly_data.items():
             org = org_lookup[org_id]
             
-            icb_id = org.icb
-            region_id = org.region
+            icb_id = org.icb.name if org.icb else None
+            region_id = org.region.name if org.region else None
             
             for month, values in monthly_data.items():
                 if icb_id:
