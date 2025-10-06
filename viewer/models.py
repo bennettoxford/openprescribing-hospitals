@@ -478,7 +478,7 @@ class Measure(models.Model):
     ]
     
     VIEW_MODE_CHOICES = [
-        ('percentiles', 'NHS Trust'),
+        ('trust', 'NHS Trust'),
         ('icb', 'ICB'),
         ('region', 'Region'),
         ('national', 'National'),
@@ -505,7 +505,7 @@ class Measure(models.Model):
     default_view_mode = models.CharField(
         max_length=20, 
         choices=VIEW_MODE_CHOICES, 
-        default='percentiles',
+        default='trust',
         help_text="Default view mode for this measure"
     )
 

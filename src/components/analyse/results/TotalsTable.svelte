@@ -68,7 +68,7 @@
     $: hasSelectedTrusts = $analyseOptions.selectedOrganisations && $analyseOptions.selectedOrganisations.length > 0;
     
     $: quantityColumnHeader = (() => {
-        if (hasSelectedTrusts && selectedMode !== 'organisation') {
+        if (hasSelectedTrusts && selectedMode !== 'trust') {
             return 'Quantity (selected trusts)';
         } else {
             return 'Quantity';

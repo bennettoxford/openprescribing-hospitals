@@ -67,7 +67,7 @@ export class ChartDataProcessor {
 
     processMode(mode) {
         const processors = {
-            organisation: () => this.processOrganisationMode(),
+            trust: () => this.processOrganisationMode(),
             region: () => this.processAggregatedMode('regions'),
             icb: () => this.processAggregatedMode('icbs'),
             national: () => this.processNationalMode(),
@@ -102,7 +102,7 @@ export class ChartDataProcessor {
 
         this.handlePredecessors(orgData);
 
-        const chartResult = this.createDatasets(orgData, 'organisation');
+        const chartResult = this.createDatasets(orgData, 'trust');
 
         if (this.options.showPercentiles && this.rawData && this.rawData.length > 0) {
             chartResult.needsPercentiles = true;
@@ -227,7 +227,7 @@ export class ChartDataProcessor {
         const categoryTypeMap = {
             'regions': 'region',
             'icbs': 'icb',
-            'organisations': 'organisation'
+            'organisations': 'trust'
         };
 
         return this.createDatasets(categoryData, categoryTypeMap[category] || category);
@@ -459,7 +459,7 @@ export class ViewModeCalculator {
         
         // Only add modes if there are VMPs with valid data
         if (this.vmps && this.vmps.length > 0) {
-            modes.push({ value: 'organisation', label: 'NHS Trust' });
+            modes.push({ value: 'trust', label: 'NHS Trust' });
             
             modes.push(...this.getAggregationModes());
             
@@ -587,13 +587,13 @@ export class ViewModeCalculator {
 }
 
 export function selectDefaultMode(availableModes, hasSelectedOrganisations = false) {
-    const organisationMode = availableModes.find(m => m.value === 'organisation');
-    if (organisationMode) return organisationMode.value;
+    const trustMode = availableModes.find(m => m.value === 'trust');
+    if (trustMode) return trustMode.value;
     
     const nationalMode = availableModes.find(m => m.value === 'national');
     if (nationalMode) return nationalMode.value;
     
-    return availableModes[0]?.value || 'organisation';
+    return availableModes[0]?.value || 'trust';
 }
 
 export function processAnalysisData(data, selectedOrganisations = [], predecessorMap = new Map()) {
@@ -777,7 +777,7 @@ export function processTableDataByMode(data, mode, period, aggregatedData, lates
         return processAggregatedMode(aggregatedData, mode, period, latestDate, selectedProductCodes);
     }
 
-    if (mode === 'organisation') {
+    if (mode === 'trust') {
         return processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, predecessorMap, expandedTrusts);
     }
 
@@ -1087,7 +1087,7 @@ function processRawDataMode(data, mode, period, latestDate, selectedOrganisation
 
 function getGroupKey(item, mode) {
     switch (mode) {
-        case 'organisation':
+        case 'trust':
             return item.organisation__ods_name || 'Unknown Organisation';
         case 'product':
             return item.vmp__name || 'Unknown Product';
@@ -1124,7 +1124,7 @@ function processItemForGroup(groupedData, groupKey, item) {
 
 export function getModeDisplayName(mode) {
     const modeNames = {
-        'organisation': 'NHS Trust',
+        'trust': 'NHS Trust',
         'region': 'Region',
         'icb': 'ICB', 
         'national': 'National total',
@@ -1140,7 +1140,7 @@ export function getChartExplainerText(mode, options = {}) {
     const { hasSelectedOrganisations = false, currentModeHasData = true, vmpsCount = 0 } = options;
 
     const baseExplainers = {
-        'organisation': () => {
+        'trust': () => {
             if (hasSelectedOrganisations) {
                 if (currentModeHasData) {
                     return "This chart shows individual NHS Trust quantities over time for your selected trusts. Each line represents one trust, allowing you to compare their usage patterns.";
@@ -1241,7 +1241,7 @@ export function getTableExplainerText(mode, options = {}) {
     const periodText = getPeriodText();
 
     const baseExplainers = {
-        'organisation': () => {
+        'trust': () => {
             if (hasSelectedTrusts) {
                 return `This table shows the total quantities of the selected products issued by NHS trust ${periodText}. Data is grouped into "Selected trusts" (${selectedTrustsCount} trusts) and "All other trusts", allowing you to compare your selected NHS trusts against others.`;
             } else {

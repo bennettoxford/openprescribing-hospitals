@@ -52,7 +52,7 @@
     export let denominatorvmps = '[]';
     export let numeratorvmps = '[]';
     export let annotations = '[]';
-    export let defaultviewmode = 'percentiles';
+    export let defaultviewmode = 'trust';
    
     let trusts = [];
     let icbs = [];
@@ -120,7 +120,7 @@
             params.mode = $selectedMode;
         }
         
-        if ($selectedMode === 'percentiles') {
+        if ($selectedMode === 'trust') {
             const availableTrusts = getAvailableTrusts();
             const percentilesDisabled = isPercentilesDisabled();
             
@@ -198,7 +198,7 @@
         selectedMode.set(urlParams.mode);
         modeSelectorStore.setSelectedMode(urlParams.mode);
         
-        if (urlParams.mode === 'percentiles') {
+        if (urlParams.mode === 'trust') {
             applySelectionFromCodes(
                 urlParams.trusts,
                 trusts.filter(trust => parsedOrgData.data[trust]?.available),
@@ -329,7 +329,7 @@
     }
 
 
-    $: showFilter = ['percentiles', 'icb', 'region', 'national'].includes($selectedMode);
+    $: showFilter = ['trust', 'icb', 'region', 'national'].includes($selectedMode);
 
     $: {
         if ($selectedMode === 'icb') {
@@ -338,7 +338,7 @@
                 predecessor_map: {}
             });
             organisationSearchStore.setFilterType('icb');
-        } else if ($selectedMode === 'percentiles') {
+        } else if ($selectedMode === 'trust') {
             organisationSearchStore.setOrganisationData({
                 orgs: Object.fromEntries(trusts.map(name => [parsedOrgData.org_codes?.[name] || name, name])),
                 org_codes: parsedOrgData.org_codes || {},
@@ -355,7 +355,7 @@
     }
 
     const measureChartStore = createChartStore({
-        mode: 'percentiles',
+        mode: 'trust',
         yAxisLabel: yAxisLabel,
         yAxisTickFormat: yAxisTickFormatter,
         yAxisRange: yAxisLimits,
@@ -499,11 +499,11 @@
                 }))
             };
             measureChartStore.setData(updatedData);
-        } else if ($selectedMode === 'percentiles') {
+        } else if ($selectedMode === 'trust') {
             const itemsArray = Array.isArray(selectedItems) ? selectedItems : Array.from(selectedItems);
             visibleTrusts.set(new Set(itemsArray));
             organisationSearchStore.updateSelection(itemsArray);
-            if ($selectedMode === 'percentiles') {
+            if ($selectedMode === 'trust') {
                 const updatedData = {
                     ...$filteredData,
                     datasets: $filteredData.datasets.map(dataset => ({
@@ -524,7 +524,7 @@
     }
 
     const modeOptions = [
-        { value: 'percentiles', label: 'NHS Trust' },
+        { value: 'trust', label: 'NHS Trust' },
         { value: 'icb', label: 'ICB' },
         { value: 'region', label: 'Region' },
         { value: 'national', label: 'National' },
@@ -570,7 +570,7 @@
                     }))
                 };
                 measureChartStore.setData(updatedData);
-            } else if (currentMode === 'percentiles') {
+            } else if (currentMode === 'trust') {
                 organisationSearchStore.setOrganisationData({
                     orgs: Object.fromEntries(trusts.map(name => [parsedOrgData.org_codes?.[name] || name, name])),
                     org_codes: parsedOrgData.org_codes || {},
@@ -582,7 +582,7 @@
 
                 organisationSearchStore.updateSelection(Array.from($visibleTrusts));
                 measureChartStore.updateVisibleItems(new Set($visibleTrusts));
-                if (currentMode === 'percentiles') {
+                if (currentMode === 'trust') {
                     const updatedData = {
                         ...$filteredData,
                         datasets: $filteredData.datasets.map(dataset => ({
@@ -617,7 +617,7 @@
             organisationSearchStore.updateSelection(Array.from($visibleICBs));
         } else if ($selectedMode === 'region') {
             organisationSearchStore.updateSelection(Array.from($visibleRegions));
-        } else if ($selectedMode === 'percentiles') {
+        } else if ($selectedMode === 'trust') {
             organisationSearchStore.updateSelection(Array.from($visibleTrusts));
         }
     }
@@ -641,7 +641,7 @@
             const updatedData = {
                 ...$filteredData,
                 datasets: $filteredData.datasets.map(dataset => {
-                    if (newMode === 'percentiles') {
+                    if (newMode === 'trust') {
                         return {
                             ...dataset,
                             hidden: !getDatasetVisibility(dataset, newMode, $visibleTrusts, $showPercentiles)
@@ -662,7 +662,7 @@
     }
 
     $: {
-        if ($filteredData && $selectedMode === 'percentiles') {
+        if ($filteredData && $selectedMode === 'trust') {
             const updatedData = {
                 ...$filteredData,
                 datasets: $filteredData.datasets.map(dataset => ({
@@ -705,7 +705,7 @@
             visibleICBs.set(new Set());
         } else if ($selectedMode === 'region') {
             visibleRegions.set(new Set());
-        } else if ($selectedMode === 'percentiles') {
+        } else if ($selectedMode === 'trust') {
             visibleTrusts.set(new Set());
         }
         
@@ -738,7 +738,7 @@
             });
             organisationSearchStore.setFilterType('region');
             organisationSearchStore.setAvailableItems(regions);
-        } else if ($selectedMode === 'percentiles') {
+        } else if ($selectedMode === 'trust') {
             organisationSearchStore.setOrganisationData({
                 orgs: Object.fromEntries(trusts.map(name => [parsedOrgData.org_codes?.[name] || name, name])),
                 org_codes: parsedOrgData.org_codes || {},
@@ -784,7 +784,7 @@
             
             tooltipEntries.push({ label: 'Value', value });
             tooltipContent.push(...tooltipEntries);
-        } else if ($selectedMode === 'percentiles') {
+        } else if ($selectedMode === 'trust') {
             if (d.dataset.label === 'Median (50th percentile)' || d.dataset.name === 'Median (50th percentile)') {
                 tooltipContent.push(
                     { label: 'Date', value: formattedDate },
@@ -852,7 +852,7 @@
         {/if}
 
         <div class="w-full md:w-auto flex justify-between items-end gap-4">
-            {#if $selectedMode === 'percentiles'}
+            {#if $selectedMode === 'trust'}
             <div class="flex flex-col items-center gap-2">
                 <span class="text-sm text-gray-600 leading-tight text-center">
                     Show<br>percentiles

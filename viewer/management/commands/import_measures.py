@@ -73,7 +73,7 @@ class Command(BaseCommand):
                     'next_review': data.get('next_review', None),
                     'first_published': data.get('first_published', None),
                     'status': data.get('status', 'in_development'),
-                    'default_view_mode': data.get('default_view_mode', 'percentiles')
+                    'default_view_mode': data.get('default_view_mode', 'trust')
                 }
             )
             
@@ -196,7 +196,7 @@ def validate_measure_yaml(data):
         Optional('default_view_mode'): And(
             str,
             lambda mode: mode in [choice[0] for choice in Measure.VIEW_MODE_CHOICES],
-            error='default_view_mode must be one of: percentiles, icb, region, national'
+            error='default_view_mode must be one of: trust, icb, region, national'
         ),
         Optional('annotations'): And(
             list,
