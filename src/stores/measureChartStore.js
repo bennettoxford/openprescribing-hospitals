@@ -48,7 +48,7 @@ export function getOrAssignColor(orgName, index = null) {
 export function getDatasetVisibility(dataset, mode, visibleTrusts, showPercentiles) {
     const visibleTrustsSet = visibleTrusts instanceof Set ? visibleTrusts : new Set(visibleTrusts);
     
-    if (mode === 'percentiles') {
+    if (mode === 'trust') {
         if (dataset.isPercentile) {
             return !(!showPercentiles);
         }
@@ -69,28 +69,6 @@ export const filteredData = derived(
     const sortDates = (a, b) => new Date(a) - new Date(b);
 
     switch ($selectedMode) {
-      case 'trust':
-        if (typeof $orgdata === 'object' && !Array.isArray($orgdata)) {
-          const allDates = [...new Set(Object.values($orgdata).flatMap(org => {
-            return org.data && Array.isArray(org.data) ? org.data.map(d => d.month) : [];
-          }))].sort(sortDates);
-          
-          labels = allDates;
-          datasets = Array.from($visibleTrusts).map((trust) => {
-            const trustData = $orgdata[trust]?.data || [];
-            return {
-              label: trust,
-              data: createDataArray(trustData, allDates, 'quantity'),
-              numerator: createDataArray(trustData, allDates, 'numerator'),
-              denominator: createDataArray(trustData, allDates, 'denominator'),
-              color: getOrAssignColor(trust),
-              spanGaps: true,
-              hidden: false,
-              isTrust: true
-            };
-          });
-        }
-        break;
       case 'region':
         labels = $regiondata.length > 0 ? 
           $regiondata[0].data.map(d => d.month).sort(sortDates) : [];
@@ -127,7 +105,7 @@ export const filteredData = derived(
             };
           });
         break;
-      case 'percentiles':
+      case 'trust':
         const groupedPercentiles = $percentiledata.reduce((acc, item) => {
           if (!acc[item.month]) {
             acc[item.month] = {};

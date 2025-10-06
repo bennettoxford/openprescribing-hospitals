@@ -61,7 +61,7 @@
     $: currentModeHasData = (() => {
         if (!selectedData || !Array.isArray(selectedData) || selectedData.length === 0) return false;
         
-        if ($modeSelectorStore.selectedMode === 'organisation') {
+        if ($modeSelectorStore.selectedMode === 'trust') {
             const selectedOrgNames = new Set($analyseOptions.selectedOrganisations || []);
             
             // If no trusts are selected, check if there's any data available for percentiles
@@ -97,12 +97,12 @@
         return tableData && tableData.length > 0 && tableData.some(entry => entry.total > 0);
     })();
 
-    $: isInTrustModeWithNoData = $modeSelectorStore.selectedMode === 'organisation' && 
+    $: isInTrustModeWithNoData = $modeSelectorStore.selectedMode === 'trust' && 
            $analyseOptions.selectedOrganisations?.length > 0 &&
            !currentModeHasData &&
            !$resultsStore.showPercentiles;
 
-    $: canShowPercentilesWithoutTrustData = $modeSelectorStore.selectedMode === 'organisation' &&
+    $: canShowPercentilesWithoutTrustData = $modeSelectorStore.selectedMode === 'trust' &&
            $analyseOptions.selectedOrganisations?.length > 0 &&
            !currentModeHasData &&
            $resultsStore.showPercentiles;
@@ -131,7 +131,7 @@
 
         let finalDatasets = chartDatasets;
         
-        if ($modeSelectorStore.selectedMode === 'organisation' && needsPercentiles && $resultsStore.showPercentiles) {
+        if ($modeSelectorStore.selectedMode === 'trust' && needsPercentiles && $resultsStore.showPercentiles) {
             const percentilesResult = calculatePercentiles(
                 percentilesData, 
                 $organisationSearchStore.predecessorMap,
@@ -457,7 +457,7 @@
                                     variant="pill"
                                 />
 
-                                {#if $modeSelectorStore.selectedMode === 'organisation'}
+                                {#if $modeSelectorStore.selectedMode === 'trust'}
                                 <div class="flex flex-col items-center gap-2">
                                     <span class="text-sm text-gray-600 leading-tight text-center">
                                         Show percentiles
@@ -500,7 +500,7 @@
                         {#if currentModeHasData || canShowPercentilesWithoutTrustData}
                         <div class="mb-4">
                             <p class="text-sm text-gray-700">
-                                {#if $modeSelectorStore.selectedMode === 'organisation' && $resultsStore.showPercentiles}
+                                {#if $modeSelectorStore.selectedMode === 'trust' && $resultsStore.showPercentiles}
                                     {#if $analyseOptions.selectedOrganisations?.length > 0}
                                         {#if currentModeHasData}
                                             This chart shows individual NHS Trust quantities overlaid on percentile ranges. Selected trusts appear as colored lines, while percentile bands show the distribution across all trusts with data.
@@ -529,7 +529,7 @@
                                 {/if}
                             </p>
                             
-                            {#if $modeSelectorStore.selectedMode === 'organisation' && $resultsStore.showPercentiles && showTrustCountDetails && $resultsStore.excludedTrusts && $resultsStore.excludedTrusts.length > 0}
+                            {#if $modeSelectorStore.selectedMode === 'trust' && $resultsStore.showPercentiles && showTrustCountDetails && $resultsStore.excludedTrusts && $resultsStore.excludedTrusts.length > 0}
                             <div class="mt-3 p-3 bg-gray-50 border border-gray-200 rounded">
                                 <div class="text-sm text-gray-700 font-medium mb-2">
                                     Excluded trusts ({$resultsStore.excludedTrusts.length}):

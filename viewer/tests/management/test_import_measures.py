@@ -178,7 +178,7 @@ status: in_development
 
         measure = Measure.objects.get(short_name='test-measure-default')
         assert measure.name == 'Test Measure Default'
-        assert measure.default_view_mode == 'percentiles'  # Should use default value
+        assert measure.default_view_mode == 'trust'  # Should use default value
 
     @pytest.mark.django_db
     def test_command_invalid_folder_name(self, capsys):

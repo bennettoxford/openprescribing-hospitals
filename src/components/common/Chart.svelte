@@ -16,7 +16,7 @@
   const dispatch = createEventDispatcher();
 
   export let data = { labels: [], datasets: [] };
-  export let mode = 'percentiles';
+  export let mode = 'trust';
   export let yAxisLabel = '';
   export let percentileConfig = {
     medianColor: '#DC3220',
@@ -48,7 +48,7 @@
   });
 
   $: shouldUseBoost = visibleDatasets && visibleDatasets.length > 20 && 
-                    config.mode !== 'percentiles' && config.mode !== 'trust' && config.mode !== 'organisation';
+                    config.mode !== 'trust';
 
   $: chartAnnotations = showAnnotations ? createChartAnnotations(annotations, config.yAxisRange || [0, 100]) : [];
   

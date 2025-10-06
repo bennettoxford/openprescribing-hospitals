@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='measure',
             name='default_view_mode',
-            field=models.CharField(choices=[('percentiles', 'NHS Trust'), ('icb', 'ICB'), ('region', 'Region'), ('national', 'National')], default='percentiles', help_text='Default view mode for this measure', max_length=20),
+            field=models.CharField(choices=[('trust', 'NHS Trust'), ('icb', 'ICB'), ('region', 'Region'), ('national', 'National')], default='trust', help_text='Default view mode for this measure', max_length=20),
         ),
     ]

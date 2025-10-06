@@ -16,6 +16,8 @@ from ..models import (
     PrecomputedPercentile,
     Organisation,
     MeasureAnnotation,
+    Region,
+    ICB,
 )
 from ..utils import get_organisation_data
 
@@ -287,13 +289,16 @@ class BaseMeasureItemView(TemplateView):
         }
 
     def get_aggregated_data(self, aggregated_measures):
-        region_data = defaultdict(lambda: {'name': '', 'data': []})
-        icb_data = defaultdict(lambda: {'name': '', 'data': []})
+        region_data = defaultdict(lambda: {'name': '', 'code': '', 'data': []})
+        icb_data = defaultdict(lambda: {'name': '', 'code': '', 'data': []})
         national_data = {'name': 'National', 'data': []}
+        region_codes = {region.name: region.code for region in Region.objects.all()}
+        icb_codes = {icb.name: icb.code for icb in ICB.objects.all()}
 
         for measure in aggregated_measures:
             if measure.category == 'region':
                 region_data[measure.label]['name'] = measure.label
+                region_data[measure.label]['code'] = region_codes.get(measure.label, '')
                 region_data[measure.label]['data'].append({
                     'month': measure.month,
                     'quantity': measure.quantity,
@@ -302,6 +307,7 @@ class BaseMeasureItemView(TemplateView):
                 })
             elif measure.category == 'icb':
                 icb_data[measure.label]['name'] = measure.label
+                icb_data[measure.label]['code'] = icb_codes.get(measure.label, '')
                 icb_data[measure.label]['data'].append({
                     'month': measure.month,
                     'quantity': measure.quantity,

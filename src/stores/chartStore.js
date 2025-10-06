@@ -13,7 +13,7 @@ export function createChartStore(initialConfig = {}) {
             margin: { top: 10, right: 20, bottom: 30, left: 50 }
         },
         config: {
-            mode: 'percentiles',
+            mode: 'trust',
             yAxisLabel: '%',
             yAxisLimits: [0, 100],
             percentileConfig: {
