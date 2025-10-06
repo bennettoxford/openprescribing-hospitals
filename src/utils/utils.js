@@ -85,3 +85,48 @@ export function normaliseDDDUnit(unit) {
 
     return unit;
 }
+
+export function getUrlParams() {
+    return new URLSearchParams(window.location.search);
+}
+
+export function setUrlParams(params, supportedParams = []) {
+    const url = new URL(window.location);
+    
+    supportedParams.forEach(param => {
+        url.searchParams.delete(param);
+    });
+
+    Object.entries(params).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== '') {
+            url.searchParams.set(key, value);
+        }
+    });
+
+    let urlString = url.toString();
+    urlString = urlString.replace(/%2C/g, ',');
+    
+    window.history.replaceState({}, '', urlString);
+}
+
+export function parseArrayParam(param) {
+    if (!param) return [];
+    if (param === 'all') return ['all'];
+    return param.split(',').filter(Boolean);
+}
+
+export function formatArrayParam(array) {
+    return Array.isArray(array) ? array.join(',') : '';
+}
+
+export function getCurrentUrl() {
+    return window.location.href;
+}
+
+export function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+    } else {
+        return Promise.reject(new Error('URL could not be copied'));
+    }
+}

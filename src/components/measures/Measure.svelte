@@ -17,7 +17,7 @@
 }} />
 
 <script>
-    import { onMount } from 'svelte';
+    import { onMount, tick } from 'svelte';
     import { createChartStore } from '../../stores/chartStore.js';
     import { 
         selectedMode, 
@@ -39,7 +39,7 @@
     import { organisationSearchStore } from '../../stores/organisationSearchStore';
     import { modeSelectorStore } from '../../stores/modeSelectorStore.js';
     import { filteredData } from '../../stores/measureChartStore.js';
-    import { formatNumber } from '../../utils/utils.js';
+    import { formatNumber, getUrlParams, setUrlParams, parseArrayParam, formatArrayParam, getCurrentUrl, copyToClipboard } from '../../utils/utils.js';
     import pluralize from 'pluralize';
 
     export let orgdata = '[]';
@@ -59,6 +59,10 @@
     let regions = [];
     let uniqueUnits = [];
     let parsedOrgData = {};
+    let parsedRegionData = [];
+    let parsedIcbData = [];
+    let showToast = false;
+    let isInitialLoad = true;
 
     function extractUniqueUnits() {
         try {
@@ -74,6 +78,174 @@
         } catch (error) {
             console.error('Failed to parse products data:', error);
             return [];
+        }
+    }
+
+    function loadFromUrlParams() {
+        const params = getUrlParams();
+        
+        const urlMode = params.get('mode');
+        const urlTrusts = parseArrayParam(params.get('trusts'));
+        const urlRegions = parseArrayParam(params.get('regions'));
+        const urlIcbs = parseArrayParam(params.get('icbs'));
+        
+        let urlShowPercentiles = true;
+        if (params.has('show_percentiles')) {
+            urlShowPercentiles = params.get('show_percentiles') !== 'false';
+        }
+        
+        return {
+            mode: urlMode,
+            trusts: urlTrusts,
+            regions: urlRegions,
+            icbs: urlIcbs,
+            showPercentiles: urlShowPercentiles
+        };
+    }
+
+    function getAvailableTrusts() {
+        return trusts.filter(trust => parsedOrgData.data[trust]?.available);
+    }
+
+    function isPercentilesDisabled() {
+        return getAvailableTrusts().length < 30;
+    }
+
+    function updateUrlParams() {
+        if (isInitialLoad) return;
+        
+        const params = {};
+        
+        if ($selectedMode !== defaultviewmode) {
+            params.mode = $selectedMode;
+        }
+        
+        if ($selectedMode === 'percentiles') {
+            const availableTrusts = getAvailableTrusts();
+            const percentilesDisabled = isPercentilesDisabled();
+            
+            const selectedTrustCodes = Array.from($visibleTrusts)
+                .map(trustName => parsedOrgData.org_codes?.[trustName])
+                .filter(Boolean);
+            
+            const allAvailableTrustCodes = availableTrusts
+                .map(trustName => parsedOrgData.org_codes?.[trustName])
+                .filter(Boolean)
+                .sort();
+            const selectedTrustCodesSorted = [...selectedTrustCodes].sort();
+            
+            if (percentilesDisabled) {
+                // When percentiles are disabled, default is all available trusts
+                // Only include trusts parameter if selection differs from all available trusts
+                if (JSON.stringify(selectedTrustCodesSorted) !== JSON.stringify(allAvailableTrustCodes)) {
+                    params.trusts = formatArrayParam(selectedTrustCodes);
+                }
+            } else {
+                // When percentiles are enabled, default is no trusts selected
+                // Include trusts parameter if any trusts are selected
+                if (selectedTrustCodes.length > 0) {
+                    if (JSON.stringify(selectedTrustCodesSorted) === JSON.stringify(allAvailableTrustCodes)) {
+                        params.trusts = 'all';
+                    } else {
+                        params.trusts = formatArrayParam(selectedTrustCodes);
+                    }
+                }
+            }
+            
+            if (!percentilesDisabled && !$showPercentiles) {
+                params.show_percentiles = 'false';
+            }
+        } else if ($selectedMode === 'region') {
+            const selectedRegionCodes = Array.from($visibleRegions)
+                .map(regionName => parsedRegionData.find(r => r.name === regionName)?.code)
+                .filter(Boolean);
+            
+            // Only add regions parameter if selection differs from default (all regions)
+            if (selectedRegionCodes.length > 0 && selectedRegionCodes.length !== regions.length) {
+                params.regions = formatArrayParam(selectedRegionCodes);
+            }
+        } else if ($selectedMode === 'icb') {
+            const selectedIcbCodes = Array.from($visibleICBs)
+                .map(icbName => parsedIcbData.find(i => i.name === icbName)?.code)
+                .filter(Boolean);
+            
+            // Only add icbs parameter if selection differs from default (all ICBs)
+            if (selectedIcbCodes.length > 0 && selectedIcbCodes.length !== icbs.length) {
+                params.icbs = formatArrayParam(selectedIcbCodes);
+            }
+        }
+        
+        const supportedParams = ['mode', 'trusts', 'regions', 'icbs', 'show_percentiles'];
+        setUrlParams(params, supportedParams);
+    }
+
+    function applySelectionFromCodes(codes, allItems, visibleStore, codeToNameMapper) {
+        if (codes.length === 0) return;
+        
+        if (codes[0] === 'all') {
+            visibleStore.set(new Set(allItems));
+            organisationSearchStore.updateSelection(allItems);
+        } else {
+            const names = codes.map(codeToNameMapper).filter(Boolean);
+            if (names.length > 0) {
+                visibleStore.set(new Set(names));
+                organisationSearchStore.updateSelection(names);
+            }
+        }
+    }
+
+    function applyUrlParams(urlParams) {
+        selectedMode.set(urlParams.mode);
+        modeSelectorStore.setSelectedMode(urlParams.mode);
+        
+        if (urlParams.mode === 'percentiles') {
+            applySelectionFromCodes(
+                urlParams.trusts,
+                trusts.filter(trust => parsedOrgData.data[trust]?.available),
+                visibleTrusts,
+                code => {
+                    for (const [name, trustCode] of Object.entries(parsedOrgData.org_codes || {})) {
+                        if (trustCode === code) return name;
+                    }
+                    return null;
+                }
+            );
+            
+            const availableTrusts = trusts.filter(trust => parsedOrgData.data[trust]?.available);
+            const percentilesDisabled = availableTrusts.length < 30;
+            
+            if (percentilesDisabled) {
+                showPercentiles.set(false);
+            } else {
+                showPercentiles.set(urlParams.showPercentiles);
+            }
+        } else if (urlParams.mode === 'region') {
+            applySelectionFromCodes(
+                urlParams.regions,
+                regions,
+                visibleRegions,
+                code => parsedRegionData.find(r => r.code === code)?.name
+            );
+        } else if (urlParams.mode === 'icb') {
+            applySelectionFromCodes(
+                urlParams.icbs,
+                icbs,
+                visibleICBs,
+                code => parsedIcbData.find(i => i.code === code)?.name
+            );
+        }
+    }
+
+    async function handleShareMeasure() {
+        try {
+            const currentUrl = getCurrentUrl();
+            await copyToClipboard(currentUrl);
+            showToast = true;
+            setTimeout(() => {
+                showToast = false;
+            }, 2000);
+        } catch (error) {
+            console.error('Failed to copy URL:', error);
         }
     }
 
@@ -219,7 +391,7 @@
         }
     };
 
-    onMount(() => {
+    onMount(async () => {
         parsedOrgData = JSON.parse(orgdata);
 
         orgdataStore.set(parsedOrgData.data || {});
@@ -245,36 +417,52 @@
         organisationSearchStore.setFilterType('trust');
         organisationSearchStore.setAvailableItems(availableTrusts);
         
-        const parsedIcbData = JSON.parse(icbdata);
+        parsedIcbData = JSON.parse(icbdata);
         icbStore.set(parsedIcbData);
         icbs = parsedIcbData.map(icb => icb.name);
         
-        const parsedRegionData = JSON.parse(regiondata);
+        parsedRegionData = JSON.parse(regiondata);
         regionStore.set(parsedRegionData);
         regions = parsedRegionData.map(region => region.name);
         
         percentileStore.set(JSON.parse(percentiledata));
-        selectedMode.set(defaultviewmode);
-        modeSelectorStore.setSelectedMode(defaultviewmode);
+
+        const urlParams = loadFromUrlParams();
 
         visibleICBs.set(new Set(icbs));
         visibleRegions.set(new Set(regions));
 
         if (shouldDisablePercentiles) {
             visibleTrusts.set(new Set(availableTrusts));
-            organisationSearchStore.updateSelection(availableTrusts);
             showPercentiles.set(false);
         } else {
             visibleTrusts.set(new Set());
-            organisationSearchStore.updateSelection([]);
+            showPercentiles.set(true);
         }
-        
-        if ($selectedMode === 'icb') {
-            organisationSearchStore.updateSelection(Array.from($visibleICBs));
-        } else if ($selectedMode === 'region') {
-            organisationSearchStore.updateSelection(Array.from($visibleRegions));
-        } else if ($selectedMode === 'percentiles') {
-            organisationSearchStore.updateSelection(Array.from($visibleTrusts));
+
+        const hasExplicitModeOverride = urlParams.mode && urlParams.mode !== defaultviewmode;
+
+        const hasExplicitSelections = urlParams.trusts.length > 0 || urlParams.regions.length > 0 || urlParams.icbs.length > 0;
+
+        const hasExplicitPercentileOverride = !shouldDisablePercentiles && getUrlParams().has('show_percentiles');
+        await tick();
+        isInitialLoad = false;
+
+        if (hasExplicitModeOverride || hasExplicitSelections || hasExplicitPercentileOverride) {
+            const effectiveUrlParams = {
+                ...urlParams,
+                mode: urlParams.mode || defaultviewmode
+            };
+            applyUrlParams(effectiveUrlParams);
+        } else {
+            selectedMode.set(defaultviewmode);
+            modeSelectorStore.setSelectedMode(defaultviewmode);
+            
+            if (shouldDisablePercentiles) {
+                organisationSearchStore.updateSelection(availableTrusts);
+            } else {
+                organisationSearchStore.updateSelection([]);
+            }
         }
 
         const parsedNationalData = JSON.parse(nationaldata);
@@ -431,6 +619,18 @@
             organisationSearchStore.updateSelection(Array.from($visibleRegions));
         } else if ($selectedMode === 'percentiles') {
             organisationSearchStore.updateSelection(Array.from($visibleTrusts));
+        }
+    }
+
+    $: {
+        $visibleTrusts;
+        $visibleRegions; 
+        $visibleICBs;
+        $selectedMode;
+        $showPercentiles;
+        
+        if (!isInitialLoad) {
+            updateUrlParams();
         }
     }
 
@@ -622,6 +822,20 @@
 </script>
 
 <div>
+    <div class="flex justify-end px-4 sm:px-8 mb-2">
+        <button
+            type="button"
+            class="flex items-center gap-1 px-3 py-2 text-sm font-medium text-oxford-600 bg-white border border-oxford-200 rounded-md hover:bg-oxford-50 hover:border-oxford-300 transition-colors duration-200"
+            on:click={handleShareMeasure}
+            title="Copy link to share this measure with current selections"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.935-2.186 2.25 2.25 0 00-3.935 2.186z" />
+            </svg>
+            Share Measure
+        </button>
+    </div>
+
     <div class="flex flex-col md:flex-row justify-between gap-4 px-4 sm:px-8">
         {#if showFilter}
             <div class="w-full md:w-7/12 relative z-10">
@@ -704,4 +918,15 @@
             {/if}
         </div>
     </div>
+
+    {#if showToast}
+        <div class="fixed bottom-4 right-4 bg-oxford-50 text-oxford-800 px-4 py-2 rounded-lg shadow-lg border border-oxford-100 transform translate-y-0 opacity-100 transition-all duration-300 z-50">
+            <div class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                Measure link copied to clipboard!
+            </div>
+        </div>
+    {/if}
 </div>
