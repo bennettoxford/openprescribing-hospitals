@@ -51,8 +51,10 @@ class Command(BaseCommand):
                 
             try:
                 validate_measure_yaml(data)
-                validate_measure_tags(data['tags'])
-            except ValueError as e:
+                tags = data.get('tags', [])
+                tag_objects = validate_measure_tags(tags)
+                
+            except (ValueError, SchemaError) as e:
                 self.stdout.write(
                     self.style.ERROR(f'Invalid measure definition in {yaml_file}: {str(e)}')
                 )
@@ -77,8 +79,6 @@ class Command(BaseCommand):
                 }
             )
             
-            tags = data.get('tags', [])
-            tag_objects = validate_measure_tags(tags)
             measure.tags.set(tag_objects)
             
             self._handle_annotations(measure, data.get('annotations', []))
@@ -211,13 +211,47 @@ def validate_measure_yaml(data):
     if date_validation is not True:
         raise SchemaError(date_validation)
 
+MEASURE_TAG_DEFINITIONS = {
+    'Safety': {
+        'description': 'This measure supports medicines safety work to reduce risk and minimise mistakes in hospitals.',
+        'colour': '#F44336'
+    },
+    'Antimicrobial stewardship': {
+        'description': 'This measure supports work to promote antimicrobial stewardship in hospitals.',
+        'colour': '#009688'
+    },
+    'Low value prescribing': {
+        'description': 'This measure supports work to reduce low value prescribing in hospitals.',
+        'colour': '#9C27B0'
+    },
+    'Value': {
+        'description': 'This measure supports cost saving work in hospitals.',
+        'colour': '#2196F3'
+    },
+    'Greener NHS': {
+        'description': 'This measure supports work to reduce the impact of medicines issued in hospitals on the overall environmental impact of the NHS.',
+        'colour': '#4CAF50'
+    },
+    'Efficiency': {
+        'description': 'This measure supports work to improve efficiency in hospitals.',
+        'colour': '#FF9800'
+    }
+}
+
+
 def validate_measure_tags(tags):
-    """Validate that all specified tags exist in the database."""
+    """Validate and create measure tags if they don't exist."""
     existing_tags = set(MeasureTag.objects.values_list('name', flat=True))
-    invalid_tags = [tag for tag in tags if tag not in existing_tags]
+    missing_tags = [tag for tag in tags if tag not in existing_tags]
     
-    if invalid_tags:
-        raise ValueError(
-            f"The following tags do not exist in the database: {', '.join(invalid_tags)}"
-        )
+    if missing_tags:
+        for tag_name in missing_tags:
+            if tag_name in MEASURE_TAG_DEFINITIONS:
+                tag_def = MEASURE_TAG_DEFINITIONS[tag_name]
+                MeasureTag.objects.create(
+                    name=tag_name,
+                    description=tag_def['description'],
+                    colour=tag_def['colour']
+                )
+                   
     return MeasureTag.objects.filter(name__in=tags) 

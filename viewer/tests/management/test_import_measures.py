@@ -61,11 +61,26 @@ class TestImportMeasures:
             validate_measure_yaml(valid_measure_data)
 
     def test_validate_measure_tags_valid(self, measure_tags):
-        validate_measure_tags(['test-tag-1', 'test-tag-2'])
+        result = validate_measure_tags(['test-tag-1', 'test-tag-2'])
+        assert result.count() == 2
+        tag_names = set(result.values_list('name', flat=True))
+        assert tag_names == {'test-tag-1', 'test-tag-2'}
 
     def test_validate_measure_tags_invalid(self, measure_tags):
-        with pytest.raises(ValueError):
-            validate_measure_tags(['non-existent-tag'])
+        result = validate_measure_tags(['non-existent-tag'])
+        assert result.count() == 0
+
+    @pytest.mark.django_db
+    def test_validate_measure_tags_auto_create(self):
+        assert not MeasureTag.objects.filter(name='Safety').exists()
+        
+        result = validate_measure_tags(['Safety'])
+        assert result.count() == 1
+        
+        safety_tag = MeasureTag.objects.get(name='Safety')
+        assert safety_tag.description == 'This measure supports medicines safety work to reduce risk and minimise mistakes in hospitals.'
+        assert safety_tag.colour == '#F44336'
+
 
     def test_validate_date_format_valid(self):
         assert validate_date_format('2024-01-01')
