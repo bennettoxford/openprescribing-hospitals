@@ -6,7 +6,7 @@ why_it_matters: |
     
     The Primary Care Diabetes & Obesity Society (PCDOS) and Association of British Clinical Diabetologists (ABCD) have [written guidance](https://cms.pcdosociety.org/uploads/Levemir_Discontinuation_Guideline_Final_110825_17d277acd3.pdf) to support clinicians in selecting and safely initiating alternative basal insulins. The guidance recommends local teams diversify prescribing across available options to reduce supply risk, and with significant regional variation in prescribing recommend he use of data to support planning.  
     
-    This OpenPrescribing Hospitals measure, alongside it’s [primary care OpenPrescribing counterpart](https://openprescribing.net/measure/preview_insulin_detemir/) provides data on variation across primary and secondary care to support this planning.
+    This OpenPrescribing Hospitals measure, alongside it’s [primary care OpenPrescribing counterpart](https://openprescribing.net/measure/insulin_detemir/) provides data on variation across primary and secondary care to support this planning.
 
 how_is_it_calculated: >
     We display the total number of insulin detemir pre-filled pens / cartridges issued.
@@ -16,8 +16,8 @@ tags:
     - Safety
 quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
 authored_by: Chris Wood # Name of original author
-checked_by: TBC # Name of clinical/technical reviewer
-date_reviewed: 2025-09-23 # Date of last review (YYYY-MM-DD)
-next_review: 2026-09-23 # Date of next scheduled review (YYYY-MM-DD)
-first_published: 2025-09-15 # Date of first publication (YYYY-MM-DD)
-status: preview
+checked_by: Vicky Speed # Name of clinical/technical reviewer
+date_reviewed: 2025-10-07 # Date of last review (YYYY-MM-DD)
+next_review: 2026-10-07 # Date of next scheduled review (YYYY-MM-DD)
+first_published: 2025-10-07 # Date of first publication (YYYY-MM-DD)
+status: published
