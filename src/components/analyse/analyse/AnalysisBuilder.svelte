@@ -426,10 +426,19 @@
         if (typeof window !== 'undefined' && window.plausible) {
             window.plausible('Analysis Run', {
                 props: {
-                    all_products: selectedVMPs.join(','),
+                    all_products: selectedVMPs.map(p => p.code).join(','),
                     all_organisations: $organisationSearchStore.selectedItems.join(','),
                     product_count: selectedVMPs.length.toString(),
-                    organisation_count: $organisationSearchStore.selectedItems.length.toString()
+                    organisation_count: $organisationSearchStore.selectedItems.length.toString(),
+                    search_type: searchType,
+                    quantity_type: selectedQuantityType || 'auto',
+                    analysis_mode: effectiveMode || 'trust',
+
+                    used_url_params: urlState.isHydrated && Object.keys(urlState).some(key => {
+                        const value = urlState[key];
+                        return value !== null && value !== undefined &&
+                               (Array.isArray(value) ? value.length > 0 : true);
+                    }),
                 }
             });
         }
