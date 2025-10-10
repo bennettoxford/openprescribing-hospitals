@@ -13,6 +13,7 @@
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
     import { updateResults } from '../../../stores/resultsStore';
     import { modeSelectorStore } from '../../../stores/modeSelectorStore';
+    import { normaliseMode } from '../../../utils/analyseUtils.js';
     import { 
         getCookie,
         getUrlParams,
@@ -40,11 +41,13 @@
 
     const ANALYSIS_TRUSTS_PARAM = 'trusts';
     const ANALYSIS_QUANTITY_PARAM = 'quantity';
+    const ANALYSIS_MODE_PARAM = 'mode';
 
     const SUPPORTED_ANALYSIS_PARAMS = [
         ...Object.values(PRODUCT_PARAM_BY_TYPE),
         ANALYSIS_TRUSTS_PARAM,
-        ANALYSIS_QUANTITY_PARAM
+        ANALYSIS_QUANTITY_PARAM,
+        ANALYSIS_MODE_PARAM
     ];
 
     const QUANTITY_TYPE_CODES = {
@@ -61,6 +64,8 @@
     let recommendedQuantityTypes = [];
     let selectedQuantityType = null;
     let isQuantityDropdownOpen = false;
+    let modeParamFromUrl = null;
+    let effectiveMode = null;
 
     let suppressUrlSync = true;
     let hasHydratedFromUrl = false;
@@ -70,9 +75,16 @@
     $: searchType = $analyseOptions.searchType;
     $: selectedQuantityType = $analyseOptions.quantityType;
     $: selectedTrusts = $organisationSearchStore.selectedItems || [];
+    $: selectedMode = $modeSelectorStore.selectedMode;
+
+    $: if (selectedMode && modeParamFromUrl) {
+        modeParamFromUrl = null;
+    }
+
+    $: effectiveMode = normaliseMode(selectedMode) || modeParamFromUrl;
 
     $: if (!suppressUrlSync && urlValidationErrors.length === 0) {
-        updateAnalysisUrl(selectedVMPs, selectedTrusts, selectedQuantityType);
+        updateAnalysisUrl(selectedVMPs, selectedTrusts, selectedQuantityType, effectiveMode);
     }
 
     export let orgData = null;
@@ -86,7 +98,12 @@
     }
 
 
-    function updateAnalysisUrl(currentProducts = [], currentTrusts = [], currentQuantityType = null) {
+    function updateAnalysisUrl(
+        currentProducts = [],
+        currentTrusts = [],
+        currentQuantityType = null,
+        currentMode = null
+    ) {
         if (typeof window === 'undefined') return;
 
         const params = {};
@@ -131,6 +148,15 @@
             }
         }
 
+        if (currentMode) {
+            const normalisedMode = normaliseMode(currentMode);
+            const normalisedDefaultMode = normaliseMode('trust');
+            const shouldForceModeParam = currentShowPercentiles === 'true';
+            if (normalisedMode && (normalisedMode !== normalisedDefaultMode || shouldForceModeParam)) {
+                params[ANALYSIS_MODE_PARAM] = normalisedMode;
+            }
+        }
+
         setUrlParams(params, SUPPORTED_ANALYSIS_PARAMS);
     }
 
@@ -146,6 +172,10 @@
         try {
             const params = getUrlParams();
 
+            const rawMode = params.get(ANALYSIS_MODE_PARAM);
+            modeParamFromUrl = normaliseMode(rawMode);
+
+            // Build query parameters for the validation endpoint (only non-empty params)
             const queryParams = new URLSearchParams();
 
             PRODUCT_TYPE_ORDER.forEach(type => {
@@ -164,6 +194,11 @@
             const quantityParam = params.get(ANALYSIS_QUANTITY_PARAM);
             if (quantityParam && quantityParam.trim()) {
                 queryParams.append(ANALYSIS_QUANTITY_PARAM, quantityParam);
+            }
+
+            const modeParam = params.get(ANALYSIS_MODE_PARAM);
+            if (modeParam && modeParam.trim()) {
+                queryParams.append(ANALYSIS_MODE_PARAM, modeParam.trim());
             }
 
             if (queryParams.toString()) {
@@ -444,7 +479,9 @@
         recommendedQuantityTypes = [];
         showAdvancedOptions = false;
         selectedQuantityType = null;
+        modeSelectorStore.reset();
         urlValidationErrors = [];
+        modeParamFromUrl = null;
         dispatch('urlValidationErrors', { errors: [] });
 
         errorMessage = '';

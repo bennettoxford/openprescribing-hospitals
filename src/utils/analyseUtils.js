@@ -1505,3 +1505,24 @@ export function getTrustCount(percentilesResult) {
     }
     return percentilesResult.trustCount;
 }
+
+export const MODE_MAPPINGS = {
+    trust: 'trust',
+    region: 'region',
+    icb: 'icb',
+    national: 'national',
+    product: 'product',
+    productgroup: 'productGroup',
+    product_group: 'productGroup',
+    unit: 'unit',
+    ingredient: 'ingredient'
+};
+
+export function normaliseMode(mode) {
+    if (!mode || typeof mode !== 'string') return null;
+    const trimmed = mode.trim();
+    if (!trimmed) return null;
+    const lower = trimmed.toLowerCase();
+    const normalised = lower.replace(/[-\s]/g, '_');
+    return MODE_MAPPINGS[normalised] || MODE_MAPPINGS[lower] || null;
+}

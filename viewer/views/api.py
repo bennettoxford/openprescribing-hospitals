@@ -977,6 +977,7 @@ def validate_analysis_params(request):
     valid_trusts = []
     quantity_type = None
     vmp_ids = set()
+    mode = None
 
     ATC_REGEX = r'^[A-Z](?:[0-9]{2})?[A-Z]?[A-Z]?(?:[0-9]{2})?$'
 
@@ -1138,6 +1139,25 @@ def validate_analysis_params(request):
         else:
             errors.append(f"Invalid quantity type: {quantity_code}")
 
+    mode_param = request.GET.get('mode', '').strip()
+    if mode_param:
+        allowed_modes = {
+            'trust': 'trust',
+            'region': 'region',
+            'icb': 'icb',
+            'national': 'national',
+            'product': 'product',
+            'product_group': 'productGroup',
+            'ingredient': 'ingredient',
+            'unit': 'unit'
+        }
+        normalized_mode_key = re.sub(r'[-\s]+', '_', mode_param.lower())
+        canonical_mode = allowed_modes.get(normalized_mode_key)
+        if canonical_mode:
+            mode = canonical_mode
+        else:
+            errors.append(f"Invalid mode: {mode_param}")
+
     # Remove duplicates from valid_products
     seen_codes = set()
     unique_products = []
@@ -1160,6 +1180,7 @@ def validate_analysis_params(request):
         'valid_products': valid_products,
         'valid_trusts': valid_trusts,
         'quantity_type': quantity_type,
+        'mode': mode,
         'errors': errors,
         'vmp_count': len(vmp_ids)
     })

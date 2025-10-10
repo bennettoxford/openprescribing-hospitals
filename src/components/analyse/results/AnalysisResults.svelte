@@ -15,7 +15,8 @@
     import ModeSelector from '../../common/ModeSelector.svelte';
     import { createChartStore } from '../../../stores/chartStore';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
-    import { formatNumber, getCurrentUrl, copyToClipboard } from '../../../utils/utils';
+    import { formatNumber, getCurrentUrl, copyToClipboard, getUrlParams } from '../../../utils/utils';
+    import { normaliseMode } from '../../../utils/analyseUtils.js';
     import pluralize from 'pluralize';
     import { ChartDataProcessor, ViewModeCalculator, selectDefaultMode, processTableDataByMode, calculatePercentiles, getTrustCount, getChartExplainerText } from '../../../utils/analyseUtils.js';
 
@@ -35,6 +36,15 @@
     let shareToastMessage = '';
     let shareToastVariant = 'success';
     let shareToastTimeout;
+
+    let modeFromUrl = null;
+    let isModeFromUrlApplied = false;
+
+    if (typeof window !== 'undefined') {
+        const params = getUrlParams();
+        const modeParam = params.get('mode');
+        modeFromUrl = normaliseMode(modeParam);
+    }
 
     const resultsChartStore = createChartStore({
         mode: 'trust',
@@ -314,9 +324,28 @@
             if (viewModes.length > 0) {
                 const hasSelectedOrganisations = $analyseOptions.selectedOrganisations && 
                                                $analyseOptions.selectedOrganisations.length > 0;
-                const defaultMode = selectDefaultMode(viewModes, hasSelectedOrganisations);
+                const availableModeValues = viewModes.map(mode => mode.value);
+                let nextMode = null;
+
+                if (!isModeFromUrlApplied) {
+                    if (modeFromUrl && availableModeValues.includes(modeFromUrl)) {
+                        nextMode = modeFromUrl;
+                    }
+
+                    isModeFromUrlApplied = true;
+                    modeFromUrl = null;
+                }
+
+                if (!nextMode) {
+                    const currentMode = $modeSelectorStore.selectedMode;
+                    if (currentMode && availableModeValues.includes(currentMode)) {
+                        nextMode = currentMode;
+                    } else {
+                        nextMode = selectDefaultMode(viewModes, hasSelectedOrganisations);
+                    }
+                }
                 
-                modeSelectorStore.setSelectedMode(defaultMode);
+                modeSelectorStore.setSelectedMode(nextMode);
             } else {
                 modeSelectorStore.setSelectedMode(null);
             }
