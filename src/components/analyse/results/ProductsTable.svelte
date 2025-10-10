@@ -6,24 +6,56 @@
     import { normaliseDDDUnit } from '../../../utils/utils';
 
     export let vmps = [];
+    export let excludedVmps = [];
     
     const dispatch = createEventDispatcher();
 
     let checkedVMPs = {};
+    let excludedSet = new Set();
+    let lastInitialiseKey = null;
 
     $: quantityType = $resultsStore.quantityType;
+    $: excludedSet = new Set((excludedVmps || []).map(code => String(code)));
 
     onMount(() => {
         initializeCheckedVMPs();
     });
 
+    function getInitialiseKey(currentVmps, currentExcludedSet) {
+        const vmpsSignature = currentVmps
+            .map(vmp => `${vmp.code ?? ''}:${vmp.unit ?? ''}`)
+            .join('|');
+        const excludedSignature = [...currentExcludedSet].sort().join('|');
+        return `${vmpsSignature}::${excludedSignature}`;
+    }
+
     function initializeCheckedVMPs() {
-        checkedVMPs = Object.fromEntries(vmps.map(vmp => [vmp.vmp, vmp.unit !== 'nan']));
+        const initialEntries = vmps.map(vmp => {
+            const code = String(vmp.code ?? '');
+            const isSelectable = vmp.unit !== 'nan';
+            const isExcluded = excludedSet.has(code);
+            return [vmp.vmp, isSelectable && !isExcluded];
+        });
+
+        checkedVMPs = Object.fromEntries(initialEntries);
+
+        if (!Object.values(checkedVMPs).some(Boolean)) {
+            const firstSelectable = vmps.find(vmp => vmp.unit !== 'nan');
+            if (firstSelectable) {
+                checkedVMPs[firstSelectable.vmp] = true;
+                checkedVMPs = { ...checkedVMPs };
+            }
+        }
     }
 
     $: {
+        excludedSet;
         if (vmps.length > 0) {
-            initializeCheckedVMPs();
+            const nextKey = getInitialiseKey(vmps, excludedSet);
+            if (nextKey !== lastInitialiseKey) {
+                initializeCheckedVMPs();
+                lastInitialiseKey = nextKey;
+            }
         }
     }
 
@@ -102,6 +134,12 @@
 
         dispatch('dataFiltered', selectedVMPs);
 
+        // Only include products that are manually unselected by the user,
+        // not products that are automatically unselected due to lack of data
+        const excludedCodes = vmps
+            .filter(vmp => vmp.code && !(checkedVMPs[vmp.vmp] ?? false) && vmp.unit !== 'nan')
+            .map(vmp => String(vmp.code));
+
         resultsStore.update(store => {
             const originalData = store.analysisData || [];
             
@@ -113,9 +151,16 @@
                 return isSelectedVMP && hasValidData;
             });
 
+            const sortedExcluded = excludedCodes.slice().sort();
+            const existingExcluded = Array.isArray(store.excludedVmps) ? store.excludedVmps.map(String) : [];
+            const sortedExisting = existingExcluded.slice().sort();
+            const hasExcludedChanged = sortedExcluded.length !== sortedExisting.length ||
+                sortedExcluded.some((code, index) => code !== sortedExisting[index]);
+
             return {
                 ...store,
-                filteredData: filteredData
+                filteredData,
+                excludedVmps: hasExcludedChanged ? sortedExcluded : store.excludedVmps
             };
         });
     }

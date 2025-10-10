@@ -4,27 +4,25 @@
   }} />
 
 <script>
-    import { onMount } from 'svelte';
+    import { onMount, tick } from 'svelte';
     import '../../../styles/styles.css';
     import ProductSearch from '../../common/ProductSearch.svelte';
     import OrganisationSearch from '../../common/OrganisationSearch.svelte';
     import { createEventDispatcher } from 'svelte';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
-    import { updateResults } from '../../../stores/resultsStore';
+    import { resultsStore, updateResults } from '../../../stores/resultsStore';
     import { modeSelectorStore } from '../../../stores/modeSelectorStore';
-    import { getCookie } from '../../../utils/utils';
+    import { normaliseMode } from '../../../utils/analyseUtils.js';
+    import {
+        getCookie,
+        getUrlParams,
+        formatArrayParam,
+        setUrlParams,
+        cleanupUrl,
+    } from '../../../utils/utils';
     
     const dispatch = createEventDispatcher();
-
-    let isAnalysisRunning = false;
-    let errorMessage = '';
-    let isOrganisationDropdownOpen = false;
-    let isSelectingQuantityTypes = false;
-    let showAdvancedOptions = false;
-    let recommendedQuantityTypes = [];
-    let selectedQuantityType = null;
-    let isQuantityDropdownOpen = false;
 
     const availableQuantityTypes = [
         'SCMD Quantity',
@@ -33,13 +31,290 @@
         'Defined Daily Dose Quantity'
     ];
 
+    const PRODUCT_PARAM_BY_TYPE = {
+        vmp: 'vmps',
+        vtm: 'vtms',
+        ingredient: 'ingredients',
+        atc: 'atcs'
+    };
+
+    const PRODUCT_TYPE_ORDER = Object.keys(PRODUCT_PARAM_BY_TYPE);
+
+    const ANALYSIS_TRUSTS_PARAM = 'trusts';
+    const ANALYSIS_QUANTITY_PARAM = 'quantity';
+    const ANALYSIS_MODE_PARAM = 'mode';
+    const ANALYSIS_PERCENTILES_PARAM = 'show_percentiles';
+    const ANALYSIS_EXCLUDED_VMPS_PARAM = 'excluded_vmps';
+
+    const SUPPORTED_ANALYSIS_PARAMS = [
+        ...Object.values(PRODUCT_PARAM_BY_TYPE),
+        ANALYSIS_TRUSTS_PARAM,
+        ANALYSIS_QUANTITY_PARAM,
+        ANALYSIS_MODE_PARAM,
+        ANALYSIS_PERCENTILES_PARAM,
+        ANALYSIS_EXCLUDED_VMPS_PARAM
+    ];
+
+    const QUANTITY_TYPE_CODES = {
+        'SCMD Quantity': 'scmd',
+        'Unit Dose Quantity': 'dose',
+        'Ingredient Quantity': 'ingredient',
+        'Defined Daily Dose Quantity': 'ddd'
+    };
+
+    let isAnalysisRunning = false;
+    let errorMessage = '';
+    let isSelectingQuantityTypes = false;
+    let showAdvancedOptions = false;
+    let recommendedQuantityTypes = [];
+    let selectedQuantityType = null;
+    let isQuantityDropdownOpen = false;
+
+    let urlState = {
+        mode: null,
+        showPercentiles: null,
+        excludedVmps: [],
+        isHydrated: false,
+        validationErrors: [],
+        suppressSync: true
+    };
+
     $: selectedVMPs = $analyseOptions.selectedVMPs;
     $: searchType = $analyseOptions.searchType;
     $: selectedQuantityType = $analyseOptions.quantityType;
+    $: selectedTrusts = $organisationSearchStore.selectedItems || [];
+    $: selectedMode = $modeSelectorStore.selectedMode;
+    $: showPercentiles = $resultsStore.showPercentiles;
+
+    $: urlState.excludedVmps = Array.isArray($resultsStore.excludedVmps)
+        ? Array.from(new Set($resultsStore.excludedVmps.filter(Boolean).map(String))).sort()
+        : [];
+
+    $: if (selectedMode && urlState.mode) {
+        urlState.mode = null;
+    }
+
+    $: effectiveMode = normaliseMode(selectedMode) || urlState.mode;
+
+    $: if (!urlState.suppressSync && urlState.validationErrors.length === 0) {
+        const currentMode = effectiveMode || 'trust';
+        const currentShowPercentiles = getShowPercentilesParam(currentMode, selectedTrusts, showPercentiles);
+        updateAnalysisUrl(
+            selectedVMPs,
+            selectedTrusts,
+            selectedQuantityType,
+            effectiveMode,
+            currentShowPercentiles,
+            urlState.excludedVmps
+        );
+    }
 
     export let orgData = null;
     export let mindate = null;
     export let maxdate = null;
+
+    function getShowPercentilesParam(mode, trusts, showPercentilesValue) {
+        const hasTrusts = Array.isArray(trusts) && trusts.length > 0;
+        if (mode === 'trust' && hasTrusts && showPercentilesValue === true) {
+            return 'true';
+        }
+        return null;
+    }
+
+
+    function encodeQuantityType(quantityType) {
+        if (!quantityType) return null;
+        const trimmed = quantityType.trim();
+        return QUANTITY_TYPE_CODES[trimmed] || null;
+    }
+
+
+    function updateAnalysisUrl(products = [], trusts = [], quantityType = null, mode = null, showPercentiles = null, excludedVmps = []) {
+        if (typeof window === 'undefined') return;
+
+        const params = {};
+
+        const productGroups = {};
+        products.forEach(item => {
+            if (!item?.code || !item?.type) return;
+            const typeKey = item.type.toLowerCase();
+            const paramName = PRODUCT_PARAM_BY_TYPE[typeKey];
+            if (!paramName) return;
+
+            if (!productGroups[paramName]) productGroups[paramName] = [];
+            if (!productGroups[paramName].includes(item.code)) {
+                productGroups[paramName].push(item.code);
+            }
+        });
+
+        Object.entries(productGroups).forEach(([paramName, codes]) => {
+            if (codes.length > 0) {
+                params[paramName] = formatArrayParam(codes);
+            }
+        });
+
+        const trustCodes = trusts.map(name => organisationSearchStore.getOrgCode(name)).filter(Boolean);
+        if (trustCodes.length > 0) {
+            params[ANALYSIS_TRUSTS_PARAM] = formatArrayParam(trustCodes);
+        }
+
+        if (quantityType) {
+            const encodedQuantity = encodeQuantityType(quantityType);
+            if (encodedQuantity) {
+                params[ANALYSIS_QUANTITY_PARAM] = encodedQuantity;
+            }
+        }
+
+        if (mode) {
+            const normalisedMode = normaliseMode(mode);
+            const shouldForceModeParam = showPercentiles === 'true';
+            if (normalisedMode && (normalisedMode !== 'trust' || shouldForceModeParam)) {
+                params[ANALYSIS_MODE_PARAM] = normalisedMode;
+            }
+        }
+
+        if (showPercentiles !== null) {
+            params[ANALYSIS_PERCENTILES_PARAM] = showPercentiles;
+        }
+
+        if (excludedVmps.length > 0) {
+            params[ANALYSIS_EXCLUDED_VMPS_PARAM] = formatArrayParam(excludedVmps);
+        }
+
+        setUrlParams(params, SUPPORTED_ANALYSIS_PARAMS);
+    }
+
+    function buildValidationParams(urlParams) {
+        const queryParams = new URLSearchParams();
+
+        PRODUCT_TYPE_ORDER.forEach(type => {
+            const paramName = PRODUCT_PARAM_BY_TYPE[type];
+            const paramValue = urlParams.get(paramName);
+            if (paramValue?.trim()) {
+                queryParams.append(paramName, paramValue);
+            }
+        });
+
+        [ANALYSIS_TRUSTS_PARAM, ANALYSIS_QUANTITY_PARAM, ANALYSIS_MODE_PARAM,
+         ANALYSIS_PERCENTILES_PARAM, ANALYSIS_EXCLUDED_VMPS_PARAM].forEach(param => {
+            const value = urlParams.get(param);
+            if (value?.trim()) {
+                queryParams.append(param, value.trim());
+            }
+        });
+
+        return queryParams;
+    }
+
+    function handleValidationResponse(data) {
+        if (data.errors?.length > 0) {
+            urlState.validationErrors = data.errors;
+            dispatch('urlValidationErrors', { errors: data.errors });
+            return false;
+        }
+
+        urlState.validationErrors = [];
+        dispatch('urlValidationErrors', { errors: [] });
+        return true;
+    }
+
+    function updateStoresFromValidation(data) {
+        if (data.valid_products?.length > 0) {
+            analyseOptions.update(options => ({
+                ...options,
+                selectedVMPs: data.valid_products
+            }));
+
+            if (data.quantity_type) {
+                analyseOptions.setQuantityType(data.quantity_type.name);
+                selectedQuantityType = data.quantity_type.name;
+                if (data.quantity_type.code) {
+                    setUrlParams({ [ANALYSIS_QUANTITY_PARAM]: data.quantity_type.code }, [ANALYSIS_QUANTITY_PARAM]);
+                }
+            } else {
+                selectQuantityType(data.valid_products);
+            }
+        }
+
+        if (data.valid_trusts?.length > 0) {
+            const trustNames = data.valid_trusts.map(trust => trust.ods_name);
+            organisationSearchStore.updateSelection(trustNames);
+            analyseOptions.setSelectedOrganisations(trustNames);
+        }
+
+        const hasValidTrusts = Array.isArray(data.valid_trusts) && data.valid_trusts.length > 0;
+        const responseExcludedVmps = Array.isArray(data.excluded_vmps)
+            ? Array.from(new Set(data.excluded_vmps.map(String).filter(Boolean))).sort()
+            : [];
+
+
+        let finalShowPercentiles;
+        if (urlState.showPercentiles === 'true') {
+            finalShowPercentiles = true;
+        } else if (urlState.showPercentiles === 'false') {
+            finalShowPercentiles = false;
+        } else if (data.mode === 'trust' && hasValidTrusts) {
+            finalShowPercentiles = data.show_percentiles ?? false;
+        } else {
+            finalShowPercentiles = !hasValidTrusts;
+        }
+
+        resultsStore.update(store => ({
+            ...store,
+            showPercentiles: finalShowPercentiles,
+            excludedVmps: responseExcludedVmps
+        }));
+
+        urlState.excludedVmps = responseExcludedVmps;
+    }
+
+    async function hydrateFromUrl() {
+        if (urlState.isHydrated || typeof window === 'undefined') {
+            urlState.suppressSync = false;
+            return;
+        }
+
+        urlState.isHydrated = true;
+
+        try {
+            const urlParams = getUrlParams();
+            urlState.mode = normaliseMode(urlParams.get(ANALYSIS_MODE_PARAM));
+            urlState.showPercentiles = urlParams.get(ANALYSIS_PERCENTILES_PARAM);
+
+            const queryParams = buildValidationParams(urlParams);
+            if (!queryParams.toString()) {
+                urlState.suppressSync = false;
+                return;
+            }
+
+            const response = await fetch(`/api/validate-analysis-params/?${queryParams}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const isValid = handleValidationResponse(data);
+
+                if (isValid) {
+                    updateStoresFromValidation(data);
+
+                    if (typeof window !== 'undefined') {
+                        cleanupUrl(SUPPORTED_ANALYSIS_PARAMS);
+                    }
+
+                    await tick();
+                    runAnalysis();
+                }
+            } else {
+                console.error('Failed to validate URL parameters:', response.status);
+            }
+        } catch (error) {
+            console.error('Failed to hydrate analysis selections from URL:', error);
+        } finally {
+            urlState.suppressSync = false;
+        }
+    }
 
 
     onMount(async () => {
@@ -60,6 +335,8 @@
         } catch (error) {
             console.error('Error in onMount:', error);
         }
+
+        await hydrateFromUrl();
     });
 
     const csrftoken = getCookie('csrftoken');
@@ -106,6 +383,30 @@
         }
     }
 
+    function resolveProductsToVMPs(selectedProducts) {
+        if (!selectedProducts || selectedProducts.length === 0) {
+            return [];
+        }
+
+        const resolvedProducts = [];
+
+        selectedProducts.forEach(product => {
+            if (product.type === 'vmp') {
+                resolvedProducts.push(product);
+            } else if (product.vmps && product.vmps.length > 0) {
+                product.vmps.forEach(vmp => {
+                    resolvedProducts.push({
+                        code: vmp.code,
+                        name: vmp.name,
+                        type: 'vmp'
+                    });
+                });
+            }
+        });
+
+        return resolvedProducts;
+    }
+
     async function runAnalysis() {
         if (isAnalysisRunning) return;
 
@@ -125,10 +426,19 @@
         if (typeof window !== 'undefined' && window.plausible) {
             window.plausible('Analysis Run', {
                 props: {
-                    all_products: selectedVMPs.join(','),
+                    all_products: selectedVMPs.map(p => p.code).join(','),
                     all_organisations: $organisationSearchStore.selectedItems.join(','),
                     product_count: selectedVMPs.length.toString(),
-                    organisation_count: $organisationSearchStore.selectedItems.length.toString()
+                    organisation_count: $organisationSearchStore.selectedItems.length.toString(),
+                    search_type: searchType,
+                    quantity_type: selectedQuantityType || 'auto',
+                    analysis_mode: effectiveMode || 'trust',
+
+                    used_url_params: urlState.isHydrated && Object.keys(urlState).some(key => {
+                        const value = urlState[key];
+                        return value !== null && value !== undefined &&
+                               (Array.isArray(value) ? value.length > 0 : true);
+                    }),
                 }
             });
         }
@@ -136,6 +446,8 @@
         let endpoint = '/api/get-quantity-data/';
         
         try {
+            const resolvedProducts = await resolveProductsToVMPs(selectedVMPs);
+
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
@@ -143,7 +455,7 @@
                     'X-CSRFToken': csrftoken
                 },
                 body: JSON.stringify({
-                    names: selectedVMPs,
+                    names: resolvedProducts,
                     search_type: searchType,
                     quantity_type: $analyseOptions.quantityType
                 })
@@ -162,14 +474,22 @@
                 organisations: $organisationSearchStore.selectedItems
             });
 
-            analyseOptions.setSelectedOrganisations($organisationSearchStore.selectedItems);
-
-            updateResults(data, {
+            const updateOptions = {
                 searchType,
                 quantityType: $analyseOptions.quantityType,
                 selectedOrganisations: $organisationSearchStore.selectedItems,
                 predecessorMap: $organisationSearchStore.predecessorMap
-            });
+            };
+
+            if (urlState.showPercentiles !== null) {
+                updateOptions.showPercentiles = urlState.showPercentiles === 'true';
+            }
+
+            if (urlState.excludedVmps.length > 0) {
+                updateOptions.excludedVmps = urlState.excludedVmps;
+            }
+
+            updateResults(data, updateOptions);
 
             dispatch('analysisComplete', { 
                 data: Array.isArray(data) ? data : [data],
@@ -185,12 +505,6 @@
         }
     }
 
-    function dispatchAnalysisRunningChange(running) {
-        const analyseBox = document.querySelector('analysis-builder');
-        if (analyseBox) {
-            analyseBox.dispatchEvent(new CustomEvent('analysisRunningChange', { detail: running }));
-        }
-    }
 
     function handleVMPSelection(event) {
         
@@ -204,7 +518,21 @@
 
     function handleODSSelection(event) {
         const { selectedItems, usedOrganisationSelection } = event.detail;
+        const previouslyHadTrusts = selectedTrusts.length > 0;
+        const willHaveTrusts = Array.isArray(selectedItems) && selectedItems.length > 0;
+
         organisationSearchStore.updateSelection(selectedItems, usedOrganisationSelection);
+        analyseOptions.setSelectedOrganisations(selectedItems);
+
+        if (!previouslyHadTrusts && willHaveTrusts) {
+            if (urlState.showPercentiles === null) {
+                resultsStore.update(store => ({ ...store, showPercentiles: false }));
+            }
+        } else if (previouslyHadTrusts && !willHaveTrusts) {
+            if (urlState.showPercentiles === null) {
+                resultsStore.update(store => ({ ...store, showPercentiles: true }));
+            }
+        }
     }
 
     function toggleAdvancedOptions() {
@@ -223,10 +551,6 @@
     }
 
 
-    function handleOrganisationDropdownToggle(event) {
-        isOrganisationDropdownOpen = event.detail.isOpen;
-    }
-
     function resetSelections() {
         
         analyseOptions.update(options => ({
@@ -236,10 +560,26 @@
             quantityType: null
         }));
         organisationSearchStore.updateSelection([]);
+        analyseOptions.setSelectedOrganisations([]);
         
         recommendedQuantityTypes = [];
         showAdvancedOptions = false;
         selectedQuantityType = null;
+        modeSelectorStore.reset();
+        urlState = {
+            mode: null,
+            showPercentiles: null,
+            excludedVmps: [],
+            isHydrated: false,
+            validationErrors: [],
+            suppressSync: true
+        };
+        resultsStore.update(store => ({
+            ...store,
+            showPercentiles: true,
+            excludedVmps: []
+        }));
+        dispatch('urlValidationErrors', { errors: [] });
 
         errorMessage = '';
 
@@ -336,7 +676,6 @@
                 source={organisationSearchStore}
                 overlayMode={false}
                 on:selectionChange={handleODSSelection}
-                on:dropdownToggle={handleOrganisationDropdownToggle}
                 maxItems=10
                 hideSelectAll={true}
                 showTitle={false}

@@ -170,17 +170,31 @@
         type = newType;
         searchTerm = '';
         filteredItems = [];
-        dispatch('selectionChange', { items: selectedItems });
     }
 
     $: {
-        if ($analyseOptions.selectedVMPs.length === 0 && selectedItems.length > 0) {
+        const storeSelections = $analyseOptions.selectedVMPs || [];
+
+        if (storeSelections.length === 0 && selectedItems.length > 0) {
             selectedItems = [];
             searchTerm = '';
             vmpCount = 0;
             filteredItems = [];
             lastSearchResults = [];
             selectedItemsData = [];
+        } else if (storeSelections.length > 0) {
+            const hasDifferences =
+                storeSelections.length !== selectedItems.length ||
+                storeSelections.some((item, index) => {
+                    const current = selectedItems[index];
+                    return !current || current.code !== item.code || current.type !== item.type;
+                });
+
+            if (hasDifferences) {
+                selectedItems = storeSelections.map(item => ({ ...item }));
+                selectedItemsData = storeSelections.map(item => ({ ...item }));
+                calculateVmpCount();
+            }
         }
     }
 

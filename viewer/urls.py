@@ -18,6 +18,7 @@ from .views import (
     get_quantity_data,
     get_product_details,
     search_products,
+    validate_analysis_params,
     LoginView,
     SubmissionHistoryView,
 )
@@ -48,4 +49,5 @@ urlpatterns = [
     path("api/select-quantity-type/", select_quantity_type, name="select_quantity_type"),
     path("api/get-product-details/", get_product_details, name="get_product_details"),
     path("api/search-products/", search_products, name="search_products"),
+    path("api/validate-analysis-params/", validate_analysis_params, name="validate_analysis_params"),
 ]
