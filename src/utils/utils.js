@@ -105,7 +105,22 @@ export function setUrlParams(params, supportedParams = []) {
 
     let urlString = url.toString();
     urlString = urlString.replace(/%2C/g, ',');
-    
+
+    window.history.replaceState({}, '', urlString);
+}
+
+export function cleanupUrl(supportedParams = []) {
+    const url = new URL(window.location);
+
+    for (const [key] of url.searchParams) {
+        if (!supportedParams.includes(key)) {
+            url.searchParams.delete(key);
+        }
+    }
+
+    let urlString = url.toString();
+    urlString = urlString.replace(/%2C/g, ',');
+
     window.history.replaceState({}, '', urlString);
 }
 

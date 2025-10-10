@@ -14,11 +14,12 @@
     import { resultsStore, updateResults } from '../../../stores/resultsStore';
     import { modeSelectorStore } from '../../../stores/modeSelectorStore';
     import { normaliseMode } from '../../../utils/analyseUtils.js';
-    import { 
+    import {
         getCookie,
         getUrlParams,
         formatArrayParam,
         setUrlParams,
+        cleanupUrl,
     } from '../../../utils/utils';
     
     const dispatch = createEventDispatcher();
@@ -297,6 +298,11 @@
 
                 if (isValid) {
                     updateStoresFromValidation(data);
+
+                    if (typeof window !== 'undefined') {
+                        cleanupUrl(SUPPORTED_ANALYSIS_PARAMS);
+                    }
+
                     await tick();
                     runAnalysis();
                 }
