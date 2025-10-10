@@ -4,7 +4,7 @@
   }} />
 
 <script>
-    import { onMount } from 'svelte';
+    import { onMount, tick } from 'svelte';
     import '../../../styles/styles.css';
     import ProductSearch from '../../common/ProductSearch.svelte';
     import OrganisationSearch from '../../common/OrganisationSearch.svelte';
@@ -140,6 +140,7 @@
             return;
         }
 
+        let urlParamsValidated = false;
         hasHydratedFromUrl = true;
 
         try {
@@ -183,6 +184,7 @@
                     } else {
                         urlValidationErrors = [];
                         dispatch('urlValidationErrors', { errors: [] });
+                        urlParamsValidated = true;
                     }
 
                     if (data.valid_products && data.valid_products.length > 0) {
@@ -217,6 +219,11 @@
             console.error('Failed to hydrate analysis selections from URL:', error);
         } finally {
             suppressUrlSync = false;
+
+            if (urlParamsValidated && !urlValidationErrors.length) {
+                await tick();
+                runAnalysis();
+            }
         }
     }
 
