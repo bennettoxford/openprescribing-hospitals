@@ -11,7 +11,7 @@
     import { createEventDispatcher } from 'svelte';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
-    import { updateResults } from '../../../stores/resultsStore';
+    import { resultsStore, updateResults } from '../../../stores/resultsStore';
     import { modeSelectorStore } from '../../../stores/modeSelectorStore';
     import { normaliseMode } from '../../../utils/analyseUtils.js';
     import { 
@@ -42,12 +42,14 @@
     const ANALYSIS_TRUSTS_PARAM = 'trusts';
     const ANALYSIS_QUANTITY_PARAM = 'quantity';
     const ANALYSIS_MODE_PARAM = 'mode';
+    const ANALYSIS_PERCENTILES_PARAM = 'show_percentiles';
 
     const SUPPORTED_ANALYSIS_PARAMS = [
         ...Object.values(PRODUCT_PARAM_BY_TYPE),
         ANALYSIS_TRUSTS_PARAM,
         ANALYSIS_QUANTITY_PARAM,
-        ANALYSIS_MODE_PARAM
+        ANALYSIS_MODE_PARAM,
+        ANALYSIS_PERCENTILES_PARAM
     ];
 
     const QUANTITY_TYPE_CODES = {
@@ -66,6 +68,8 @@
     let isQuantityDropdownOpen = false;
     let modeParamFromUrl = null;
     let effectiveMode = null;
+    let showPercentiles = true;
+    let showPercentilesParamForUrl = null;
 
     let suppressUrlSync = true;
     let hasHydratedFromUrl = false;
@@ -76,20 +80,37 @@
     $: selectedQuantityType = $analyseOptions.quantityType;
     $: selectedTrusts = $organisationSearchStore.selectedItems || [];
     $: selectedMode = $modeSelectorStore.selectedMode;
+    $: showPercentiles = $resultsStore.showPercentiles;
 
     $: if (selectedMode && modeParamFromUrl) {
         modeParamFromUrl = null;
     }
 
     $: effectiveMode = normaliseMode(selectedMode) || modeParamFromUrl;
+    $: showPercentilesParamForUrl = getShowPercentilesParam(effectiveMode, selectedTrusts, showPercentiles);
 
     $: if (!suppressUrlSync && urlValidationErrors.length === 0) {
-        updateAnalysisUrl(selectedVMPs, selectedTrusts, selectedQuantityType, effectiveMode);
+        updateAnalysisUrl(
+            selectedVMPs,
+            selectedTrusts,
+            selectedQuantityType,
+            effectiveMode,
+            showPercentilesParamForUrl
+        );
     }
 
     export let orgData = null;
     export let mindate = null;
     export let maxdate = null;
+
+    function getShowPercentilesParam(mode, trusts, showPercentilesValue) {
+        const hasTrusts = Array.isArray(trusts) && trusts.length > 0;
+        if (mode === 'trust' && hasTrusts && showPercentilesValue === true) {
+            return 'true';
+        }
+        return null;
+    }
+
 
     function encodeQuantityType(quantityType) {
         if (!quantityType) return null;
@@ -102,7 +123,8 @@
         currentProducts = [],
         currentTrusts = [],
         currentQuantityType = null,
-        currentMode = null
+        currentMode = null,
+        currentShowPercentiles = null
     ) {
         if (typeof window === 'undefined') return;
 
@@ -157,6 +179,10 @@
             }
         }
 
+        if (currentShowPercentiles !== null) {
+            params[ANALYSIS_PERCENTILES_PARAM] = currentShowPercentiles;
+        }
+
         setUrlParams(params, SUPPORTED_ANALYSIS_PARAMS);
     }
 
@@ -199,6 +225,11 @@
             const modeParam = params.get(ANALYSIS_MODE_PARAM);
             if (modeParam && modeParam.trim()) {
                 queryParams.append(ANALYSIS_MODE_PARAM, modeParam.trim());
+            }
+
+            const showPercentilesParam = params.get(ANALYSIS_PERCENTILES_PARAM);
+            if (showPercentilesParam && showPercentilesParam.trim()) {
+                queryParams.append(ANALYSIS_PERCENTILES_PARAM, showPercentilesParam.trim());
             }
 
             if (queryParams.toString()) {
@@ -245,6 +276,25 @@
                         const trustNames = data.valid_trusts.map(trust => trust.ods_name);
                         organisationSearchStore.updateSelection(trustNames);
                         analyseOptions.setSelectedOrganisations(trustNames);
+                    }
+
+                    const responseMode = normaliseMode(data.mode);
+                    const hasValidTrusts = Array.isArray(data.valid_trusts) && data.valid_trusts.length > 0;
+
+                    if (responseMode === 'trust' && hasValidTrusts) {
+                        const shouldShowPercentiles = typeof data.show_percentiles === 'boolean'
+                            ? data.show_percentiles
+                            : false;
+
+                        resultsStore.update(store => ({
+                            ...store,
+                            showPercentiles: shouldShowPercentiles
+                        }));
+                    } else if (!hasValidTrusts) {
+                        resultsStore.update(store => ({
+                            ...store,
+                            showPercentiles: true
+                        }));
                     }
                 } else {
                     console.error('Failed to validate URL parameters:', response.status);
@@ -411,12 +461,20 @@
                 organisations: $organisationSearchStore.selectedItems
             });
 
-            updateResults(data, {
+            const showPercentilesOverride = showPercentilesParamForUrl === 'true' ? true : undefined;
+
+            const updateOptions = {
                 searchType,
                 quantityType: $analyseOptions.quantityType,
                 selectedOrganisations: $organisationSearchStore.selectedItems,
                 predecessorMap: $organisationSearchStore.predecessorMap
-            });
+            };
+
+            if (showPercentilesOverride !== undefined) {
+                updateOptions.showPercentiles = showPercentilesOverride;
+            }
+
+            updateResults(data, updateOptions);
 
             dispatch('analysisComplete', { 
                 data: Array.isArray(data) ? data : [data],
@@ -445,8 +503,23 @@
 
     function handleODSSelection(event) {
         const { selectedItems, usedOrganisationSelection } = event.detail;
+        const previouslyHadTrusts = selectedTrusts.length > 0;
+        const willHaveTrusts = Array.isArray(selectedItems) && selectedItems.length > 0;
+
         organisationSearchStore.updateSelection(selectedItems, usedOrganisationSelection);
         analyseOptions.setSelectedOrganisations(selectedItems);
+
+        if (!previouslyHadTrusts && willHaveTrusts) {
+            resultsStore.update(store => ({
+                ...store,
+                showPercentiles: false
+            }));
+        } else if (previouslyHadTrusts && !willHaveTrusts) {
+            resultsStore.update(store => ({
+                ...store,
+                showPercentiles: true
+            }));
+        }
     }
 
     function toggleAdvancedOptions() {
@@ -482,6 +555,11 @@
         modeSelectorStore.reset();
         urlValidationErrors = [];
         modeParamFromUrl = null;
+        showPercentilesParamForUrl = null;
+        resultsStore.update(store => ({
+            ...store,
+            showPercentiles: true
+        }));
         dispatch('urlValidationErrors', { errors: [] });
 
         errorMessage = '';

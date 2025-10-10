@@ -488,6 +488,9 @@
 
 
     function handlePercentileToggle() {
+        if ($modeSelectorStore.selectedMode !== 'trust' || !($analyseOptions.selectedOrganisations?.length > 0)) {
+            return;
+        }
         resultsStore.update(store => ({
             ...store,
             showPercentiles: !store.showPercentiles

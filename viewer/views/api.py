@@ -978,6 +978,7 @@ def validate_analysis_params(request):
     quantity_type = None
     vmp_ids = set()
     mode = None
+    show_percentiles = False
 
     ATC_REGEX = r'^[A-Z](?:[0-9]{2})?[A-Z]?[A-Z]?(?:[0-9]{2})?$'
 
@@ -1158,6 +1159,21 @@ def validate_analysis_params(request):
         else:
             errors.append(f"Invalid mode: {mode_param}")
 
+    show_percentiles_param = request.GET.get('show_percentiles', '').strip().lower()
+    if show_percentiles_param:
+        if show_percentiles_param not in {'true', 'false'}:
+            errors.append(f"Invalid show_percentiles value: {show_percentiles_param}")
+        else:
+            show_percentiles = show_percentiles_param == 'true'
+
+            if show_percentiles:
+                if mode != 'trust':
+                    errors.append("show_percentiles can only be true when mode is set to 'trust'")
+                    show_percentiles = False
+                elif not valid_trusts:
+                    errors.append("show_percentiles can only be true when at least one valid trust is selected")
+                    show_percentiles = False
+
     # Remove duplicates from valid_products
     seen_codes = set()
     unique_products = []
@@ -1181,6 +1197,7 @@ def validate_analysis_params(request):
         'valid_trusts': valid_trusts,
         'quantity_type': quantity_type,
         'mode': mode,
+        'show_percentiles': show_percentiles,
         'errors': errors,
         'vmp_count': len(vmp_ids)
     })

@@ -40,8 +40,12 @@ export function updateResults(data, options = {}) {
     );
 
     const selectedOrganisations = options.selectedOrganisations || [];
+    const hasShowPercentilesOverride = typeof options.showPercentiles === 'boolean';
     
     const defaultShowPercentiles = selectedOrganisations.length === 0;
+    const showPercentilesValue = hasShowPercentilesOverride
+        ? options.showPercentiles
+        : defaultShowPercentiles;
     
     const filteredData = selectedOrganisations.length === 0 ? 
         [] :
@@ -63,7 +67,7 @@ export function updateResults(data, options = {}) {
         searchType: options.searchType || store.searchType,
         dateRange: calculateDateRange(data),
         selectedOrganisations: options.selectedOrganisations || [],
-        showPercentiles: defaultShowPercentiles
+        showPercentiles: showPercentilesValue
     }));
 }
 
