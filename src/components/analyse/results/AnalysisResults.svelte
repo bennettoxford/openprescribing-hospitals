@@ -303,6 +303,8 @@
                 .map(vmp => ({
                     ...vmp,
                     unit: vmp.units.size > 0 ? Array.from(vmp.units).join(', ') : 'nan',
+                    ingredients: Array.isArray(vmp.ingredients) ? vmp.ingredients : (vmp.ingredients || []),
+                    vtm: vmp.vtm || '',
                 }));
 
             const availableCodes = new Set(vmps.map(vmp => String(vmp.code ?? '')));
