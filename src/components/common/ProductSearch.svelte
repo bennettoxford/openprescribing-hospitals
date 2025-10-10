@@ -170,7 +170,6 @@
         type = newType;
         searchTerm = '';
         filteredItems = [];
-        dispatch('selectionChange', { items: selectedItems });
     }
 
     $: {
