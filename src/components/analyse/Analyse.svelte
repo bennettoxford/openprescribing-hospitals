@@ -18,13 +18,14 @@
   let isAnalyseBoxCollapsed = false;
   let isLargeScreen = false;
   let isResultsBoxPopulated = false;
+  let urlValidationErrors = [];
 
   export let minDate;
   export let maxDate;
   export let orgData;
   export let isAuthenticated;
 
-  $: isResultsBoxPopulated = analysisData && analysisData.length > 0;
+  $: isResultsBoxPopulated = (analysisData && analysisData.length > 0) || (urlValidationErrors && urlValidationErrors.length > 0);
 
   function handleAnalysisStart() {
     showResults = true;
@@ -47,10 +48,19 @@
     isOrganisationDropdownOpen = event.detail.isOpen;
   }
 
+  function handleUrlValidationErrors(event) {
+    urlValidationErrors = event.detail.errors || [];
+  }
+
+  $: if (urlValidationErrors && urlValidationErrors.length > 0 && !showResults) {
+    showResults = true;
+  }
+
   function handleAnalysisClear() {
     showResults = false;
     analysisData = null;
     isAnalysisRunning.set(false);
+    urlValidationErrors = [];
   }
 
   function handleVMPSelection(event) {
@@ -110,6 +120,7 @@
                         on:analysisClear={handleAnalysisClear}
                         on:organisationDropdownToggle={handleOrganisationDropdownToggle}
                         on:vmpSelection={handleVMPSelection}
+                        on:urlValidationErrors={handleUrlValidationErrors}
                     ></analysis-builder>
                 </div>
                 {#if !isLargeScreen}
@@ -142,11 +153,12 @@
                 <div class="bg-gradient-to-r from-oxford-600/60 via-bn-roman-600/70 to-bn-strawberry-600/60 text-white p-2 rounded-t-lg">
                     <h2 class="text-lg font-semibold">Results</h2>
                 </div>
-                <analysis-results 
-                    className="flex-grow" 
-                    isAnalysisRunning={$isAnalysisRunning} 
-                    analysisData={analysisData} 
+                <analysis-results
+                    className="flex-grow"
+                    isAnalysisRunning={$isAnalysisRunning}
+                    analysisData={analysisData}
                     {showResults}
+                    {urlValidationErrors}
                 ></analysis-results>
             </div>
         </div>

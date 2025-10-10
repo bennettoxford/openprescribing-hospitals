@@ -13,18 +13,14 @@
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
     import { updateResults } from '../../../stores/resultsStore';
     import { modeSelectorStore } from '../../../stores/modeSelectorStore';
-    import { getCookie } from '../../../utils/utils';
+    import { 
+        getCookie,
+        getUrlParams,
+        formatArrayParam,
+        setUrlParams,
+    } from '../../../utils/utils';
     
     const dispatch = createEventDispatcher();
-
-    let isAnalysisRunning = false;
-    let errorMessage = '';
-    let isOrganisationDropdownOpen = false;
-    let isSelectingQuantityTypes = false;
-    let showAdvancedOptions = false;
-    let recommendedQuantityTypes = [];
-    let selectedQuantityType = null;
-    let isQuantityDropdownOpen = false;
 
     const availableQuantityTypes = [
         'SCMD Quantity',
@@ -33,13 +29,196 @@
         'Defined Daily Dose Quantity'
     ];
 
+    const PRODUCT_PARAM_BY_TYPE = {
+        vmp: 'vmps',
+        vtm: 'vtms',
+        ingredient: 'ingredients',
+        atc: 'atcs'
+    };
+
+    const PRODUCT_TYPE_ORDER = Object.keys(PRODUCT_PARAM_BY_TYPE);
+
+    const ANALYSIS_TRUSTS_PARAM = 'trusts';
+    const ANALYSIS_QUANTITY_PARAM = 'quantity';
+
+    const SUPPORTED_ANALYSIS_PARAMS = [
+        ...Object.values(PRODUCT_PARAM_BY_TYPE),
+        ANALYSIS_TRUSTS_PARAM,
+        ANALYSIS_QUANTITY_PARAM
+    ];
+
+    const QUANTITY_TYPE_CODES = {
+        'SCMD Quantity': 'scmd',
+        'Unit Dose Quantity': 'dose',
+        'Ingredient Quantity': 'ingredient',
+        'Defined Daily Dose Quantity': 'ddd'
+    };
+
+    let isAnalysisRunning = false;
+    let errorMessage = '';
+    let isSelectingQuantityTypes = false;
+    let showAdvancedOptions = false;
+    let recommendedQuantityTypes = [];
+    let selectedQuantityType = null;
+    let isQuantityDropdownOpen = false;
+
+    let suppressUrlSync = true;
+    let hasHydratedFromUrl = false;
+    let urlValidationErrors = [];
+
     $: selectedVMPs = $analyseOptions.selectedVMPs;
     $: searchType = $analyseOptions.searchType;
     $: selectedQuantityType = $analyseOptions.quantityType;
+    $: selectedTrusts = $organisationSearchStore.selectedItems || [];
+
+    $: if (!suppressUrlSync && urlValidationErrors.length === 0) {
+        updateAnalysisUrl(selectedVMPs, selectedTrusts, selectedQuantityType);
+    }
 
     export let orgData = null;
     export let mindate = null;
     export let maxdate = null;
+
+    function encodeQuantityType(quantityType) {
+        if (!quantityType) return null;
+        const trimmed = quantityType.trim();
+        return QUANTITY_TYPE_CODES[trimmed] || null;
+    }
+
+
+    function updateAnalysisUrl(currentProducts = [], currentTrusts = [], currentQuantityType = null) {
+        if (typeof window === 'undefined') return;
+
+        const params = {};
+
+        const codesByParam = {};
+
+        (currentProducts || []).forEach(item => {
+            if (!item || !item.code || !item.type) return;
+
+            const typeKey = (item.type || '').toLowerCase();
+            const paramName = PRODUCT_PARAM_BY_TYPE[typeKey];
+            if (!paramName) return;
+
+            if (!codesByParam[paramName]) {
+                codesByParam[paramName] = [];
+            }
+
+            const codes = codesByParam[paramName];
+            if (!codes.includes(item.code)) {
+                codes.push(item.code);
+            }
+        });
+
+        Object.entries(codesByParam).forEach(([paramName, codes]) => {
+            if (codes.length > 0) {
+                params[paramName] = formatArrayParam(codes);
+            }
+        });
+
+        const trustCodes = (currentTrusts || [])
+            .map(name => organisationSearchStore.getOrgCode(name))
+            .filter(Boolean);
+
+        if (trustCodes.length > 0) {
+            params[ANALYSIS_TRUSTS_PARAM] = formatArrayParam(trustCodes);
+        }
+
+        if (currentQuantityType) {
+            const encodedQuantity = encodeQuantityType(currentQuantityType);
+            if (encodedQuantity) {
+                params[ANALYSIS_QUANTITY_PARAM] = encodedQuantity;
+            }
+        }
+
+        setUrlParams(params, SUPPORTED_ANALYSIS_PARAMS);
+    }
+
+    async function hydrateFromUrl() {
+        if (hasHydratedFromUrl || typeof window === 'undefined') {
+            suppressUrlSync = false;
+            return;
+        }
+
+        hasHydratedFromUrl = true;
+
+        try {
+            const params = getUrlParams();
+
+            const queryParams = new URLSearchParams();
+
+            PRODUCT_TYPE_ORDER.forEach(type => {
+                const paramName = PRODUCT_PARAM_BY_TYPE[type];
+                const paramValue = params.get(paramName);
+                if (paramValue && paramValue.trim()) {
+                    queryParams.append(paramName, paramValue);
+                }
+            });
+
+            const trustsParam = params.get(ANALYSIS_TRUSTS_PARAM);
+            if (trustsParam && trustsParam.trim()) {
+                queryParams.append(ANALYSIS_TRUSTS_PARAM, trustsParam);
+            }
+
+            const quantityParam = params.get(ANALYSIS_QUANTITY_PARAM);
+            if (quantityParam && quantityParam.trim()) {
+                queryParams.append(ANALYSIS_QUANTITY_PARAM, quantityParam);
+            }
+
+            if (queryParams.toString()) {
+                const response = await fetch(`/api/validate-analysis-params/?${queryParams.toString()}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    if (data.errors && data.errors.length > 0) {
+                        urlValidationErrors = data.errors;
+                        dispatch('urlValidationErrors', { errors: data.errors });
+                        console.warn('URL parameter validation errors:', data.errors);
+                    } else {
+                        urlValidationErrors = [];
+                        dispatch('urlValidationErrors', { errors: [] });
+                    }
+
+                    if (data.valid_products && data.valid_products.length > 0) {
+                        analyseOptions.update(options => ({
+                            ...options,
+                            selectedVMPs: data.valid_products
+                        }));
+
+                        if (data.quantity_type) {
+                            analyseOptions.setQuantityType(data.quantity_type.name);
+                            selectedQuantityType = data.quantity_type.name;
+                        } else {
+                            await selectQuantityType(data.valid_products);
+                        }
+
+                        if (data.quantity_type && data.quantity_type.code) {
+                            const params = { [ANALYSIS_QUANTITY_PARAM]: data.quantity_type.code };
+                            setUrlParams(params, [ANALYSIS_QUANTITY_PARAM]);
+                        }
+                    }
+
+                    if (data.valid_trusts && data.valid_trusts.length > 0) {
+                        const trustNames = data.valid_trusts.map(trust => trust.ods_name);
+                        organisationSearchStore.updateSelection(trustNames);
+                        analyseOptions.setSelectedOrganisations(trustNames);
+                    }
+                } else {
+                    console.error('Failed to validate URL parameters:', response.status);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to hydrate analysis selections from URL:', error);
+        } finally {
+            suppressUrlSync = false;
+        }
+    }
 
 
     onMount(async () => {
@@ -60,6 +239,8 @@
         } catch (error) {
             console.error('Error in onMount:', error);
         }
+
+        await hydrateFromUrl();
     });
 
     const csrftoken = getCookie('csrftoken');
@@ -106,6 +287,30 @@
         }
     }
 
+    function resolveProductsToVMPs(selectedProducts) {
+        if (!selectedProducts || selectedProducts.length === 0) {
+            return [];
+        }
+
+        const resolvedProducts = [];
+
+        selectedProducts.forEach(product => {
+            if (product.type === 'vmp') {
+                resolvedProducts.push(product);
+            } else if (product.vmps && product.vmps.length > 0) {
+                product.vmps.forEach(vmp => {
+                    resolvedProducts.push({
+                        code: vmp.code,
+                        name: vmp.name,
+                        type: 'vmp'
+                    });
+                });
+            }
+        });
+
+        return resolvedProducts;
+    }
+
     async function runAnalysis() {
         if (isAnalysisRunning) return;
 
@@ -136,6 +341,8 @@
         let endpoint = '/api/get-quantity-data/';
         
         try {
+            const resolvedProducts = await resolveProductsToVMPs(selectedVMPs);
+
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
@@ -143,7 +350,7 @@
                     'X-CSRFToken': csrftoken
                 },
                 body: JSON.stringify({
-                    names: selectedVMPs,
+                    names: resolvedProducts,
                     search_type: searchType,
                     quantity_type: $analyseOptions.quantityType
                 })
@@ -161,8 +368,6 @@
                 searchType,
                 organisations: $organisationSearchStore.selectedItems
             });
-
-            analyseOptions.setSelectedOrganisations($organisationSearchStore.selectedItems);
 
             updateResults(data, {
                 searchType,
@@ -185,12 +390,6 @@
         }
     }
 
-    function dispatchAnalysisRunningChange(running) {
-        const analyseBox = document.querySelector('analysis-builder');
-        if (analyseBox) {
-            analyseBox.dispatchEvent(new CustomEvent('analysisRunningChange', { detail: running }));
-        }
-    }
 
     function handleVMPSelection(event) {
         
@@ -205,6 +404,7 @@
     function handleODSSelection(event) {
         const { selectedItems, usedOrganisationSelection } = event.detail;
         organisationSearchStore.updateSelection(selectedItems, usedOrganisationSelection);
+        analyseOptions.setSelectedOrganisations(selectedItems);
     }
 
     function toggleAdvancedOptions() {
@@ -223,10 +423,6 @@
     }
 
 
-    function handleOrganisationDropdownToggle(event) {
-        isOrganisationDropdownOpen = event.detail.isOpen;
-    }
-
     function resetSelections() {
         
         analyseOptions.update(options => ({
@@ -236,10 +432,13 @@
             quantityType: null
         }));
         organisationSearchStore.updateSelection([]);
+        analyseOptions.setSelectedOrganisations([]);
         
         recommendedQuantityTypes = [];
         showAdvancedOptions = false;
         selectedQuantityType = null;
+        urlValidationErrors = [];
+        dispatch('urlValidationErrors', { errors: [] });
 
         errorMessage = '';
 
@@ -336,7 +535,6 @@
                 source={organisationSearchStore}
                 overlayMode={false}
                 on:selectionChange={handleODSSelection}
-                on:dropdownToggle={handleOrganisationDropdownToggle}
                 maxItems=10
                 hideSelectAll={true}
                 showTitle={false}

@@ -1,3 +1,4 @@
+import re
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.db.models import Q
@@ -13,7 +14,8 @@ from ..models import (
     DDDQuantity,
     VTM,
     Ingredient,
-    ATC
+    ATC,
+    Organisation
 )
 from ..utils import safe_float
 
@@ -918,3 +920,246 @@ def build_single_product_data(vmp, quantity_data):
         'ddd_logic': ddd_logic,
         'ingredient_logic': ingredient_logic
     }
+
+
+
+def validate_and_sanitize_codes(codes_list, max_length, code_type, regex_pattern=None, numeric_only=False, errors=None):
+
+    """Validate and sanitize a list of codes"""
+    if errors is None:
+        errors = []
+
+    sanitized = []
+    for code in codes_list:
+        code = code.strip()
+        if not code:
+            continue
+
+        if len(code) > max_length:
+            errors.append(f"{code_type} code '{code}' exceeds maximum length of {max_length} characters")
+            continue
+
+        if numeric_only and not code.isdigit():
+            errors.append(f"{code_type} code '{code}' must be numeric")
+            continue
+
+        if regex_pattern and not re.match(regex_pattern, code):
+            errors.append(f"{code_type} code '{code}' does not match required format")
+            continue
+
+        sanitized.append(code)
+
+    return sanitized
+
+@csrf_protect
+@api_view(["GET"])
+def validate_analysis_params(request):
+    """
+    Validate URL parameters for analysis and return enriched data for UI population.
+
+    Expected query parameters:
+    - vmps: comma-separated VMP codes
+    - vtms: comma-separated VTM codes
+    - ingredients: comma-separated ingredient codes
+    - atcs: comma-separated ATC codes
+    - trusts: comma-separated trust ODS codes
+    - quantity: quantity type code (scmd, dose, ingredient, DDD)
+
+    Returns:
+    - valid_products: List of valid product objects with names and types
+    - valid_trusts: List of valid trust objects with names
+    - quantity_type: Validated quantity type with display name
+    - errors: List of validation errors
+    """
+
+    errors = []
+    valid_products = []
+    valid_trusts = []
+    quantity_type = None
+    vmp_ids = set()
+
+    ATC_REGEX = r'^[A-Z](?:[0-9]{2})?[A-Z]?[A-Z]?(?:[0-9]{2})?$'
+
+    product_params = {
+        'vmps': {'max_length': 20, 'type': 'VMP', 'numeric_only': True},
+        'vtms': {'max_length': 20, 'type': 'VTM', 'numeric_only': True},
+        'ingredients': {'max_length': 20, 'type': 'Ingredient', 'numeric_only': True},
+        'atcs': {'max_length': 7, 'type': 'ATC', 'regex': ATC_REGEX}
+    }
+
+    product_codes = {}
+
+    for param, config in product_params.items():
+        codes_str = request.GET.get(param, '')
+        if codes_str:
+            raw_codes = [code.strip() for code in codes_str.split(',') if code.strip()]
+            validated_codes = validate_and_sanitize_codes(
+                raw_codes,
+                config['max_length'],
+                config['type'],
+                config.get('regex'),
+                config.get('numeric_only', False),
+                errors
+            )
+            if validated_codes:
+                product_codes[param] = validated_codes
+
+    if not product_codes:
+        errors.append("At least one product parameter (vmps, vtms, ingredients, or atcs) must be provided")
+
+    if product_codes:
+        vmp_ids = set()
+        invalid_codes_by_type = {}
+
+        for param, codes in product_codes.items():
+            if param == 'vmps':
+                vmps = VMP.objects.filter(code__in=codes).values('id', 'code', 'name')
+                found_codes = {vmp['code'] for vmp in vmps}
+                invalid_codes = set(codes) - found_codes
+                if invalid_codes:
+                    invalid_codes_by_type['vmps'] = list(invalid_codes)
+
+                for vmp in vmps:
+                    vmp_ids.add(vmp['id'])
+                    valid_products.append({
+                        'code': vmp['code'],
+                        'name': vmp['name'],
+                        'type': 'vmp',
+                        'label': vmp['name']
+                    })
+            elif param == 'vtms':
+                vtms = VTM.objects.filter(vtm__in=codes).values('vtm', 'name')
+                found_codes = {vtm['vtm'] for vtm in vtms}
+                invalid_codes = set(codes) - found_codes
+                if invalid_codes:
+                    invalid_codes_by_type['vtms'] = list(invalid_codes)
+
+                for vtm in vtms:
+                    vtm_vmps = VMP.objects.filter(vtm__vtm=vtm['vtm']).values('id', 'code', 'name')
+                    for vmp in vtm_vmps:
+                        vmp_ids.add(vmp['id'])
+                        vtm_vmps = VMP.objects.filter(vtm__vtm=vtm['vtm']).values('code', 'name')
+                        valid_products.append({
+                            'code': vtm['vtm'],
+                            'name': vtm['name'],
+                            'type': 'vtm',
+                            'label': vtm['name'],
+                            'vmps': list(vtm_vmps)
+                        })
+            elif param == 'ingredients':
+                ingredients = Ingredient.objects.filter(code__in=codes).values('code', 'name')
+                found_codes = {ingredient['code'] for ingredient in ingredients}
+                invalid_codes = set(codes) - found_codes
+                if invalid_codes:
+                    invalid_codes_by_type['ingredients'] = list(invalid_codes)
+
+                for ingredient in ingredients:
+                    ingredient_vmps = VMP.objects.filter(ingredients__code=ingredient['code']).values('id', 'code', 'name')
+                    for vmp in ingredient_vmps:
+                        vmp_ids.add(vmp['id'])
+                        ingredient_vmps = VMP.objects.filter(ingredients__code=ingredient['code']).values('code', 'name')
+                        valid_products.append({
+                            'code': ingredient['code'],
+                            'name': ingredient['name'],
+                            'type': 'ingredient',
+                            'label': ingredient['name'],
+                            'vmps': list(ingredient_vmps)
+                        })
+            elif param == 'atcs':
+                atcs = ATC.objects.filter(code__in=codes).values('code', 'name')
+                found_codes = {atc['code'] for atc in atcs}
+                invalid_codes = set(codes) - found_codes
+                if invalid_codes:
+                    invalid_codes_by_type['atcs'] = list(invalid_codes)
+
+                for atc in atcs:
+                    atc_vmps = VMP.objects.filter(atcs__code__startswith=atc['code']).values('id', 'code', 'name')
+                    for vmp in atc_vmps:
+                        vmp_ids.add(vmp['id'])
+                        atc_vmps = VMP.objects.filter(atcs__code__startswith=atc['code']).values('code', 'name')
+                        valid_products.append({
+                            'code': atc['code'],
+                            'name': atc['name'],
+                            'type': 'atc',
+                            'label': atc['name'],
+                            'vmps': list(atc_vmps)
+                        })
+
+        for param, invalid_codes in invalid_codes_by_type.items():
+            code_type = {'vmps': 'VMP', 'vtms': 'VTM', 'ingredients': 'Ingredient', 'atcs': 'ATC'}[param]
+            if len(invalid_codes) == 1:
+                errors.append(f"{code_type} code '{invalid_codes[0]}' not found")
+            else:
+                codes_list = ', '.join(f"'{code}'" for code in invalid_codes)
+                errors.append(f"{code_type} codes not found: {codes_list}")
+
+        if not valid_products:
+            if not invalid_codes_by_type:
+                errors.append("No valid products found for the provided codes")
+
+    trusts_str = request.GET.get('trusts', '')
+    if trusts_str:
+        raw_trust_codes = [code.strip() for code in trusts_str.split(',') if code.strip()]
+        if raw_trust_codes and raw_trust_codes != ['all']:
+            validated_trust_codes = validate_and_sanitize_codes(raw_trust_codes, 3, 'Trust', errors=errors)
+            if validated_trust_codes:
+                valid_trusts = Organisation.objects.filter(ods_code__in=validated_trust_codes).values('ods_code', 'ods_name')
+                valid_trusts = list(valid_trusts)
+
+                found_trust_codes = {trust['ods_code'] for trust in valid_trusts}
+                invalid_trust_codes = set(validated_trust_codes) - found_trust_codes
+
+                if invalid_trust_codes:
+                    if len(invalid_trust_codes) == 1:
+                        errors.append(f"Trust code '{list(invalid_trust_codes)[0]}' not found")
+                    else:
+                        codes_list = ', '.join(f"'{code}'" for code in invalid_trust_codes)
+                        errors.append(f"Trust codes not found: {codes_list}")
+
+    MAX_TRUST_SELECTION_LIMIT = 10
+    if len(valid_trusts) > MAX_TRUST_SELECTION_LIMIT:
+        valid_trusts = valid_trusts[:MAX_TRUST_SELECTION_LIMIT]
+        errors.append(f"Maximum of {MAX_TRUST_SELECTION_LIMIT} trusts allowed")
+
+    quantity_code = request.GET.get('quantity', '').strip().lower()
+    if quantity_code:
+        quantity_map = {
+            'scmd': 'SCMD Quantity',
+            'dose': 'Unit Dose Quantity',
+            'ingredient': 'Ingredient Quantity',
+            'ddd': 'Defined Daily Dose Quantity'
+        }
+
+        if quantity_code in quantity_map:
+            quantity_type = {
+                'code': quantity_code,
+                'name': quantity_map[quantity_code]
+            }
+        else:
+            errors.append(f"Invalid quantity type: {quantity_code}")
+
+    # Remove duplicates from valid_products
+    seen_codes = set()
+    unique_products = []
+    for product in valid_products:
+        key = (product['code'], product['type'])
+        if key not in seen_codes:
+            seen_codes.add(key)
+            unique_products.append(product)
+    valid_products = unique_products
+
+    # this is number of items selected, which may represent more than 20 products
+    MAX_PRODUCT_SELECTION_LIMIT = 20
+    original_count = len(valid_products)
+
+    if original_count > MAX_PRODUCT_SELECTION_LIMIT:
+        valid_products = valid_products[:MAX_PRODUCT_SELECTION_LIMIT]
+        errors.append(f"Maximum of {MAX_PRODUCT_SELECTION_LIMIT} items allowed")
+
+    return Response({
+        'valid_products': valid_products,
+        'valid_trusts': valid_trusts,
+        'quantity_type': quantity_type,
+        'errors': errors,
+        'vmp_count': len(vmp_ids)
+    })

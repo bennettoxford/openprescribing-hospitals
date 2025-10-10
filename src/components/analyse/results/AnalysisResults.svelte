@@ -4,6 +4,7 @@
   }} />
 
 <script>
+    import { onDestroy } from 'svelte';
     import TotalsTable from './TotalsTable.svelte';
     import ProductsTable from './ProductsTable.svelte';
     import { resultsStore } from '../../../stores/resultsStore';
@@ -14,20 +15,26 @@
     import ModeSelector from '../../common/ModeSelector.svelte';
     import { createChartStore } from '../../../stores/chartStore';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
-    import { formatNumber } from '../../../utils/utils';
+    import { formatNumber, getCurrentUrl, copyToClipboard } from '../../../utils/utils';
     import pluralize from 'pluralize';
     import { ChartDataProcessor, ViewModeCalculator, selectDefaultMode, processTableDataByMode, calculatePercentiles, getTrustCount, getChartExplainerText } from '../../../utils/analyseUtils.js';
 
-    export let className = '';
-    export let isAnalysisRunning;
-    export let analysisData;
-    export let showResults;
+  export let className = '';
+  export let isAnalysisRunning;
+  export let analysisData;
+  export let showResults;
+  export let urlValidationErrors = [];
 
     let selectedData = [];
     let vmps = [];
     let filteredData = [];
     let viewModes = [];
     let viewModeCalculator;
+    let isCopyingShareLink = false;
+    let showShareToast = false;
+    let shareToastMessage = '';
+    let shareToastVariant = 'success';
+    let shareToastTimeout;
 
     const resultsChartStore = createChartStore({
         mode: 'trust',
@@ -109,10 +116,44 @@
 
     let colorMappings = new Map();
 
-    function getOrganisationColor(index) {
-        const allColors = chartConfig.allColours;
-        return allColors[index % allColors.length];
+
+    function showShareFeedback(message, variant = 'success') {
+        shareToastMessage = message;
+        shareToastVariant = variant;
+        showShareToast = true;
+
+        if (shareToastTimeout) {
+            clearTimeout(shareToastTimeout);
+        }
+
+        shareToastTimeout = setTimeout(() => {
+            showShareToast = false;
+            shareToastTimeout = null;
+        }, 2500);
     }
+
+    async function handleCopyAnalysisLink() {
+        if (isCopyingShareLink) return;
+
+        isCopyingShareLink = true;
+
+        try {
+            const currentUrl = getCurrentUrl();
+            await copyToClipboard(currentUrl);
+            showShareFeedback('Analysis link copied to clipboard!', 'success');
+        } catch (error) {
+            console.error('Failed to copy analysis link:', error);
+            showShareFeedback('Could not copy link. Please try again.', 'error');
+        } finally {
+            isCopyingShareLink = false;
+        }
+    }
+
+    onDestroy(() => {
+        if (shareToastTimeout) {
+            clearTimeout(shareToastTimeout);
+        }
+    });
 
 
     function processChartData(data) {
@@ -433,9 +474,30 @@
     });
 </script>
 
-{#if showResults}
+{#if showResults || (urlValidationErrors && urlValidationErrors.length > 0)}
     <div class="results-box bg-white rounded-lg shadow-md h-full flex flex-col {className}">
         <div class="flex-grow overflow-y-auto rounded-t-lg">
+            {#if urlValidationErrors && urlValidationErrors.length > 0}
+                <div class="p-4 border-b border-gray-200 bg-yellow-50">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800">URL Parameter Issues</h3>
+                            <div class="mt-2 text-sm text-yellow-700">
+                                <ul class="list-disc pl-5 space-y-1">
+                                    {#each urlValidationErrors as error}
+                                        <li>{error}</li>
+                                    {/each}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {/if}
             {#if isAnalysisRunning}
                 <div class="flex items-center justify-center h-[500px] p-16">
                     <div class="animate-spin rounded-full h-32 w-32 border-t-4 border-b-4 border-oxford-500"></div>
@@ -449,6 +511,20 @@
                     {#if viewModes.length > 0}
                     <section class="p-4">
                         <div class="mb-4">
+                            <div class="flex flex-col sm:items-end mb-2">
+                                <button
+                                    type="button"
+                                    on:click={handleCopyAnalysisLink}
+                                    class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-oxford-600 bg-white border border-oxford-200 rounded-md hover:bg-oxford-50 hover:border-oxford-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-400 disabled:opacity-70 disabled:cursor-not-allowed"
+                                    disabled={isCopyingShareLink}
+                                    title="Copy link to share this analysis with current selections"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.935-2.186 2.25 2.25 0 00-3.935 2.186z" />
+                                    </svg>
+                                    {isCopyingShareLink ? 'Copying...' : 'Share analysis'}
+                                </button>
+                            </div>
                             <div class="flex flex-col sm:flex-row sm:items-center gap-4">
                                 <ModeSelector 
                                     options={viewModes}
@@ -546,6 +622,26 @@
                             </div>
                             {/if}
                         </div>
+                        {/if}
+
+                        {#if showShareToast}
+                            <div class="fixed bottom-4 right-4 z-50" aria-live="polite">
+                                <div class={`px-4 py-2 rounded-lg shadow-lg border transform translate-y-0 opacity-100 transition-all duration-300 ${shareToastVariant === 'success' ? 'bg-oxford-50 text-oxford-800 border-oxford-100' : 'bg-red-50 text-red-800 border-red-200'}`}>
+                                    <div class="flex items-center gap-2">
+                                        {#if shareToastVariant === 'success'}
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                            </svg>
+                                        {:else}
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.007v.008H12v-.008z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        {/if}
+                                        <span class="text-sm font-medium">{shareToastMessage}</span>
+                                    </div>
+                                </div>
+                            </div>
                         {/if}
 
                         {#if isInTrustModeWithNoData}
