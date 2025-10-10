@@ -111,8 +111,12 @@
             return sortDirection * (checkedVMPs[b.vmp] - checkedVMPs[a.vmp]);
         }
         
-        let aValue = a[sortColumn] || '';
-        let bValue = b[sortColumn] || '';
+        let aValue = a[sortColumn];
+        let bValue = b[sortColumn];
+
+        aValue = Array.isArray(aValue) ? aValue.join(', ') : (aValue || '');
+        bValue = Array.isArray(bValue) ? bValue.join(', ') : (bValue || '');
+
         return sortDirection * aValue.localeCompare(bValue, undefined, {numeric: true, sensitivity: 'base'});
     });
 
