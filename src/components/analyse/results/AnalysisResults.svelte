@@ -540,7 +540,10 @@
             {/if}
             {#if isAnalysisRunning}
                 <div class="flex items-center justify-center h-[500px] p-16">
-                    <div class="animate-spin rounded-full h-32 w-32 border-t-4 border-b-4 border-oxford-500"></div>
+                    <div class="flex items-center">
+                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-oxford-600"></div>
+                        <span class="ml-3 text-sm text-oxford-600">Running analysis...</span>
+                    </div>
                 </div>
             {:else if selectedData.length > 0}
                 <div class="space-y-6 p-6">
