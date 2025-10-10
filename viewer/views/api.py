@@ -1161,7 +1161,7 @@ def validate_analysis_params(request):
             'icb': 'icb',
             'national': 'national',
             'product': 'product',
-            'product_group': 'productGroup',
+            'productgroup': 'productGroup',
             'ingredient': 'ingredient',
             'unit': 'unit'
         }
