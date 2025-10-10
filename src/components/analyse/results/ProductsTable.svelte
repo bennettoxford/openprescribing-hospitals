@@ -83,6 +83,9 @@
     let sortColumn = 'vmp';
     let sortDirection = 1;
 
+    $: sortColumn;
+    $: sortDirection;
+
     function sortBy(column) {
         if (sortColumn === column) {
             sortDirection *= -1;
@@ -92,9 +95,9 @@
         }
     }
 
-    function getSortIndicator(column) {
+    $: getSortIndicator = (column) => {
         if (sortColumn === column) {
-            return sortDirection > 0 ? '↑↓' : '↓↑';
+            return sortDirection > 0 ? '↑' : '↓';
         }
         return '↑↓';
     }
@@ -206,19 +209,19 @@
                     <thead class="bg-gray-200 text-gray-600 text-sm leading-normal sticky top-0 z-10">
                         <tr>
                             <th class="py-3 px-6 text-left" class:cursor-pointer={true} on:click={() => sortBy('vmp')}>
-                                Product <span class="text-gray-400">{getSortIndicator('vmp')}</span>
+                                Product <span class="text-xl font-black" class:text-gray-400={sortColumn !== 'vmp'} class:text-gray-700={sortColumn === 'vmp'}>{getSortIndicator('vmp')}</span>
                             </th>
                             <th class="py-3 px-6 text-left" class:cursor-pointer={true} on:click={() => sortBy('vtm')}>
-                                Product Group <span class="text-gray-400">{getSortIndicator('vtm')}</span>
+                                Product Group <span class="text-xl font-black" class:text-gray-400={sortColumn !== 'vtm'} class:text-gray-700={sortColumn === 'vtm'}>{getSortIndicator('vtm')}</span>
                             </th>
                             <th class="py-3 px-6 text-left" class:cursor-pointer={true} on:click={() => sortBy('ingredients')}>
-                                Ingredient <span class="text-gray-400">{getSortIndicator('ingredients')}</span>
+                                Ingredient <span class="text-xl font-black" class:text-gray-400={sortColumn !== 'ingredients'} class:text-gray-700={sortColumn === 'ingredients'}>{getSortIndicator('ingredients')}</span>
                             </th>
                             <th class="py-3 px-6 text-left" class:cursor-pointer={true} on:click={() => sortBy('unit')}>
-                                Unit <span class="text-gray-400">{getSortIndicator('unit')}</span>
+                                Unit <span class="text-xl font-black" class:text-gray-400={sortColumn !== 'unit'} class:text-gray-700={sortColumn === 'unit'}>{getSortIndicator('unit')}</span>
                             </th>
                             <th class="py-3 px-6 text-left cursor-pointer" on:click={() => sortBy('selected')}>
-                                Select <span class="text-gray-400">{getSortIndicator('selected')}</span>
+                                Select <span class="text-xl font-black" class:text-gray-400={sortColumn !== 'selected'} class:text-gray-700={sortColumn === 'selected'}>{getSortIndicator('selected')}</span>
                             </th>
                         </tr>
                     </thead>
