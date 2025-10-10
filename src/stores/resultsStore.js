@@ -20,7 +20,8 @@ export const resultsStore = writable({
     showPercentiles: true,
     percentiles: [],
     trustCount: 0,
-    excludedTrusts: []
+    excludedTrusts: [],
+    excludedVmps: []
 });
 
 export function updateResults(data, options = {}) {
@@ -41,6 +42,9 @@ export function updateResults(data, options = {}) {
 
     const selectedOrganisations = options.selectedOrganisations || [];
     const hasShowPercentilesOverride = typeof options.showPercentiles === 'boolean';
+    const excludedVmpsOverride = Array.isArray(options.excludedVmps)
+        ? Array.from(new Set(options.excludedVmps.map(String))).sort()
+        : null;
     
     const defaultShowPercentiles = selectedOrganisations.length === 0;
     const showPercentilesValue = hasShowPercentilesOverride
@@ -67,7 +71,9 @@ export function updateResults(data, options = {}) {
         searchType: options.searchType || store.searchType,
         dateRange: calculateDateRange(data),
         selectedOrganisations: options.selectedOrganisations || [],
-        showPercentiles: showPercentilesValue
+        showPercentiles: showPercentilesValue,
+        excludedTrusts: [],
+        excludedVmps: excludedVmpsOverride ?? []
     }));
 }
 

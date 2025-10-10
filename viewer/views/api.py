@@ -977,8 +977,10 @@ def validate_analysis_params(request):
     valid_trusts = []
     quantity_type = None
     vmp_ids = set()
+    available_vmp_codes = set()
     mode = None
     show_percentiles = False
+    excluded_vmps = []
 
     ATC_REGEX = r'^[A-Z](?:[0-9]{2})?[A-Z]?[A-Z]?(?:[0-9]{2})?$'
 
@@ -1015,7 +1017,8 @@ def validate_analysis_params(request):
 
         for param, codes in product_codes.items():
             if param == 'vmps':
-                vmps = VMP.objects.filter(code__in=codes).values('id', 'code', 'name')
+                vmps_qs = VMP.objects.filter(code__in=codes).values('id', 'code', 'name')
+                vmps = list(vmps_qs)
                 found_codes = {vmp['code'] for vmp in vmps}
                 invalid_codes = set(codes) - found_codes
                 if invalid_codes:
@@ -1023,6 +1026,7 @@ def validate_analysis_params(request):
 
                 for vmp in vmps:
                     vmp_ids.add(vmp['id'])
+                    available_vmp_codes.add(str(vmp['code']))
                     valid_products.append({
                         'code': vmp['code'],
                         'name': vmp['name'],
@@ -1030,62 +1034,71 @@ def validate_analysis_params(request):
                         'label': vmp['name']
                     })
             elif param == 'vtms':
-                vtms = VTM.objects.filter(vtm__in=codes).values('vtm', 'name')
+                vtms_qs = VTM.objects.filter(vtm__in=codes).values('vtm', 'name')
+                vtms = list(vtms_qs)
                 found_codes = {vtm['vtm'] for vtm in vtms}
                 invalid_codes = set(codes) - found_codes
                 if invalid_codes:
                     invalid_codes_by_type['vtms'] = list(invalid_codes)
 
                 for vtm in vtms:
-                    vtm_vmps = VMP.objects.filter(vtm__vtm=vtm['vtm']).values('id', 'code', 'name')
-                    for vmp in vtm_vmps:
+                    vtm_vmps_qs = VMP.objects.filter(vtm__vtm=vtm['vtm']).values('id', 'code', 'name')
+                    vtm_vmps_list = list(vtm_vmps_qs)
+                    for vmp in vtm_vmps_list:
                         vmp_ids.add(vmp['id'])
-                        vtm_vmps = VMP.objects.filter(vtm__vtm=vtm['vtm']).values('code', 'name')
-                        valid_products.append({
-                            'code': vtm['vtm'],
-                            'name': vtm['name'],
-                            'type': 'vtm',
-                            'label': vtm['name'],
-                            'vmps': list(vtm_vmps)
-                        })
+                        available_vmp_codes.add(str(vmp['code']))
+                    vtm_vmps = [{'code': v['code'], 'name': v['name']} for v in vtm_vmps_list]
+                    valid_products.append({
+                        'code': vtm['vtm'],
+                        'name': vtm['name'],
+                        'type': 'vtm',
+                        'label': vtm['name'],
+                        'vmps': vtm_vmps
+                    })
             elif param == 'ingredients':
-                ingredients = Ingredient.objects.filter(code__in=codes).values('code', 'name')
+                ingredients_qs = Ingredient.objects.filter(code__in=codes).values('code', 'name')
+                ingredients = list(ingredients_qs)
                 found_codes = {ingredient['code'] for ingredient in ingredients}
                 invalid_codes = set(codes) - found_codes
                 if invalid_codes:
                     invalid_codes_by_type['ingredients'] = list(invalid_codes)
 
                 for ingredient in ingredients:
-                    ingredient_vmps = VMP.objects.filter(ingredients__code=ingredient['code']).values('id', 'code', 'name')
-                    for vmp in ingredient_vmps:
+                    ingredient_vmps_qs = VMP.objects.filter(ingredients__code=ingredient['code']).values('id', 'code', 'name')
+                    ingredient_vmps_list = list(ingredient_vmps_qs)
+                    for vmp in ingredient_vmps_list:
                         vmp_ids.add(vmp['id'])
-                        ingredient_vmps = VMP.objects.filter(ingredients__code=ingredient['code']).values('code', 'name')
-                        valid_products.append({
-                            'code': ingredient['code'],
-                            'name': ingredient['name'],
-                            'type': 'ingredient',
-                            'label': ingredient['name'],
-                            'vmps': list(ingredient_vmps)
-                        })
+                        available_vmp_codes.add(str(vmp['code']))
+                    ingredient_vmps = [{'code': v['code'], 'name': v['name']} for v in ingredient_vmps_list]
+                    valid_products.append({
+                        'code': ingredient['code'],
+                        'name': ingredient['name'],
+                        'type': 'ingredient',
+                        'label': ingredient['name'],
+                        'vmps': ingredient_vmps
+                    })
             elif param == 'atcs':
-                atcs = ATC.objects.filter(code__in=codes).values('code', 'name')
+                atcs_qs = ATC.objects.filter(code__in=codes).values('code', 'name')
+                atcs = list(atcs_qs)
                 found_codes = {atc['code'] for atc in atcs}
                 invalid_codes = set(codes) - found_codes
                 if invalid_codes:
                     invalid_codes_by_type['atcs'] = list(invalid_codes)
 
                 for atc in atcs:
-                    atc_vmps = VMP.objects.filter(atcs__code__startswith=atc['code']).values('id', 'code', 'name')
-                    for vmp in atc_vmps:
+                    atc_vmps_qs = VMP.objects.filter(atcs__code__startswith=atc['code']).values('id', 'code', 'name')
+                    atc_vmps_list = list(atc_vmps_qs)
+                    for vmp in atc_vmps_list:
                         vmp_ids.add(vmp['id'])
-                        atc_vmps = VMP.objects.filter(atcs__code__startswith=atc['code']).values('code', 'name')
-                        valid_products.append({
-                            'code': atc['code'],
-                            'name': atc['name'],
-                            'type': 'atc',
-                            'label': atc['name'],
-                            'vmps': list(atc_vmps)
-                        })
+                        available_vmp_codes.add(str(vmp['code']))
+                    atc_vmps = [{'code': v['code'], 'name': v['name']} for v in atc_vmps_list]
+                    valid_products.append({
+                        'code': atc['code'],
+                        'name': atc['name'],
+                        'type': 'atc',
+                        'label': atc['name'],
+                        'vmps': atc_vmps
+                    })
 
         for param, invalid_codes in invalid_codes_by_type.items():
             code_type = {'vmps': 'VMP', 'vtms': 'VTM', 'ingredients': 'Ingredient', 'atcs': 'ATC'}[param]
@@ -1174,6 +1187,30 @@ def validate_analysis_params(request):
                     errors.append("show_percentiles can only be true when at least one valid trust is selected")
                     show_percentiles = False
 
+    excluded_vmps_param = request.GET.get('excluded_vmps', '').strip()
+    if excluded_vmps_param:
+        raw_excluded_codes = [code.strip() for code in excluded_vmps_param.split(',') if code.strip()]
+        validated_excluded_codes = validate_and_sanitize_codes(
+            raw_excluded_codes,
+            30,
+            'Excluded VMP',
+            numeric_only=True,
+            errors=errors
+        )
+        validated_excluded_codes = list(dict.fromkeys(validated_excluded_codes))
+
+        available_code_strings = {str(code) for code in available_vmp_codes}
+        invalid_excluded_codes = [code for code in validated_excluded_codes if code not in available_code_strings]
+
+        if invalid_excluded_codes:
+            if len(invalid_excluded_codes) == 1:
+                errors.append(f"Excluded VMP code '{invalid_excluded_codes[0]}' is not part of the selected products")
+            else:
+                codes_list = ', '.join(f"'{code}'" for code in invalid_excluded_codes)
+                errors.append(f"Excluded VMP codes are not part of the selected products: {codes_list}")
+
+        excluded_vmps = sorted({code for code in validated_excluded_codes if code in available_code_strings})
+
     # Remove duplicates from valid_products
     seen_codes = set()
     unique_products = []
@@ -1198,6 +1235,7 @@ def validate_analysis_params(request):
         'quantity_type': quantity_type,
         'mode': mode,
         'show_percentiles': show_percentiles,
+        'excluded_vmps': excluded_vmps,
         'errors': errors,
         'vmp_count': len(vmp_ids)
     })

@@ -43,13 +43,15 @@
     const ANALYSIS_QUANTITY_PARAM = 'quantity';
     const ANALYSIS_MODE_PARAM = 'mode';
     const ANALYSIS_PERCENTILES_PARAM = 'show_percentiles';
+    const ANALYSIS_EXCLUDED_VMPS_PARAM = 'excluded_vmps';
 
     const SUPPORTED_ANALYSIS_PARAMS = [
         ...Object.values(PRODUCT_PARAM_BY_TYPE),
         ANALYSIS_TRUSTS_PARAM,
         ANALYSIS_QUANTITY_PARAM,
         ANALYSIS_MODE_PARAM,
-        ANALYSIS_PERCENTILES_PARAM
+        ANALYSIS_PERCENTILES_PARAM,
+        ANALYSIS_EXCLUDED_VMPS_PARAM
     ];
 
     const QUANTITY_TYPE_CODES = {
@@ -70,6 +72,7 @@
     let effectiveMode = null;
     let showPercentiles = true;
     let showPercentilesParamForUrl = null;
+    let excludedVmpCodesForUrl = [];
 
     let suppressUrlSync = true;
     let hasHydratedFromUrl = false;
@@ -81,6 +84,9 @@
     $: selectedTrusts = $organisationSearchStore.selectedItems || [];
     $: selectedMode = $modeSelectorStore.selectedMode;
     $: showPercentiles = $resultsStore.showPercentiles;
+    $: excludedVmpCodesForUrl = Array.isArray($resultsStore.excludedVmps)
+        ? Array.from(new Set($resultsStore.excludedVmps.filter(Boolean).map(String))).sort()
+        : [];
 
     $: if (selectedMode && modeParamFromUrl) {
         modeParamFromUrl = null;
@@ -95,7 +101,8 @@
             selectedTrusts,
             selectedQuantityType,
             effectiveMode,
-            showPercentilesParamForUrl
+            showPercentilesParamForUrl,
+            excludedVmpCodesForUrl
         );
     }
 
@@ -124,7 +131,8 @@
         currentTrusts = [],
         currentQuantityType = null,
         currentMode = null,
-        currentShowPercentiles = null
+        currentShowPercentiles = null,
+        currentExcludedVmps = []
     ) {
         if (typeof window === 'undefined') return;
 
@@ -183,6 +191,13 @@
             params[ANALYSIS_PERCENTILES_PARAM] = currentShowPercentiles;
         }
 
+        const excludedVmpsParam = Array.isArray(currentExcludedVmps)
+            ? currentExcludedVmps.filter(Boolean)
+            : [];
+        if (excludedVmpsParam.length > 0) {
+            params[ANALYSIS_EXCLUDED_VMPS_PARAM] = formatArrayParam(excludedVmpsParam);
+        }
+
         setUrlParams(params, SUPPORTED_ANALYSIS_PARAMS);
     }
 
@@ -230,6 +245,11 @@
             const showPercentilesParam = params.get(ANALYSIS_PERCENTILES_PARAM);
             if (showPercentilesParam && showPercentilesParam.trim()) {
                 queryParams.append(ANALYSIS_PERCENTILES_PARAM, showPercentilesParam.trim());
+            }
+
+            const excludedVmpsParam = params.get(ANALYSIS_EXCLUDED_VMPS_PARAM);
+            if (excludedVmpsParam && excludedVmpsParam.trim()) {
+                queryParams.append(ANALYSIS_EXCLUDED_VMPS_PARAM, excludedVmpsParam.trim());
             }
 
             if (queryParams.toString()) {
@@ -280,6 +300,9 @@
 
                     const responseMode = normaliseMode(data.mode);
                     const hasValidTrusts = Array.isArray(data.valid_trusts) && data.valid_trusts.length > 0;
+                    const responseExcludedVmps = Array.isArray(data.excluded_vmps)
+                        ? Array.from(new Set(data.excluded_vmps.map(String).filter(Boolean))).sort()
+                        : [];
 
                     if (responseMode === 'trust' && hasValidTrusts) {
                         const shouldShowPercentiles = typeof data.show_percentiles === 'boolean'
@@ -288,13 +311,24 @@
 
                         resultsStore.update(store => ({
                             ...store,
-                            showPercentiles: shouldShowPercentiles
+                            showPercentiles: shouldShowPercentiles,
+                            excludedVmps: responseExcludedVmps
                         }));
+
+                        excludedVmpCodesForUrl = responseExcludedVmps;
                     } else if (!hasValidTrusts) {
                         resultsStore.update(store => ({
                             ...store,
-                            showPercentiles: true
+                            showPercentiles: true,
+                            excludedVmps: responseExcludedVmps
                         }));
+                        excludedVmpCodesForUrl = responseExcludedVmps;
+                    } else {
+                        resultsStore.update(store => ({
+                            ...store,
+                            excludedVmps: responseExcludedVmps
+                        }));
+                        excludedVmpCodesForUrl = responseExcludedVmps;
                     }
                 } else {
                     console.error('Failed to validate URL parameters:', response.status);
@@ -474,6 +508,10 @@
                 updateOptions.showPercentiles = showPercentilesOverride;
             }
 
+            if (excludedVmpCodesForUrl.length > 0) {
+                updateOptions.excludedVmps = excludedVmpCodesForUrl;
+            }
+
             updateResults(data, updateOptions);
 
             dispatch('analysisComplete', { 
@@ -556,9 +594,11 @@
         urlValidationErrors = [];
         modeParamFromUrl = null;
         showPercentilesParamForUrl = null;
+        excludedVmpCodesForUrl = [];
         resultsStore.update(store => ({
             ...store,
-            showPercentiles: true
+            showPercentiles: true,
+            excludedVmps: []
         }));
         dispatch('urlValidationErrors', { errors: [] });
 

@@ -36,7 +36,8 @@
     let shareToastMessage = '';
     let shareToastVariant = 'success';
     let shareToastTimeout;
-
+    let excludedVmps = [];
+    let showTrustCountDetails = false;
     let modeFromUrl = null;
     let isModeFromUrlApplied = false;
 
@@ -57,6 +58,8 @@
             resetToInitial: true
         }
     });
+
+    $: excludedVmps = Array.isArray($resultsStore.excludedVmps) ? $resultsStore.excludedVmps : [];
 
     $: if (analysisData) {
         handleUpdateData(analysisData);
@@ -302,12 +305,17 @@
                     unit: vmp.units.size > 0 ? Array.from(vmp.units).join(', ') : 'nan',
                 }));
 
+            const availableCodes = new Set(vmps.map(vmp => String(vmp.code ?? '')));
+            const currentExcluded = Array.isArray($resultsStore.excludedVmps) ? $resultsStore.excludedVmps : [];
+            const filteredExcluded = currentExcluded.filter(code => availableCodes.has(String(code)));
+
             resultsStore.update(store => ({
                 ...store,
                 analysisData: selectedData,
                 showResults: true,
                 searchType: data.searchType || $analyseOptions.searchType,
-                quantityType: data.quantityType || $analyseOptions.quantityType
+                quantityType: data.quantityType || $analyseOptions.quantityType,
+                excludedVmps: filteredExcluded
             }));
 
             const vmpsWithValidData = vmps.filter(vmp => vmp.unit !== 'nan');
@@ -497,8 +505,6 @@
         }));
     }
 
-    let showTrustCountDetails = false;
-
     $: chartExplainerText = getChartExplainerText($modeSelectorStore.selectedMode, {
         hasSelectedOrganisations: $analyseOptions.selectedOrganisations?.length > 0,
         currentModeHasData,
@@ -537,7 +543,7 @@
             {:else if selectedData.length > 0}
                 <div class="space-y-6 p-6">
                     <section class="bg-white rounded-lg p-4 border-2 border-oxford-300 shadow-sm">
-                        <ProductsTable {vmps} on:dataFiltered={handleFilteredData} />
+                        <ProductsTable {vmps} {excludedVmps} on:dataFiltered={handleFilteredData} />
                     </section>
                     
                     {#if viewModes.length > 0}
@@ -626,9 +632,10 @@
                                                 class="text-blue-600 hover:text-blue-800 underline text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
                                                 on:click={() => showTrustCountDetails = !showTrustCountDetails}
                                             >
-                                                ({showTrustCountDetails ? 'hide' : 'show'} excluded trusts).
+                                                ({showTrustCountDetails ? 'hide' : 'show'} excluded trusts)
                                             </button>
                                         {/if}
+                                        .
                                     {/if}
                                     See <a href="/faq/#what-are-percentile-charts" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret this chart.
                                 {:else}
@@ -653,6 +660,7 @@
                                 </div>
                             </div>
                             {/if}
+
                         </div>
                         {/if}
 
