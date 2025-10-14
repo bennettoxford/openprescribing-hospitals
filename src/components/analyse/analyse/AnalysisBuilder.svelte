@@ -587,6 +587,12 @@
         if (searchComponent) {
             searchComponent.clearInput();
         }
+
+        if (typeof window !== 'undefined') {
+            setUrlParams({}, SUPPORTED_ANALYSIS_PARAMS);
+        }
+
+        urlState.suppressSync = false;
     }
 
 
