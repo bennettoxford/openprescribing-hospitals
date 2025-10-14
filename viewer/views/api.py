@@ -563,7 +563,6 @@ def get_quantity_data(request):
     if not all([search_items, quantity_type]):
         return Response({"error": "Missing required parameters"}, status=400)
 
-    vmp_ids = set()
     query = Q()
     for item in search_items:
         try:
@@ -579,14 +578,14 @@ def get_quantity_data(request):
                 query |= Q(atcs__code__startswith=code)
         except (KeyError, TypeError):
             return Response({"error": f"Invalid search item format: {item}"}, status=400)
-    
+
     vmp_ids = set(VMP.objects.filter(query).values_list('id', flat=True))
-    
+
     if not vmp_ids:
         return Response({"error": "No valid VMPs found"}, status=400)
 
     try:
-        base_vmps = VMP.objects.filter(
+        base_vmps = list(VMP.objects.filter(
             id__in=vmp_ids
         ).select_related('vtm').annotate(
             ingredient_names=ArrayAgg('ingredients__name', distinct=True),
@@ -594,16 +593,23 @@ def get_quantity_data(request):
         ).values(
             'id', 'code', 'name', 'vtm__name',
             'ingredient_names', 'ingredient_codes'
-        )
+        ))
 
+        base_vmp_metadata = {}
         response_data = []
         for vmp in base_vmps:
-            response_item = {
+            ingredient_names = vmp['ingredient_names'] or []
+            ingredient_codes = vmp['ingredient_codes'] or []
+            base_metadata = {
                 'vmp__code': vmp['code'],
                 'vmp__name': vmp['name'],
                 'vmp__vtm__name': vmp['vtm__name'],
-                'ingredient_names': vmp['ingredient_names'],
-                'ingredient_codes': vmp['ingredient_codes'],
+                'ingredient_names': ingredient_names,
+                'ingredient_codes': ingredient_codes
+            }
+            base_vmp_metadata[vmp['id']] = base_metadata
+            response_item = {
+                **base_metadata,
                 'organisation__ods_code': None,
                 'organisation__ods_name': None,
                 'organisation__region': None,
@@ -620,23 +626,31 @@ def get_quantity_data(request):
         }.get(quantity_type)
 
         if quantity_model:
+            quantity_queryset = quantity_model.objects.filter(
+                vmp_id__in=vmp_ids
+            )
             if ods_names:
-                quantity_data = quantity_model.objects.filter(
-                    vmp_id__in=vmp_ids,
+                quantity_queryset = quantity_queryset.filter(
                     organisation__ods_name__in=ods_names
-                ).select_related('organisation')
-            else:
-                quantity_data = quantity_model.objects.filter(
-                    vmp_id__in=vmp_ids
-                ).select_related('organisation')
-
+                )
+            quantity_queryset = quantity_queryset.select_related(
+                'vmp',
+                'vmp__vtm',
+                'organisation',
+                'organisation__region',
+                'organisation__icb'
+            )
+            quantity_data = list(quantity_queryset)
             for item in quantity_data:
+                base_metadata = base_vmp_metadata.get(item.vmp_id)
+                ingredient_names = base_metadata['ingredient_names'] if base_metadata else [ing.name for ing in item.vmp.ingredients.all()]
+                ingredient_codes = base_metadata['ingredient_codes'] if base_metadata else [ing.code for ing in item.vmp.ingredients.all()]
                 response_item = {
-                    'vmp__code': item.vmp.code,
-                    'vmp__name': item.vmp.name,
-                    'vmp__vtm__name': item.vmp.vtm.name if item.vmp.vtm else None,
-                    'ingredient_names': [ing.name for ing in item.vmp.ingredients.all()],
-                    'ingredient_codes': [ing.code for ing in item.vmp.ingredients.all()],
+                    'vmp__code': base_metadata['vmp__code'] if base_metadata else item.vmp.code,
+                    'vmp__name': base_metadata['vmp__name'] if base_metadata else item.vmp.name,
+                    'vmp__vtm__name': base_metadata['vmp__vtm__name'] if base_metadata else (item.vmp.vtm.name if item.vmp.vtm else None),
+                    'ingredient_names': ingredient_names,
+                    'ingredient_codes': ingredient_codes,
                     'organisation__ods_code': item.organisation.ods_code,
                     'organisation__ods_name': item.organisation.ods_name,
                     'organisation__region': item.organisation.region.name if item.organisation.region else None,
@@ -644,10 +658,10 @@ def get_quantity_data(request):
                     'data': item.data
                 }
                 response_data.append(response_item)
+
         return Response(response_data)
 
-    except Exception as e:
-        print(f"Error processing request: {str(e)}")
+    except Exception:
         return Response({"error": "An error occurred while processing the request"}, status=500)
 
 
