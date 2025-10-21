@@ -464,8 +464,9 @@ def get_product_info(vmp_ids):
 def _populate_scmd_quantity_info(vmp_ids, vmp_info):
     """Populate SCMD quantity information"""
     scmd_quantities = SCMDQuantity.objects.filter(
-        vmp_id__in=vmp_ids
-    ).values('vmp_id', 'data')
+        vmp_id__in=vmp_ids,
+        data__0__0__isnull=False
+    ).values('vmp_id', 'data').distinct('vmp_id')
     
     for scmd in scmd_quantities:
         vmp_id = scmd['vmp_id']
@@ -492,7 +493,7 @@ def _populate_dose_quantity_info(vmp_ids, vmp_info):
     dose_quantities = Dose.objects.filter(
         vmp_id__in=vmp_ids,
         data__0__0__isnull=False
-    ).values('vmp_id', 'data')
+    ).values('vmp_id', 'data').distinct('vmp_id')
     
     for dose in dose_quantities:
         vmp_id = dose['vmp_id']
@@ -514,7 +515,7 @@ def _populate_ingredient_quantity_info(vmp_ids, vmp_info):
     ingredient_quantities = IngredientQuantity.objects.filter(
         vmp_id__in=vmp_ids,
         data__0__0__isnull=False
-    ).values('vmp_id', 'data')
+    ).values('vmp_id', 'data').distinct('vmp_id')
     
     for ingredient_qty in ingredient_quantities:
         vmp_id = ingredient_qty['vmp_id']
@@ -536,7 +537,7 @@ def _populate_ddd_quantity_info(vmp_ids, vmp_info):
     ddd_quantities = DDDQuantity.objects.filter(
         vmp_id__in=vmp_ids,
         data__0__0__isnull=False
-    ).values('vmp_id', 'data')
+    ).values('vmp_id', 'data').distinct('vmp_id')
     
     for ddd_qty in ddd_quantities:
         vmp_id = ddd_qty['vmp_id']
