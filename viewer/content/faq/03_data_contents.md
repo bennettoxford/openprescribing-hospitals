@@ -84,11 +84,13 @@ The system is a hierarchy with five levels of increasing specificity, which you 
 
 ### What is a Defined Daily Dose (DDD)?
 
-The [ATC system](/faq/#what-is-the-anatomical-therapeutic-chemical-atc-system) provides a way to classify drugs, but not a unit to measure them in. This is what the Defined Daily Dose (DDD) is for. DDDs are a unit of measure for medicines consumption that enables comparison of usage across groups of medicines. . They are defined and maintained by the World Health Organization (WHO), who define them as:
+The [ATC system](/faq/#what-is-the-anatomical-therapeutic-chemical-atc-system) provides a way to classify drugs, but not a unit to measure them in. This is what the Defined Daily Dose (DDD) is for. DDDs are a unit of measure for medicines consumption that enables comparison of usage across groups of medicines. They are defined and maintained by the World Health Organization (WHO), who define them as:
 
 > Defined Daily Dose (DDD): The assumed average maintenance dose per day for a drug used for its main indication in adults
 
 *Source: [World Health Organization](https://www.who.int/tools/atc-ddd-toolkit/about-ddd)*
+
+The DDD quantity for a product can be calculated as follows:
 
 <img src="/static/faq/ddd-calc.png" 
      alt="DDD calculation logic" 
@@ -101,8 +103,6 @@ The SCMD includes the indicative cost for each medicine or device within the dat
 
 > The indicative cost in this data set will overestimate the total spend on medicines issued in hospitals. For example, the total indicative cost of medicines issued in secondary care for 2020 / 21 was £14.5 billion compared to the net actual cost of £7.59 billion (excluding central rebates).
 
-
 ### Does the data include prescriptions dispensed in community pharmacy?
 
-The SCMD does not include NHS prescriptions supplied by the hospital and dispensed in community pharmacy (hospital FP10 prescriptions). This data is available in a separate dataset, [Hospital Prescribing Dispensed in the Community](https://opendata.nhsbsa.net/dataset/hospital-prescribing-dispensed-in-the-community), which we do not currently use on OpenPrescribing Hospitals. Medicines dispensed in community pharmacy make up a very small proportion of hospital medicines usage; in January 2025, medicines dispensed in community pharmacy accounted for £5.6m actual cost, which is a very small proportion of the near £2.1bn indicative cost in SCMD data for the same month (likely ~£1bn actual cost). 
-The DDD quantity for a product can be calculated as follows:
+The SCMD does not include NHS prescriptions supplied by the hospital and dispensed in community pharmacy (hospital FP10 prescriptions). This data is available in a separate dataset, [Hospital Prescribing Dispensed in the Community](https://opendata.nhsbsa.net/dataset/hospital-prescribing-dispensed-in-the-community), which we do not currently use on OpenPrescribing Hospitals. Medicines dispensed in community pharmacy make up a very small proportion of hospital medicines usage; in January 2025, medicines dispensed in community pharmacy accounted for £5.6m actual cost, which is a very small proportion of the near £2.1bn indicative cost in SCMD data for the same month (likely ~£1bn actual cost).
