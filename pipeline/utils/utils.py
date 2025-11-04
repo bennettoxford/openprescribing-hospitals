@@ -12,7 +12,7 @@ from prefect.blocks.system import Secret
 from prefect_gcp import GcpCredentials
 from jinja2 import Template
 from environs import Env
-from pipeline.utils import config
+from pipeline.setup import config
 from pathlib import Path
 from google.cloud import storage
 from django.conf import settings
