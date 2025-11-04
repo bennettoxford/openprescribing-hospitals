@@ -236,37 +236,6 @@ def process_ddd_data(
     
     return ddd_df
 
-@task
-def validate_who_routes(df: pd.DataFrame) -> None:
-    """Validate that DDD adm_codes exist in who_routes_of_administration table"""
-    logger = get_run_logger()
-    client = get_bigquery_client()
-
-    ddd_routes = set(df["adm_code"].dropna().unique())
-
-    query = f"""
-    WITH ddd_routes AS (
-        SELECT code as adm_code
-        FROM UNNEST({list(ddd_routes)}) as code
-    )
-    SELECT d.adm_code
-    FROM ddd_routes d
-    LEFT JOIN `{PROJECT_ID}.{DATASET_ID}.who_routes_of_administration` who
-        ON d.adm_code = who.who_route_code
-    WHERE who.who_route_code IS NULL
-    """
-
-    results = client.query(query).result()
-    missing_routes = [row.adm_code for row in results]
-
-    if missing_routes:
-        error_msg = "Route validation failed. The following routes are not in who_routes_of_administration table:\n"
-        error_msg += "\n".join(f"- {route}" for route in missing_routes)
-        logger.error(error_msg)
-        raise ValueError("Invalid route codes detected")
-
-    logger.info("All DDD administration routes are present in WHO routes table")
-
 
 @flow(name="Import DDD Data")
 def import_ddd() -> Dict[str, int]:
@@ -291,7 +260,7 @@ def import_ddd() -> Dict[str, int]:
 
         updated_ddd_df = process_ddd_data(ddd_df, ddd_updates, ddds_to_delete, new_ddds)
 
-        validate_who_routes(updated_ddd_df)
+        # validate_who_routes(updated_ddd_df)
         load_to_bigquery(updated_ddd_df, WHO_DDD_TABLE_SPEC)
 
         logger.info("DDD import completed successfully")

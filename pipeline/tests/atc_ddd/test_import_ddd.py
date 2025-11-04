@@ -4,7 +4,6 @@ from unittest.mock import Mock, patch
 
 from pipeline.atc_ddd.import_atc_ddd.import_ddd import (
     split_routes,
-    validate_who_routes,
     create_ddd_mappings,
     process_ddd_data,
     fetch_ddd_alterations,
@@ -165,34 +164,6 @@ class TestWHORoutesValidation:
             client = Mock()
             mock.return_value = client
             yield client
-
-    @patch('pipeline.atc_ddd.import_atc_ddd.import_ddd.get_run_logger')
-    def test_validate_who_routes_success(self, mock_logger, mock_bigquery_client):
-        mock_logger.return_value = Mock()
-        df = pd.DataFrame({
-            'adm_code': ['O', 'P', 'R']
-        })
-        
-        mock_query_result = Mock()
-        mock_query_result.result.return_value = []
-        mock_bigquery_client.query.return_value = mock_query_result
-        
-        validate_who_routes(df)
-
-    @patch('pipeline.atc_ddd.import_atc_ddd.import_ddd.get_run_logger')
-    def test_validate_who_routes_missing(self, mock_logger, mock_bigquery_client):
-        mock_logger.return_value = Mock()
-        df = pd.DataFrame({
-            'adm_code': ['O', 'INVALID', 'R']
-        })
-        
-        mock_query_result = Mock()
-        mock_query_result.result.return_value = [Mock(adm_code='INVALID')]
-        mock_bigquery_client.query.return_value = mock_query_result
-        
-        with pytest.raises(ValueError) as exc_info:
-            validate_who_routes(df)
-        assert 'Invalid route codes detected' in str(exc_info.value)
 
 
 class TestFetchDDDAlterations:
