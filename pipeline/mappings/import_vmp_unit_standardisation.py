@@ -258,6 +258,18 @@ def create_standardisation_dict() -> Dict[str, UnitStandardisation]:
             conversion_logic="1 sachet = 10 ml",
             conversion_factor=10
         ),
+        "34938511000001103": UnitStandardisation(
+            vmp_code="34938511000001103",
+            vmp_name="Measles, Mumps and Rubella vaccine (live) powder and solvent for solution for injection 0.5ml pre-filled syringes",
+            scmd_units=[
+                {"unit_id": "3318611000001103", "unit_name": "pre-filled disposable injection"},
+                {"unit_id": "258773002", "unit_name": "ml"}
+            ],
+            chosen_unit_id="258773002",
+            chosen_unit_name="ml",
+            conversion_logic="1 pre-filled disposable injection = 0.5 ml",
+            conversion_factor=0.5
+        ),
     }
     
     return standardisations
