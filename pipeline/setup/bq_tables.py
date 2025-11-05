@@ -6,7 +6,8 @@ from pipeline.setup.config import (
     PROJECT_ID,
     DATASET_ID,
     ORGANISATION_TABLE_ID,
-    SCMD_RAW_TABLE_ID,
+    SCMD_RAW_PROVISIONAL_TABLE_ID,
+    SCMD_RAW_FINALISED_TABLE_ID,
     SCMD_PROCESSED_TABLE_ID,
     SCMD_DATA_STATUS_TABLE_ID,
     UNITS_CONVERSION_TABLE_ID,
@@ -129,11 +130,54 @@ ORGANISATION_TABLE_SPEC = TableSpec(
     ],
 )
 
-SCMD_RAW_TABLE_SPEC = TableSpec(
+SCMD_RAW_PROVISIONAL_TABLE_SPEC = TableSpec(
     project_id=PROJECT_ID,
     dataset_id=DATASET_ID,
-    table_id=SCMD_RAW_TABLE_ID,
-    description="Raw SCMD data",
+    table_id=SCMD_RAW_PROVISIONAL_TABLE_ID,
+    description="Raw SCMD provisional data",
+    schema=[
+        bigquery.SchemaField(
+            "year_month", "DATE", mode="REQUIRED", description="Year and month of the data"
+        ),
+        bigquery.SchemaField("ods_code", "STRING", mode="REQUIRED", description="ODS code"),
+        bigquery.SchemaField(
+            "vmp_snomed_code",
+            "STRING",
+            mode="REQUIRED",
+            description="SNOMED code indicating VMP from dm+d",
+        ),
+        bigquery.SchemaField(
+            "vmp_product_name", "STRING", mode="REQUIRED", description="Product name from dm+d"
+        ),
+        bigquery.SchemaField(
+            "unit_of_measure_identifier",
+            "STRING",
+            mode="REQUIRED",
+            description="Identifier for the unit of measure from dm+d",
+        ),
+        bigquery.SchemaField(
+            "unit_of_measure_name",
+            "STRING",
+            mode="REQUIRED",
+            description="Name of the unit of measure from dm+d",
+        ),
+        bigquery.SchemaField(
+            "total_quantity_in_vmp_unit",
+            "FLOAT",
+            mode="REQUIRED",
+            description="Total quantity in the unit of measure",
+        ),
+        bigquery.SchemaField("indicative_cost", "FLOAT", mode="NULLABLE", description="Indicative cost"),
+    ],
+    partition_field="year_month",
+    cluster_fields=["vmp_snomed_code"],
+)
+
+SCMD_RAW_FINALISED_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=SCMD_RAW_FINALISED_TABLE_ID,
+    description="Raw SCMD finalised data",
     schema=[
         bigquery.SchemaField(
             "year_month", "DATE", mode="REQUIRED", description="Year and month of the data"
