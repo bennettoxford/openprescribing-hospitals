@@ -4,56 +4,87 @@ from datetime import date
 from unittest.mock import patch, Mock
 
 from pipeline.scmd.import_scmd_pre_apr_2019 import (
-    fetch_scmd_data_for_resource,
+    get_csv_download_url_for_month,
+    download_csv_data,
     transform_scmd_data,
     process_scmd_month,
 )
 
 
-class TestFetchSCMDData:
+class TestGetCSVDownloadURL:
     @pytest.fixture
-    def mock_api_response_first_page(self):
+    def mock_package_show_response(self):
         return {
             "success": True,
             "result": {
-                "records": [
+                "resources": [
                     {
-                        "YEAR_MONTH": "201901",
-                        "ODS_CODE": "ABC123",
-                        "VMP_SNOMED_CODE": "12345678",
-                        "VMP_PRODUCT_NAME": "Test Product",
-                        "UNIT_OF_MEASURE_IDENTIFIER": "001",
-                        "UNIT_OF_MEASURE_NAME": "milligram",
-                        "TOTAL_QUANITY_IN_VMP_UNIT": 100.0
+                        "name": "SCMD_201901",
+                        "format": "CSV",
+                        "url": "https://opendata.nhsbsa.net/dataset/test/resource/test-id/download/scmd_201901.csv"
+                    },
+                    {
+                        "name": "SCMD_201902", 
+                        "format": "CSV",
+                        "url": "https://opendata.nhsbsa.net/dataset/test/resource/test-id/download/scmd_201902.csv"
+                    },
+                    {
+                        "name": "OTHER_DATA",
+                        "format": "JSON",
+                        "url": "https://example.com/other.json"
                     }
-                ],
-                "total": 1
+                ]
             }
         }
 
-    @pytest.fixture
-    def mock_api_response_empty(self):
-        return {
-            "success": True,
-            "result": {
-                "records": [],
-                "total": 0
-            }
-        }
-
-    def test_fetch_scmd_data_for_resource_success(self, mock_api_response_first_page):
-        """Test successful data fetching"""
+    def test_get_csv_download_url_success(self, mock_package_show_response):
+        """Test successful CSV URL retrieval"""
         with patch("requests.get") as mock_get:
             mock_response = Mock()
-            mock_response.json.return_value = mock_api_response_first_page
+            mock_response.json.return_value = mock_package_show_response
             mock_response.raise_for_status.return_value = None
             mock_get.return_value = mock_response
             
-            result = fetch_scmd_data_for_resource("SCMD_201901")
+            result = get_csv_download_url_for_month("201901")
+            
+            assert result == "https://opendata.nhsbsa.net/dataset/test/resource/test-id/download/scmd_201901.csv"
+            mock_get.assert_called_once_with("https://opendata.nhsbsa.net/api/3/action/package_show?id=secondary-care-medicines-data")
+
+    def test_get_csv_download_url_not_found(self, mock_package_show_response):
+        """Test when CSV URL is not found"""
+        with patch("requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.json.return_value = mock_package_show_response
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
+            
+            result = get_csv_download_url_for_month("201912")
+            
+            assert result is None
+
+
+class TestDownloadCSVData:
+    @pytest.fixture
+    def mock_csv_content(self):
+        return """YEAR_MONTH,ODS_CODE,VMP_SNOMED_CODE,VMP_PRODUCT_NAME,UNIT_OF_MEASURE_IDENTIFIER,UNIT_OF_MEASURE_NAME,TOTAL_QUANITY_IN_VMP_UNIT
+2019-01,ABC123,12345678,Test Product,001,MILLIGRAM,100.0
+2019-01,DEF456,87654321,Another Product,002,TABLET,50.0"""
+
+    def test_download_csv_data_success(self, mock_csv_content):
+        """Test successful CSV download and parsing"""
+        with patch("requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.text = mock_csv_content
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
+            
+            result = download_csv_data("https://example.com/test.csv", "201901")
             
             assert isinstance(result, pd.DataFrame)
-            assert len(result) == 1
+            assert len(result) == 2
             assert result.iloc[0]["ODS_CODE"] == "ABC123"
+            assert result.iloc[1]["ODS_CODE"] == "DEF456"
+            assert result.iloc[0]["TOTAL_QUANITY_IN_VMP_UNIT"] == 100.0
 
 
 class TestTransformSCMDData:
@@ -71,7 +102,7 @@ class TestTransformSCMDData:
 
     def test_transform_scmd_data_success(self, sample_raw_data):
         """Test successful data transformation"""
-        with patch("pipeline.scmd.import_scmd_pre_apr_2019.SCMD_RAW_TABLE_SPEC") as mock_table_spec:
+        with patch("pipeline.scmd.import_scmd_pre_apr_2019.SCMD_RAW_FINALISED_TABLE_SPEC") as mock_table_spec:
             mock_field1 = Mock()
             mock_field1.name = "year_month"
             mock_field2 = Mock()
@@ -94,7 +125,7 @@ class TestTransformSCMDData:
                 mock_field5, mock_field6, mock_field7, mock_field8
             ]
             
-            result = transform_scmd_data(sample_raw_data)
+            result = transform_scmd_data(sample_raw_data, "201901")
             
             assert isinstance(result, pd.DataFrame)
             assert len(result) == 1
@@ -103,6 +134,7 @@ class TestTransformSCMDData:
             assert "indicative_cost" in result.columns
             assert pd.isna(result["indicative_cost"].iloc[0])
             assert isinstance(result["year_month"].iloc[0], date)
+            assert result["year_month"].iloc[0] == date(2019, 1, 1)
 
 
 class TestProcessSCMDMonth:
@@ -110,14 +142,25 @@ class TestProcessSCMDMonth:
     def test_process_scmd_month_success(self):
         """Test successful month processing"""
         with patch("pipeline.scmd.import_scmd_pre_apr_2019.check_data_exists_for_month") as mock_check, \
-             patch("pipeline.scmd.import_scmd_pre_apr_2019.fetch_scmd_data_for_resource") as mock_fetch, \
+             patch("pipeline.scmd.import_scmd_pre_apr_2019.get_csv_download_url_for_month") as mock_get_url, \
+             patch("pipeline.scmd.import_scmd_pre_apr_2019.download_csv_data") as mock_download, \
              patch("pipeline.scmd.import_scmd_pre_apr_2019.transform_scmd_data") as mock_transform, \
-             patch("pipeline.scmd.import_scmd_pre_apr_2019.upload_to_bigquery") as mock_upload, \
-             patch("pipeline.scmd.import_scmd_pre_apr_2019.update_data_status") as mock_update:
+             patch("pipeline.scmd.import_scmd_pre_apr_2019.upload_to_bigquery") as mock_upload:
             
             mock_check.return_value = False
+            mock_get_url.return_value = "https://example.com/scmd_201901.csv"
 
-            sample_df = pd.DataFrame({
+            raw_sample_df = pd.DataFrame({
+                "YEAR_MONTH": ["2019-01"],
+                "ODS_CODE": ["ABC123"],
+                "VMP_SNOMED_CODE": ["12345678"],
+                "VMP_PRODUCT_NAME": ["Test Product"],
+                "UNIT_OF_MEASURE_IDENTIFIER": ["001"],
+                "UNIT_OF_MEASURE_NAME": ["milligram"],
+                "TOTAL_QUANITY_IN_VMP_UNIT": [100.0]
+            })
+
+            transformed_sample_df = pd.DataFrame({
                 "year_month": [date(2019, 1, 1)],
                 "ods_code": ["ABC123"],
                 "vmp_snomed_code": ["12345678"],
@@ -128,8 +171,8 @@ class TestProcessSCMDMonth:
                 "indicative_cost": [None]
             })
             
-            mock_fetch.return_value = sample_df
-            mock_transform.return_value = sample_df
+            mock_download.return_value = raw_sample_df
+            mock_transform.return_value = transformed_sample_df
             
             result = process_scmd_month("201901")
             
@@ -138,8 +181,22 @@ class TestProcessSCMDMonth:
             assert result["rows"] == 1
             assert result["file_type"] == "finalised"
             
-            mock_fetch.assert_called_once_with("SCMD_201901")
-            mock_transform.assert_called_once()
+            mock_get_url.assert_called_once_with("201901")
+            mock_download.assert_called_once_with("https://example.com/scmd_201901.csv", "201901")
+            mock_transform.assert_called_once_with(raw_sample_df, "201901")
             mock_upload.assert_called()
-            mock_update.assert_called_once_with("201901", "finalised")
+
+    def test_process_scmd_month_no_csv_url(self):
+        """Test when no CSV URL is found"""
+        with patch("pipeline.scmd.import_scmd_pre_apr_2019.check_data_exists_for_month") as mock_check, \
+             patch("pipeline.scmd.import_scmd_pre_apr_2019.get_csv_download_url_for_month") as mock_get_url:
+            
+            mock_check.return_value = False
+            mock_get_url.return_value = None
+            
+            result = process_scmd_month("201901")
+            
+            assert result["month"] == "201901"
+            assert result["status"] == "failed"
+            assert result["reason"] == "no_csv_url"
 

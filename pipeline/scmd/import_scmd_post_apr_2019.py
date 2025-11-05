@@ -9,7 +9,10 @@ from typing import Dict, List, Iterator
 from dataclasses import dataclass
 
 from pipeline.utils.utils import get_bigquery_client
-from pipeline.setup.bq_tables import SCMD_RAW_TABLE_SPEC, SCMD_DATA_STATUS_TABLE_SPEC
+from pipeline.setup.bq_tables import (
+    SCMD_RAW_PROVISIONAL_TABLE_SPEC,
+    SCMD_RAW_FINALISED_TABLE_SPEC,
+)
 
 
 @dataclass
@@ -75,33 +78,15 @@ def fetch_dataset_urls() -> Dict[str, Dict]:
             for dataset_url in iter_months(iter_dataset_urls(final_dataset))
         }
 
-        overlapping_months = set(provisional_urls.keys()) & set(final_urls.keys())
-        if overlapping_months:
-            logger.info(
-                f"Found {len(overlapping_months)} months with both provisional and final data. "
-                f"Using final data for these months: {sorted(overlapping_months)}"
-            )
-
-        urls_by_month = provisional_urls.copy()
-        urls_by_month.update(final_urls)
-
         logger.info(
-            f"Found {len(urls_by_month)} total datasets "
-            f"({len(final_urls)} final, {len(provisional_urls)} provisional)"
+            f"Found {len(final_urls)} finalised datasets, "
+            f"{len(provisional_urls)} provisional datasets"
         )
 
-        final_months = [
-            m for m, data in urls_by_month.items() if data["file_type"] == "final"
-        ]
-        provisional_months = [
-            m for m, data in urls_by_month.items() if data["file_type"] == "provisional"
-        ]
-        logger.info(
-            f"Final breakdown: {len(final_months)} months with final data, "
-            f"{len(provisional_months)} months with provisional data"
-        )
-
-        return urls_by_month
+        return {
+            "provisional": provisional_urls,
+            "finalised": final_urls,
+        }
     except requests.RequestException as e:
         logger.error(f"Failed to fetch dataset URLs: {str(e)}")
         raise
@@ -128,7 +113,7 @@ def process_month_data(
                 "VMP_PRODUCT_NAME": "str",
                 "UNIT_OF_MEASURE_IDENTIFIER": "str",
                 "UNIT_OF_MEASURE_NAME": "str",
-                "TOTAL_QUANTITY_IN_VMP_UNIT": "float64",
+                "TOTAL_QUANITY_IN_VMP_UNIT": "float64",  # Note: CSV has typo
                 "INDICATIVE_COST": "float64",
             },
         )
@@ -141,26 +126,39 @@ def process_month_data(
 
 
 @task
-def get_existing_data_status() -> pd.DataFrame:
+def get_existing_dates(table_spec) -> set:
     """
-    Gets the existing data from the data status table.
+    Gets the existing dates from the specified table.
+    Returns empty set if table doesn't exist or has no data.
     """
     client = get_bigquery_client()
 
-    query = f"""
-    SELECT DISTINCT year_month, file_type 
-    FROM {SCMD_DATA_STATUS_TABLE_SPEC.full_table_id}
-    ORDER BY year_month DESC
-    """
+    try:
+        query = f"""
+        SELECT DISTINCT year_month
+        FROM {table_spec.full_table_id}
+        ORDER BY year_month DESC
+        """
 
-    query_job = client.query(query)
-    query_result = query_job.result()
+        query_job = client.query(query)
+        query_result = query_job.result()
 
-    rows = {i.year_month: i.file_type for i in query_result}
-    rows_df = pd.DataFrame(rows.items(), columns=["year_month", "file_type"])
-    rows_df["year_month"] = pd.to_datetime(rows_df["year_month"], format="%Y-%m-%d")
+        existing_dates = set()
+        for row in query_result:
+            date_val = row.year_month
+            if hasattr(date_val, 'strftime'):
+                existing_dates.add(date_val.strftime("%Y-%m-%d"))
+            else:
+                existing_dates.add(str(date_val))
 
-    return rows_df
+        return existing_dates
+    except Exception as e:
+        logger = get_run_logger()
+        logger.warning(
+            f"Could not fetch existing dates from "
+            f"{table_spec.full_table_id}: {e}"
+        )
+        return set()
 
 
 @task
@@ -182,59 +180,55 @@ def load_partition(df: pd.DataFrame, partition_date: str, table_spec) -> Dict:
 
 @task
 def get_months_to_update(
-    urls_by_month_df: pd.DataFrame,
-    existing_data_status: pd.DataFrame,
+    urls_by_month: Dict[str, Dict],
+    existing_dates: set,
 ) -> List[str]:
-    """Get the months to update based on the new publishing model"""
+    """Get the months to update - only new dates not already
+    in the table"""
     logger = get_run_logger()
 
-    merged_df = pd.merge(
-        urls_by_month_df,
-        existing_data_status,
-        on="year_month",
-        how="left",
-        suffixes=("_new", "_existing"),
-    )
+    available_dates = set(urls_by_month.keys())
+    new_dates = available_dates - existing_dates
 
-    # Case 1: Brand new months we've never seen before
-    new_months = merged_df[merged_df["file_type_existing"].isna()]
+    months_to_update = sorted([date for date in new_dates])
 
-    # Case 2: Months where we're updating from provisional to final
-    upgrade_months = merged_df[
-        (merged_df["file_type_existing"] == "provisional")
-        & (merged_df["file_type_new"] == "final")
-    ]
-
-    months_to_update = pd.concat([new_months, upgrade_months])
-    months_to_update = (
-        months_to_update["year_month"].dt.strftime("%Y-%m-%d").unique().tolist()
-    )
-
-    logger.info(f"Found {len(new_months)} new months")
     logger.info(
-        f"Found {len(upgrade_months)} months updating from provisional to final"
+        f"Found {len(existing_dates)} existing dates, "
+        f"{len(available_dates)} available dates, "
+        f"{len(new_dates)} new dates to import"
     )
-    logger.info(f"Total unique months to update: {len(months_to_update)}")
 
-    return sorted(months_to_update)
+    return months_to_update
 
 
 @task
 def map_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Map the columns to the correct names"""
-    df.rename(
-        columns={
-            "YEAR_MONTH": "year_month",
-            "ODS_CODE": "ods_code",
-            "VMP_SNOMED_CODE": "vmp_snomed_code",
-            "VMP_PRODUCT_NAME": "vmp_product_name",
-            "UNIT_OF_MEASURE_IDENTIFIER": "unit_of_measure_identifier",
-            "UNIT_OF_MEASURE_NAME": "unit_of_measure_name",
-            "TOTAL_QUANITY_IN_VMP_UNIT": "total_quantity_in_vmp_unit",
-            "INDICATIVE_COST": "indicative_cost",
-        },
-        inplace=True,
-    )
+    column_mapping = {
+        "YEAR_MONTH": "year_month",
+        "ODS_CODE": "ods_code",
+        "VMP_SNOMED_CODE": "vmp_snomed_code",
+        "VMP_PRODUCT_NAME": "vmp_product_name",
+        "UNIT_OF_MEASURE_IDENTIFIER": "unit_of_measure_identifier",
+        "UNIT_OF_MEASURE_NAME": "unit_of_measure_name",
+        "INDICATIVE_COST": "indicative_cost",
+    }
+    
+    # Handle the typo in the quantity column name
+    if "TOTAL_QUANITY_IN_VMP_UNIT" in df.columns:
+        column_mapping[
+            "TOTAL_QUANITY_IN_VMP_UNIT"
+        ] = "total_quantity_in_vmp_unit"
+    elif "TOTAL_QUANTITY_IN_VMP_UNIT" in df.columns:
+        column_mapping[
+            "TOTAL_QUANTITY_IN_VMP_UNIT"
+        ] = "total_quantity_in_vmp_unit"
+
+    df.rename(columns=column_mapping, inplace=True)
+
+    if "unit_of_measure_name" in df.columns:
+        df["unit_of_measure_name"] = df["unit_of_measure_name"].str.lower()
+
     return df
 
 
@@ -243,58 +237,92 @@ def import_scmd_post_apr_2019():
     """Main flow for importing SCMD data"""
     logger = get_run_logger()
 
-    existing_data_status = get_existing_data_status()
-    urls_by_month = fetch_dataset_urls()
 
-    urls_by_month_df = pd.DataFrame(
-        [
-            {"year_month": pd.to_datetime(key), "file_type": value["file_type"]}
-            for key, value in urls_by_month.items()
-        ]
+    urls_by_type = fetch_dataset_urls()
+    provisional_urls = urls_by_type["provisional"]
+    finalised_urls = urls_by_type["finalised"]
+
+    existing_provisional_dates = get_existing_dates(
+        SCMD_RAW_PROVISIONAL_TABLE_SPEC
+    )
+    existing_finalised_dates = get_existing_dates(
+        SCMD_RAW_FINALISED_TABLE_SPEC
     )
 
-    months_to_update = get_months_to_update(urls_by_month_df, existing_data_status)
+    provisional_months_to_update = get_months_to_update(
+        provisional_urls, existing_provisional_dates
+    )
+    finalised_months_to_update = get_months_to_update(
+        finalised_urls, existing_finalised_dates
+    )
 
-    if not months_to_update:
-        logger.info("No months to update")
-        return {"updated_months": 0, "status": "no_updates_needed"}
-
-    logger.info(f"Processing {len(months_to_update)} months of data")
     processed_months = []
 
-    for i, month in enumerate(months_to_update, 1):
-        url_data = urls_by_month[month]
-        processed_data = process_month_data(month=month, url=url_data["url"])
-        processed_data = map_columns(processed_data)
 
-        load_partition(
-            df=processed_data,
-            partition_date=month,
-            table_spec=SCMD_RAW_TABLE_SPEC,
+    if provisional_months_to_update:
+        logger.info(
+            f"Processing {len(provisional_months_to_update)} "
+            f"months of provisional data"
         )
+        for i, month in enumerate(provisional_months_to_update, 1):
+            url_data = provisional_urls[month]
+            processed_data = process_month_data(month=month, url=url_data["url"])
+            processed_data = map_columns(processed_data)
 
-        load_partition(
-            df=pd.DataFrame(
-                [
-                    {
-                        "year_month": pd.to_datetime(month).date(),
-                        "file_type": url_data["file_type"],
-                    }
-                ]
-            ),
-            partition_date=month,
-            table_spec=SCMD_DATA_STATUS_TABLE_SPEC,
+            load_partition(
+                df=processed_data,
+                partition_date=month,
+                table_spec=SCMD_RAW_PROVISIONAL_TABLE_SPEC,
+            )
+
+            processed_months.append(
+                {
+                    "month": month,
+                    "file_type": "provisional",
+                    "rows": len(processed_data),
+                }
+            )
+
+            logger.info(
+                f"Completed provisional month "
+                f"{i}/{len(provisional_months_to_update)}: {month}"
+            )
+    else:
+        logger.info("No new provisional months to import")
+
+    if finalised_months_to_update:
+        logger.info(
+            f"Processing {len(finalised_months_to_update)} "
+            f"months of finalised data"
         )
+        for i, month in enumerate(finalised_months_to_update, 1):
+            url_data = finalised_urls[month]
+            processed_data = process_month_data(month=month, url=url_data["url"])
+            processed_data = map_columns(processed_data)
 
-        processed_months.append(
-            {
-                "month": month,
-                "file_type": url_data["file_type"],
-                "rows": len(processed_data),
-            }
-        )
+            load_partition(
+                df=processed_data,
+                partition_date=month,
+                table_spec=SCMD_RAW_FINALISED_TABLE_SPEC,
+            )
 
-        logger.info(f"Completed month {i}/{len(months_to_update)}")
+            processed_months.append(
+                {
+                    "month": month,
+                    "file_type": "finalised",
+                    "rows": len(processed_data),
+                }
+            )
+
+            logger.info(
+                f"Completed finalised month "
+                f"{i}/{len(finalised_months_to_update)}: {month}"
+            )
+    else:
+        logger.info("No new finalised months to import")
+
+    if not processed_months:
+        logger.info("No months to update")
 
 
 
