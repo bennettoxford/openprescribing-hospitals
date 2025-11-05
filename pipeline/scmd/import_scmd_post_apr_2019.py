@@ -235,6 +235,9 @@ def map_columns(df: pd.DataFrame) -> pd.DataFrame:
         },
         inplace=True,
     )
+ 
+    df["unit_of_measure_name"] = df["unit_of_measure_name"].str.lower()
+    
     return df
 
 

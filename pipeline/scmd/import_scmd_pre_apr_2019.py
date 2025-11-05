@@ -177,7 +177,7 @@ def transform_scmd_data(df: pd.DataFrame, year_month_str: str) -> pd.DataFrame:
     df_transformed["vmp_snomed_code"] = df_transformed["vmp_snomed_code"].astype(str)
     df_transformed["unit_of_measure_identifier"] = df_transformed["unit_of_measure_identifier"].astype(str)
     df_transformed["total_quantity_in_vmp_unit"] = df_transformed["total_quantity_in_vmp_unit"].astype(float)
-    
+    df_transformed["unit_of_measure_name"] = df_transformed["unit_of_measure_name"].str.lower()
     df_transformed["indicative_cost"] = None
     
     required_columns = [field.name for field in SCMD_RAW_TABLE_SPEC.schema]
