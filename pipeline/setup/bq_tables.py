@@ -922,6 +922,10 @@ VMP_TABLE_SPEC = TableSpec(
         bigquery.SchemaField("unit_dose_uom", "STRING", mode="NULLABLE", description="Unit dose unit of measure"),
         bigquery.SchemaField("unit_dose_basis_uom", "STRING", mode="NULLABLE", description="Basis unit for the unit dose"),
         bigquery.SchemaField("special", "BOOLEAN", mode="REQUIRED", description="Whether this VMP is a special (unlicensed medicine)"),
+        bigquery.SchemaField("scmd_uom_id", "STRING", mode="NULLABLE", description="SCMD unit of measure identifier"),
+        bigquery.SchemaField("scmd_uom_name", "STRING", mode="NULLABLE", description="SCMD unit of measure name"),
+        bigquery.SchemaField("scmd_basis_uom_id", "STRING", mode="NULLABLE", description="SCMD basis unit identifier"),
+        bigquery.SchemaField("scmd_basis_uom_name", "STRING", mode="NULLABLE", description="SCMD basis unit name"),
         bigquery.SchemaField(
             "ingredients",
             "RECORD",
@@ -1007,12 +1011,6 @@ VMP_TABLE_SPEC = TableSpec(
                 ),
             ],
         ),
-        bigquery.SchemaField("selected_ddd_value", "FLOAT", mode="NULLABLE", description="Selected DDD value for this VMP"),
-        bigquery.SchemaField("selected_ddd_unit", "STRING", mode="NULLABLE", description="Unit of the selected DDD"),
-        bigquery.SchemaField("selected_ddd_basis_value", "FLOAT", mode="NULLABLE", description="Selected DDD value converted to basis units"),
-        bigquery.SchemaField("selected_ddd_basis_unit", "STRING", mode="NULLABLE", description="Basis unit for the selected DDD"),
-        bigquery.SchemaField("can_calculate_ddd", "BOOLEAN", mode="NULLABLE", description="Whether DDD calculations are possible for this VMP"),
-        bigquery.SchemaField("ddd_calculation_logic", "STRING", mode="NULLABLE", description="Logic used for DDD calculations"),
     ],
     cluster_fields=["vmp_code"],
 )

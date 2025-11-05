@@ -8,6 +8,17 @@ scmd_vmps AS (
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ SCMD_PROCESSED_TABLE_ID }}`
 ),
 
+vmp_scmd_units AS (
+  SELECT
+    vmp_code,
+    ANY_VALUE(uom_id) AS scmd_uom_id,
+    ANY_VALUE(uom_name) AS scmd_uom_name,
+    ANY_VALUE(normalised_uom_id) AS scmd_basis_uom_id,
+    ANY_VALUE(normalised_uom_name) AS scmd_basis_uom_name
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ SCMD_PROCESSED_TABLE_ID }}`
+  GROUP BY vmp_code
+),
+
 vmp_base AS (
   SELECT
     dmd.vmp_code,
@@ -131,21 +142,6 @@ vmp_special_status AS (
   UNNEST(amps) AS amp
   JOIN scmd_vmps sv ON dmd.vmp_code = sv.vmp_code
   GROUP BY dmd.vmp_code
-),
-
-vmp_ddd_info AS (
-  SELECT
-    vmp_code,
-    selected_ddd_value,
-    selected_ddd_unit,
-    -- Convert DDD to basis units
-    selected_ddd_value * COALESCE(ddd_conv.conversion_factor, 1.0) AS selected_ddd_basis_value,
-    COALESCE(ddd_conv.basis, selected_ddd_unit) AS selected_ddd_basis_unit,
-    can_calculate_ddd,
-    ddd_calculation_logic
-  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_DDD_MAPPING_TABLE_ID }}`
-  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` ddd_conv
-    ON selected_ddd_unit = ddd_conv.unit
 )
 
 SELECT
@@ -166,12 +162,10 @@ SELECT
   COALESCE(vr.ont_form_routes, []) AS ont_form_routes,
   COALESCE(va.atcs, []) AS atcs,
   COALESCE(vamp.amps, []) AS amps,
-  vddd.selected_ddd_value,
-  vddd.selected_ddd_unit,
-  vddd.selected_ddd_basis_value,
-  vddd.selected_ddd_basis_unit,
-  vddd.can_calculate_ddd,
-  vddd.ddd_calculation_logic
+  vsu.scmd_uom_id,
+  vsu.scmd_uom_name,
+  vsu.scmd_basis_uom_id,
+  vsu.scmd_basis_uom_name,
 FROM vmp_base vb
 LEFT JOIN vmp_bnf vbnf ON vb.vmp_code = vbnf.vmp_code
 LEFT JOIN vmp_ingredients vi ON vb.vmp_code = vi.vmp_code
@@ -179,4 +173,4 @@ LEFT JOIN vmp_routes vr ON vb.vmp_code = vr.vmp_code
 LEFT JOIN vmp_atc_mappings va ON vb.vmp_code = va.vmp_code
 LEFT JOIN vmp_amps vamp ON vb.vmp_code = vamp.vmp_code
 LEFT JOIN vmp_special_status vss ON vb.vmp_code = vss.vmp_code
-LEFT JOIN vmp_ddd_info vddd ON vb.vmp_code = vddd.vmp_code 
+LEFT JOIN vmp_scmd_units vsu ON vb.vmp_code = vsu.vmp_code
