@@ -67,8 +67,8 @@ class TestDownloadCSVData:
     @pytest.fixture
     def mock_csv_content(self):
         return """YEAR_MONTH,ODS_CODE,VMP_SNOMED_CODE,VMP_PRODUCT_NAME,UNIT_OF_MEASURE_IDENTIFIER,UNIT_OF_MEASURE_NAME,TOTAL_QUANITY_IN_VMP_UNIT
-2019-01,ABC123,12345678,Test Product,001,milligram,100.0
-2019-01,DEF456,87654321,Another Product,002,tablet,50.0"""
+2019-01,ABC123,12345678,Test Product,001,MILLIGRAM,100.0
+2019-01,DEF456,87654321,Another Product,002,TABLET,50.0"""
 
     def test_download_csv_data_success(self, mock_csv_content):
         """Test successful CSV download and parsing"""
@@ -102,7 +102,7 @@ class TestTransformSCMDData:
 
     def test_transform_scmd_data_success(self, sample_raw_data):
         """Test successful data transformation"""
-        with patch("pipeline.scmd.import_scmd_pre_apr_2019.SCMD_RAW_TABLE_SPEC") as mock_table_spec:
+        with patch("pipeline.scmd.import_scmd_pre_apr_2019.SCMD_RAW_FINALISED_TABLE_SPEC") as mock_table_spec:
             mock_field1 = Mock()
             mock_field1.name = "year_month"
             mock_field2 = Mock()
@@ -145,8 +145,7 @@ class TestProcessSCMDMonth:
              patch("pipeline.scmd.import_scmd_pre_apr_2019.get_csv_download_url_for_month") as mock_get_url, \
              patch("pipeline.scmd.import_scmd_pre_apr_2019.download_csv_data") as mock_download, \
              patch("pipeline.scmd.import_scmd_pre_apr_2019.transform_scmd_data") as mock_transform, \
-             patch("pipeline.scmd.import_scmd_pre_apr_2019.upload_to_bigquery") as mock_upload, \
-             patch("pipeline.scmd.import_scmd_pre_apr_2019.update_data_status") as mock_update:
+             patch("pipeline.scmd.import_scmd_pre_apr_2019.upload_to_bigquery") as mock_upload:
             
             mock_check.return_value = False
             mock_get_url.return_value = "https://example.com/scmd_201901.csv"
@@ -186,7 +185,6 @@ class TestProcessSCMDMonth:
             mock_download.assert_called_once_with("https://example.com/scmd_201901.csv", "201901")
             mock_transform.assert_called_once_with(raw_sample_df, "201901")
             mock_upload.assert_called()
-            mock_update.assert_called_once_with("201901", "finalised")
 
     def test_process_scmd_month_no_csv_url(self):
         """Test when no CSV URL is found"""
