@@ -1007,12 +1007,6 @@ VMP_TABLE_SPEC = TableSpec(
                 ),
             ],
         ),
-        bigquery.SchemaField("selected_ddd_value", "FLOAT", mode="NULLABLE", description="Selected DDD value for this VMP"),
-        bigquery.SchemaField("selected_ddd_unit", "STRING", mode="NULLABLE", description="Unit of the selected DDD"),
-        bigquery.SchemaField("selected_ddd_basis_value", "FLOAT", mode="NULLABLE", description="Selected DDD value converted to basis units"),
-        bigquery.SchemaField("selected_ddd_basis_unit", "STRING", mode="NULLABLE", description="Basis unit for the selected DDD"),
-        bigquery.SchemaField("can_calculate_ddd", "BOOLEAN", mode="NULLABLE", description="Whether DDD calculations are possible for this VMP"),
-        bigquery.SchemaField("ddd_calculation_logic", "STRING", mode="NULLABLE", description="Logic used for DDD calculations"),
     ],
     cluster_fields=["vmp_code"],
 )
