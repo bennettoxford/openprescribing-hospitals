@@ -6,7 +6,7 @@ from google.cloud import bigquery
 from prefect import get_run_logger, task, flow
 from django.db import transaction
 from typing import Dict, List, Tuple
-from pipeline.setup.bq_tables import INGREDIENT_QUANTITY_TABLE_SPEC, CALCULATION_LOGIC_TABLE_SPEC
+from pipeline.setup.bq_tables import INGREDIENT_QUANTITY_TABLE_SPEC, INGREDIENT_CALCULATION_LOGIC_TABLE_SPEC
 from pipeline.utils.utils import (
     setup_django_environment,
     get_bigquery_client,
@@ -29,10 +29,10 @@ def get_ingredient_calculation_logic() -> Dict[Tuple[str, str], str]:
     query = f"""
     SELECT 
         vmp_code,
-        ingredient_code,
-        logic
-    FROM `{CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
-    WHERE logic_type = 'ingredient'
+        ingredient.ingredient_code,
+        ingredient.ingredient_calculation_logic as logic
+    FROM `{INGREDIENT_CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`,
+    UNNEST(ingredients) as ingredient
     """
 
     result = client.query(query).to_dataframe(create_bqstorage_client=True)
@@ -55,10 +55,10 @@ def get_all_vmp_ingredient_combinations_with_logic() -> List[Tuple[str, str]]:
     client = get_bigquery_client()
 
     query = f"""
-    SELECT DISTINCT vmp_code, ingredient_code
-    FROM `{CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
-    WHERE logic_type = 'ingredient'
-    ORDER BY vmp_code, ingredient_code
+    SELECT DISTINCT vmp_code, ingredient.ingredient_code
+    FROM `{INGREDIENT_CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`,
+    UNNEST(ingredients) as ingredient
+    ORDER BY vmp_code, ingredient.ingredient_code
     """
 
     result = client.query(query).to_dataframe()
