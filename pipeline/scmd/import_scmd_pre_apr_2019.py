@@ -6,13 +6,15 @@ from typing import Dict, Any, Optional
 from google.cloud import bigquery
 from prefect import flow, task, get_run_logger
 
-from pipeline.setup.bq_tables import SCMD_RAW_TABLE_SPEC, SCMD_DATA_STATUS_TABLE_SPEC
+from pipeline.setup.bq_tables import SCMD_RAW_FINALISED_TABLE_SPEC
 from pipeline.utils.utils import get_bigquery_client
+
 
 @task
 def check_data_exists_for_month(year_month_str: str) -> bool:
     """
-    Check if data already exists for a given month in the SCMD raw table.
+    Check if data already exists for a given month in the SCMD raw
+    finalised table.
     
     Args:
         year_month_str: Year and month in format 'YYYYMM' (e.g., '201901')
@@ -29,7 +31,7 @@ def check_data_exists_for_month(year_month_str: str) -> bool:
     try:
         query = f"""
         SELECT COUNT(*) as record_count
-        FROM `{SCMD_RAW_TABLE_SPEC.full_table_id}`
+        FROM `{SCMD_RAW_FINALISED_TABLE_SPEC.full_table_id}`
         WHERE year_month = '{year_month_date}'
         """
         
@@ -51,6 +53,7 @@ def check_data_exists_for_month(year_month_str: str) -> bool:
         return False
     
     return False
+
 
 @task
 def get_csv_download_url_for_month(year_month_str: str) -> Optional[str]:
@@ -97,6 +100,7 @@ def get_csv_download_url_for_month(year_month_str: str) -> Optional[str]:
         logger.error(f"Unexpected error getting URL for {year_month_str}: {e}")
         raise
 
+
 @task
 def download_csv_data(url: str, year_month_str: str) -> pd.DataFrame:
     """
@@ -142,6 +146,7 @@ def download_csv_data(url: str, year_month_str: str) -> pd.DataFrame:
         logger.error(f"Unexpected error processing CSV for {year_month_str}: {e}")
         raise
 
+
 @task
 def transform_scmd_data(df: pd.DataFrame, year_month_str: str) -> pd.DataFrame:
     """
@@ -152,7 +157,7 @@ def transform_scmd_data(df: pd.DataFrame, year_month_str: str) -> pd.DataFrame:
         year_month_str: Year and month in format 'YYYYMM' for date conversion
     
     Returns:
-        Transformed DataFrame matching SCMD_RAW_TABLE_SPEC schema
+        Transformed DataFrame matching SCMD_RAW_FINALISED_TABLE_SPEC schema
     """
     logger = get_run_logger()
     
@@ -180,12 +185,13 @@ def transform_scmd_data(df: pd.DataFrame, year_month_str: str) -> pd.DataFrame:
     df_transformed["unit_of_measure_name"] = df_transformed["unit_of_measure_name"].str.lower()
     df_transformed["indicative_cost"] = None
     
-    required_columns = [field.name for field in SCMD_RAW_TABLE_SPEC.schema]
+    required_columns = [field.name for field in SCMD_RAW_FINALISED_TABLE_SPEC.schema]
     df_transformed = df_transformed[required_columns]
     
     logger.info(f"Transformed DataFrame shape: {df_transformed.shape}")
     
     return df_transformed
+
 
 @task
 def upload_to_bigquery(df: pd.DataFrame, table_spec: object) -> None:
@@ -234,29 +240,11 @@ def upload_to_bigquery(df: pd.DataFrame, table_spec: object) -> None:
     job = client.load_table_from_dataframe(df, table_ref, job_config=job_config)
     job.result()  
 
-    logger.info(f"Successfully uploaded {len(df)} rows to {table_spec.full_table_id}")
+    logger.info(
+        f"Successfully uploaded {len(df)} rows to "
+        f"{table_spec.full_table_id}"
+    )
 
-@task
-def update_data_status(year_month_str: str, file_type: str = "finalised") -> None:
-    """
-    Update the SCMD data status table to mark a month as finalised.
-    
-    Args:
-        year_month_str: Year and month in format 'YYYYMM' (e.g., '201901')
-        file_type: Status to set (default: 'finalised')
-    """
-    logger = get_run_logger()
-    
-    year_month_date = datetime.strptime(year_month_str, "%Y%m").date()
-    
-    status_df = pd.DataFrame({
-        "year_month": [year_month_date],
-        "file_type": [file_type]
-    })
-    
-    logger.info(f"Updating data status for {year_month_str} to '{file_type}'")
-    
-    upload_to_bigquery(status_df, SCMD_DATA_STATUS_TABLE_SPEC)
 
 @task
 def process_scmd_month(year_month: str) -> Dict[str, Any]:
@@ -291,9 +279,7 @@ def process_scmd_month(year_month: str) -> Dict[str, Any]:
         
         transformed_df = transform_scmd_data(raw_df, year_month)
         
-        upload_to_bigquery(transformed_df, SCMD_RAW_TABLE_SPEC)
-        
-        update_data_status(year_month, "finalised")
+        upload_to_bigquery(transformed_df, SCMD_RAW_FINALISED_TABLE_SPEC)
         
         logger.info(f"Successfully processed {year_month} with {len(transformed_df):,} records")
         
@@ -307,6 +293,7 @@ def process_scmd_month(year_month: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error processing {year_month}: {e}")
         return {"month": year_month, "status": "failed", "reason": str(e)}
+
 
 @flow(name="SCMD Pre-April 2019 Import")
 def import_scmd_pre_apr_2019():
@@ -331,20 +318,21 @@ def import_scmd_pre_apr_2019():
     skipped_months = [r for r in results if r["status"] == "skipped"] 
     failed_months = [r for r in results if r["status"] == "failed"]
     
-    logger.info(f"Processing complete!")
-    logger.info(f"Successful months ({len(successful_months)}): {[r['month'] for r in successful_months]}")
+    logger.info("Processing complete!")
+    logger.info(
+        f"Successful months ({len(successful_months)}): "
+        f"{[r['month'] for r in successful_months]}"
+    )
     if skipped_months:
-        logger.info(f"Skipped months ({len(skipped_months)}): {[r['month'] for r in skipped_months]}")
+        logger.info(
+            f"Skipped months ({len(skipped_months)}): "
+            f"{[r['month'] for r in skipped_months]}"
+        )
     if failed_months:
-        logger.warning(f"Failed months ({len(failed_months)}): {[r['month'] for r in failed_months]}")
-    
-    return {
-        "total_months": len(months_to_process),
-        "successful": len(successful_months),
-        "skipped": len(skipped_months),
-        "failed": len(failed_months),
-        "results": results
-    }
+        logger.warning(
+            f"Failed months ({len(failed_months)}): "
+            f"{[r['month'] for r in failed_months]}"
+        )
 
 if __name__ == "__main__":
     import_scmd_pre_apr_2019()
