@@ -11,6 +11,7 @@ from pipeline.dmd.import_dmd import import_dmd
 from pipeline.organisations.import_organisations import import_organisations
 from pipeline.scmd.import_scmd import import_scmd
 from pipeline.atc_ddd.import_atc_ddd.import_atc_ddd import import_atc_ddd
+from pipeline.quantity.check_quantity_calculations import check_quantity_calculations
 from pipeline.quantity.calculate_quantities import calculate_quantities
 from pipeline.aware.create_aware_vmp_mapping_processed import create_aware_vmp_mapping
 from pipeline.mappings.import_mappings import import_mappings
@@ -42,6 +43,7 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
         process_scmd()
         populate_ddd_refers_to_table()
         populate_vmp_table()
+        check_quantity_calculations()
         calculate_quantities()
         create_aware_vmp_mapping()
         logger.info("Import flows completed")
