@@ -50,6 +50,51 @@ normalized_uoms AS (
     description as uom_name
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_UOM_TABLE_ID }}`
 ),
+-- Get data status to determine which months are finalised vs provisional
+data_status AS (
+  SELECT 
+    year_month,
+    file_type
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ SCMD_DATA_STATUS_TABLE_ID }}`
+),
+finalised_months AS (
+  SELECT year_month
+  FROM data_status
+  WHERE file_type = 'final'
+),
+-- Combine finalised and provisional data, prioritizing finalised
+combined_raw_data AS (
+  -- Get all finalised data
+  SELECT
+    CAST(raw.year_month AS DATE) as year_month,
+    CAST(raw.ods_code AS STRING) as ods_code,
+    CAST(raw.vmp_snomed_code AS STRING) as vmp_snomed_code,
+    CAST(raw.vmp_product_name AS STRING) as vmp_product_name,
+    CAST(raw.unit_of_measure_identifier AS STRING) as unit_of_measure_identifier,
+    CAST(raw.unit_of_measure_name AS STRING) as unit_of_measure_name,
+    CAST(raw.total_quantity_in_vmp_unit AS FLOAT64) as total_quantity_in_vmp_unit,
+    CAST(raw.indicative_cost AS FLOAT64) as indicative_cost
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ SCMD_RAW_FINALISED_TABLE_ID }}` raw
+  INNER JOIN finalised_months fm
+    ON CAST(raw.year_month AS DATE) = fm.year_month
+  
+  UNION ALL
+  
+  -- Get provisional data only for months that don't have finalised data
+  SELECT
+    CAST(raw.year_month AS DATE) as year_month,
+    CAST(raw.ods_code AS STRING) as ods_code,
+    CAST(raw.vmp_snomed_code AS STRING) as vmp_snomed_code,
+    CAST(raw.vmp_product_name AS STRING) as vmp_product_name,
+    CAST(raw.unit_of_measure_identifier AS STRING) as unit_of_measure_identifier,
+    CAST(raw.unit_of_measure_name AS STRING) as unit_of_measure_name,
+    CAST(raw.total_quantity_in_vmp_unit AS FLOAT64) as total_quantity_in_vmp_unit,
+    CAST(raw.indicative_cost AS FLOAT64) as indicative_cost
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ SCMD_RAW_PROVISIONAL_TABLE_ID }}` raw
+  LEFT JOIN finalised_months fm
+    ON CAST(raw.year_month AS DATE) = fm.year_month
+  WHERE fm.year_month IS NULL
+),
 normalized_data AS (
   SELECT
     CAST(raw.year_month AS DATE) as year_month,
@@ -61,7 +106,7 @@ normalized_data AS (
     CAST(COALESCE(uom.uom_name, raw.unit_of_measure_name) AS STRING) as uom_name,
     CAST(raw.total_quantity_in_vmp_unit AS FLOAT64) as quantity,
     CAST(raw.indicative_cost AS FLOAT64) as indicative_cost
-  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ SCMD_RAW_TABLE_ID }}` raw
+  FROM combined_raw_data raw
   LEFT JOIN vmp_mappings vmp_map
     ON CAST(raw.vmp_snomed_code AS STRING) = vmp_map.previous_id
   LEFT JOIN uom_mappings uom_map
