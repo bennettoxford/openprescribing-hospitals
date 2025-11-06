@@ -514,6 +514,11 @@
                                         <span class="text-sm text-gray-700 break-words">
                                             {data?.name || `${item.code} (${item.type})`}
                                         </span>
+                                        {#if type === 'atc' && data?.code}
+                                            <span class="text-xs text-gray-500 mt-1">
+                                                ATC Code: {data.code}
+                                            </span>
+                                        {/if}
                                        
                                         {#if (type === 'vtm' || type === 'ingredient' || type === 'atc') && data?.vmps?.length > 0}
                                             <button 
