@@ -6,6 +6,7 @@
   import HCMore from 'highcharts/highcharts-more';
   import Exporting from 'highcharts/modules/exporting';
   import ExportData from 'highcharts/modules/export-data';
+  import OfflineExporting from 'highcharts/modules/offline-exporting';
   import Accessibility from 'highcharts/modules/accessibility';
   import Boost from 'highcharts/modules/boost';
   import Annotations from 'highcharts/modules/annotations';
@@ -57,6 +58,7 @@
   }
   
   $: exportMenuItems = [
+    'downloadPNG',
     'downloadCSV',
     {
       text: 'View in full screen',
@@ -512,6 +514,7 @@
     annotations: chartAnnotations,
     exporting: {
       enabled: true,
+      filename: 'openprescribing-hospitals-chart',
       buttons: {
         contextButton: {
           menuItems: exportMenuItems
@@ -522,6 +525,27 @@
         decimalPoint: '.',
         itemDelimiter: ',',
         lineDelimiter: '\n'
+      },
+      chartOptions: {
+        chart: {
+          width: 1120,
+          height: 630
+        },
+        credits: {
+          enabled: true,
+          text: 'Source: OpenPrescribing Hospitals (hospitals.openprescribing.net)',
+          href: '',
+          position: {
+            align: 'right',
+            verticalAlign: 'bottom',
+            x: -10,
+            y: -5
+          },
+          style: {
+            fontSize: '10px',
+            color: '#666666'
+          }
+        }
       },
       fallbackToExportServer: false
     }
