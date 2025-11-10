@@ -688,8 +688,9 @@
                                 </div>
                             </div>
                         {/if}
-
-                        {#if isInTrustModeWithNoData}
+                    </section>
+                    <section>
+                    {#if isInTrustModeWithNoData}
                             <div class="flex items-center justify-center h-[550px] border-2 border-dashed border-gray-300 rounded-lg p-8 bg-gray-50">
                                 <div class="">
                                     <div class="text-center space-y-6">
@@ -715,6 +716,15 @@
                                         store={resultsChartStore} 
                                         data={filteredData.length > 0 ? filteredData : selectedData}
                                         formatTooltipContent={customTooltipFormatter}
+                                        exportData={{
+                                            data: $resultsStore.filteredData && $resultsStore.filteredData.length > 0
+                                                ? $resultsStore.filteredData
+                                                : analysisData,
+                                            excludedVmps: $resultsStore.excludedVmps || [],
+                                            selectedTrusts: $analyseOptions.selectedOrganisations || null,
+                                            percentilesData: $resultsStore.percentiles || [],
+                                            predecessorMap: $organisationSearchStore.predecessorMap || new Map(),
+                                        }}
                                     />
                                 </div>
                             </div>

@@ -12,6 +12,8 @@
   import Annotations from 'highcharts/modules/annotations';
   import { Chart} from '@highcharts/svelte';
   import { chartStore } from '../../stores/chartStore.js';
+  import { exportAnalysisDataToCSV } from '../../utils/csvExport.js';
+  import Modal from './Modal.svelte';
 
   
   const dispatch = createEventDispatcher();
@@ -27,8 +29,10 @@
   export let formatTooltipContent = null;
   export let chartOptions = {};
   export let annotations = '[]';
+  export let exportData = null;
   
   let showAnnotations = true;
+  let showDownloadModal = false;
 
   $: config.visibleItems = new Set(data.datasets.map(d => d.label));
 
@@ -57,9 +61,75 @@
     showAnnotations = !showAnnotations;
   }
   
+  function handleDownloadCSV() {
+    if (!exportData) {
+      console.warn('No export data available');
+      return;
+    }
+    showDownloadModal = true;
+  }
+
+  function confirmDownload() {
+    if (!exportData) return;
+
+    try {
+      exportAnalysisDataToCSV(
+        exportData.data,
+        exportData.excludedVmps,
+        exportData.selectedTrusts,
+        exportData.percentilesData,
+        null, // filename
+        exportData.predecessorMap
+      );
+
+      if (typeof window !== 'undefined' && window.plausible) {
+        window.plausible('Chart Download', {
+          props: {
+            download_type: 'raw_data'
+          }
+        });
+      }
+
+      showDownloadModal = false;
+    } catch (error) {
+      console.error('Failed to download CSV:', error);
+      alert('Could not download file. Please try again.');
+    }
+  }
+
   $: exportMenuItems = [
-    'downloadPNG',
-    'downloadCSV',
+    {
+      text: 'Download PNG image',
+      onclick: function () {
+        if (typeof window !== 'undefined' && window.plausible) {
+          window.plausible('Chart Download', {
+            props: {
+              download_type: 'chart_image'
+            }
+          });
+        }
+        this.exportChart({ type: 'image/png' });
+      }
+    },
+    {
+      text: 'Download Chart Data',
+      onclick: function () {
+        if (typeof window !== 'undefined' && window.plausible) {
+          window.plausible('Chart Download', {
+            props: {
+              download_type: 'chart_data'
+            }
+          });
+        }
+        this.downloadCSV();
+      }
+    },
+    ...(exportData ? [{
+      text: 'Download Raw Data',
+      onclick: () => {
+        handleDownloadCSV();
+      }
+    }] : []),
     {
       text: 'View in full screen',
       onclick: function () {
@@ -68,7 +138,7 @@
     },
     ...(annotations !== '[]' ? [{
       text: showAnnotations ? 'Hide annotations' : 'Show annotations',
-      onclick: function () {
+      onclick: () => {
         toggleAnnotations();
       }
     }] : [])
@@ -582,6 +652,47 @@
   </div>
   <Chart options={finalChartOptions} highcharts={Highcharts} />
 </div>
+
+<Modal
+  isOpen={showDownloadModal}
+  title="Download Analysis Data"
+  size="md"
+>
+  <div class="space-y-4">
+    <div class="text-sm text-gray-700">
+      <p class="mb-3">
+        You are about to download the raw data for your selected analysis.
+      </p>
+
+      <div class="bg-blue-50 border-l-4 border-blue-400 p-3 mb-4">
+        <div class="text-sm">
+          <p class="font-medium text-blue-800 mb-2">Data Attribution:</p>
+          <div class="text-blue-700 text-xs space-y-1">
+            <p>You are welcome to use this data in your academic output with attribution. Please cite <span class="font-semibold text-blue-800">OpenPrescribing.net, Bennett Institute for Applied Data Science, University of Oxford, 2025</span> as the source for academic attribution.</p>
+            <p>If you use data or images from this site online or in a report, please link back to us. Your readers will then be able to see live updates to the data you are interested in, and explore other queries for themselves.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div slot="actions" class="flex justify-end gap-3">
+    <button
+      type="button"
+      class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      on:click={() => showDownloadModal = false}
+    >
+      Cancel
+    </button>
+    <button
+      type="button"
+      class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      on:click={confirmDownload}
+    >
+      Download
+    </button>
+  </div>
+</Modal>
 
 <style>
   :global(.tooltip) {
