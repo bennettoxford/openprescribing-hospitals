@@ -82,6 +82,14 @@
         exportData.predecessorMap
       );
 
+      if (typeof window !== 'undefined' && window.plausible) {
+        window.plausible('Chart Download', {
+          props: {
+            download_type: 'raw_data'
+          }
+        });
+      }
+
       showDownloadModal = false;
     } catch (error) {
       console.error('Failed to download CSV:', error);
@@ -90,10 +98,29 @@
   }
 
   $: exportMenuItems = [
-    'downloadPNG',
+    {
+      text: 'Download PNG image',
+      onclick: function () {
+        if (typeof window !== 'undefined' && window.plausible) {
+          window.plausible('Chart Download', {
+            props: {
+              download_type: 'chart_image'
+            }
+          });
+        }
+        this.exportChart({ type: 'image/png' });
+      }
+    },
     {
       text: 'Download Chart Data',
       onclick: function () {
+        if (typeof window !== 'undefined' && window.plausible) {
+          window.plausible('Chart Download', {
+            props: {
+              download_type: 'chart_data'
+            }
+          });
+        }
         this.downloadCSV();
       }
     },
