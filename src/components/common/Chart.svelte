@@ -98,19 +98,7 @@
   }
 
   $: exportMenuItems = [
-    {
-      text: 'Download PNG image',
-      onclick: function () {
-        if (typeof window !== 'undefined' && window.plausible) {
-          window.plausible('Chart Download', {
-            props: {
-              download_type: 'chart_image'
-            }
-          });
-        }
-        this.exportChart({ type: 'image/png' });
-      }
-    },
+    'downloadPNG',
     {
       text: 'Download Chart Data',
       onclick: function () {
