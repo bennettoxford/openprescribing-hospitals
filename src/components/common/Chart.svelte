@@ -78,6 +78,8 @@
         exportData.excludedVmps,
         exportData.selectedTrusts,
         exportData.percentilesData,
+        null, // filename
+        exportData.predecessorMap
       );
 
       showDownloadModal = false;

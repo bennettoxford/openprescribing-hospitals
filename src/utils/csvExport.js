@@ -150,9 +150,12 @@ export function convertToCSV(data, excludedVmps = [], selectedTrusts = null, pre
         return '';
     }
 
+    // First normalise the data to aggregate predecessors into successors
+    const normalisedData = normalisePredecessors(data, predecessorMap);
+
     // Filter data based on excluded VMPs and selected trusts
-    const filteredData = data.filter(item => {
-        
+    const filteredData = normalisedData.filter(item => {
+ 
         if (excludedVmps && excludedVmps.length > 0) {
             if (excludedVmps.includes(String(item.vmp__code))) {
                 return false;

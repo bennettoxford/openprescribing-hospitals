@@ -723,6 +723,7 @@
                                             excludedVmps: $resultsStore.excludedVmps || [],
                                             selectedTrusts: $analyseOptions.selectedOrganisations || null,
                                             percentilesData: $resultsStore.percentiles || [],
+                                            predecessorMap: $organisationSearchStore.predecessorMap || new Map(),
                                         }}
                                     />
                                 </div>
