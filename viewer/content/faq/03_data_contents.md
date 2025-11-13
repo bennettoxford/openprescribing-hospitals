@@ -35,6 +35,10 @@ There are several possible reasons:
 * What you're looking for is a non-standardised item - where specific medicines do not have a dm+d code, they cannot be standardised across organisations and are not included within the SCMD. Examples include clean room consumables and packaging items.
 * The medicine is dispensed by community pharmacy. NHS prescriptions supplied by hospitals but dispensed in community pharmacy are not included in the SCMD, but this data is available separately. This may be incorporated into the OpenPrescribing Hospitals platform in the future.
 
+### Is data for biosimilars available?
+
+Products are reported in the SCMD at the level of [Virtual Medicinal Products](/faq/#what-is-a-vmp). This does not give any indication of whether a product is issued as a biosimilar or not. This would require products to be reported at the level of Actual Medicinal Products (AMPs), which are atributed to specific manufacturers. You can read more in our blog post, [You asked: Can we monitor the usage of biosimilars in secondary care using OpenPrescribing Hospitals?](https://www.bennett.ox.ac.uk/blog/2025/07/you-asked-can-we-monitor-the-usage-of-biosimilars-in-secondary-care-using-openprescribing-hospitals/).
+
 ### Which NHS Trusts are included?
 
 The platform includes data from all NHS hospital trusts in England that submit data to Rx-Info. This includes all NHS Acute, Teaching, Specialist, Mental Health and Community Trusts in England (this does not include medications dispensed by community pharmacy but this is [available separately](https://opendata.nhsbsa.net/dataset/hospital-prescribing-dispensed-in-the-community)).
