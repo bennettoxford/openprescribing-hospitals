@@ -2,7 +2,7 @@ from prefect import get_run_logger, task, flow
 from django.db import transaction
 from typing import List, Dict
 from pipeline.utils.utils import setup_django_environment, fetch_table_data_from_bq
-from pipeline.setup.bq_tables import VMP_DDD_MAPPING_TABLE_SPEC
+from pipeline.setup.bq_tables import DDD_CALCULATION_LOGIC_TABLE_SPEC
 
 setup_django_environment()
 
@@ -11,11 +11,11 @@ from viewer.models import DDD, VMP, WHORoute
 
 @task()
 def extract_ddd_data() -> List[Dict]:
-    """Extract DDD data from BigQuery VMP_DDD_MAPPING table using selected DDD values"""
+    """Extract DDD data from BigQuery DDD_CALCULATION_LOGIC table using selected DDD values"""
     logger = get_run_logger()
-    logger.info("Starting extraction of DDD data from BigQuery VMP_DDD_MAPPING table")
+    logger.info("Starting extraction of DDD data from BigQuery DDD_CALCULATION_LOGIC table")
 
-    df = fetch_table_data_from_bq(VMP_DDD_MAPPING_TABLE_SPEC)
+    df = fetch_table_data_from_bq(DDD_CALCULATION_LOGIC_TABLE_SPEC)
 
     filtered_df = df[
         (df["selected_ddd_value"].notna())

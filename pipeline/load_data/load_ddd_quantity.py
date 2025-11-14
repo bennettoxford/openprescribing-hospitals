@@ -5,7 +5,7 @@ from google.cloud import bigquery
 from prefect import get_run_logger, task, flow
 from django.db import transaction
 from typing import Dict, List, Tuple
-from pipeline.setup.bq_tables import DDD_QUANTITY_TABLE_SPEC, CALCULATION_LOGIC_TABLE_SPEC
+from pipeline.setup.bq_tables import DDD_QUANTITY_TABLE_SPEC, DDD_CALCULATION_LOGIC_TABLE_SPEC
 from pipeline.utils.utils import setup_django_environment, get_bigquery_client
 
 
@@ -23,16 +23,15 @@ def fetch_bigquery_data(query: str, client) -> pd.DataFrame:
 
 @task
 def get_ddd_calculation_logic() -> Dict[str, str]:
-    """Download calculation logic for DDD calculations from the calculation logic table"""
+    """Download calculation logic for DDD calculations from the DDD calculation logic table"""
     logger = get_run_logger()
     client = get_bigquery_client()
 
     query = f"""
     SELECT 
         vmp_code,
-        logic
-    FROM `{CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
-    WHERE logic_type = 'ddd'
+        ddd_calculation_logic AS logic
+    FROM `{DDD_CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
     """
 
     result = client.query(query).to_dataframe(create_bqstorage_client=True)
@@ -51,8 +50,7 @@ def get_all_vmps_with_ddd_logic() -> List[str]:
 
     query = f"""
     SELECT DISTINCT vmp_code
-    FROM `{CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
-    WHERE logic_type = 'ddd'
+    FROM `{DDD_CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
     ORDER BY vmp_code
     """
 
