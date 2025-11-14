@@ -19,8 +19,8 @@ ingredient_data AS (
     iq.year_month,
     iq.ods_code,
     iq.vmp_code,
-    vmp.can_calculate_ddd,
-    vmp.ddd_calculation_logic,
+    ddd_logic.can_calculate_ddd,
+    ddd_logic.ddd_calculation_logic,
     ARRAY_LENGTH(iq.ingredients) AS ingredient_count,
     
     CASE 
@@ -30,8 +30,8 @@ ingredient_data AS (
       
       -- Multi-ingredient "refers to" case
       WHEN ARRAY_LENGTH(iq.ingredients) > 1 
-        AND vmp.can_calculate_ddd = TRUE
-        AND vmp.ddd_calculation_logic LIKE 'Ingredient quantity / DDD (Refers to %'
+        AND ddd_logic.can_calculate_ddd = TRUE
+        AND ddd_logic.ddd_calculation_logic LIKE 'Ingredient quantity (Refers to %'
       THEN
         -- Extract ingredient name from the calculation logic
         (SELECT ingredient_quantity_basis 
@@ -39,10 +39,10 @@ ingredient_data AS (
          WHERE UPPER(ing.ingredient_name) = UPPER(
            TRIM(REGEXP_REPLACE(
              REGEXP_REPLACE(
-               vmp.ddd_calculation_logic, 
+               ddd_logic.ddd_calculation_logic, 
                r'.*\(Refers to ', ''
              ), 
-             r'\).*', ''
+             r'\) / DDD.*', ''
            ))
          )
          LIMIT 1)
@@ -57,18 +57,18 @@ ingredient_data AS (
       
       -- Multi-ingredient "refers to" case
       WHEN ARRAY_LENGTH(iq.ingredients) > 1 
-        AND vmp.can_calculate_ddd = TRUE
-        AND vmp.ddd_calculation_logic LIKE 'Ingredient quantity / DDD (Refers to %'
+        AND ddd_logic.can_calculate_ddd = TRUE
+        AND ddd_logic.ddd_calculation_logic LIKE 'Ingredient quantity (Refers to %'
       THEN
         (SELECT ingredient_basis_unit 
          FROM UNNEST(iq.ingredients) ing
          WHERE UPPER(ing.ingredient_name) = UPPER(
            TRIM(REGEXP_REPLACE(
              REGEXP_REPLACE(
-               vmp.ddd_calculation_logic, 
+               ddd_logic.ddd_calculation_logic, 
                r'.*\(Refers to ', ''
              ), 
-             r'\).*', ''
+             r'\) / DDD.*', ''
            ))
          )
          LIMIT 1)
@@ -84,18 +84,18 @@ ingredient_data AS (
       
       -- Multi-ingredient "refers to" case
       WHEN ARRAY_LENGTH(iq.ingredients) > 1 
-        AND vmp.can_calculate_ddd = TRUE
-        AND vmp.ddd_calculation_logic LIKE 'Ingredient quantity / DDD (Refers to %'
+        AND ddd_logic.can_calculate_ddd = TRUE
+        AND ddd_logic.ddd_calculation_logic LIKE 'Ingredient quantity (Refers to %'
       THEN
         (SELECT ingredient_code 
          FROM UNNEST(iq.ingredients) ing
          WHERE UPPER(ing.ingredient_name) = UPPER(
            TRIM(REGEXP_REPLACE(
              REGEXP_REPLACE(
-               vmp.ddd_calculation_logic, 
+               ddd_logic.ddd_calculation_logic, 
                r'.*\(Refers to ', ''
              ), 
-             r'\).*', ''
+             r'\) / DDD.*', ''
            ))
          )
          LIMIT 1)
@@ -103,15 +103,22 @@ ingredient_data AS (
       ELSE NULL
     END AS ingredient_code,
     
-    -- Get DDD information from VMP table
-    vmp.selected_ddd_value,
-    vmp.selected_ddd_unit,
-    vmp.selected_ddd_basis_value,
-    vmp.selected_ddd_basis_unit
+    -- Get DDD information from DDD logic table
+    ddd_logic.selected_ddd_value,
+    ddd_logic.selected_ddd_unit,
+    -- Convert DDD value to basis units using unit conversion table
+    CASE 
+      WHEN ddd_logic.selected_ddd_value IS NOT NULL AND unit_conv.conversion_factor IS NOT NULL
+      THEN ddd_logic.selected_ddd_value * unit_conv.conversion_factor
+      ELSE ddd_logic.selected_ddd_value
+    END AS selected_ddd_basis_value,
+    ddd_logic.selected_ddd_basis_unit
     
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ INGREDIENT_QUANTITY_TABLE_ID }}` iq
-  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_TABLE_ID }}` vmp
-    ON iq.vmp_code = vmp.vmp_code
+  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DDD_CALCULATION_LOGIC_TABLE_ID }}` ddd_logic
+    ON iq.vmp_code = ddd_logic.vmp_code
+  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` unit_conv
+    ON ddd_logic.selected_ddd_unit = unit_conv.unit
 ),
 
 data_with_ddd AS (
