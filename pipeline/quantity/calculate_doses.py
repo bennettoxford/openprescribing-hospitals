@@ -17,25 +17,26 @@ def validate_calculated_doses():
     logger.info("Validating calculated doses table schema")
     schema_valid = validate_table_schema(DOSE_TABLE_SPEC)
 
-    # Check dose form and unit basis consistency
     validation_query = f"""
     SELECT 
         vmp_code,
         vmp_name,
-        df_ind,
-        scmd_basis_unit_name,
-        udfs_basis_uom,
+        calculation_logic,
         dose_quantity,
+        dose_unit,
         CASE
-            WHEN dose_quantity IS NOT NULL AND df_ind != 'Discrete' 
-                THEN 'Non-discrete form with calculated dose'
-            WHEN dose_quantity IS NOT NULL AND scmd_basis_unit_name != udfs_basis_uom 
-                THEN 'Basis unit mismatch'
+            WHEN dose_quantity IS NOT NULL AND calculation_logic LIKE 'Not calculated:%' 
+                THEN 'Dose calculated despite logic indicating it should not be'
+            WHEN dose_quantity IS NULL AND calculation_logic NOT LIKE 'Not calculated:%'
+                THEN 'Dose not calculated despite logic indicating it should be'
+            WHEN dose_quantity IS NOT NULL AND dose_unit IS NULL
+                THEN 'Dose quantity without dose unit'
         END as issue
     FROM `{DOSE_TABLE_SPEC.full_table_id}`
     WHERE 
-        (dose_quantity IS NOT NULL AND df_ind != 'Discrete')
-        OR (dose_quantity IS NOT NULL AND scmd_basis_unit_name != udfs_basis_uom)
+        (dose_quantity IS NOT NULL AND calculation_logic LIKE 'Not calculated:%')
+        OR (dose_quantity IS NULL AND calculation_logic NOT LIKE 'Not calculated:%')
+        OR (dose_quantity IS NOT NULL AND dose_unit IS NULL)
     """
 
     results = client.query(validation_query).result()
@@ -44,17 +45,10 @@ def validate_calculated_doses():
     if validation_issues:
         logger.error(f"Found {len(validation_issues)} validation issues:")
         for issue in validation_issues[:5]:
-            if issue['df_ind'] != 'Discrete':
-                logger.error(
-                    f"- VMP {issue['vmp_code']} ({issue['vmp_name']}): "
-                    f"Has calculated dose but form is {issue['df_ind']}"
-                )
-            else:
-                logger.error(
-                    f"- VMP {issue['vmp_code']} ({issue['vmp_name']}): "
-                    f"SCMD basis unit ({issue['scmd_basis_unit_name']}) "
-                    f"!= UDFS basis unit ({issue['udfs_basis_uom']})"
-                )
+            logger.error(
+                f"- VMP {issue['vmp_code']} ({issue['vmp_name']}): "
+                f"{issue['issue']} (Logic: {issue['calculation_logic']})"
+            )
 
     return {
         "schema_valid": schema_valid,
