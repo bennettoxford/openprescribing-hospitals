@@ -7,7 +7,6 @@ from prefect import flow, get_run_logger
 from pipeline.quantity.calculate_doses import calculate_doses
 from pipeline.quantity.calculate_ingredient_quantity import calculate_ingredient_quantity
 from pipeline.quantity.calculate_ddd_quantity import calculate_ddd_quantity
-from pipeline.quantity.populate_calculation_logic import populate_calculation_logic
 
 @flow(name="Calculate Quantities")
 def calculate_quantities():
@@ -17,8 +16,7 @@ def calculate_quantities():
     calculate_doses()
     calculate_ingredient_quantity()
     calculate_ddd_quantity()
-    populate_calculation_logic()
-
+    
 
 if __name__ == "__main__":
     calculate_quantities()

@@ -5,7 +5,7 @@ from google.cloud import bigquery
 from prefect import get_run_logger, task, flow
 from django.db import transaction
 from typing import Dict, List, Tuple
-from pipeline.setup.bq_tables import DOSE_TABLE_SPEC, CALCULATION_LOGIC_TABLE_SPEC
+from pipeline.setup.bq_tables import DOSE_TABLE_SPEC, DOSE_CALCULATION_LOGIC_TABLE_SPEC
 from pipeline.utils.utils import setup_django_environment, get_bigquery_client
 
 
@@ -68,9 +68,8 @@ def get_dose_calculation_logic() -> Dict[str, str]:
     query = f"""
     SELECT 
         vmp_code,
-        logic
-    FROM `{CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
-    WHERE logic_type = 'dose'
+        dose_calculation_logic as logic
+    FROM `{DOSE_CALCULATION_LOGIC_TABLE_SPEC.full_table_id}`
     """
 
     result = client.query(query).to_dataframe(create_bqstorage_client=True)
