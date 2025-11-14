@@ -33,6 +33,7 @@ from pipeline.setup.config import (
     AWARE_VMP_MAPPING_PROCESSED_TABLE_ID,
     DDD_REFERS_TO_TABLE_ID,
     ERIC_TRUST_DATA_TABLE_ID,
+    DOSE_CALCULATION_LOGIC_TABLE_ID,
 )
 
 
@@ -577,27 +578,12 @@ DOSE_TABLE_SPEC = TableSpec(
             mode="REQUIRED",
             description="SCMD quantity converted to basis units",
         ),
-        bigquery.SchemaField("udfs", "FLOAT", mode="REQUIRED", description="Unit dose form size"),
-        bigquery.SchemaField("udfs_uom", "STRING", mode="REQUIRED", description="Unit dose form size unit of measure"),
         bigquery.SchemaField(
-            "udfs_basis_quantity", "FLOAT", mode="REQUIRED", description="Unit dose form size converted to basis units"
+            "dose_quantity", "FLOAT", mode="NULLABLE", description="Calculated number of doses (NULL when calculation not possible)"
         ),
         bigquery.SchemaField(
-            "udfs_basis_uom", "STRING", mode="REQUIRED", description="Basis unit for the unit dose form size"
+            "dose_unit", "STRING", mode="NULLABLE", description="Unit of measure for the dose (NULL when calculation not possible)"
         ),
-        bigquery.SchemaField(
-            "unit_dose_uom", "STRING", mode="REQUIRED", description="Unit dose unit of measure"
-        ),
-        bigquery.SchemaField(
-            "unit_dose_basis_uom", "STRING", mode="REQUIRED", description="Basis unit for the unit dose"
-        ),
-        bigquery.SchemaField(
-            "dose_quantity", "FLOAT", mode="REQUIRED", description="Calculated number of doses"
-        ),
-        bigquery.SchemaField(
-            "dose_unit", "STRING", mode="REQUIRED", description="Unit of measure for the dose"
-        ),
-        bigquery.SchemaField("df_ind", "STRING", mode="REQUIRED", description="Dose form indicator"),
         bigquery.SchemaField(
             "calculation_logic", "STRING", mode="REQUIRED", description="Logic used for dose calculation including unit conversion details"
         ),
@@ -1443,4 +1429,42 @@ ERIC_TRUST_DATA_TABLE_SPEC = TableSpec(
         ),
     ],
     cluster_fields=["trust_code"],
+)
+
+
+DOSE_CALCULATION_LOGIC_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=DOSE_CALCULATION_LOGIC_TABLE_ID,
+    description="Table to check the dose calculation logic for each VMP, showing which calculation methods are available",
+    schema=[
+        bigquery.SchemaField(
+            "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
+        ),
+        bigquery.SchemaField(
+            "vmp_name", "STRING", mode="REQUIRED", description="VMP name"
+        ),
+        bigquery.SchemaField(
+            "df_ind", "STRING", mode="NULLABLE", description="Dose form indicator"
+        ),
+        bigquery.SchemaField(
+            "can_calculate_dose", "BOOLEAN", mode="REQUIRED", description="Whether dose calculation is possible for this VMP"
+        ),
+        bigquery.SchemaField(
+            "dose_calculation_logic", "STRING", mode="REQUIRED", description="Explanation of the dose calculation logic or reason why calculation is not possible"
+        ),
+        bigquery.SchemaField(
+            "udfs_basis_quantity", "FLOAT", mode="NULLABLE", description="Unit dose form size converted to basis units (only populated when calculation is possible)"
+        ),
+        bigquery.SchemaField(
+            "udfs_basis_uom", "STRING", mode="NULLABLE", description="Basis unit for the unit dose form size (only populated when calculation is possible)"
+        ),
+        bigquery.SchemaField(
+            "unit_dose_uom", "STRING", mode="NULLABLE", description="Unit dose unit of measure (only populated when calculation is possible)"
+        ),
+        bigquery.SchemaField(
+            "unit_dose_basis_uom", "STRING", mode="NULLABLE", description="Basis unit for the unit dose (only populated when calculation is possible)"
+        ),
+    ],
+    cluster_fields=["vmp_code"],
 )
