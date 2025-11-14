@@ -22,7 +22,6 @@ from pipeline.submission_history.update_submission_history_cache import update_s
 from pipeline.utils.vacuum_tables import vacuum_tables
 
 from pipeline.atc_ddd.ddd_comments.populate_ddd_refers_to import populate_ddd_refers_to_table
-from pipeline.atc_ddd.atc_ddd_vmp_mapping.create_vmp_ddd_mapping import create_vmp_ddd_mapping
 from pipeline.products.populate_vmp_table import populate_vmp_table
 
 
@@ -42,7 +41,6 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
         import_mappings()
         process_scmd()
         populate_ddd_refers_to_table()
-        create_vmp_ddd_mapping()
         populate_vmp_table()
         calculate_quantities()
         create_aware_vmp_mapping()
