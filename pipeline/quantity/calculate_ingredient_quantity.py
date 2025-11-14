@@ -6,7 +6,6 @@ from pipeline.utils.utils import (
 )
 from pipeline.setup.bq_tables import INGREDIENT_QUANTITY_TABLE_SPEC
 from pathlib import Path
-from google.cloud import bigquery
 
 
 @task
@@ -193,6 +192,58 @@ def validate_denominator_calculations():
 
 
 @task
+def validate_calculation_logic_consistency():
+    """Validate that ingredient calculations match the pre-calculated logic"""
+    logger = get_run_logger()
+    logger.info("Validating calculation logic consistency")
+
+    client = get_bigquery_client()
+    query = f"""
+    WITH unnested_data AS (
+        SELECT 
+            vmp_code,
+            vmp_name,
+            ing.*
+        FROM `{INGREDIENT_QUANTITY_TABLE_SPEC.full_table_id}`,
+        UNNEST(ingredients) as ing
+    )
+    SELECT
+        vmp_code,
+        vmp_name,
+        ingredient_code,
+        ingredient_name,
+        calculation_logic,
+        ingredient_quantity,
+        CASE
+            WHEN ingredient_quantity IS NOT NULL AND calculation_logic LIKE 'Not calculated:%'
+                THEN 'Ingredient calculated despite logic indicating it should not be'
+            WHEN ingredient_quantity IS NULL AND calculation_logic NOT LIKE 'Not calculated:%'
+                THEN 'Ingredient not calculated despite logic indicating it should be'
+        END as issue
+    FROM unnested_data
+    WHERE 
+        (ingredient_quantity IS NOT NULL AND calculation_logic LIKE 'Not calculated:%')
+        OR (ingredient_quantity IS NULL AND calculation_logic NOT LIKE 'Not calculated:%')
+    """
+    
+    results = client.query(query).result()
+    errors = list(results)
+    
+    if errors:
+        logger.error(f"Found {len(errors)} calculation logic consistency issues:")
+        for error in errors[:5]:
+            logger.error(
+                f"VMP: {error.vmp_code} ({error.vmp_name}), "
+                f"Ingredient: {error.ingredient_code}, "
+                f"{error.issue} (Logic: {error.calculation_logic})"
+            )
+    else:
+        logger.info("All ingredient calculations match the pre-calculated logic")
+    
+    return {"calculation_logic_consistency": "passed" if not errors else "failed", "error_count": len(errors)}
+
+
+@task
 def validate_ingredient_quantity():
     """Validate the ingredient quantity data schema"""
     logger = get_run_logger()
@@ -221,6 +272,7 @@ def calculate_ingredient_quantity():
     logger.info("Ingredient quantities calculated")
 
     validate_ingredient_quantity()
+    validate_calculation_logic_consistency()
     validate_ingredients_exist()
     validate_strength_info()
     validate_direct_multiplication()
