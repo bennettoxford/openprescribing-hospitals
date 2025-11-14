@@ -16,8 +16,11 @@ def sample_ddd_bigquery_data():
         {
             "vmp_code": ["12345", "67890", "11111", "22222"],
             "vmp_name": ["Drug A", "Drug B", "Drug C", "Drug D"],
+            "can_calculate_ddd": [True, True, False, True],
+            "ddd_calculation_logic": ["Logic A", "Logic B", "Cannot calculate", "Logic D"],
             "selected_ddd_value": [1.5, 2.0, None, 3.0],
             "selected_ddd_unit": ["mg", "g", None, "ml"],
+            "selected_ddd_basis_unit": ["g", "g", None, "ml"],
             "selected_ddd_route_code": ["O", "P", None, "IM"],
         }
     )
