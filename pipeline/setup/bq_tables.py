@@ -35,6 +35,7 @@ from pipeline.setup.config import (
     ERIC_TRUST_DATA_TABLE_ID,
     DOSE_CALCULATION_LOGIC_TABLE_ID,
     INGREDIENT_CALCULATION_LOGIC_TABLE_ID,
+    DDD_CALCULATION_LOGIC_TABLE_ID,
 )
 
 
@@ -1525,6 +1526,118 @@ INGREDIENT_CALCULATION_LOGIC_TABLE_SPEC = TableSpec(
                     "denominator_basis_unit", "STRING", mode="NULLABLE", description="Basis unit for strength denominator (only populated when calculation is possible and denominator exists)"
                 ),
             ],
+        ),
+    ],
+    cluster_fields=["vmp_code"],
+)
+
+DDD_CALCULATION_LOGIC_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=DDD_CALCULATION_LOGIC_TABLE_ID,
+    description="Table to check the DDD calculation logic for each VMP, showing which calculation methods are available and the selected DDD information",
+    schema=[
+        bigquery.SchemaField(
+            "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
+        ),
+        bigquery.SchemaField(
+            "vmp_name", "STRING", mode="REQUIRED", description="VMP name"
+        ),
+        bigquery.SchemaField(
+            "can_calculate_ddd", "BOOLEAN", mode="REQUIRED", description="Whether DDD calculation is possible for this VMP"
+        ),
+        bigquery.SchemaField(
+            "ddd_calculation_logic", "STRING", mode="REQUIRED", description="Explanation of the DDD calculation logic or reason why calculation is not possible"
+        ),
+        bigquery.SchemaField(
+            "selected_ddd_value", "FLOAT", mode="NULLABLE", description="The DDD value that was selected for calculations (only populated when calculation is possible)"
+        ),
+        bigquery.SchemaField(
+            "selected_ddd_unit", "STRING", mode="NULLABLE", description="The unit of the selected DDD value (only populated when calculation is possible)"
+        ),
+        bigquery.SchemaField(
+            "selected_ddd_basis_unit", "STRING", mode="NULLABLE", description="The basis unit for the selected DDD value (only populated when calculation is possible)"
+        ),
+        bigquery.SchemaField(
+            "selected_ddd_route_code", "STRING", mode="NULLABLE", description="The route code of the selected DDD (only populated when calculation is possible)"
+        ),
+        bigquery.SchemaField(
+            "scmd_uom_id", "STRING", mode="NULLABLE", description="Unit of measure identifier from SCMD data"
+        ),
+        bigquery.SchemaField(
+            "scmd_uom_name", "STRING", mode="NULLABLE", description="Unit of measure name from SCMD data"
+        ),
+        bigquery.SchemaField(
+            "scmd_basis_uom_id", "STRING", mode="NULLABLE", description="Normalised basis unit identifier from SCMD data"
+        ),
+        bigquery.SchemaField(
+            "scmd_basis_uom_name", "STRING", mode="NULLABLE", description="Normalised basis unit name from SCMD data"
+        ),
+        bigquery.SchemaField(
+            "atcs",
+            "RECORD",
+            mode="REPEATED",
+            description="ATC codes",
+            fields=[
+                bigquery.SchemaField("atc_code", "STRING", mode="REQUIRED", description="ATC code"),
+                bigquery.SchemaField("atc_name", "STRING", mode="REQUIRED", description="ATC name"),
+            ],
+        ),
+        bigquery.SchemaField(
+            "routes",
+            "RECORD",
+            mode="REPEATED",
+            description="Routes of administration",
+            fields=[
+                bigquery.SchemaField(
+                    "ontformroute_cd", "STRING", mode="REQUIRED", description="Route code"
+                ),
+                bigquery.SchemaField(
+                    "ontformroute_descr", "STRING", mode="REQUIRED", description="Route description"
+                ),
+                bigquery.SchemaField(
+                    "who_route_code", "STRING", mode="REQUIRED", description="WHO route code"
+                ),
+            ],
+        ),
+        bigquery.SchemaField(
+            "who_ddds",
+            "RECORD",
+            mode="REPEATED",
+            description="DDD values from the WHO",
+            fields=[
+                bigquery.SchemaField("ddd", "FLOAT", mode="REQUIRED", description="DDD value"),
+                bigquery.SchemaField("ddd_unit", "STRING", mode="REQUIRED", description="DDD unit"),
+                bigquery.SchemaField(
+                    "ddd_route_code", "STRING", mode="REQUIRED", description="Route of administration code"
+                ),
+                bigquery.SchemaField(
+                    "ddd_comment", "STRING", mode="NULLABLE", description="Comment"
+                ),
+            ],
+        ),
+        bigquery.SchemaField(
+            "ingredients_info",
+            "RECORD",
+            mode="REPEATED",
+            description="Ingredient information",
+            fields=[
+                bigquery.SchemaField(
+                    "ingredient_code", "STRING", mode="REQUIRED", description="Ingredient code"
+                ),
+                bigquery.SchemaField(
+                    "ingredient_name", "STRING", mode="REQUIRED", description="Ingredient name"
+                ),
+                bigquery.SchemaField(
+                    "ingredient_unit", "STRING", mode="REQUIRED", description="Ingredient unit"
+                ),
+                bigquery.SchemaField(
+                    "ingredient_basis_unit", "STRING", mode="REQUIRED", description="Basis unit for the ingredient"
+                ),
+            ],
+        ),
+        bigquery.SchemaField(
+            "selected_ddd_comment", "STRING", mode="NULLABLE", description="Comment from the selected DDD (only populated for VMPs with DDD comments)"
         ),
     ],
     cluster_fields=["vmp_code"],

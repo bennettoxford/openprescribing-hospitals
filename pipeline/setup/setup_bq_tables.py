@@ -33,6 +33,7 @@ from pipeline.setup.bq_tables import (
     ERIC_TRUST_DATA_TABLE_SPEC,
     DOSE_CALCULATION_LOGIC_TABLE_SPEC,
     INGREDIENT_CALCULATION_LOGIC_TABLE_SPEC,
+    DDD_CALCULATION_LOGIC_TABLE_SPEC
 )
 from pipeline.utils.utils import get_bigquery_client
 
@@ -99,6 +100,7 @@ def setup_tables():
         ERIC_TRUST_DATA_TABLE_SPEC,
         DOSE_CALCULATION_LOGIC_TABLE_SPEC,
         INGREDIENT_CALCULATION_LOGIC_TABLE_SPEC,
+        DDD_CALCULATION_LOGIC_TABLE_SPEC
     ]
 
 
