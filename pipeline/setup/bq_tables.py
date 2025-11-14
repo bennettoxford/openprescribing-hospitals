@@ -34,6 +34,7 @@ from pipeline.setup.config import (
     DDD_REFERS_TO_TABLE_ID,
     ERIC_TRUST_DATA_TABLE_ID,
     DOSE_CALCULATION_LOGIC_TABLE_ID,
+    INGREDIENT_CALCULATION_LOGIC_TABLE_ID,
 )
 
 
@@ -1464,6 +1465,66 @@ DOSE_CALCULATION_LOGIC_TABLE_SPEC = TableSpec(
         ),
         bigquery.SchemaField(
             "unit_dose_basis_uom", "STRING", mode="NULLABLE", description="Basis unit for the unit dose (only populated when calculation is possible)"
+        ),
+    ],
+    cluster_fields=["vmp_code"],
+)
+
+INGREDIENT_CALCULATION_LOGIC_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=INGREDIENT_CALCULATION_LOGIC_TABLE_ID,
+    description="Table to check the ingredient calculation logic for each VMP, showing which calculation methods are available for each ingredient",
+    schema=[
+        bigquery.SchemaField(
+            "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
+        ),
+        bigquery.SchemaField(
+            "vmp_name", "STRING", mode="REQUIRED", description="VMP name"
+        ),
+        bigquery.SchemaField(
+            "ingredients",
+            "RECORD",
+            mode="REPEATED",
+            description="Ingredient calculation information",
+            fields=[
+                bigquery.SchemaField(
+                    "ingredient_code", "STRING", mode="REQUIRED", description="Ingredient code"
+                ),
+                bigquery.SchemaField(
+                    "ingredient_name", "STRING", mode="REQUIRED", description="Ingredient name"
+                ),
+                bigquery.SchemaField(
+                    "can_calculate_ingredient", "BOOLEAN", mode="REQUIRED", description="Whether ingredient calculation is possible for this ingredient"
+                ),
+                bigquery.SchemaField(
+                    "ingredient_calculation_logic", "STRING", mode="REQUIRED", description="Explanation of the ingredient calculation logic or reason why calculation is not possible"
+                ),
+                bigquery.SchemaField(
+                    "strength_numerator_value", "FLOAT", mode="NULLABLE", description="Strength numerator value (only populated when calculation is possible)"
+                ),
+                bigquery.SchemaField(
+                    "strength_numerator_unit", "STRING", mode="NULLABLE", description="Strength numerator unit (only populated when calculation is possible)"
+                ),
+                bigquery.SchemaField(
+                    "numerator_basis_value", "FLOAT", mode="NULLABLE", description="Strength numerator value converted to basis units (only populated when calculation is possible)"
+                ),
+                bigquery.SchemaField(
+                    "numerator_basis_unit", "STRING", mode="NULLABLE", description="Basis unit for strength numerator (only populated when calculation is possible)"
+                ),
+                bigquery.SchemaField(
+                    "strength_denominator_value", "FLOAT", mode="NULLABLE", description="Strength denominator value (only populated when calculation is possible and denominator exists)"
+                ),
+                bigquery.SchemaField(
+                    "strength_denominator_unit", "STRING", mode="NULLABLE", description="Strength denominator unit (only populated when calculation is possible and denominator exists)"
+                ),
+                bigquery.SchemaField(
+                    "denominator_basis_value", "FLOAT", mode="NULLABLE", description="Strength denominator value converted to basis units (only populated when calculation is possible and denominator exists)"
+                ),
+                bigquery.SchemaField(
+                    "denominator_basis_unit", "STRING", mode="NULLABLE", description="Basis unit for strength denominator (only populated when calculation is possible and denominator exists)"
+                ),
+            ],
         ),
     ],
     cluster_fields=["vmp_code"],
