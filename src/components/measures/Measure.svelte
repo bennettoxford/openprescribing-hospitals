@@ -878,10 +878,11 @@
                                     group-hover:scale-100 w-[250px] -translate-x-1/2 left-1/2 top-8 mt-1 rounded-md shadow-lg bg-white 
                                     ring-1 ring-black ring-opacity-5 p-4">
                             <p class="text-sm text-gray-500">
-                                {percentilesDisabled 
-                                    ? 'Percentiles are disabled when there are fewer than 30 trusts in a measure.'
-                                    : 'Percentiles show variation in this measure across Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#what-are-percentile-charts" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.'
-                                }
+                                {#if percentilesDisabled}
+                                    Percentiles are disabled when there are fewer than 30 trusts in a measure.
+                                {:else}
+                                    Percentiles show variation in this measure across Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#what-are-percentile-charts" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.
+                                {/if}
                             </p>
                         </div>
                     </div>
