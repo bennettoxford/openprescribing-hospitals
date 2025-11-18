@@ -34,6 +34,7 @@ from pipeline.setup.config import (
     DOSE_CALCULATION_LOGIC_TABLE_ID,
     INGREDIENT_CALCULATION_LOGIC_TABLE_ID,
     DDD_CALCULATION_LOGIC_TABLE_ID,
+    VMP_EXPRESSED_AS_TABLE_ID,
 )
 
 
@@ -1464,4 +1465,62 @@ DDD_CALCULATION_LOGIC_TABLE_SPEC = TableSpec(
         ),
     ],
     cluster_fields=["vmp_code"],
+)
+
+
+VMP_EXPRESSED_AS_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=VMP_EXPRESSED_AS_TABLE_ID,
+    description="For VMPs with a DDD comment indicating that the DDD is expressed as strength of something other than the active ingredient, this table contains the details of the expressed as strength",
+    schema=[
+        bigquery.SchemaField(
+            "vmp_id", 
+            "STRING",
+            mode="REQUIRED",
+            description="VMP ID"
+        ),
+        bigquery.SchemaField(
+            "vmp_name", 
+            "STRING",
+            mode="REQUIRED",
+            description="VMP name"
+        ),
+        bigquery.SchemaField(
+            "ddd_comment", 
+            "STRING",
+            mode="REQUIRED",
+            description="DDD comment, which will indicate what the DDD is expressed as. E.g. Expressed as levofolinic acid."
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strnt_nmrtr", 
+                        "FLOAT",
+                        mode="REQUIRED",
+                        description="Expressed as strength numerator. This is a manually specified value, identified from external sources for product characteristics"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strnt_nmrtr_uom", 
+            "STRING",
+            mode="REQUIRED",
+            description="Expressed as strength numerator unit of measure"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strnt_nmrtr_uom_name", 
+            "STRING",
+            mode="REQUIRED",
+            description="Expressed as strength numerator unit of measure name"
+        ),
+        bigquery.SchemaField(
+            "ingredient_code", 
+            "STRING",
+            mode="REQUIRED",
+            description="Ingredient code for the dm+d ingredient that the expressed as strength refers to"
+        ),
+        bigquery.SchemaField(
+            "ingredient_name", 
+            "STRING",
+            mode="REQUIRED",
+            description="Name of the dm+d ingredient that the expressed as strength refers to"
+        ),
+    ],
 )
