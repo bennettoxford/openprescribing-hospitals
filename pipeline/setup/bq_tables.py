@@ -1462,6 +1462,36 @@ DDD_CALCULATION_LOGIC_TABLE_SPEC = TableSpec(
         ),
         bigquery.SchemaField(
             "refers_to_ingredient", "STRING", mode="NULLABLE", description="The ingredient that the DDD refers to (only populated when selected_ddd_comment contains 'refers to')"
+        ),    
+        bigquery.SchemaField(
+            "expressed_as_strnt_nmrtr", "FLOAT", mode="NULLABLE", description="Expressed as strength numerator value (only populated for VMPs with expressed as DDD comments)"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strnt_nmrtr_uom", "STRING", mode="NULLABLE", description="Expressed as strength numerator unit of measure identifier (only populated for VMPs with expressed as DDD comments)"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strnt_nmrtr_uom_name", "STRING", mode="NULLABLE", description="Expressed as strength numerator unit of measure name (only populated for VMPs with expressed as DDD comments)"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strnt_dnmtr", "FLOAT", mode="NULLABLE", description="Expressed as strength denominator value (only populated for VMPs with expressed as DDD comments when denominator exists)"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strnt_dnmtr_uom", "STRING", mode="NULLABLE", description="Expressed as strength denominator unit of measure identifier (only populated for VMPs with expressed as DDD comments when denominator exists)"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strnt_dnmtr_uom_name", "STRING", mode="NULLABLE", description="Expressed as strength denominator unit of measure name (only populated for VMPs with expressed as DDD comments when denominator exists)"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strnt_dnmtr_basis_val", "FLOAT", mode="NULLABLE", description="Expressed as strength denominator value converted to basis units (only populated for VMPs with expressed as DDD comments when denominator exists)"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strnt_dnmtr_basis_uom", "STRING", mode="NULLABLE", description="Expressed as strength denominator basis unit (only populated for VMPs with expressed as DDD comments when denominator exists)"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_ingredient_code", "STRING", mode="NULLABLE", description="Expressed as ingredient code (only populated for VMPs with expressed as DDD comments)"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_ingredient_name", "STRING", mode="NULLABLE", description="Expressed as ingredient name (only populated for VMPs with expressed as DDD comments)"
         ),
     ],
     cluster_fields=["vmp_code"],
