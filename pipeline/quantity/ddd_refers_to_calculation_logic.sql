@@ -181,7 +181,12 @@ calculation_determination AS (
     ua.atcs,
     ua.routes,
     ua.who_ddds,
-    ua.ingredients_info
+    ua.ingredients_info,
+    NULL AS expressed_as_strnt_nmrtr,
+    NULL AS expressed_as_strnt_nmrtr_uom,
+    NULL AS expressed_as_strnt_nmrtr_uom_name,
+    NULL AS expressed_as_ingredient_code,
+    NULL AS expressed_as_ingredient_name
   FROM unit_analysis ua
 )
 
@@ -203,7 +208,12 @@ SELECT
   who_ddds,
   ingredients_info,
   selected_ddd_comment,
-  refers_to_ingredient
+  refers_to_ingredient,
+  expressed_as_strnt_nmrtr,
+  expressed_as_strnt_nmrtr_uom,
+  expressed_as_strnt_nmrtr_uom_name,
+  expressed_as_ingredient_code,
+  expressed_as_ingredient_name
 FROM calculation_determination
 ) AS source
 ON target.vmp_code = source.vmp_code
