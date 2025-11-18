@@ -4,7 +4,7 @@ WITH
 -- Find VMPs that couldn't be calculated due to "expressed as" comments
 vmps_with_expressed_as AS (
   SELECT 
-    ddd_logic.* EXCEPT(expressed_as_strnt_nmrtr, expressed_as_strnt_nmrtr_uom, expressed_as_strnt_nmrtr_uom_name, expressed_as_ingredient_code, expressed_as_ingredient_name),
+    ddd_logic.* EXCEPT(expressed_as_strnt_nmrtr, expressed_as_strnt_nmrtr_uom, expressed_as_strnt_nmrtr_uom_name, expressed_as_strnt_dnmtr, expressed_as_strnt_dnmtr_uom, expressed_as_strnt_dnmtr_uom_name, expressed_as_strnt_dnmtr_basis_val, expressed_as_strnt_dnmtr_basis_uom, expressed_as_ingredient_code, expressed_as_ingredient_name),
     expressed.vmp_id AS expressed_vmp_id,
     expressed.vmp_name AS expressed_vmp_name,
     expressed.ddd_comment AS expressed_ddd_comment,
@@ -41,17 +41,36 @@ ingredient_matching AS (
   FROM vmps_with_expressed_as vwea
 ),
 
+-- Get denominator information for expressed_as ingredient from VMP table
+expressed_as_with_denominator AS (
+  SELECT
+    im.*,
+    vmp_ing.strnt_dnmtr_basis_val AS expressed_as_strnt_dnmtr_basis_val,
+    vmp_ing.strnt_dnmtr_basis_uom AS expressed_as_strnt_dnmtr_basis_uom,
+    vmp_ing.strnt_dnmtr_val AS expressed_as_strnt_dnmtr,
+    vmp_ing.strnt_dnmtr_uom_name AS expressed_as_strnt_dnmtr_uom_name
+  FROM ingredient_matching im
+  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_TABLE_ID }}` vmp
+    ON im.vmp_code = vmp.vmp_code
+  LEFT JOIN UNNEST(vmp.ingredients) AS vmp_ing
+    ON vmp_ing.ingredient_code = im.expressed_ingredient_code
+  WHERE im.expressed_ingredient_in_vmp = TRUE
+),
 -- Convert expressed_as unit to basis unit
 expressed_as_with_basis AS (
   SELECT
-    im.*,
+    eawd.*,
     unit_conv.basis AS expressed_as_basis_unit,
     unit_conv.conversion_factor AS expressed_as_conversion_factor,
-    im.expressed_as_strnt_nmrtr * COALESCE(unit_conv.conversion_factor, 1.0) AS expressed_as_strnt_nmrtr_basis_val
-  FROM ingredient_matching im
+    eawd.expressed_as_strnt_nmrtr * COALESCE(unit_conv.conversion_factor, 1.0) AS expressed_as_strnt_nmrtr_basis_val,
+    -- Get denominator unit identifier if needed
+    denom_unit_conv.unit_id AS expressed_as_strnt_dnmtr_uom
+  FROM expressed_as_with_denominator eawd
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` unit_conv
-    ON im.expressed_as_strnt_nmrtr_uom_name = unit_conv.unit
-  WHERE im.expressed_ingredient_in_vmp = TRUE
+    ON eawd.expressed_as_strnt_nmrtr_uom_name = unit_conv.unit
+  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` denom_unit_conv
+    ON eawd.expressed_as_strnt_dnmtr_uom_name = denom_unit_conv.unit
+  WHERE eawd.expressed_ingredient_in_vmp = TRUE
 ),
 
 -- Get WHO route codes for matching
@@ -98,6 +117,11 @@ unit_analysis AS (
     da.expressed_as_strnt_nmrtr_uom_name,
     da.expressed_as_basis_unit,
     da.expressed_as_strnt_nmrtr_basis_val,
+    da.expressed_as_strnt_dnmtr,
+    da.expressed_as_strnt_dnmtr_uom,
+    da.expressed_as_strnt_dnmtr_uom_name,
+    da.expressed_as_strnt_dnmtr_basis_val,
+    da.expressed_as_strnt_dnmtr_basis_uom,
     da.expressed_ingredient_code,
     da.expressed_ingredient_name,
     da.expressed_ddd_comment,
@@ -157,6 +181,11 @@ calculation_determination AS (
     ua.expressed_as_strnt_nmrtr AS expressed_as_strnt_nmrtr,
     ua.expressed_as_strnt_nmrtr_uom AS expressed_as_strnt_nmrtr_uom,
     ua.expressed_as_strnt_nmrtr_uom_name AS expressed_as_strnt_nmrtr_uom_name,
+    ua.expressed_as_strnt_dnmtr AS expressed_as_strnt_dnmtr,
+    ua.expressed_as_strnt_dnmtr_uom AS expressed_as_strnt_dnmtr_uom,
+    ua.expressed_as_strnt_dnmtr_uom_name AS expressed_as_strnt_dnmtr_uom_name,
+    ua.expressed_as_strnt_dnmtr_basis_val AS expressed_as_strnt_dnmtr_basis_val,
+    ua.expressed_as_strnt_dnmtr_basis_uom AS expressed_as_strnt_dnmtr_basis_uom,
     ua.expressed_ingredient_code AS expressed_as_ingredient_code,
     ua.expressed_ingredient_name AS expressed_as_ingredient_name,
     ua.scmd_uom_id,
@@ -192,6 +221,11 @@ SELECT
   expressed_as_strnt_nmrtr,
   expressed_as_strnt_nmrtr_uom,
   expressed_as_strnt_nmrtr_uom_name,
+  expressed_as_strnt_dnmtr,
+  expressed_as_strnt_dnmtr_uom,
+  expressed_as_strnt_dnmtr_uom_name,
+  expressed_as_strnt_dnmtr_basis_val,
+  expressed_as_strnt_dnmtr_basis_uom,
   expressed_as_ingredient_code,
   expressed_as_ingredient_name
 FROM calculation_determination
@@ -209,6 +243,11 @@ WHEN MATCHED THEN
     expressed_as_strnt_nmrtr = source.expressed_as_strnt_nmrtr,
     expressed_as_strnt_nmrtr_uom = source.expressed_as_strnt_nmrtr_uom,
     expressed_as_strnt_nmrtr_uom_name = source.expressed_as_strnt_nmrtr_uom_name,
+    expressed_as_strnt_dnmtr = source.expressed_as_strnt_dnmtr,
+    expressed_as_strnt_dnmtr_uom = source.expressed_as_strnt_dnmtr_uom,
+    expressed_as_strnt_dnmtr_uom_name = source.expressed_as_strnt_dnmtr_uom_name,
+    expressed_as_strnt_dnmtr_basis_val = source.expressed_as_strnt_dnmtr_basis_val,
+    expressed_as_strnt_dnmtr_basis_uom = source.expressed_as_strnt_dnmtr_basis_uom,
     expressed_as_ingredient_code = source.expressed_as_ingredient_code,
     expressed_as_ingredient_name = source.expressed_as_ingredient_name
 
