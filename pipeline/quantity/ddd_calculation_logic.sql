@@ -263,7 +263,7 @@ SELECT
   v.who_ddds,
   v.ingredients_info,
   dcs.selected_ddd_comment,
-  CAST(NULL AS STRING) AS refers_to_ingredient
+  CAST(NULL AS STRING) AS refers_to_ingredient,
   CAST(NULL AS FLOAT64) AS expressed_as_strnt_nmrtr,
   CAST(NULL AS STRING) AS expressed_as_strnt_nmrtr_uom,
   CAST(NULL AS STRING) AS expressed_as_strnt_nmrtr_uom_name,
