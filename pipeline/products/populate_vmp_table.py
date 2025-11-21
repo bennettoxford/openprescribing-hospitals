@@ -33,9 +33,9 @@ def validate_single_unit_per_vmp():
       SELECT
         vmp_code,
         vmp_name,
-        ARRAY_AGG(DISTINCT uom_id ORDER BY uom_id) AS distinct_uom_ids,
-        ARRAY_AGG(DISTINCT uom_name ORDER BY uom_name) AS distinct_uom_names,
-        COUNT(DISTINCT uom_id) AS num_distinct_units
+        ARRAY_AGG(DISTINCT normalised_uom_id ORDER BY normalised_uom_id) AS distinct_uom_ids,
+        ARRAY_AGG(DISTINCT normalised_uom_name ORDER BY normalised_uom_name) AS distinct_uom_names,
+        COUNT(DISTINCT normalised_uom_id) AS num_distinct_units
       FROM `{PROJECT_ID}.{DATASET_ID}.{SCMD_PROCESSED_TABLE_ID}`
       GROUP BY vmp_code, vmp_name
       HAVING num_distinct_units > 1
@@ -65,7 +65,7 @@ def validate_single_unit_per_vmp():
           SELECT vmp_code
           FROM `{PROJECT_ID}.{DATASET_ID}.{SCMD_PROCESSED_TABLE_ID}`
           GROUP BY vmp_code
-          HAVING COUNT(DISTINCT uom_id) > 1
+          HAVING COUNT(DISTINCT normalised_uom_id) > 1
         )
         """
         total_count = list(client.query(total_violations_query).result())[0].count
