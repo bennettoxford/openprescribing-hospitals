@@ -315,7 +315,7 @@ def create_units_dict() -> Dict:
         # WHO
         "mu": {
             "basis": "unit",
-            "conversion_factor": 1e-06,
+            "conversion_factor": 1000000,
             "id": None,
             "basis_id": "767525000",
         },
@@ -502,7 +502,7 @@ def create_units_dict() -> Dict:
         # WHO
         "tu": {
             "basis": "unit",
-            "conversion_factor": 0.001,
+            "conversion_factor": 1000,
             "id": None,
             "basis_id": "767525000",
         },
