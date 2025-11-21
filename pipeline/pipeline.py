@@ -41,7 +41,6 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
         import_atc_ddd()
         import_mappings()
         process_scmd()
-        populate_ddd_refers_to_table()
         populate_vmp_table()
         check_quantity_calculations()
         calculate_quantities()
