@@ -7,7 +7,7 @@ from pipeline.quantity.dose_calculation_logic import dose_calculation_logic
 from pipeline.quantity.ingredient_calculation_logic import ingredient_calculation_logic
 from pipeline.quantity.ddd_calculation_logic import ddd_calculation_logic
 from pipeline.atc_ddd.ddd_comments.populate_ddd_refers_to import populate_ddd_refers_to_table
-from pipeline.quantity.ddd_comment_handling import ddd_comment_handling
+from pipeline.quantity.ddd_comment_handling_refers_to import ddd_comment_handling_refers_to
 
 
 @flow(name="Check Quantity Calculations")
@@ -19,7 +19,7 @@ def check_quantity_calculations():
     ingredient_calculation_logic()
     ddd_calculation_logic()
     populate_ddd_refers_to_table()
-    ddd_comment_handling()
+    ddd_comment_handling_refers_to()
 
 
 if __name__ == "__main__":

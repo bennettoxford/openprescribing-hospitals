@@ -262,6 +262,7 @@ SELECT
   v.routes,
   v.who_ddds,
   v.ingredients_info,
-  dcs.selected_ddd_comment
+  dcs.selected_ddd_comment,
+  CAST(NULL AS STRING) AS refers_to_ingredient
 FROM vmp_enriched v
 LEFT JOIN ddd_calculation_status dcs ON v.vmp_code = dcs.vmp_code

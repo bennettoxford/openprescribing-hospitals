@@ -13,7 +13,7 @@ vmps_with_refers_to AS (
 -- Join with the refers_to table to get the target ingredients
 vmps_with_refers_to_mapping AS (
   SELECT
-    vwrt.*,
+    vwrt.* EXCEPT(refers_to_ingredient),
     refers.refers_to_ingredient,
     refers.dmd_ingredients,
     ARRAY(
@@ -76,7 +76,8 @@ unit_analysis AS (
     da.vmp_name,
     da.vmp_ingredient_matches_refers_to,
     da.matching_ingredients,
-    da.refers_to_ingredient,
+    -- Get the matching ingredient name (we take the first one as there should only be one)
+    (SELECT ingredient_name FROM UNNEST(da.matching_ingredients) LIMIT 1) AS refers_to_ingredient,
     da.selected_ddd_comment,
     da.scmd_uom_id,
     da.scmd_uom_name,
@@ -92,12 +93,9 @@ unit_analysis AS (
     (SELECT ddd_unit FROM UNNEST(da.matching_route_ddds) LIMIT 1) AS selected_ddd_unit,
     (SELECT ddd_route_code FROM UNNEST(da.matching_route_ddds) LIMIT 1) AS selected_ddd_route_code,
     unit_ddd.basis AS selected_ddd_basis_unit,
-    -- Check if ingredient basis matches DDD basis
-    CASE
-      WHEN ARRAY_LENGTH(da.matching_ingredients) = 1 
-      THEN (SELECT ingredient_basis_unit FROM UNNEST(da.matching_ingredients) LIMIT 1) = unit_ddd.basis
-      ELSE FALSE
-    END AS ingredient_basis_matches_ddd
+    -- Check if the single matching ingredient basis unit matches DDD basis
+    (ARRAY_LENGTH(da.matching_ingredients) = 1
+      AND (SELECT ingredient_basis_unit FROM UNNEST(da.matching_ingredients) LIMIT 1) = unit_ddd.basis) AS ingredient_basis_matches_ddd
   FROM ddd_analysis da
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` unit_ddd
     ON (SELECT ddd_unit FROM UNNEST(da.matching_route_ddds) LIMIT 1) = unit_ddd.unit
@@ -118,14 +116,20 @@ calculation_determination AS (
       WHEN NOT ua.vmp_ingredient_matches_refers_to THEN 'Not calculated: DDD refers to ingredient not found in VMP'
       WHEN ARRAY_LENGTH(ua.matching_route_ddds) = 0 THEN 'Not calculated: No matching routes between VMP and DDD values'
       WHEN NOT ua.all_matching_ddds_same THEN 'Not calculated: Multiple different DDD values for matching routes'
-      WHEN ua.ingredient_basis_matches_ddd THEN CONCAT('Ingredient quantity (Refers to ', ua.refers_to_ingredient, ') / DDD')
-      ELSE 'Not calculated: Unit for ingredient DDD refers to does not match DDD unit'
+      WHEN ua.ingredient_basis_matches_ddd THEN 
+        CONCAT(
+          'Ingredient quantity (refers to ', 
+          LOWER(ua.refers_to_ingredient), 
+          ') / DDD'
+        )
+      ELSE 'Not calculated: The matching ingredient the DDD refers to does not have a basis unit that matches DDD unit'
     END AS ddd_calculation_logic,
     CASE WHEN ua.ingredient_basis_matches_ddd THEN ua.selected_ddd_value ELSE NULL END AS selected_ddd_value,
     CASE WHEN ua.ingredient_basis_matches_ddd THEN ua.selected_ddd_unit ELSE NULL END AS selected_ddd_unit,
     CASE WHEN ua.ingredient_basis_matches_ddd THEN ua.selected_ddd_basis_unit ELSE NULL END AS selected_ddd_basis_unit,
     CASE WHEN ua.ingredient_basis_matches_ddd THEN ua.selected_ddd_route_code ELSE NULL END AS selected_ddd_route_code,
     ua.selected_ddd_comment,
+    ua.refers_to_ingredient,
     ua.scmd_uom_id,
     ua.scmd_uom_name,
     ua.scmd_basis_uom_id,
@@ -154,7 +158,8 @@ SELECT
   routes,
   who_ddds,
   ingredients_info,
-  selected_ddd_comment
+  selected_ddd_comment,
+  refers_to_ingredient
 FROM calculation_determination
 ) AS source
 ON target.vmp_code = source.vmp_code
@@ -166,5 +171,6 @@ WHEN MATCHED THEN
     selected_ddd_unit = source.selected_ddd_unit,
     selected_ddd_basis_unit = source.selected_ddd_basis_unit,
     selected_ddd_route_code = source.selected_ddd_route_code,
-    selected_ddd_comment = source.selected_ddd_comment
+    selected_ddd_comment = source.selected_ddd_comment,
+    refers_to_ingredient = source.refers_to_ingredient
 

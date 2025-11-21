@@ -1459,6 +1459,9 @@ DDD_CALCULATION_LOGIC_TABLE_SPEC = TableSpec(
         bigquery.SchemaField(
             "selected_ddd_comment", "STRING", mode="NULLABLE", description="Comment from the selected DDD (only populated for VMPs with DDD comments)"
         ),
+        bigquery.SchemaField(
+            "refers_to_ingredient", "STRING", mode="NULLABLE", description="The ingredient that the DDD refers to (only populated when selected_ddd_comment contains 'refers to')"
+        ),
     ],
     cluster_fields=["vmp_code"],
 )
