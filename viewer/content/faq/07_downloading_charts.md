@@ -54,6 +54,8 @@ This file is included when percentiles are available (only for analyses run acro
 
 ### Data Attribution
 
-You are welcome to use data or graphs from this site in your academic output with attribution. Please cite **OpenPrescribing.net, Bennett Institute for Applied Data Science, University of Oxford, 2025** as the source for academic attribution.
+You are welcome to use data or graphs from this site in your academic output with attribution. Please cite:
+
+**Fisher L, Wood C, Brown A, Croker R, Black S, Curtis HJ, et al. OpenPrescribing Hospitals: An open access analytics platform for hospital medicines use in England. medRxiv; 2025. https://doi.org/10.1101/2025.11.13.25340060.**
 
 If you use data or images from this site online or in a report, please link back to us. Your readers will then be able to see live updates to the data you are interested in, and explore other queries for themselves.
