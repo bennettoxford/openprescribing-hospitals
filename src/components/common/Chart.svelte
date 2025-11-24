@@ -656,8 +656,9 @@
         <div class="text-sm">
           <p class="font-medium text-blue-800 mb-2">Data Attribution:</p>
           <div class="text-blue-700 text-xs space-y-1">
-            <p>You are welcome to use this data in your academic output with attribution. Please cite <span class="font-semibold text-blue-800">OpenPrescribing.net, Bennett Institute for Applied Data Science, University of Oxford, 2025</span> as the source for academic attribution.</p>
-            <p>If you use data or images from this site online or in a report, please link back to us. Your readers will then be able to see live updates to the data you are interested in, and explore other queries for themselves.</p>
+            <p>You are welcome to use this data in your academic output with attribution. Please cite:</p>
+            <p>Fisher L, Wood C, Brown A, Croker R, Black S, Curtis HJ, et al. OpenPrescribing Hospitals: An open access analytics platform for hospital medicines use in England. medRxiv; 2025. <a href="https://doi.org/10.1101/2025.11.13.25340060" class="underline" target="_blank" rel="noopener noreferrer">https://doi.org/10.1101/2025.11.13.25340060</a>.</p>
+            <p class="mt-2">If you use data or images from this site online or in a report, please link back to us. Your readers will then be able to see live updates to the data you are interested in, and explore other queries for themselves.</p>
           </div>
         </div>
       </div>
