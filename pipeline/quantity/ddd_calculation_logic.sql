@@ -43,7 +43,10 @@ vmp_enriched AS (
         ing.ingredient_code,
         ing.ingredient_name,
         ing.strnt_nmrtr_uom_name AS ingredient_unit,
-        ing.strnt_nmrtr_basis_uom AS ingredient_basis_unit
+        CASE
+          WHEN ing.strnt_dnmtr_val IS NOT NULL THEN ing.strnt_dnmtr_basis_uom
+          ELSE ing.strnt_nmrtr_basis_uom
+        END AS ingredient_basis_unit
       FROM UNNEST(vmp.ingredients) AS ing
       ORDER BY ing.ingredient_name
     ) AS ingredients_info
