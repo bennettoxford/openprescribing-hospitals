@@ -176,6 +176,12 @@ unit_and_ingredient_analysis AS (
       ) = uc.selected_ddd_basis_unit
       ELSE FALSE
     END AS ingredient_basis_matches_ddd,
+    -- Check if the DDD basis unit matches the SCMD basis unit
+    CASE
+      WHEN uc.selected_ddd_basis_unit IS NOT NULL AND uc.scmd_basis_uom_name IS NOT NULL
+      THEN uc.selected_ddd_basis_unit = uc.scmd_basis_uom_name
+      ELSE FALSE
+    END AS ingredient_basis_matches_scmd,
     -- Check for missing ingredient units
     EXISTS (
       SELECT 1 
@@ -194,41 +200,54 @@ ddd_calculation_status AS (
     CASE
       WHEN drs.route_match_ok = FALSE THEN FALSE
       WHEN uc.has_compatible_units = TRUE THEN TRUE
-      WHEN uia.has_single_ingredient AND uia.ingredient_basis_matches_ddd THEN TRUE
+      WHEN uia.has_single_ingredient 
+        AND uia.ingredient_basis_matches_ddd 
+        AND uia.ingredient_basis_matches_scmd THEN TRUE
       ELSE FALSE
     END AS can_calculate_ddd,
     CASE
       WHEN drs.route_match_ok = FALSE THEN CONCAT('Not calculated: ', drs.route_matching_issue)
       WHEN uc.has_compatible_units = TRUE THEN 'SCMD quantity / DDD'
-      WHEN uia.has_single_ingredient AND uia.ingredient_basis_matches_ddd THEN 'Ingredient quantity / DDD'
+      WHEN uia.has_single_ingredient 
+        AND uia.ingredient_basis_matches_ddd 
+        AND uia.ingredient_basis_matches_scmd THEN 'Ingredient quantity / DDD'
       WHEN uia.has_missing_ingredient_units THEN 'Not calculated: missing ingredient unit information, cannot calculate'
-      WHEN NOT uia.has_ingredients THEN 'Not calculated: DDD unit incompatible with SCMD unit. No ingredients found.'
-      WHEN NOT uia.has_single_ingredient THEN 'Not calculated: DDD unit incompatible with SCMD unit. Multiple ingredients found, fallback not possible.'
-      WHEN NOT uia.ingredient_basis_matches_ddd THEN 'Not calculated: DDD unit incompatible with SCMD unit. Ingredient unit does not match DDD unit.'
+      WHEN NOT uia.has_ingredients THEN 'Not calculated: DDD unit incompatible with SCMD unit. No ingredients found'
+      WHEN NOT uia.has_single_ingredient THEN 'Not calculated: DDD unit incompatible with SCMD unit. Multiple ingredients found, fallback not possible'
+      WHEN NOT uia.ingredient_basis_matches_ddd THEN 'Not calculated: DDD unit incompatible with ingredient unit'
+      WHEN NOT uia.ingredient_basis_matches_scmd THEN 'Not calculated: DDD unit incompatible with SCMD unit'
       ELSE 'Not calculated: unknown route or unit compatibility issue'
     END AS ddd_calculation_logic,
     CASE
       WHEN drs.route_match_ok = FALSE THEN NULL
       WHEN uc.has_compatible_units = TRUE THEN drs.selected_ddd_value
-      WHEN uia.has_single_ingredient AND uia.ingredient_basis_matches_ddd THEN drs.selected_ddd_value
+      WHEN uia.has_single_ingredient 
+        AND uia.ingredient_basis_matches_ddd 
+        AND uia.ingredient_basis_matches_scmd THEN drs.selected_ddd_value
       ELSE NULL
     END AS selected_ddd_value,
     CASE
       WHEN drs.route_match_ok = FALSE THEN NULL
       WHEN uc.has_compatible_units = TRUE THEN drs.selected_ddd_unit
-      WHEN uia.has_single_ingredient AND uia.ingredient_basis_matches_ddd THEN drs.selected_ddd_unit
+      WHEN uia.has_single_ingredient 
+        AND uia.ingredient_basis_matches_ddd 
+        AND uia.ingredient_basis_matches_scmd THEN drs.selected_ddd_unit
       ELSE NULL
     END AS selected_ddd_unit,
     CASE
       WHEN drs.route_match_ok = FALSE THEN NULL
       WHEN uc.has_compatible_units = TRUE THEN drs.selected_ddd_route_code
-      WHEN uia.has_single_ingredient AND uia.ingredient_basis_matches_ddd THEN drs.selected_ddd_route_code
+      WHEN uia.has_single_ingredient 
+        AND uia.ingredient_basis_matches_ddd 
+        AND uia.ingredient_basis_matches_scmd THEN drs.selected_ddd_route_code
       ELSE NULL
     END AS selected_ddd_route_code,
     CASE
       WHEN drs.route_match_ok = FALSE THEN NULL
       WHEN uc.has_compatible_units = TRUE THEN uc.selected_ddd_basis_unit
-      WHEN uia.has_single_ingredient AND uia.ingredient_basis_matches_ddd THEN uia.selected_ddd_basis_unit
+      WHEN uia.has_single_ingredient 
+        AND uia.ingredient_basis_matches_ddd 
+        AND uia.ingredient_basis_matches_scmd THEN uia.selected_ddd_basis_unit
       ELSE NULL
     END AS selected_ddd_basis_unit,
     drs.selected_ddd_comment
