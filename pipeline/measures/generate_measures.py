@@ -2,9 +2,10 @@ import logging
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("prefect.client").setLevel(logging.WARNING)
 
-
 from prefect import flow, get_run_logger
+from pipeline.utils.utils import setup_django_environment
 
+setup_django_environment()
 from viewer.management.commands.import_measures import Command as ImportMeasuresCommand
 from viewer.management.commands.get_measure_vmps import Command as GetMeasureVMPsCommand
 from viewer.management.commands.compute_measures import Command as ComputeMeasuresCommand

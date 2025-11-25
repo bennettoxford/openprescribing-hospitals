@@ -2,9 +2,10 @@ import logging
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("prefect.client").setLevel(logging.WARNING)
 
-
 from prefect import flow, get_run_logger
+from pipeline.utils.utils import setup_django_environment
 
+setup_django_environment()
 from viewer.management.commands.update_org_submission_cache import update_org_submission_cache
 
 @flow(name="Update Organisation Submission Cache")
