@@ -17,7 +17,7 @@ from pipeline.load_data.load_ddd_quantity import load_ddd_quantity
 
 
 @flow(name="Load Data")
-def load_data(last_import_result):
+def load_data():
     logger = get_run_logger()
     logger.info("Starting Load Data")
 
