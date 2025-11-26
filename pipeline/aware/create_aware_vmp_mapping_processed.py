@@ -1,5 +1,6 @@
 from prefect import flow, task, get_run_logger
 from google.api_core.exceptions import NotFound
+from pathlib import Path
 
 from pipeline.utils.utils import execute_bigquery_query_from_sql_file, get_bigquery_client, validate_table_schema
 from pipeline.setup.bq_tables import AWARE_VMP_MAPPING_PROCESSED_TABLE_SPEC
