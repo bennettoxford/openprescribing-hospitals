@@ -69,6 +69,25 @@ ddd_analysis AS (
   FROM ingredient_matching im
 ),
 
+-- Get ingredient details for matching ingredients
+matching_vmp_ingredient_details AS (
+  SELECT
+    da.vmp_code,
+    ARRAY_AGG(
+      STRUCT(
+        ing.ingredient_code,
+        ing.strnt_nmrtr_basis_uom,
+        ing.strnt_dnmtr_basis_uom,
+        ing.strnt_dnmtr_val IS NOT NULL AS has_denominator
+      )
+    ) AS vmp_ingredients
+  FROM ddd_analysis da
+  CROSS JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_TABLE_ID }}` v
+  CROSS JOIN UNNEST(v.ingredients) AS ing
+  WHERE v.vmp_code = da.vmp_code
+  GROUP BY da.vmp_code
+),
+
 -- Check unit compatibility
 unit_analysis AS (
   SELECT
@@ -78,6 +97,7 @@ unit_analysis AS (
     da.matching_ingredients,
     -- Get the matching ingredient name (we take the first one as there should only be one)
     (SELECT ingredient_name FROM UNNEST(da.matching_ingredients) LIMIT 1) AS refers_to_ingredient,
+    (SELECT ingredient_code FROM UNNEST(da.matching_ingredients) LIMIT 1) AS refers_to_ingredient_code,
     da.selected_ddd_comment,
     da.scmd_uom_id,
     da.scmd_uom_name,
@@ -93,10 +113,34 @@ unit_analysis AS (
     (SELECT ddd_unit FROM UNNEST(da.matching_route_ddds) LIMIT 1) AS selected_ddd_unit,
     (SELECT ddd_route_code FROM UNNEST(da.matching_route_ddds) LIMIT 1) AS selected_ddd_route_code,
     unit_ddd.basis AS selected_ddd_basis_unit,
-    -- Check if the single matching ingredient basis unit matches DDD basis
-    (ARRAY_LENGTH(da.matching_ingredients) = 1
-      AND (SELECT ingredient_basis_unit FROM UNNEST(da.matching_ingredients) LIMIT 1) = unit_ddd.basis) AS ingredient_basis_matches_ddd
+    -- Check if units match correctly based on whether there's a denominator
+    CASE
+      WHEN ARRAY_LENGTH(da.matching_ingredients) != 1 THEN FALSE
+      WHEN (
+        SELECT vmp_ing.has_denominator
+        FROM UNNEST(vid.vmp_ingredients) AS vmp_ing
+        WHERE vmp_ing.ingredient_code = (SELECT ingredient_code FROM UNNEST(da.matching_ingredients) LIMIT 1)
+        LIMIT 1
+      ) THEN
+        -- If there's a denominator: check ing denominator basis = SCMD basis AND ing numerator basis = DDD basis
+        (
+          SELECT vmp_ing.strnt_dnmtr_basis_uom = da.scmd_basis_uom_name 
+            AND vmp_ing.strnt_nmrtr_basis_uom = unit_ddd.basis
+          FROM UNNEST(vid.vmp_ingredients) AS vmp_ing
+          WHERE vmp_ing.ingredient_code = (SELECT ingredient_code FROM UNNEST(da.matching_ingredients) LIMIT 1)
+          LIMIT 1
+        )
+      ELSE
+        -- If there's no denominator: check ing numerator basis = DDD basis
+        (
+          SELECT vmp_ing.strnt_nmrtr_basis_uom = unit_ddd.basis
+          FROM UNNEST(vid.vmp_ingredients) AS vmp_ing
+          WHERE vmp_ing.ingredient_code = (SELECT ingredient_code FROM UNNEST(da.matching_ingredients) LIMIT 1)
+          LIMIT 1
+        )
+    END AS ingredient_basis_matches_ddd
   FROM ddd_analysis da
+  LEFT JOIN matching_vmp_ingredient_details vid ON da.vmp_code = vid.vmp_code
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` unit_ddd
     ON (SELECT ddd_unit FROM UNNEST(da.matching_route_ddds) LIMIT 1) = unit_ddd.unit
   WHERE ARRAY_LENGTH(da.matching_route_ddds) > 0
