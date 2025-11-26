@@ -105,7 +105,8 @@ def extract_ddd_data_by_vmps(
         ods_code,
         ddd_quantity,
         ddd_value,
-        ddd_unit
+        ddd_unit,
+        ingredient_code
     FROM `{DDD_QUANTITY_TABLE_SPEC.full_table_id}`
     WHERE ddd_quantity IS NOT NULL
     AND vmp_code IN ('{vmp_list_str}')
