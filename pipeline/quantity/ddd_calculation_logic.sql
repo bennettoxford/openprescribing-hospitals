@@ -285,6 +285,16 @@ SELECT
   v.who_ddds,
   v.ingredients_info,
   dcs.selected_ddd_comment,
-  CAST(NULL AS STRING) AS refers_to_ingredient
+  CAST(NULL AS STRING) AS refers_to_ingredient,
+  CAST(NULL AS FLOAT64) AS expressed_as_strnt_nmrtr,
+  CAST(NULL AS STRING) AS expressed_as_strnt_nmrtr_uom,
+  CAST(NULL AS STRING) AS expressed_as_strnt_nmrtr_uom_name,
+  CAST(NULL AS FLOAT64) AS expressed_as_strnt_dnmtr,
+  CAST(NULL AS STRING) AS expressed_as_strnt_dnmtr_uom,
+  CAST(NULL AS STRING) AS expressed_as_strnt_dnmtr_uom_name,
+  CAST(NULL AS FLOAT64) AS expressed_as_strnt_dnmtr_basis_val,
+  CAST(NULL AS STRING) AS expressed_as_strnt_dnmtr_basis_uom,
+  CAST(NULL AS STRING) AS expressed_as_ingredient_code,
+  CAST(NULL AS STRING) AS expressed_as_ingredient_name
 FROM vmp_enriched v
 LEFT JOIN ddd_calculation_status dcs ON v.vmp_code = dcs.vmp_code
