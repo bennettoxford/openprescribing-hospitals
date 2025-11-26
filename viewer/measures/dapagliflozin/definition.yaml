@@ -38,3 +38,6 @@ annotations:
     - date: 2021-02-01
       label: "Dapagliflozin licensed for treatment of chronic heart failure (NICE TA679)"
       colour: "#0090C1"
+    - date: 2025-09-01
+      label: "Dapagliflozin tablets moved from Category C to Category M in the Drug Tariff"
+      colour: "#fb8f2b"
