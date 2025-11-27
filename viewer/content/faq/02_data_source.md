@@ -12,8 +12,8 @@ Other data sources which are linked to the SCMD to provide supplementary detail 
 
 ### How often is it updated?
 
-The SCMD is published monthly by the NHSBSA. Data is published with a 1 month delay, allowing for aggregation and curation of the dataset by Rx-Info prior to publication.
-The [date of each release is available via the NHSBSA](https://www.nhsbsa.nhs.uk/data-release-calendar). This data is made available on the OpenPrescribing Hospitals platform shortly after publication by the NHSBSA.
+The SCMD is published monthly by the NHSBSA. Data is published with a 2 month delay, allowing for aggregation and curation of the dataset by Rx-Info prior to publication.
+The [date of each release is available via the NHSBSA](https://www.nhsbsa.nhs.uk/data-release-calendar). This data is made available on the OpenPrescribing Hospitals platform shortly after publication by the NHSBSA. [Sign up to our alerts email](faq/#email-alerts) to be notified when new data is available on the site.
 
 New data is initially made available as provisional data (see [What is provisional data?](faq/#what-is-provisional-data)). You can check the status of data available for analysis on OpenPrescribing Hospitals using our [Submission History](submission-history/) page. 
 
