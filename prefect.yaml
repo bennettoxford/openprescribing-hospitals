@@ -21,7 +21,7 @@ deployments:
   - prefect.deployments.steps.git_clone:
       id: clone-step
       repository: https://github.com/bennettoxford/openprescribing-hospitals.git
-      branch: deploy-prefect
+      branch: main
   - prefect.deployments.steps.pip_install_requirements:
       directory: '{{ clone-step.directory }}'
       requirements_file: requirements.txt
@@ -47,7 +47,7 @@ deployments:
   - prefect.deployments.steps.git_clone:
       id: clone-step
       repository: https://github.com/bennettoxford/openprescribing-hospitals.git
-      branch: deploy-prefect
+      branch: main
   - prefect.deployments.steps.pip_install_requirements:
       directory: '{{ clone-step.directory }}'
       requirements_file: requirements.txt
@@ -73,7 +73,7 @@ deployments:
   - prefect.deployments.steps.git_clone:
       id: clone-step
       repository: https://github.com/bennettoxford/openprescribing-hospitals.git
-      branch: deploy-prefect
+      branch: main
   - prefect.deployments.steps.pip_install_requirements:
       directory: '{{ clone-step.directory }}'
       requirements_file: requirements.txt
