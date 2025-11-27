@@ -5,7 +5,6 @@ logging.getLogger("prefect.client").setLevel(logging.WARNING)
 import argparse
 
 from prefect import flow, get_run_logger
-from pipeline.utils.maintenance import enable_maintenance_mode, disable_maintenance_mode
 from pipeline.setup.setup_bq_tables import setup_tables
 from pipeline.dmd.import_dmd import import_dmd
 from pipeline.organisations.import_organisations import import_organisations
@@ -51,14 +50,6 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
     if run_load_flows:
         logger.info("Starting load flows")
         
-        logger.info("Enabling maintenance mode before data loading")
-        try:
-            enable_maintenance_mode()      
-            logger.info("MAINTENANCE MODE ENABLED")
-        except Exception as e:
-            logger.error(f"Failed to enable maintenance mode: {e}")
-            raise Exception("Failed to enable maintenance mode")
-
         try:
             load_data()
             generate_measures()
@@ -68,14 +59,6 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
         except Exception as e:
             logger.error(f"Error during load flows: {e}")
             raise e
-        finally:
-            logger.info("MAINTENANCE MODE - Disabling maintenance mode after data loading")
-            try:
-                disable_maintenance_mode()
-            except Exception as e:
-                logger.error(f"Failed to disable maintenance mode: {e}")
-                raise e
-    
 
     logger.info("SCMD Import Pipeline completed")
 
