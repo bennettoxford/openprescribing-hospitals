@@ -39,5 +39,5 @@ annotations:
       label: "Dapagliflozin licensed for treatment of chronic heart failure (NICE TA679)"
       colour: "#0090C1"
     - date: 2025-09-01
-      label: "Dapagliflozin generic prices start"
+      label: "Generic dapagliflozin prices available (switched to Category M in the Drug Tariff)"
       colour: "#fb8f2b"
