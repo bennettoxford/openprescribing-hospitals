@@ -55,14 +55,14 @@ vmp_id,vmp_name,ddd_comment,expressed_as_strnt_nmrtr,expressed_as_strnt_nmrtr_uo
 36566011000001101,"Dalteparin sodium 5,000units/0.2ml solution for injection pre-filled syringes",anti Xa,25000.0,767525000,unit,108987000,Dalteparin sodium
 4865111000001103,"Dalteparin sodium 7,500units/0.3ml solution for injection pre-filled syringes",anti Xa,25000.0,767525000,unit,108987000,Dalteparin sodium
 36093411000001100,Danaparoid sodium 750units/0.6ml solution for injection ampoules,anti Xa,1250.0,767525000,unit,386954009,Danaparoid sodium
-36564011000001106,Enoxaparin sodium 100mg/1ml solution for injection pre-filled syringes,anti Xa,1000.0,767525000,unit,108983001,Enoxaparin sodium
-36563911000001108,Enoxaparin sodium 120mg/0.8ml solution for injection pre-filled syringes,anti Xa,1500.0,767525000,unit,108983001,Enoxaparin sodium
-38895211000001105,Enoxaparin sodium 150mg/1ml solution for injection pre-filled syringes,anti Xa,1500.0,767525000,unit,108983001,Enoxaparin sodium
-38896011000001109,Enoxaparin sodium 20mg/0.2ml solution for injection pre-filled syringes,anti Xa,1000.0,767525000,unit,108983001,Enoxaparin sodium
-11509311000001109,Enoxaparin sodium 300mg/3ml solution for injection vials,anti Xa,1000.0,767525000,unit,108983001,Enoxaparin sodium
-36565711000001107,Enoxaparin sodium 40mg/0.4ml solution for injection pre-filled syringes,anti Xa,1000.0,767525000,unit,108983001,Enoxaparin sodium
-38895011000001100,Enoxaparin sodium 60mg/0.6ml solution for injection pre-filled syringes,anti Xa,1000.0,767525000,unit,108983001,Enoxaparin sodium
-38895111000001104,Enoxaparin sodium 80mg/0.8ml solution for injection pre-filled syringes,anti Xa,1000.0,767525000,unit,108983001,Enoxaparin sodium
+36564011000001106,Enoxaparin sodium 100mg/1ml solution for injection pre-filled syringes,anti Xa,10000.0,767525000,unit,108983001,Enoxaparin sodium
+36563911000001108,Enoxaparin sodium 120mg/0.8ml solution for injection pre-filled syringes,anti Xa,15000.0,767525000,unit,108983001,Enoxaparin sodium
+38895211000001105,Enoxaparin sodium 150mg/1ml solution for injection pre-filled syringes,anti Xa,15000.0,767525000,unit,108983001,Enoxaparin sodium
+38896011000001109,Enoxaparin sodium 20mg/0.2ml solution for injection pre-filled syringes,anti Xa,10000.0,767525000,unit,108983001,Enoxaparin sodium
+11509311000001109,Enoxaparin sodium 300mg/3ml solution for injection vials,anti Xa,10000.0,767525000,unit,108983001,Enoxaparin sodium
+36565711000001107,Enoxaparin sodium 40mg/0.4ml solution for injection pre-filled syringes,anti Xa,10000.0,767525000,unit,108983001,Enoxaparin sodium
+38895011000001100,Enoxaparin sodium 60mg/0.6ml solution for injection pre-filled syringes,anti Xa,10000.0,767525000,unit,108983001,Enoxaparin sodium
+38895111000001104,Enoxaparin sodium 80mg/0.8ml solution for injection pre-filled syringes,anti Xa,10000.0,767525000,unit,108983001,Enoxaparin sodium
 35918811000001101,"Tinzaparin sodium 10,000units/0.5ml solution for injection pre-filled syringes",anti Xa,20000.0,767525000,unit,395908006,Tinzaparin sodium
 28566111000001107,"Tinzaparin sodium 12,000units/0.6ml solution for injection pre-filled syringes",anti Xa,20000.0,767525000,unit,395908006,Tinzaparin sodium
 35918911000001106,"Tinzaparin sodium 14,000units/0.7ml solution for injection pre-filled syringes",anti Xa,20000.0,767525000,unit,395908006,Tinzaparin sodium
