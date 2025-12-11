@@ -2,7 +2,7 @@ SELECT DISTINCT
     vmp.id as vmp_id,
     CASE 
         WHEN 
-            vtm.code = '777067000' -- paracetamol VTM
+            vtm.vtm = '777067000' -- paracetamol VTM
             AND
             ofr.name LIKE '%.intravenous'
         THEN 'numerator'
