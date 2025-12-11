@@ -1,0 +1,19 @@
+name: Proportion of paracetamol prescribed as intravenous formulation
+short_name: Intravenous paracetamol
+description: |
+  The proportion of paracetamol prescribed as intravenous formulation in secondary care.
+
+why_it_matters: |
+  Intravenous paracetamol is significantly more expensive than oral or rectal formulations. Oral paracetamol is effective for most patients, and switching from intravenous to oral administration can reduce costs and improve patient safety.
+
+how_is_it_calculated: >
+    We identify all intravenous paracetamol prescriptions.
+tags:
+    - Low value prescribing
+quantity_type: ddd
+authored_by: Chris Wood
+checked_by: 
+date_reviewed: 2025-12-11
+next_review: 2026-12-11
+first_published: 2025-12-11
+status: in_development
