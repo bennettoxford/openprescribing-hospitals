@@ -14,4 +14,8 @@ INNER JOIN viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
 INNER JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
 WHERE 
     vtm.vtm = '777067000' -- paracetamol VTM
-    AND ( ofr.name LIKE '%.intravenous', '%.oral')
+    AND (
+        ofr.name LIKE '%.intravenous'
+        OR
+        ofr.name LIKE '%.oral'
+    )
