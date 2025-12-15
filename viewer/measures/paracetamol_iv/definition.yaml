@@ -1,19 +1,20 @@
-name: Proportion of paracetamol prescribed as intravenous formulation
-short_name: Intravenous paracetamol
+name: Percentage of paracetamol issued as intravenous formulation
+short_name: Percentage of paracetamol issued as intravenous formulation
 description: |
-  The proportion of paracetamol prescribed as intravenous formulation in secondary care.
+  The percentage of paracetamol intravenous formulation of all paracetamol issued.
 
 why_it_matters: |
-  Intravenous paracetamol is significantly more expensive than oral or rectal formulations. Oral paracetamol is effective for most patients, and switching from intravenous to oral administration can reduce costs and improve patient safety as shown in this study from Scotland - https://www.nhscfsd.co.uk/media/ohqpgog3/ngtp-paracetamol-iv-to-oral-v20-aug-23.pdf.
+  Intravenous paracetamol is significantly more expensive than oral or rectal formulations and has a higher carbon footprint. [NHS Scotland guidance](https://www.nhscfsd.co.uk/media/ohqpgog3/ngtp-paracetamol-iv-to-oral-v20-aug-23.pdf), informed by available evidence, supports switching suitable patients from intravenous to oral paracetamol as a safe and effective intervention. For most patients, oral paracetamol is clinically effective and appropriate. Reducing unnecessary use of intravenous paracetamol can lead to substantial cost and carbon savings.
 
 how_is_it_calculated: >
-    We identify all intravenous paracetamol prescriptions.
+  We divide the number of [Defined Daily Doses (DDDs)](/faq/#what-is-a-defined-daily-dose-ddd) of intravenous paracetamol products by the total number of DDDs of all paracetamol products and then multiply by 100 to obtain a percentage each month.
 tags:
-    - Low value prescribing
+    - Value
+    - Greener NHS
 quantity_type: ddd
 authored_by: Chris Wood
 checked_by: tbc
 date_reviewed: 2025-12-11
 next_review: 2026-12-11
 first_published: 2025-12-11
-status: in_development
+status: preview
