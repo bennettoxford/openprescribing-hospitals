@@ -1422,7 +1422,7 @@ export function calculatePercentiles(data, predecessorMap = new Map(), allTrusts
                         const quantity = parseFloat(entry[1]);
                         
                         if (!isNaN(quantity)) {
-                            orgMonthlyValues[orgId][month] = quantity;
+                            orgMonthlyValues[orgId][month] += quantity;
                         }
                     }
                 });
