@@ -1,5 +1,5 @@
 name: Percentage of paracetamol issued as intravenous formulation
-short_name: Percentage of paracetamol issued as intravenous formulation
+short_name: IV paracetamol
 description: |
   The percentage of paracetamol intravenous formulation of all paracetamol issued.
 
