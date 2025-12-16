@@ -1,13 +1,13 @@
 name: Percentage of paracetamol issued as intravenous formulation
 short_name: IV paracetamol
 description: |
-  The percentage of paracetamol intravenous formulation of all paracetamol issued.
+  The percentage of paracetamol intravenous formulation of all oral and intravenous paracetamol issued.
 
 why_it_matters: |
-  Intravenous paracetamol is significantly more expensive than oral or rectal formulations and has a higher carbon footprint. [NHS Scotland guidance](https://www.nhscfsd.co.uk/media/ohqpgog3/ngtp-paracetamol-iv-to-oral-v20-aug-23.pdf), informed by available evidence, supports switching suitable patients from intravenous to oral paracetamol as a safe and effective intervention. Reducing unnecessary use of intravenous paracetamol can lead to substantial cost and carbon savings.
+  Intravenous paracetamol is significantly more expensive than oral formulations and has a higher carbon footprint. [NHS Scotland guidance](https://www.nhscfsd.co.uk/media/ohqpgog3/ngtp-paracetamol-iv-to-oral-v20-aug-23.pdf), informed by available evidence, supports switching suitable patients from intravenous to oral paracetamol as a safe and effective intervention. Reducing unnecessary use of intravenous paracetamol can lead to substantial cost and carbon savings.
 
 how_is_it_calculated: >
-  We divide the number of [Defined Daily Doses (DDDs)](/faq/#what-is-a-defined-daily-dose-ddd) of intravenous paracetamol products by the total number of DDDs of all paracetamol products and then multiply by 100 to obtain a percentage each month.
+  We divide the number of [Defined Daily Doses (DDDs)](/faq/#what-is-a-defined-daily-dose-ddd) of intravenous paracetamol products by the total number of DDDs of all oral and intravenous paracetamol products and then multiply by 100 to obtain a percentage each month.
 tags:
     - Value
     - Greener NHS
