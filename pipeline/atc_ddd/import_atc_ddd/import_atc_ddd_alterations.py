@@ -86,12 +86,23 @@ def process_new_atc_5th_levels(dfs: dict, implementation_year: int) -> pd.DataFr
         logger.warning("No new ATC codes found in Excel file")
         return pd.DataFrame()
 
+    automatic_comment = 'New code'
+
+    if 'Note' in new_atc_5th_level_df.columns:
+        alterations_comments = new_atc_5th_level_df['Note'].apply(
+            lambda x: str(x).strip() if pd.notna(x) and str(x).strip() else None
+        )
+    else:
+        alterations_comments = None
+
+
     processed_df = pd.DataFrame({
         'substance': new_atc_5th_level_df['Substance name'],
         'previous_atc_code': None,
         'new_atc_code': new_atc_5th_level_df['New ATC code'],
         'year_changed': implementation_year,
-        'comment': 'New code'
+        'comment': alterations_comments,
+        'alterations_comment': automatic_comment
     })
 
     logger.info(f"Processed {len(processed_df)} new ATC codes")
@@ -112,13 +123,23 @@ def process_new_atc_34_levels(dfs: dict, implementation_year: int) -> pd.DataFra
         logger.warning("No new 3rd and 4th level ATC codes found in Excel file")
         return pd.DataFrame()
 
+    automatic_comment = "New 3rd/4th level code"
+
+    if 'Note' in new_atc_34_df.columns:
+        alterations_comments = new_atc_34_df['Note'].apply(
+            lambda x: str(x).strip() if pd.notna(x) and str(x).strip() else None
+        )
+    else:
+        alterations_comments = None
+
     processed_df = pd.DataFrame(
         {
             "substance": new_atc_34_df["New ATC level name"],
             "previous_atc_code": None,
             "new_atc_code": new_atc_34_df["ATC code"],
             "year_changed": implementation_year,
-            "comment": "New 3rd/4th level code",
+            "comment": alterations_comments,
+            "alterations_comment": automatic_comment,
         }
     )
 
@@ -136,16 +157,23 @@ def process_atc_level_alterations(dfs: dict, implementation_year: int) -> pd.Dat
         logger.warning("No ATC level alterations found in Excel file")
         return pd.DataFrame()
 
+    automatic_comment = "Level updated: " + atc_level_df["Previous ATC code"] + " → " + atc_level_df["New ATC code"]
+    
+    if 'Note' in atc_level_df.columns:
+        alterations_comments = atc_level_df['Note'].apply(
+            lambda x: str(x).strip() if pd.notna(x) and str(x).strip() else None
+        )
+    else:
+        alterations_comments = None
+
     processed_df = pd.DataFrame(
         {
             "substance": atc_level_df["ATC level name"],
             "previous_atc_code": atc_level_df["Previous ATC code"],
             "new_atc_code": atc_level_df["New ATC code"],
             "year_changed": implementation_year,
-            "comment": "Level updated: "
-            + atc_level_df["Previous ATC code"]
-            + " → "
-            + atc_level_df["New ATC code"],
+            "comment": alterations_comments,
+            "alterations_comment": automatic_comment,
         }
     )
 
@@ -164,16 +192,23 @@ def process_atc_name_alterations(dfs: dict, implementation_year: int) -> pd.Data
         logger.warning("No ATC level name alterations found in Excel file")
         return pd.DataFrame()
 
+    automatic_comment = "Name updated (code unchanged): " + atc_name_df["Previous ATC level name"] + " → " + atc_name_df["New ATC level name"]
+
+    if 'Note' in atc_name_df.columns:
+        alterations_comments = atc_name_df['Note'].apply(
+            lambda x: str(x).strip() if pd.notna(x) and str(x).strip() else None
+        )
+    else:
+        alterations_comments = None
+
     processed_df = pd.DataFrame(
         {
             "substance": atc_name_df["New ATC level name"],
             "previous_atc_code": atc_name_df["ATC code"],
             "new_atc_code": atc_name_df["ATC code"],
             "year_changed": implementation_year,
-            "comment": "Name updated (code unchanged): "
-            + atc_name_df["Previous ATC level name"]
-            + " → "
-            + atc_name_df["New ATC level name"],
+            "comment": alterations_comments,
+            "alterations_comment": automatic_comment,
         }
     )
 
@@ -192,6 +227,15 @@ def process_new_ddds(dfs: dict, implementation_year: int) -> pd.DataFrame:
         logger.warning("No new DDDs found in Excel file")
         return pd.DataFrame()
 
+    automatic_comment = 'New DDD'
+    
+    if 'Note' in new_ddd_df.columns:
+        alterations_comments = new_ddd_df['Note'].apply(
+            lambda x: str(x).strip() if pd.notna(x) and str(x).strip() else None
+        )
+    else:
+        alterations_comments = None
+
     processed_df = pd.DataFrame({
         'substance': new_ddd_df['ATC level name'],
         'previous_ddd': None,
@@ -202,7 +246,8 @@ def process_new_ddds(dfs: dict, implementation_year: int) -> pd.DataFrame:
         'new_route': new_ddd_df['Adm.route'],
         'atc_code': new_ddd_df['ATC code'],
         'year_changed': implementation_year,
-        'comment': new_ddd_df['Note'].fillna('New DDD')
+        'comment': alterations_comments,
+        'alterations_comment': automatic_comment
     })
     
     logger.info(f"Processed {len(processed_df)} new DDDs")
@@ -269,6 +314,15 @@ def process_ddd_alterations(dfs: dict, implementation_year: int) -> pd.DataFrame
         inplace=True
     )
 
+    automatic_comment = 'DDD alteration'
+
+    if 'Note' in ddd_alterations_df.columns:
+        alterations_comments = ddd_alterations_df['Note'].apply(
+            lambda x: str(x).strip() if pd.notna(x) and str(x).strip() else None
+        )
+    else:
+        alterations_comments = None
+
     processed_df = pd.DataFrame({
         'substance': ddd_alterations_df['ATC level name'],
         'previous_ddd': ddd_alterations_df['Previous DDD'],
@@ -279,7 +333,8 @@ def process_ddd_alterations(dfs: dict, implementation_year: int) -> pd.DataFrame
         'new_route': ddd_alterations_df['New route'],
         'atc_code': ddd_alterations_df['ATC code'],
         'year_changed': implementation_year,
-        'comment': ddd_alterations_df['Note'].fillna('DDD alteration')
+        'comment': alterations_comments,
+        'alterations_comment': automatic_comment
     })
     
     logger.info(f"Processed {len(processed_df)} DDD alterations")
@@ -367,35 +422,25 @@ def import_atc_ddd_alterations():
                 excel_dfs, implementation_year
             )
             if not new_atc_5th_level_df.empty:
-                new_atc_5th_level_df = new_atc_5th_level_df.dropna(axis=1, how='all')
-                if not new_atc_5th_level_df.empty:
-                    year_atc_dfs.append(new_atc_5th_level_df)
+                year_atc_dfs.append(new_atc_5th_level_df)
 
             new_atc_34_df = process_new_atc_34_levels(
                 excel_dfs, implementation_year
             )
             if not new_atc_34_df.empty:
-                new_atc_34_df = new_atc_34_df.dropna(
-                    axis=1, how='all'
-                )
-                if not new_atc_34_df.empty:
-                    year_atc_dfs.append(new_atc_34_df)
+                year_atc_dfs.append(new_atc_34_df)
 
             atc_name_df = process_atc_name_alterations(
                 excel_dfs, implementation_year
             )
             if not atc_name_df.empty:
-                atc_name_df = atc_name_df.dropna(axis=1, how='all')
-                if not atc_name_df.empty:
-                    year_atc_dfs.append(atc_name_df)
+                year_atc_dfs.append(atc_name_df)
 
             atc_level_df = process_atc_level_alterations(
                 excel_dfs, implementation_year
             )
             if not atc_level_df.empty:
-                atc_level_df = atc_level_df.dropna(axis=1, how='all')
-                if not atc_level_df.empty:
-                    year_atc_dfs.append(atc_level_df)
+                year_atc_dfs.append(atc_level_df)
 
             if year_atc_dfs:
                 year_combined = pd.concat(
