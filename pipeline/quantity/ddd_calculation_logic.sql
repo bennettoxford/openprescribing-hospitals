@@ -115,7 +115,7 @@ ddd_route_selection AS (
         (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1) IS NULL 
         OR TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) = ''
         OR LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))) = 'independent of strength'
-        OR LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))) = 'new ddd'
+        OR STARTS_WITH(LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))), 'atc code altered from')
       ) AS route_match_ok,
     CASE
       WHEN NOT has_atc_codes THEN 'No ATC codes found'
@@ -126,7 +126,7 @@ ddd_route_selection AS (
       WHEN (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1) IS NOT NULL 
         AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != ''
         AND LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))) != 'independent of strength'
-        AND LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))) != 'new ddd'
+        AND NOT STARTS_WITH(LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))), 'atc code altered from')
         THEN CONCAT('DDD has unsupported comment (', (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1), ')')
       ELSE NULL
     END AS route_matching_issue,

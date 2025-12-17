@@ -48,24 +48,7 @@ def create_ddd_mappings(ddd_alterations: pd.DataFrame) -> Tuple[Dict, List[Dict]
     """
     logger = get_run_logger()
     
-    # Filter alterations to ignore those with comments, except specific allowed ones
-    allowed_ddd_comments = {"New DDD"}
-    
-    def should_process_ddd_alteration(row) -> bool:
-        comment = row.get('comment')
-        if pd.isna(comment) or comment is None or comment.strip() == "":
-            return True  # No comment, so process it
-        return comment.strip() in allowed_ddd_comments
-    
-    initial_count = len(ddd_alterations)
-    filtered_alterations = ddd_alterations[ddd_alterations.apply(should_process_ddd_alteration, axis=1)].copy()
-    filtered_count = len(filtered_alterations)
-    skipped_count = initial_count - filtered_count
-    
-    if skipped_count > 0:
-        logger.info(f"Skipped {skipped_count} DDD alterations with disallowed comments")
-    
-    ddd_alterations_sorted = filtered_alterations.sort_values('year_changed')
+    ddd_alterations_sorted = ddd_alterations.sort_values('year_changed')
     
     ddd_updates = {}
     new_ddds = []
@@ -79,12 +62,12 @@ def create_ddd_mappings(ddd_alterations: pd.DataFrame) -> Tuple[Dict, List[Dict]
         
         new_routes = split_routes(row['new_route'])
         previous_routes = split_routes(row['previous_route'])
-        
-        alterations_comment = row.get('comment')
-        if pd.isna(alterations_comment) or alterations_comment is None:
-            alterations_comment = ""
+            
+        comment = row.get('comment')
+        if pd.isna(comment) or comment is None:
+            comment = None
         else:
-            alterations_comment = alterations_comment.strip()
+            comment = comment.strip() if comment.strip() else None
         
         if (pd.isna(new_ddd) and pd.notna(previous_ddd)):
             # Process DDD deletions
@@ -95,13 +78,16 @@ def create_ddd_mappings(ddd_alterations: pd.DataFrame) -> Tuple[Dict, List[Dict]
                     
         # Process new DDDs
         if pd.isna(previous_ddd):
+            # Use new comment if present, otherwise None
+            comment = comment if comment and comment.strip() else None
+            
             for route in new_routes:
                 new_ddds.append({
                     'atc_code': atc_code,
                     'ddd': float(new_ddd),
                     'ddd_unit': new_unit.lower(),
                     'adm_code': route,
-                    'comment': alterations_comment if alterations_comment and alterations_comment.strip() else None
+                    'comment': comment
                 })
             continue
             
@@ -115,7 +101,7 @@ def create_ddd_mappings(ddd_alterations: pd.DataFrame) -> Tuple[Dict, List[Dict]
                         'new_ddd_unit': new_unit.lower(),
                         'new_route': new_route,
                         'year_changed': row['year_changed'],
-                        'alterations_comment': alterations_comment
+                        'comment': comment if comment and comment.strip() else None
                     }
                     
     logger.info(f"Found {len(new_ddds)} new DDD entries to add (after route splitting)")
@@ -135,26 +121,14 @@ def apply_ddd_deletions_and_updates(ddd_df: pd.DataFrame, ddd_updates: Dict, ddd
     deletions_made = 0
     new_rows = []
     
-    def combine_comments(existing_comment, alterations_comment, year_changed):
-        """Combine existing comment with alterations comment"""
-        comments = []
-        
-        # Add existing comment if it exists and isn't empty
+    def get_comment(existing_comment, new_comment):
+        """Get comment: replace with new comment if present, otherwise keep existing"""
+        if new_comment and new_comment.strip():
+            return new_comment.strip()
+        # If no new comment, keep existing comment
         if pd.notna(existing_comment) and existing_comment.strip():
-            comments.append(existing_comment.strip())
-        
-        # Add alterations comment if it exists and isn't empty
-        if alterations_comment and alterations_comment.strip():
-            comments.append(alterations_comment.strip())
-        
-        if alterations_comment and alterations_comment.strip():
-            comments.append(f"Updated from alterations table (changed in {year_changed})")
-        
-        if not comments:
-            return None
-        
-        final_comment = '; '.join(comments)
-        return final_comment.strip() if final_comment else None
+            return existing_comment.strip()
+        return None
     
     for atc_code, route in ddds_to_delete:
         mask = (
@@ -173,10 +147,9 @@ def apply_ddd_deletions_and_updates(ddd_df: pd.DataFrame, ddd_updates: Dict, ddd
         
         if mask.any():
             existing_comment = updated_df[mask].iloc[0].get('comment', '')
-            combined_comment = combine_comments(
-                existing_comment, 
-                update_info.get('alterations_comment', ''), 
-                update_info['year_changed']
+            new_comment = get_comment(
+                existing_comment,
+                update_info.get('comment')
             )
             
             # If the route is changing, add a new row instead of updating in place
@@ -186,7 +159,7 @@ def apply_ddd_deletions_and_updates(ddd_df: pd.DataFrame, ddd_updates: Dict, ddd
                     'ddd': update_info['new_ddd'],
                     'ddd_unit': update_info['new_ddd_unit'],
                     'adm_code': update_info['new_route'],
-                    'comment': combined_comment
+                    'comment': new_comment
                 })
                 new_rows.append(row_data)
                 # Remove the old route entry
@@ -194,7 +167,7 @@ def apply_ddd_deletions_and_updates(ddd_df: pd.DataFrame, ddd_updates: Dict, ddd
             else:
                 updated_df.loc[mask, 'ddd'] = update_info['new_ddd']
                 updated_df.loc[mask, 'ddd_unit'] = update_info['new_ddd_unit']
-                updated_df.loc[mask, 'comment'] = combined_comment
+                updated_df.loc[mask, 'comment'] = new_comment
             updates_made += 1
     
     if new_rows:

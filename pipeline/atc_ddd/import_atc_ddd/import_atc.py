@@ -105,30 +105,12 @@ def create_atc_code_mapping(atc_alterations: pd.DataFrame) -> Tuple[Dict[str, st
             - Mapping of replacement ATC codes (has previous) to their substances
     """
     logger = get_run_logger()
-    
-    # Filter alterations to ignore those with comments, except specific allowed ones
-    allowed_atc_comments = {"New 3rd/4th level code", "New code"}
-    
-    def should_process_atc_alteration(row) -> bool:
-        comment = row.get('comment')
-        if pd.isna(comment) or comment is None or comment.strip() == "":
-            return True
-        return comment.strip() in allowed_atc_comments
-    
 
-    initial_count = len(atc_alterations)
-    filtered_alterations = atc_alterations[atc_alterations.apply(should_process_atc_alteration, axis=1)].copy()
-    filtered_count = len(filtered_alterations)
-    skipped_count = initial_count - filtered_count
-    
-    if skipped_count > 0:
-        logger.info(f"Skipped {skipped_count} ATC alterations with disallowed comments")
-
-    if len(filtered_alterations) == 0:
-        logger.info("No ATC alterations to process after filtering")
+    if len(atc_alterations) == 0:
+        logger.info("No ATC alterations to process")
         return {}, {}, {}
     
-    atc_alterations_sorted = filtered_alterations.sort_values('year_changed')
+    atc_alterations_sorted = atc_alterations.sort_values('year_changed')
     
     code_mapping = {}
     new_codes = {}
@@ -139,11 +121,11 @@ def create_atc_code_mapping(atc_alterations: pd.DataFrame) -> Tuple[Dict[str, st
         new_code = row['new_atc_code']
         substance = row['substance']
 
-        alterations_comment = row.get('comment')
-        if pd.isna(alterations_comment) or alterations_comment is None:
-            alterations_comment = ""
+        comment = row.get('comment')
+        if pd.isna(comment) or comment is None:
+            comment = None
         else:
-            alterations_comment = alterations_comment.strip()
+            comment = comment.strip() if comment.strip() else None
         
         # Handle deleted codes
         if new_code == 'deleted':
@@ -154,7 +136,7 @@ def create_atc_code_mapping(atc_alterations: pd.DataFrame) -> Tuple[Dict[str, st
         if pd.isna(old_code):
             new_codes[new_code] = {
                 'substance': substance,
-                'alterations_comment': alterations_comment
+                'comment': comment
             }
             continue
 
@@ -162,7 +144,7 @@ def create_atc_code_mapping(atc_alterations: pd.DataFrame) -> Tuple[Dict[str, st
             code_mapping[old_code] = {
                 'new_code': new_code,
                 'substance': substance,
-                'alterations_comment': alterations_comment
+                'comment': comment
             }
     
     logger.info(f"Created mapping for {len(code_mapping)} ATC codes")
@@ -188,23 +170,14 @@ def process_atc_data(
 
     atc_df.loc[:, 'comment'] = atc_df['comment'].apply(lambda x: None if pd.isna(x) or not str(x).strip() else str(x).strip())
     
-    def combine_comments(existing_comment, alterations_comment, default_comment):
-        """Combine existing comment with alterations comment"""
-        comments = []
-        
-        # Add existing comment if it exists and isn't empty
+    def get_comment(existing_comment, new_comment):
+        """Get comment: replace with new comment if present, otherwise keep existing"""
+        if new_comment and new_comment.strip():
+            return new_comment.strip()
+        # If no new comment, keep existing comment
         if pd.notna(existing_comment) and existing_comment.strip():
-            comments.append(existing_comment.strip())
-        
-        # Add alterations comment if it exists and isn't empty
-        if alterations_comment and alterations_comment.strip():
-            comments.append(alterations_comment.strip())
-        
-        if not comments:
-            return None
-        
-        final_comment = '; '.join(comments)
-        return final_comment.strip() if final_comment else None
+            return existing_comment.strip()
+        return None
     
     # Delete codes
     deletions_made = 0
@@ -223,12 +196,12 @@ def process_atc_data(
     new_rows = []
     for code, code_info in new_codes.items():
         substance = code_info['substance']
-        alterations_comment = code_info['alterations_comment']
+        comment = code_info.get('comment')
         
         new_rows.append({
             'atc_code': code,
             'atc_name': substance,
-            'comment': alterations_comment if alterations_comment and alterations_comment.strip() else None
+            'comment': comment
         })
     
     if new_rows:
@@ -244,15 +217,14 @@ def process_atc_data(
             mask = atc_df['atc_code'] == old_code
             if mask.any():
                 existing_comment = atc_df.loc[mask, 'comment'].iloc[0]
-                combined_comment = combine_comments(
-                    existing_comment, 
-                    update_info.get('alterations_comment', ''), 
-                    'Updated from alterations table'
+                new_comment = get_comment(
+                    existing_comment,
+                    update_info.get('comment')
                 )
 
                 atc_df.loc[mask, 'atc_code'] = update_info['new_code']
                 atc_df.loc[mask, 'atc_name'] = update_info['substance']
-                atc_df.loc[mask, 'comment'] = combined_comment
+                atc_df.loc[mask, 'comment'] = new_comment
     
     atc_df['atc_name'] = atc_df['atc_name'].apply(convert_atc_name)
     

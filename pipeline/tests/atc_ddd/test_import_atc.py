@@ -34,7 +34,7 @@ def sample_atc_alterations():
             'previous_atc_code': None,
             'new_atc_code': 'N01AA01',
             'year_changed': 2023,
-            'comment': 'New code'
+            'comment': None
         },
         {
             'substance': 'Changed Substance',
@@ -73,17 +73,17 @@ def sample_atc_df():
         {
             'atc_code': 'A01AA01',
             'atc_name': 'Old Substance Name',
-            'comment': 'Original comment'
+            'comment': None
         },
         {
             'atc_code': 'B01AA01',
             'atc_name': 'Another Substance',
-            'comment': 'Another comment'
+            'comment': None
         },
         {
             'atc_code': 'C01AA01',
             'atc_name': 'Chain Substance',
-            'comment': 'Chain comment'
+            'comment': None
         }
     ])
 
@@ -96,21 +96,21 @@ def sample_atc_alterations_with_deletions():
             'previous_atc_code': None,
             'new_atc_code': 'N01AA01',
             'year_changed': 2023,
-            'comment': 'New 3rd/4th level code'
+            'comment': None
         },
         {
             'substance': 'Changed Substance',
             'previous_atc_code': 'A01AA01',
             'new_atc_code': 'A01AA02',
             'year_changed': 2022,
-            'comment': ''
+            'comment': None
         },
         {
             'substance': 'Deleted Substance',
             'previous_atc_code': 'B01AA01',
             'new_atc_code': 'deleted',
             'year_changed': 2023,
-            'comment': ''
+            'comment': None
         }
     ])
 
@@ -214,7 +214,7 @@ class TestCreateATCCodeMapping:
         # Check new codes
         assert len(new_codes) == 1
         assert new_codes['N01AA01']['substance'] == 'New Substance'
-        assert new_codes['N01AA01']['alterations_comment'] == 'New code'
+        assert new_codes['N01AA01']['comment'] is None
         
         # Check deleted codes
         assert len(deleted_codes) == 0
@@ -232,7 +232,7 @@ class TestCreateATCCodeMapping:
         # Check new codes
         assert len(new_codes) == 1
         assert new_codes['N01AA01']['substance'] == 'New Substance'
-        assert new_codes['N01AA01']['alterations_comment'] == 'New 3rd/4th level code'
+        assert new_codes['N01AA01']['comment'] is None
         
         # Check deleted codes
         assert len(deleted_codes) == 1
@@ -283,7 +283,7 @@ class TestProcessATCData:
         mock_logger.return_value = Mock()
         
         atc_mapping = {}
-        new_codes = {'N01AA01': {'substance': 'New Substance', 'alterations_comment': ''}}
+        new_codes = {'N01AA01': {'substance': 'New Substance', 'comment': None}}
         deleted_codes = {}
         
         result_df = process_atc_data(sample_atc_df, atc_mapping, new_codes, deleted_codes)
@@ -299,7 +299,7 @@ class TestProcessATCData:
         mock_logger.return_value = Mock()
         
         atc_mapping = {}
-        new_codes = {'N01AA01': {'substance': 'New Substance', 'alterations_comment': 'New code added'}}
+        new_codes = {'N01AA01': {'substance': 'New Substance', 'comment': 'New code added'}}
         deleted_codes = {}
         
         result_df = process_atc_data(sample_atc_df, atc_mapping, new_codes, deleted_codes)
@@ -330,7 +330,7 @@ class TestProcessATCData:
             'A01AA01': {
                 'new_code': 'A01AA99',
                 'substance': 'Updated Substance Name',
-                'alterations_comment': ''
+                'comment': None
             }
         }
         new_codes = {}
@@ -342,6 +342,7 @@ class TestProcessATCData:
         updated_row = result_df[result_df['atc_code'] == 'A01AA99']
         assert len(updated_row) == 1
         assert updated_row.iloc[0]['atc_name'] == 'Updated Substance Name'
+        assert updated_row.iloc[0]['comment'] is None
         assert 'A01AA01' not in result_df['atc_code'].values
 
     @patch('pipeline.atc_ddd.import_atc_ddd.import_atc.get_run_logger')
@@ -352,10 +353,10 @@ class TestProcessATCData:
             'B01AA01': {
                 'new_code': 'B01AA99',
                 'substance': 'Updated Another Substance',
-                'alterations_comment': ''
+                'comment': None
             }
         }
-        new_codes = {'N01AA01': {'substance': 'Brand New Substance', 'alterations_comment': ''}}
+        new_codes = {'N01AA01': {'substance': 'Brand New Substance', 'comment': None}}
         deleted_codes = {'C01AA01': 'Chain Substance'}
         
         result_df = process_atc_data(sample_atc_df, atc_mapping, new_codes, deleted_codes)
@@ -450,14 +451,15 @@ class TestProcessATCData:
             'A01AA01': {
                 'new_code': 'A01AA99',
                 'substance': 'Updated Substance',
-                'alterations_comment': 'Updated comment'
+                'comment': 'Updated comment'
             }
         }
         
         result_df = process_atc_data(test_df, atc_mapping, {}, {})
         
         updated_comment = result_df[result_df['atc_code'] == 'A01AA99']['comment'].iloc[0]
-        assert updated_comment == 'Original Comment; Updated comment'
+        # Comment should be replaced with the new comment
+        assert updated_comment == 'Updated comment'
 class TestAddATCHierarchy:
     def test_add_atc_hierarchy_complete(self, sample_hierarchical_atc_df):
         df = sample_hierarchical_atc_df.copy()

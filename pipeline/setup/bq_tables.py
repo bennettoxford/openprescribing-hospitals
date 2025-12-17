@@ -1082,7 +1082,13 @@ WHO_DDD_ALTERATIONS_TABLE_SPEC = TableSpec(
             "comment", 
             "STRING", 
             mode="NULLABLE",
-            description="Additional notes or comments about the change"
+            description="Automatically generated comment describing the type of change"
+        ),
+        bigquery.SchemaField(
+            "alterations_comment", 
+            "STRING", 
+            mode="NULLABLE",
+            description="Manually added notes or comments from the Excel file"
         ),
     ],
     cluster_fields=["atc_code", "year_changed"]
@@ -1122,7 +1128,13 @@ WHO_ATC_ALTERATIONS_TABLE_SPEC = TableSpec(
             "comment", 
             "STRING", 
             mode="NULLABLE",
-            description="Additional notes or comments about the change"
+            description="Automatically generated comment describing the type of change"
+        ),
+        bigquery.SchemaField(
+            "alterations_comment", 
+            "STRING", 
+            mode="NULLABLE",
+            description="Manually added notes or comments from the Excel file"
         ),
     ],
     cluster_fields=["previous_atc_code", "new_atc_code", "year_changed"]

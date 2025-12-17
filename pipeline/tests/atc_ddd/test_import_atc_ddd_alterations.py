@@ -3,84 +3,14 @@ import pandas as pd
 from unittest.mock import patch
 
 from pipeline.atc_ddd.import_atc_ddd.import_atc_ddd_alterations import (
-    parse_ddd_alterations,
-    parse_atc_alterations,
-    clean_atc,
-    process_new_atc_codes,
-    process_new_ddds,
+    process_new_atc_5th_levels,
     process_new_atc_34_levels,
+    process_new_ddds,
     process_atc_name_alterations,
+    process_atc_level_alterations,
+    process_ddd_alterations,
     import_atc_ddd_alterations,
 )
-
-@pytest.fixture
-def sample_ddd_html():
-    return '''
-    <html>
-    <body>
-        <table>
-            <tr>
-                <th>Substance</th>
-                <th colspan="3">Previous DDD</th>
-                <th colspan="3">New DDD</th>
-                <th>Present ATC code</th>
-                <th>Year changed</th>
-            </tr>
-            <tr>
-                <td>paracetamol<sup><a title="Comment about change">1</a></sup></td>
-                <td>3</td>
-                <td>g</td>
-                <td>O</td>
-                <td>3.5</td>
-                <td>g</td>
-                <td>O</td>
-                <td>N02BE01</td>
-                <td>2023</td>
-            </tr>
-            <tr>
-                <td>aspirin</td>
-                <td>2</td>
-                <td>g</td>
-                <td>O</td>
-                <td>2.5</td>
-                <td>g</td>
-                <td>O</td>
-                <td>N02BA01</td>
-                <td>2024</td>
-            </tr>
-        </table>
-    </body>
-    </html>
-    '''
-
-@pytest.fixture
-def sample_atc_html():
-    return '''
-    <html>
-    <body>
-        <table>
-            <tr>
-                <th>Previous ATC code</th>
-                <th>Substance name</th>
-                <th>New ATC code</th>
-                <th>Year changed</th>
-            </tr>
-            <tr>
-                <td>A01AA01 (existing code)</td>
-                <td>test substance<sup><a title="Code change comment">1</a></sup></td>
-                <td>A01AA02</td>
-                <td>2023</td>
-            </tr>
-            <tr>
-                <td>B02BB01</td>
-                <td>another substance</td>
-                <td>B02BB02 (existing code)</td>
-                <td>2024</td>
-            </tr>
-        </table>
-    </body>
-    </html>
-    '''
 
 @pytest.fixture
 def sample_excel_data():
@@ -92,7 +22,7 @@ def sample_excel_data():
             'Note': [pd.NA, pd.NA]
         }),
         'New 3rd and 4th levels': pd.DataFrame({
-             'ATC code': ['E01', 'E02A'],
+            'ATC code': ['E01', 'E02A'],
             'New ATC level name': ['New Group', 'Another Group']
         }),
         'ATC level alterations': pd.DataFrame({
@@ -113,137 +43,90 @@ def sample_excel_data():
             'ATC code': ['D01AA01', 'D02BB01'],
             'Note': [pd.NA, pd.NA]
         }),
-        'DDDs alterations': pd.DataFrame({
-            'ATC code': ['F01AA01', 'F02BB01'],
-            'ATC level name': ['Name 1', 'Name 2'],
-            'Previous DDD': [1.0, 2.0],
-            'Unit': ['g', 'mg'],
-            'Adm.route': ['O', 'P'],
-            'New DDD': [1.5, 2.5],
-            'Unit': ['g', 'mg'],
-            'Adm.route': ['O', 'P'],
-            'Note': [pd.NA, 'Refers to SC injection']
-        }),
+        'DDDs alterations': pd.DataFrame(
+            data=[
+                ['F01AA01', 'Name 1', 1.0, 'g', 'O', 1.5, 'g', 'O', pd.NA],
+                ['F02BB01', 'Name 2', 2.0, 'mg', 'P', 2.5, 'mg', 'P', 'Refers to SC injection']
+            ],
+            columns=['ATC code', 'ATC level name', 'Previous DDD', 'Prev Unit', 'Prev Route', 'New DDD', 'New Unit', 'New Route', 'Note']
+        ),
         
     }
 
-class TestDDDAlterationsParsing:
-    def test_parse_ddd_alterations_success(self, sample_ddd_html):
-        """Test successful parsing of DDD alterations HTML"""
-        result = parse_ddd_alterations(sample_ddd_html)
-        
-        assert isinstance(result, pd.DataFrame)
-        assert len(result) == 2
-
-        expected_columns = [
-            'substance', 'previous_ddd', 'previous_ddd_unit', 'previous_route',
-            'new_ddd', 'new_ddd_unit', 'new_route', 'atc_code', 'year_changed', 'comment'
-        ]
-        assert all(col in result.columns for col in expected_columns)
-        
-        first_row = result.iloc[0]
-        assert first_row['substance'] == 'paracetamol'
-        assert first_row['previous_ddd'] == 3.0
-        assert first_row['new_ddd'] == 3.5
-        assert first_row['atc_code'] == 'N02BE01'
-        assert first_row['year_changed'] == 2023
-        assert 'Comment about change' in first_row['comment']
-
-    def test_parse_ddd_alterations_no_table(self):
-        """Test parsing when no table is found"""
-        html = "<html><body>No table here</body></html>"
-        
-        with pytest.raises(ValueError, match="Could not find DDD alterations table in HTML"):
-            parse_ddd_alterations(html)
-
-    def test_parse_ddd_alterations_invalid_numbers(self):
-        """Test parsing with invalid numeric values"""
-        html = '''
-        <table>
-            <tr><th>Headers</th></tr>
-            <tr>
-                <td>substance</td>
-                <td>invalid</td>
-                <td>g</td>
-                <td>O</td>
-                <td>not_a_number</td>
-                <td>g</td>
-                <td>O</td>
-                <td>N02BE01</td>
-                <td>not_a_year</td>
-            </tr>
-        </table>
-        '''
-        
-        result = parse_ddd_alterations(html)
-        
-        assert len(result) == 1
-        assert pd.isna(result.iloc[0]['previous_ddd'])
-        assert pd.isna(result.iloc[0]['new_ddd'])
-        assert pd.isna(result.iloc[0]['year_changed'])
-
-class TestATCAlterationsParsing:
-    def test_parse_atc_alterations_success(self, sample_atc_html):
-        """Test successful parsing of ATC alterations HTML"""
-        result = parse_atc_alterations(sample_atc_html)
-        
-        assert isinstance(result, pd.DataFrame)
-        assert len(result) == 2
-        
-        expected_columns = ['substance', 'previous_atc_code', 'new_atc_code', 'year_changed', 'comment']
-        assert all(col in result.columns for col in expected_columns)
-        
-        first_row = result.iloc[0]
-        assert first_row['substance'] == 'test substance'
-        assert first_row['previous_atc_code'] == 'A01AA01'
-        assert first_row['new_atc_code'] == 'A01AA02'
-        assert first_row['year_changed'] == 2023
-        assert 'Code change comment' in first_row['comment']
-
-    def test_clean_atc_function(self):
-        """Test the clean_atc helper function"""
-        assert clean_atc("A01AA01 (existing code)") == "A01AA01"
-        assert clean_atc("B02BB01") == "B02BB01"
-        assert clean_atc("C03CC03 (existing code) extra text") == "C03CC03"
-
-    def test_parse_atc_alterations_no_table(self):
-        """Test parsing when no table is found"""
-        html = "<html><body>No table here</body></html>"
-        
-        with pytest.raises(ValueError, match="Could not find ATC alterations table in HTML"):
-            parse_atc_alterations(html)
-
 class TestExcelProcessing:
-    def test_process_new_atc_codes(self, sample_excel_data):
+    def test_process_new_atc_5th_levels(self, sample_excel_data):
         """Test processing new ATC codes from Excel"""
-        result = process_new_atc_codes(sample_excel_data, 2025)
-        
+        result = process_new_atc_5th_levels(sample_excel_data, 2025)
+
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 2
-        
-        expected_columns = ['substance', 'previous_atc_code', 'new_atc_code', 'year_changed', 'comment']
+
+        expected_columns = ['substance', 'previous_atc_code', 'new_atc_code', 'year_changed', 'comment', 'alterations_comment']
         assert all(col in result.columns for col in expected_columns)
-        
+
         first_row = result.iloc[0]
         assert first_row['substance'] == 'New Substance 1'
         assert pd.isna(first_row['previous_atc_code'])
         assert first_row['new_atc_code'] == 'C01AA99'
         assert first_row['year_changed'] == 2025
-        assert first_row['comment'] == 'New code'
+        assert pd.isna(first_row['comment'])
+        assert first_row['alterations_comment'] == 'New code'
+
+    def test_process_new_atc_34_levels(self, sample_excel_data):
+        """Test processing new 3rd and 4th level ATC codes"""
+        result = process_new_atc_34_levels(sample_excel_data, 2025)
+
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 2
+
+        first_row = result.iloc[0]
+        assert first_row['substance'] == 'New Group'
+        assert first_row['new_atc_code'] == 'E01'
+        assert pd.isna(first_row['comment'])
+        assert first_row['alterations_comment'] == 'New 3rd/4th level code'
+
+    def test_process_atc_level_alterations(self, sample_excel_data):
+        """Test processing ATC level alterations"""
+        result = process_atc_level_alterations(sample_excel_data, 2025)
+
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 2
+
+        first_row = result.iloc[0]
+        assert first_row['substance'] == 'Name 1'
+        assert first_row['previous_atc_code'] == 'F01AA01'
+        assert first_row['new_atc_code'] == 'F01AA02'
+        assert pd.isna(first_row['comment'])
+        assert first_row['alterations_comment'] == 'Level updated: F01AA01 → F01AA02'
+
+    def test_process_atc_name_alterations(self, sample_excel_data):
+        """Test processing ATC name alterations"""
+        result = process_atc_name_alterations(sample_excel_data, 2025)
+
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 2
+
+        first_row = result.iloc[0]
+        assert first_row['substance'] == 'New Name 1'
+        assert first_row['previous_atc_code'] == 'F01AA01'
+        assert first_row['new_atc_code'] == 'F01AA01'
+        assert pd.isna(first_row['comment'])
+        assert 'Old Name 1 → New Name 1' in first_row['alterations_comment']
+
 
     def test_process_new_ddds(self, sample_excel_data):
         """Test processing new DDDs from Excel"""
         result = process_new_ddds(sample_excel_data, 2025)
-        
+
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 2
-        
+
         expected_columns = [
             'substance', 'previous_ddd', 'previous_ddd_unit', 'previous_route',
-            'new_ddd', 'new_ddd_unit', 'new_route', 'atc_code', 'year_changed', 'comment'
+            'new_ddd', 'new_ddd_unit', 'new_route', 'atc_code', 'year_changed', 'comment', 'alterations_comment'
         ]
         assert all(col in result.columns for col in expected_columns)
-        
+
         first_row = result.iloc[0]
         assert first_row['substance'] == 'Test Substance'
         assert pd.isna(first_row['previous_ddd'])
@@ -252,31 +135,26 @@ class TestExcelProcessing:
         assert first_row['new_ddd'] == 1.5
         assert first_row['new_ddd_unit'] == 'g'
         assert first_row['atc_code'] == 'D01AA01'
+        assert pd.isna(first_row['comment'])
+        assert first_row['alterations_comment'] == 'New DDD'
 
-    def test_process_new_atc_34_levels(self, sample_excel_data):
-        """Test processing new 3rd and 4th level ATC codes"""
-        result = process_new_atc_34_levels(sample_excel_data, 2025)
-        
+
+    def test_process_ddd_alterations(self, sample_excel_data):
+        """Test processing DDD alterations"""
+        result = process_ddd_alterations(sample_excel_data, 2025)
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 2
-        
-        first_row = result.iloc[0]
-        assert first_row['substance'] == 'New Group'
-        assert first_row['new_atc_code'] == 'E01'
-        assert first_row['comment'] == 'New 3rd/4th level code'
 
-    def test_process_atc_name_alterations(self, sample_excel_data):
-        """Test processing ATC name alterations"""
-        result = process_atc_name_alterations(sample_excel_data, 2025)
-        
-        assert isinstance(result, pd.DataFrame)
-        assert len(result) == 2
-        
         first_row = result.iloc[0]
-        assert first_row['substance'] == 'New Name 1'
-        assert first_row['previous_atc_code'] == 'F01AA01'
-        assert first_row['new_atc_code'] == 'F01AA01'
-        assert 'Old Name 1 → New Name 1' in first_row['comment']
+        assert first_row['substance'] == 'Name 1'
+        assert first_row['previous_ddd'] == 1.0
+        assert first_row['new_ddd'] == 1.5
+        assert pd.isna(first_row['comment'])
+        assert first_row['alterations_comment'] == 'DDD alteration'
+        
+        second_row = result.iloc[1]
+        assert second_row['comment'] == 'Refers to SC injection'
+        assert second_row['alterations_comment'] == 'DDD alteration'
 
     def test_process_empty_excel_sheets(self):
         """Test processing when Excel sheets are empty"""
@@ -284,94 +162,89 @@ class TestExcelProcessing:
             'New ATC 5th levels': pd.DataFrame(),
             'New DDDs': pd.DataFrame(),
             'New 3rd and 4th levels': pd.DataFrame(),
-            'ATC level name alterations': pd.DataFrame()
+            'ATC level alterations': pd.DataFrame(),
+            'ATC level name alterations': pd.DataFrame(),
+            'DDDs alterations': pd.DataFrame()
         }
-        
-        atc_result = process_new_atc_codes(empty_data, 2025)
+
+        atc_5th_result = process_new_atc_5th_levels(empty_data, 2025)
         ddd_result = process_new_ddds(empty_data, 2025)
         atc_34_result = process_new_atc_34_levels(empty_data, 2025)
+        atc_level_result = process_atc_level_alterations(empty_data, 2025)
         name_result = process_atc_name_alterations(empty_data, 2025)
-        
-        assert atc_result.empty
+        ddd_alterations_result = process_ddd_alterations(empty_data, 2025)
+
+        assert atc_5th_result.empty
         assert ddd_result.empty
         assert atc_34_result.empty
+        assert atc_level_result.empty
         assert name_result.empty
+        assert ddd_alterations_result.empty
 
 
 class TestMainFlow:
-    @patch('pipeline.atc_ddd.import_atc_ddd.import_atc_ddd_alterations.fetch_excel')
-    @patch('pipeline.atc_ddd.import_atc_ddd.import_atc_ddd_alterations.fetch_html')
+    @patch('pipeline.atc_ddd.import_atc_ddd.import_atc_ddd_alterations.find_alterations_files')
+    @patch('pipeline.atc_ddd.import_atc_ddd.import_atc_ddd_alterations.fetch_excel_from_gcs')
     @patch('pipeline.atc_ddd.import_atc_ddd.import_atc_ddd_alterations.load_to_bigquery')
-    def test_import_atc_ddd_alterations(self, mock_load, mock_fetch_html, mock_fetch_excel, 
-                                           sample_ddd_html, sample_atc_html, sample_excel_data):
-        """Test the main import flow including concatenation of HTML and Excel data"""
-        mock_fetch_excel.return_value = (sample_excel_data, 2025)
-        mock_fetch_html.side_effect = [sample_ddd_html, sample_atc_html]
+    def test_import_atc_ddd_alterations(self, mock_load, mock_fetch_excel_from_gcs,
+                                        mock_find_files, sample_excel_data):
+        """Test the main import flow"""
+        # Mock finding files - return one file for year 2025
+        mock_find_files.return_value = [('who_atc_ddd_op_hosp/ATC_DDD_new_and_alterations_2025.xlsx', 2025)]
+        mock_fetch_excel_from_gcs.return_value = (sample_excel_data, 2025)
 
         loaded_dataframes = []
         def capture_load_calls(df, table_spec):
             loaded_dataframes.append((df.copy(), table_spec))
         mock_load.side_effect = capture_load_calls
-            
+
         import_atc_ddd_alterations()
 
+        # Should have loaded 2 dataframes: DDD and ATC
+        assert len(loaded_dataframes) == 2
+
         ddd_df, ddd_table_spec = loaded_dataframes[0]
-        
-        # Should contain original HTML data (2 rows) + new DDDs from Excel (2 rows)
-        assert len(ddd_df) == 4
-        
-        # Verify HTML data is present
-        html_substances = ddd_df[ddd_df['year_changed'].isin([2023, 2024])]['substance'].tolist()
-        assert 'paracetamol' in html_substances
-        assert 'aspirin' in html_substances
-        
-        # Verify Excel data is present (new DDDs with year 2025)
-        excel_substances = ddd_df[ddd_df['year_changed'] == 2025]['substance'].tolist()
-        assert 'Test Substance' in excel_substances
-        assert 'Another Substance' in excel_substances
-        
-        # Verify new DDDs have None for previous values
-        new_ddd_rows = ddd_df[ddd_df['comment'] == 'New DDD']
-        assert all(pd.isna(new_ddd_rows['previous_ddd']))
-        assert all(pd.isna(new_ddd_rows['previous_ddd_unit']))
-        assert all(pd.isna(new_ddd_rows['previous_route']))
-        
-        # Verify ATC alterations concatenation
         atc_df, atc_table_spec = loaded_dataframes[1]
+
+        # DDD dataframe should contain both new DDDs and DDD alterations
+        assert len(ddd_df) == 4  # 2 new DDDs + 2 DDD alterations
+
+        # Verify new DDDs are present
+        new_ddd_rows = ddd_df[ddd_df['alterations_comment'] == 'New DDD']
+        assert len(new_ddd_rows) == 2
+        assert 'Test Substance' in new_ddd_rows['substance'].tolist()
+        assert 'Another Substance' in new_ddd_rows['substance'].tolist()
+        assert all(pd.isna(new_ddd_rows['previous_ddd']))
+
+        # Verify DDD alterations are present
+        alteration_rows = ddd_df[ddd_df['alterations_comment'] == 'DDD alteration']
+        assert len(alteration_rows) == 2
+        assert 'Name 1' in alteration_rows['substance'].tolist()
+        assert 'Name 2' in alteration_rows['substance'].tolist()
         
-        # Should contain:
-        # - Original HTML data (2 rows)
-        # - New 5th level codes (2 rows)
-        # - New 3rd/4th level codes (2 rows) 
-        # - Name alterations (2 rows)
-        assert len(atc_df) == 8
-        
-        # Verify HTML data is present
-        html_atc_substances = atc_df[atc_df['year_changed'].isin([2023, 2024])]['substance'].tolist()
-        assert 'test substance' in html_atc_substances
-        assert 'another substance' in html_atc_substances
-        
-        # Verify Excel data is present (all with year 2025)
-        excel_atc_data = atc_df[atc_df['year_changed'] == 2025]
-        
-        # Check new 5th level codes
-        new_5th_level = excel_atc_data[excel_atc_data['comment'] == 'New code']
+        assert alteration_rows[alteration_rows['substance'] == 'Name 2']['comment'].iloc[0] == 'Refers to SC injection'
+
+        # ATC dataframe should contain all ATC alterations
+        assert len(atc_df) == 8  # 2 new 5th + 2 new 3rd/4th + 2 level alterations + 2 name alterations
+
+        # Verify new 5th level codes
+        new_5th_level = atc_df[atc_df['alterations_comment'] == 'New code']
         assert len(new_5th_level) == 2
         assert 'New Substance 1' in new_5th_level['substance'].tolist()
-        assert 'New Substance 2' in new_5th_level['substance'].tolist()
-        assert all(pd.isna(new_5th_level['previous_atc_code']))
-        
-        # Check new 3rd/4th level codes
-        new_34_level = excel_atc_data[excel_atc_data['comment'] == 'New 3rd/4th level code']
+
+        # Verify new 3rd/4th level codes
+        new_34_level = atc_df[atc_df['alterations_comment'] == 'New 3rd/4th level code']
         assert len(new_34_level) == 2
         assert 'New Group' in new_34_level['substance'].tolist()
-        assert 'Another Group' in new_34_level['substance'].tolist()
-        
-        # Check name alterations
-        name_alterations = excel_atc_data[excel_atc_data['comment'].str.contains('Name updated', na=False)]
+
+        # Verify level alterations
+        level_alterations = atc_df[atc_df['alterations_comment'].str.contains('Level updated:', na=False)]
+        assert len(level_alterations) == 2
+        assert 'Name 1' in level_alterations['substance'].tolist()
+
+        # Verify name alterations
+        name_alterations = atc_df[atc_df['alterations_comment'].str.contains('Name updated', na=False)]
         assert len(name_alterations) == 2
         assert 'New Name 1' in name_alterations['substance'].tolist()
-        assert 'New Name 2' in name_alterations['substance'].tolist()
         # For name alterations, previous and new ATC codes should be the same
         assert name_alterations['previous_atc_code'].equals(name_alterations['new_atc_code'])
-        
