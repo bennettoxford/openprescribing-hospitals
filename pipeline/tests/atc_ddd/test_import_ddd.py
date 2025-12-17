@@ -280,7 +280,7 @@ class TestApplyDDDDeletionsAndUpdates:
                 'new_ddd_unit': 'mg',
                 'new_route': 'O',
                 'year_changed': 2023,
-                'alterations_comment': 'DDD value changed'
+                'comment': 'DDD value changed'
             }
         }
         ddds_to_delete = set()
@@ -292,8 +292,7 @@ class TestApplyDDDDeletionsAndUpdates:
         assert updated_row.iloc[0]['ddd'] == 15.0
         assert updated_row.iloc[0]['ddd_unit'] == 'mg'
 
-        expected_comment = 'Original DDD; DDD value changed; Updated from alterations table (changed in 2023)'
-        assert updated_row.iloc[0]['comment'] == expected_comment
+        assert updated_row.iloc[0]['comment'] == 'DDD value changed'
 
     @patch('pipeline.atc_ddd.import_atc_ddd.import_ddd.get_run_logger')
     def test_apply_updates_route_change(self, mock_logger, sample_ddd_df):
@@ -306,7 +305,7 @@ class TestApplyDDDDeletionsAndUpdates:
                 'new_ddd_unit': 'mg',
                 'new_route': 'P',
                 'year_changed': 2023,
-                'alterations_comment': ''
+                'comment': ''
             }
         }
         ddds_to_delete = set()
@@ -339,14 +338,14 @@ class TestApplyDDDDeletionsAndUpdates:
                 'new_ddd_unit': 'mg',
                 'new_route': 'O',
                 'year_changed': 2023,
-                'alterations_comment': ''
+                'comment': ''
             },
             ('B01AA01', 'O'): {
                 'new_ddd': 22.0,
                 'new_ddd_unit': 'mg',
                 'new_route': 'P',
                 'year_changed': 2023,
-                'alterations_comment': ''
+                'comment': ''
             }
         }
         
@@ -514,7 +513,7 @@ class TestProcessDDDData:
                 'new_ddd_unit': 'mg',
                 'new_route': 'O',
                 'year_changed': 2023,
-                'alterations_comment': '  '
+                'comment': '  '
             }
         }
         
