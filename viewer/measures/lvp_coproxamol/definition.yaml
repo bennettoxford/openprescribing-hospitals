@@ -1,5 +1,5 @@
-name: Low value prescribing - co-proxamol # Full name of the measure/indicator
-short_name: Low value prescribing - co-proxamol # Abbreviated name or acronym
+name: Low value prescribing - co‑proxamol # Full name of the measure/indicator
+short_name: Low value prescribing - co‑proxamol # Abbreviated name or acronym
 description: Total indicative cost for co-proxamol tablets and oral suspension # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |
     [NHS England guidance](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/) identifies a number of items which provide low value when prescribed. This guidance has mainly been aimed at primary care but we think it is important to also monitor a selection of these in hospitals - read more about why [in our blog](https://www.bennett.ox.ac.uk/blog/2025/04/low-value-medicines-in-openprescribing-hospitals/).
