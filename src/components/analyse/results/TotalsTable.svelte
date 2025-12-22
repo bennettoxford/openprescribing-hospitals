@@ -19,6 +19,7 @@
     let latestMonth = '';
     let latestYear = '';
     let currentFY = '';
+    let last12MonthsRange = '';
     let latestDateFromData = null;
     let dateRange = '';
     let expandedTrusts = new Set();
@@ -45,6 +46,11 @@
                 
                 currentFY = 'FYTD';
                 dateRange = `${startDate}-${endDate}`;
+                
+                const twelveMonthsAgo = new Date(latest);
+                twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
+                const start12Months = twelveMonthsAgo.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+                last12MonthsRange = `${start12Months} - ${latestMonth}`;
             }
         }
     }
@@ -130,6 +136,25 @@
                 >
                     {latestYear}
                 </button>
+                <div class="relative inline-block group">
+                    <button
+                        class="px-3 py-1 rounded-full text-sm font-medium transition-colors
+                            {selectedPeriod === 'last_12_months' 
+                                ? 'bg-oxford-600 text-white' 
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+                        on:click={() => selectedPeriod = 'last_12_months'}
+                    >
+                        {last12MonthsRange}
+                    </button>
+                    <div class="absolute z-10 scale-0 transition-all duration-100 origin-bottom transform 
+                                group-hover:scale-100 w-[200px] -translate-x-full left-full bottom-8 mb-1 
+                                rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 p-4
+                                max-w-[calc(100vw-2rem)]">
+                        <p class="text-sm text-gray-500">
+                            Last 12 months: {last12MonthsRange}
+                        </p>
+                    </div>
+                </div>
                 <div class="relative inline-block group">
                     <button
                         class="px-3 py-1 rounded-full text-sm font-medium transition-colors

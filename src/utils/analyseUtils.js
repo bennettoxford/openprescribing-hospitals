@@ -762,6 +762,11 @@ export function shouldIncludeDate(date, period, latestDate) {
                 fyStart.setFullYear(fyStart.getFullYear() - 1);
             }
             return dataDate >= fyStart && dataDate <= latestDate;
+        case 'last_12_months':
+            if (!latestDate) return false;
+            const twelveMonthsAgo = new Date(latestDate);
+            twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
+            return dataDate >= twelveMonthsAgo && dataDate <= latestDate;
         default:
             return true;
     }
@@ -1233,6 +1238,8 @@ export function getTableExplainerText(mode, options = {}) {
                     return `for the current financial year to date (April ${fyStartYear} - ${latestMonth})`;
                 }
                 return 'for the current financial year to date';
+            case 'last_12_months':
+                return 'for the last 12 months';
             default:
                 return 'across the entire period';
         }
