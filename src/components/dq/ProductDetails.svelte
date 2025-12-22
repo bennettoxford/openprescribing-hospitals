@@ -536,9 +536,9 @@
                                     </td>
                                     
                                     <!-- Units Column -->
-                                    <td class="px-1 md:px-3 py-3 whitespace-nowrap">
+                                    <td class="px-1 md:px-3 py-3">
                                       {#if quantityItem.units && quantityItem.units.length > 0}
-                                        <span class="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700 border border-blue-200">
+                                        <span class="text-xs text-gray-900 break-words">
                                           {quantityItem.units.join(', ')}
                                         </span>
                                       {:else}
