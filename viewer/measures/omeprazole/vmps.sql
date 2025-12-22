@@ -1,13 +1,7 @@
 SELECT DISTINCT
     vmp.id as vmp_id,
     CASE 
-        WHEN  vmp.code NOT IN (
-            '42202211000001101', -- Omeprazole 1mg/ml oral suspension sugar free
-            '38072111000001103', -- Omeprazole 10mg/5ml oral suspension sugar free
-            '38072211000001109', -- Omeprazole 20mg/5ml oral suspension sugar free
-            '42445111000001105', -- Omeprazole 10mg/15ml oral solution unit dose sugar free
-            '42445211000001104'  -- Omeprazole 20mg/15ml oral solution unit dose sugar free
-        )
+        WHEN  vmp.special = true
         THEN 'numerator'
         ELSE 'denominator'
     END as vmp_type
