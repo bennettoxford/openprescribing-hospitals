@@ -140,18 +140,21 @@ def update_data_status_table(
 
     records = []
     all_months = months_to_finalise | months_to_provisional
+    months_with_changes = 0
 
     for month in sorted(all_months):
         status = "final" if month in months_to_finalise else "provisional"
         
         existing_status_for_month = existing_status.get(month)
+        records.append({
+            "year_month": month,
+            "file_type": status,
+        })
+        
         if existing_status_for_month != status:
-            records.append({
-                "year_month": month,
-                "file_type": status,
-            })
+            months_with_changes += 1
 
-    if not records:
+    if months_with_changes == 0:
         logger.info("No status updates needed")
         return {
             "updated_months": 0,
@@ -161,9 +164,10 @@ def update_data_status_table(
         }
 
     logger.info(
-        f"Updating status for {len(records)} months "
+        f"Updating status table with {len(records)} months "
         f"({len(months_to_finalise)} finalised, "
-        f"{len(months_to_provisional)} provisional)"
+        f"{len(months_to_provisional)} provisional, "
+        f"{months_with_changes} with status changes)"
     )
 
     try:
@@ -180,11 +184,12 @@ def update_data_status_table(
         job.result()
 
         logger.info(
-            f"Successfully updated status for {len(records)} months"
+            f"Successfully updated status table with {len(records)} months "
+            f"({months_with_changes} with status changes)"
         )
 
         return {
-            "updated_months": len(records),
+            "updated_months": months_with_changes,
             "failed_months": 0,
             "total_months": len(records),
             "finalised_months": len(months_to_finalise),
