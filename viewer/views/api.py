@@ -924,6 +924,7 @@ def build_single_product_data(vmp, quantity_data):
         'ingredient_names': ", ".join(ingredient_names_list),
         'ddd_info': ddd_info,
         'df_ind': vmp.df_ind,
+        'special': vmp.special,
         'has_scmd_quantity': quantity_data.get('has_scmd_quantity', False),
         'scmd_units': quantity_data.get('scmd_units', []),
         'has_dose': quantity_data.get('has_dose', False),
