@@ -270,6 +270,78 @@ def create_standardisation_dict() -> Dict[str, UnitStandardisation]:
             conversion_logic="1 pre-filled disposable injection = 0.5 ml",
             conversion_factor=0.5
         ),
+        "33518511000001101": UnitStandardisation(
+            vmp_code="33518511000001101",
+            vmp_name="Generic Rye (Secale cereale) pollen 50,000SBU/ml solution for skin prick test",
+            scmd_units=[
+                {"unit_id": "3317411000001100", "unit_name": "dose"},
+                {"unit_id": "258773002", "unit_name": "ml"}
+            ],
+            chosen_unit_id="258773002",
+            chosen_unit_name="ml",
+            conversion_logic="1 dose = 3 ml",
+            conversion_factor=3.0
+        ),
+        "33564011000001101": UnitStandardisation(
+            vmp_code="33564011000001101",
+            vmp_name="Generic Ash (Fraxinus excelsior) pollen 50,000BU/ml solution for skin prick test",
+            scmd_units=[
+                {"unit_id": "3317411000001100", "unit_name": "dose"},
+                {"unit_id": "258773002", "unit_name": "ml"}
+            ],
+            chosen_unit_id="258773002",
+            chosen_unit_name="ml",
+            conversion_logic="1 dose = 3 ml",
+            conversion_factor=3.0
+        ),
+        "33521411000001103": UnitStandardisation(
+            vmp_code="33521411000001103",
+            vmp_name="Generic Mugwort (Artemisia vulgaris) pollen 50,000SBU/ml solution for skin prick test",
+            scmd_units=[
+                {"unit_id": "3317411000001100", "unit_name": "dose"},
+                {"unit_id": "258773002", "unit_name": "ml"}
+            ],
+            chosen_unit_id="258773002",
+            chosen_unit_name="ml",
+            conversion_logic="1 dose = 3 ml",
+            conversion_factor=3.0
+        ),
+        "33626911000001109": UnitStandardisation(
+            vmp_code="33626911000001109",
+            vmp_name="Generic Dermatophagoides farinae 50,000BU/ml solution for skin prick test",
+            scmd_units=[
+                {"unit_id": "3317411000001100", "unit_name": "dose"},
+                {"unit_id": "258773002", "unit_name": "ml"}
+            ],
+            chosen_unit_id="258773002",
+            chosen_unit_name="ml",
+            conversion_logic="1 dose = 3 ml",
+            conversion_factor=3.0
+        ),
+        "33632011000001109": UnitStandardisation(
+            vmp_code="33632011000001109",
+            vmp_name="Generic Dog Epithelia 10,000BU/ml solution for skin prick test",
+            scmd_units=[
+                {"unit_id": "3317411000001100", "unit_name": "dose"},
+                {"unit_id": "258773002", "unit_name": "ml"}
+            ],
+            chosen_unit_id="258773002",
+            chosen_unit_name="ml",
+            conversion_logic="1 dose = 3 ml",
+            conversion_factor=3.0
+        ),
+        "33673411000001107": UnitStandardisation(
+            vmp_code="33673411000001107",
+            vmp_name="Generic Negative Control 0.9% Saline solution for skin prick test",
+            scmd_units=[
+                {"unit_id": "3317411000001100", "unit_name": "dose"},
+                {"unit_id": "258773002", "unit_name": "ml"}
+            ],
+            chosen_unit_id="258773002",
+            chosen_unit_name="ml",
+            conversion_logic="1 dose = 3 ml",
+            conversion_factor=3.0
+        ),
     }
     
     return standardisations
