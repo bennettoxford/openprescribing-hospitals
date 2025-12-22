@@ -68,6 +68,16 @@ VMP is short for Virtual Medicinal Product. This is a component of the [dictiona
 
 You can read more about VMPs in our blogs, [Understanding the secondary care medicines dataset](https://www.bennett.ox.ac.uk/blog/2025/02/understanding-the-secondary-care-medicines-dataset/) and [Getting more from the secondary care medicines data using the dictionary of medicines and devices](https://www.bennett.ox.ac.uk/blog/2025/03/getting-more-from-the-secondary-care-medicines-data-using-the-dictionary-of-medicines-and-devices/).
 
+### How do we identify if a VMP is unlicensed?
+
+A VMP is identified as unlicensed when all of its associated Actual Medicinal Products (AMPs) have an availability restriction of 'Special' in the [dm+d](/faq/#what-is-the-dmd). 
+
+A VMP is marked as unlicensed only when:
+
+* The VMP has at least one associated AMP
+* **All** AMPs associated with the VMP have an availability restriction of 'Special'
+
+If a VMP has multiple AMPs and only some of them are marked as 'Special', the VMP itself will not be identified as unlicensed. You can view whether a VMP is unlicensed on the [Product Lookup page](/product-lookup/).
 
 ### What is the Anatomical Therapeutic Chemical (ATC)/ Defined Daily Dose (DDD) system?
 
