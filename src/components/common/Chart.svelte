@@ -295,6 +295,7 @@
         }
       },
       spacingRight: 20,
+      spacingBottom: 40,
       boost: shouldUseBoost ? {
         enabled: true,
         useGPUTranslations: true,
@@ -347,7 +348,7 @@
         chartOptions: {
           chart: {
             height: 550,
-            spacingBottom: 30
+            spacingBottom: 40
           },
           legend: {
             align: 'center',
@@ -570,6 +571,22 @@
       }
     })),
     annotations: chartAnnotations,
+    credits: {
+      enabled: true,
+      useHTML: true,
+      text: '<a href="/about/#citation" target="_blank" rel="noopener noreferrer" style="color: #666666; text-decoration: underline; font-size: 12px;">How do I cite this?</a> | <a href="https://www.highcharts.com" target="_blank" rel="noopener noreferrer" style="color: #666666; text-decoration: underline; font-size: 12px;">Highcharts.com</a>',
+      href: '',
+      position: {
+        align: 'right',
+        verticalAlign: 'bottom',
+        x: -20,
+        y: -4
+      },
+      style: {
+        fontSize: '10px',
+        color: '#666666'
+      }
+    },
     exporting: {
       enabled: true,
       filename: 'openprescribing-hospitals-chart',
@@ -591,13 +608,14 @@
         },
         credits: {
           enabled: true,
-          text: 'Source: OpenPrescribing Hospitals (hospitals.openprescribing.net)',
+          useHTML: true,
+          text: '<a href="/about/#citation" target="_blank" rel="noopener noreferrer" style="color: #666666; text-decoration: underline; font-size: 12px;">How do I cite this?</a> | <a href="https://www.highcharts.com" target="_blank" rel="noopener noreferrer" style="color: #666666; text-decoration: underline; font-size: 12px;">Highcharts.com</a>',
           href: '',
           position: {
             align: 'right',
             verticalAlign: 'bottom',
-            x: -10,
-            y: -5
+            x: -20,
+            y: -4
           },
           style: {
             fontSize: '10px',
