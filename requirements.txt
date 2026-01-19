@@ -92,7 +92,7 @@ proto-plus==1.26.0
 protobuf==5.29.5
 psycopg2-binary==2.9.10
 pyarrow==19.0.1
-pyasn1==0.6.1
+pyasn1==0.6.2
 pyasn1_modules==0.4.1
 pycparser==2.22
 pydantic==2.11.2
