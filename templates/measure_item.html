@@ -123,6 +123,13 @@
                 
                 <div class="px-4 sm:px-8">
                     <span class="block w-full h-px bg-gray-300 my-8"></span>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Why does it matter?</h2>
+                    <div class="markdown-content">
+                        {{ why_it_matters|safe }}
+                    </div>
+                </div>
+
+                <div class="px-4 sm:px-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">How is it calculated?</h2>
                     <div class="markdown-content">
                         {{ how_is_it_calculated|safe }}
@@ -134,13 +141,6 @@
                             numeratorItems="{{ numerator_vmps }}"
                             previewCount="3"
                         ></measure-products>
-                    </div>
-                </div>
-
-                <div class="px-4 sm:px-8">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Why does it matter?</h2>
-                    <div class="markdown-content">
-                        {{ why_it_matters|safe }}
                     </div>
                 </div>
 
