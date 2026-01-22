@@ -746,7 +746,9 @@ export function shouldIncludeDate(date, period, latestDate) {
     if (period === 'all') return true;
 
     const dataDate = new Date(date);
-    
+    const dataDateStr = dataDate.toISOString().split('T')[0];
+    const latestDateStr = latestDate ? latestDate.toISOString().split('T')[0] : null;
+
     switch (period) {
         case 'latest_month':
             if (!latestDate) return false;
@@ -757,16 +759,24 @@ export function shouldIncludeDate(date, period, latestDate) {
             return dataDate.getFullYear() === latestDate.getFullYear();
         case 'current_fy':
             if (!latestDate) return false;
+        case 'current_fy':
+            if (!latestDate) return false;
             const fyStart = new Date(latestDate.getFullYear(), 3, 1); // April 1st
             if (latestDate < fyStart) {
                 fyStart.setFullYear(fyStart.getFullYear() - 1);
             }
-            return dataDate >= fyStart && dataDate <= latestDate;
+
+            const fyStartStr = fyStart.toISOString().split('T')[0];
+
+            return dataDateStr >= fyStartStr && dataDateStr <= latestDateStr;
         case 'last_12_months':
             if (!latestDate) return false;
             const twelveMonthsAgo = new Date(latestDate);
             twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
-            return dataDate >= twelveMonthsAgo && dataDate <= latestDate;
+
+            const startDateStr = twelveMonthsAgo.toISOString().split('T')[0];
+
+            return dataDateStr >= startDateStr && dataDateStr <= latestDateStr;
         default:
             return true;
     }
