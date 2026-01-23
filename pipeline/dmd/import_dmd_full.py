@@ -5,18 +5,18 @@ from pipeline.utils.utils import (
     execute_bigquery_query_from_sql_file,
     validate_table_schema,
 )
-from pipeline.setup.bq_tables import DMD_TABLE_SPEC
+from pipeline.setup.bq_tables import DMD_FULL_TABLE_SPEC
 
 
 @task
-def validate_vtm_consistency():
+def validate_vtm_consistency_full():
     """Validate VTM relationships are consistent"""
     logger = get_run_logger()
     client = get_bigquery_client()
 
     query = f"""
     SELECT vmp_code, vmp_name
-    FROM `{DMD_TABLE_SPEC.full_table_id}`
+    FROM `{DMD_FULL_TABLE_SPEC.full_table_id}`
     WHERE (vtm IS NOT NULL AND vtm_name IS NULL)
     OR (vtm IS NULL AND vtm_name IS NOT NULL)
     """
@@ -31,15 +31,16 @@ def validate_vtm_consistency():
     logger.info("All VTM relationships are consistent")
     return {"valid": True}
 
+
 @task
-def validate_ingredient_units():
+def validate_ingredient_units_full():
     """Validate ingredient strength units are present when values exist"""
     logger = get_run_logger()
     client = get_bigquery_client()
 
     query = f"""
     SELECT vmp_code, vmp_name, ing.ing_name
-    FROM `{DMD_TABLE_SPEC.full_table_id}`,
+    FROM `{DMD_FULL_TABLE_SPEC.full_table_id}`,
     UNNEST(ingredients) as ing
     WHERE (ing.strnt_nmrtr_val IS NOT NULL AND ing.strnt_nmrtr_uom_name IS NULL)
     OR (ing.strnt_dnmtr_val IS NOT NULL AND ing.strnt_dnmtr_uom_name IS NULL)
@@ -55,8 +56,9 @@ def validate_ingredient_units():
     logger.info("All ingredient strength values have corresponding units")
     return {"valid": True}
 
+
 @task
-def validate_basis_of_strength():
+def validate_basis_of_strength_full():
     """Validate basis of strength data is consistent"""
     logger = get_run_logger()
     client = get_bigquery_client()
@@ -64,18 +66,18 @@ def validate_basis_of_strength():
     # Check for invalid base substance records (type 2)
     base_substance_query = f"""
     SELECT vmp_code, vmp_name, ing.ing_name, ing.basis_of_strength_type
-    FROM `{DMD_TABLE_SPEC.full_table_id}`,
+    FROM `{DMD_FULL_TABLE_SPEC.full_table_id}`,
     UNNEST(ingredients) as ing
-    WHERE ing.basis_of_strength_type = 2 
+    WHERE ing.basis_of_strength_type = 2
     AND (ing.basis_of_strength_code IS NULL OR ing.basis_of_strength_name IS NULL)
     """
 
     # Check for invalid ingredient substance records (type 1)
     ingredient_substance_query = f"""
     SELECT vmp_code, vmp_name, ing.ing_name, ing.basis_of_strength_type
-    FROM `{DMD_TABLE_SPEC.full_table_id}`,
+    FROM `{DMD_FULL_TABLE_SPEC.full_table_id}`,
     UNNEST(ingredients) as ing
-    WHERE ing.basis_of_strength_type = 1 
+    WHERE ing.basis_of_strength_type = 1
     AND ing.ing_code IS NULL
     """
 
@@ -92,7 +94,7 @@ def validate_basis_of_strength():
             f"Ingredient substance issues: {invalid_ingredient_records}"
         )
         return {
-            "valid": False, 
+            "valid": False,
             "invalid_base_records": invalid_base_records,
             "invalid_ingredient_records": invalid_ingredient_records
         }
@@ -100,15 +102,16 @@ def validate_basis_of_strength():
     logger.info("All basis of strength data is valid")
     return {"valid": True}
 
+
 @task
-def validate_amp_data():
+def validate_amp_data_full():
     """Validate AMP data is consistent"""
     logger = get_run_logger()
     client = get_bigquery_client()
 
     missing_data_query = f"""
     SELECT vmp_code, vmp_name, amp.amp_code, amp.amp_name
-    FROM `{DMD_TABLE_SPEC.full_table_id}`,
+    FROM `{DMD_FULL_TABLE_SPEC.full_table_id}`,
     UNNEST(amps) as amp
     WHERE amp.amp_code IS NULL OR amp.amp_name IS NULL
     """
@@ -123,26 +126,27 @@ def validate_amp_data():
     logger.info("All AMP data is valid")
     return {"valid": True}
 
-@flow(name="Import dm+d Filtered")
-def import_dmd_main():
-    """Create filtered dm+d table (SCMD VMPs only) and validate"""
-    logger = get_run_logger()
-    logger.info("Creating filtered dm+d table (SCMD VMPs only)")
 
-    sql_file_path = Path(__file__).parent / "import_dmd.sql"
+@flow(name="Import dm+d Full")
+def import_dmd_full():
+    """Import and validate complete dm+d data (all VMPs, not filtered by SCMD)"""
+    logger = get_run_logger()
+    logger.info("Importing complete dm+d data")
+
+    sql_file_path = Path(__file__).parent / "import_dmd_full.sql"
     sql_result = execute_bigquery_query_from_sql_file(str(sql_file_path))
-    logger.info("dm+d imported")
+    logger.info("Complete dm+d data imported")
 
     validations = {
-        "schema": validate_table_schema(DMD_TABLE_SPEC),
-        "vtm": validate_vtm_consistency(),
-        "ingredient_units": validate_ingredient_units(),
-        "basis_of_strength": validate_basis_of_strength(),
-        "amp_data": validate_amp_data()
+        "schema": validate_table_schema(DMD_FULL_TABLE_SPEC),
+        "vtm": validate_vtm_consistency_full(),
+        "ingredient_units": validate_ingredient_units_full(),
+        "basis_of_strength": validate_basis_of_strength_full(),
+        "amp_data": validate_amp_data_full()
     }
 
     failed_validations = {
-        name: result for name, result in validations.items() 
+        name: result for name, result in validations.items()
         if isinstance(result, dict) and result.get("valid") is False
     }
 
@@ -153,4 +157,4 @@ def import_dmd_main():
 
 
 if __name__ == "__main__":
-    import_dmd_main()
+    import_dmd_full()
