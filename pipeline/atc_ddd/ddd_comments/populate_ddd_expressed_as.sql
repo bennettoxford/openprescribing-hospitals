@@ -64,6 +64,14 @@ expressed_as_mapped AS (
       WHEN dmd.vmp_code = '41985011000001102' AND ddd.comment = 'Fe2+' THEN 106 -- Ferrous fumarate 322mg tablets
       WHEN dmd.vmp_code = '38898111000001109' AND ddd.comment = 'Fe2+' THEN 9 -- Ferrous fumarate 140mg/5ml oral solution sugar free
       WHEN dmd.vmp_code = '39108711000001103' AND ddd.comment = 'Fe2+' THEN 9 -- Ferrous fumarate 140mg/5ml oral solution
+      WHEN dmd.vmp_code = '7820811000001101' AND ddd.comment = 'Fe2+' THEN 5 -- Generic Spatone Original 20ml sachets
+      WHEN dmd.vmp_code = '12313711000001105' AND ddd.comment = 'Fe2+' THEN 5.6 -- Ferrous sulfate 140mg/5ml oral solution
+      WHEN dmd.vmp_code = '8513511000001107' AND ddd.comment = 'Fe2+' THEN 25 -- Ferrous sulfate 625mg/5ml oral solution
+      WHEN dmd.vmp_code = '8513311000001101' AND ddd.comment = 'Fe2+' THEN 2.4 -- Ferrous sulfate 60mg/5ml oral solution
+      WHEN dmd.vmp_code = '41985211000001107' AND ddd.comment = 'Fe2+' THEN 65 -- Ferrous sulfate 200mg tablets
+      WHEN dmd.vmp_code = '41985111000001101' AND ddd.comment = 'Fe2+' THEN 35 -- Ferrous gluconate 300mg tablets
+      WHEN dmd.vmp_code = '12661411000001106' AND ddd.comment = 'Fe2+' THEN 25 -- Ferrous sulfate 125mg/ml oral drops sugar free
+      WHEN dmd.vmp_code = '39107411000001105' AND ddd.comment = 'Fe2+' THEN 105 -- Ferrous sulfate 325mg modified-release tablets
 
       -- Anticoagulants (anti-Xa) - conversion to units
       WHEN ingredient.ing_code = '108983001' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_val * 100 -- Enoxaparin (mg to units)
@@ -96,7 +104,7 @@ expressed_as_mapped AS (
       WHEN dmd.vmp_code = '27890611000001109' AND ddd.comment = 'Expressed as umeclidinium, delivered dose' THEN ingredient.strnt_nmrtr_uom_name -- Umeclidinium
 
       -- Iron supplements (Fe2+)
-      WHEN dmd.vmp_code IN ('41984711000001104', '41984811000001107', '41985011000001102', '38898111000001109', '39108711000001103') AND ddd.comment = 'Fe2+' THEN ingredient.strnt_nmrtr_uom_name
+      WHEN dmd.vmp_code IN ('41984711000001104', '41984811000001107', '41985011000001102', '38898111000001109', '39108711000001103', '7820811000001101', '12313711000001105', '8513511000001107', '8513311000001101', '41985211000001107', '41985111000001101', '12661411000001106', '39107411000001105') AND ddd.comment = 'Fe2+' THEN 'mg'
 
       -- Anticoagulants
       WHEN ingredient.ing_code = '108983001' AND ddd.comment = 'anti Xa' THEN 'unit' -- Enoxaparin (converted from mg to units)
