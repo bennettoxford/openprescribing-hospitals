@@ -3,7 +3,13 @@ from prefect import task, flow, get_run_logger
 from pipeline.utils.utils import execute_bigquery_query_from_sql_file, validate_table_schema, get_bigquery_client
 from pipeline.setup.bq_tables import VMP_EXPRESSED_AS_TABLE_SPEC
 from pipeline.setup.config import (
-    PROJECT_ID, DATASET_ID, VMP_TABLE_ID
+    PROJECT_ID,
+    DATASET_ID,
+    VMP_TABLE_ID,
+    DMD_TABLE_ID,
+    DMD_SUPP_TABLE_ID,
+    ADM_ROUTE_MAPPING_TABLE_ID,
+    WHO_DDD_TABLE_ID
 )
 from pathlib import Path
 import pandas as pd
@@ -131,6 +137,66 @@ def validate_expressed_as_ingredients(df: pd.DataFrame):
 
 
 @task
+def validate_all_expressed_as_vmps_covered(df: pd.DataFrame) -> pd.DataFrame:
+    """Validate that all VMPs with 'expressed as' DDD comments are covered in the populated table"""
+    logger = get_run_logger()
+    client = get_bigquery_client()
+
+    # Get all VMPs that have the "expressed as" DDD comments we're looking for
+    expected_vmps_query = f"""
+    SELECT DISTINCT
+        dmd.vmp_code,
+        dmd.vmp_name,
+        ddd.comment AS ddd_comment
+    FROM `{PROJECT_ID}.{DATASET_ID}.{DMD_TABLE_ID}` dmd
+    INNER JOIN `{PROJECT_ID}.{DATASET_ID}.{VMP_TABLE_ID}` vmp_table
+        ON dmd.vmp_code = vmp_table.vmp_code
+    INNER JOIN `{PROJECT_ID}.{DATASET_ID}.{DMD_SUPP_TABLE_ID}` dmd_supp
+        ON dmd.vmp_code = dmd_supp.vmp_code
+    LEFT JOIN UNNEST(dmd.ontformroutes) AS route
+    LEFT JOIN `{PROJECT_ID}.{DATASET_ID}.{ADM_ROUTE_MAPPING_TABLE_ID}` routelookup
+        ON route.ontformroute_descr = routelookup.dmd_ontformroute
+    INNER JOIN `{PROJECT_ID}.{DATASET_ID}.{WHO_DDD_TABLE_ID}` ddd
+        ON dmd_supp.atc_code = ddd.atc_code
+        AND routelookup.who_route = ddd.adm_code
+    WHERE dmd_supp.atc_code IS NOT NULL
+        AND ddd.comment IS NOT NULL
+        AND TRIM(ddd.comment) != ''
+        AND ddd.comment NOT LIKE 'Refers to%'
+        AND LOWER(TRIM(ddd.comment)) IN (
+            'expressed as folinic acid', 'expressed as lanthanum',
+            'expressed as levofolinic acid', 'expressed as benzylpenicillin',
+            'expressed as aclidinium, delivered dose', 'expressed as glycopyrronium, delivered dose',
+            'expressed as tiotropium, delivered dose', 'expressed as umeclidinium, delivered dose',
+            'anti xa', 'fe', 'fe2+'
+        )
+    """
+
+    results = client.query(expected_vmps_query).result()
+    expected_vmps = {str(row.vmp_code): {"name": row.vmp_name, "comment": row.ddd_comment} for row in results}
+
+    # Get VMPs that were actually populated
+    populated_vmps = set(df["vmp_id"].astype(str).tolist())
+
+    # Find missing VMPs
+    expected_vmp_codes = set(expected_vmps.keys())
+    missing_vmps = expected_vmp_codes - populated_vmps
+
+    if missing_vmps:
+        missing_details = [
+            {
+                "vmp_code": vmp_code,
+                "vmp_name": expected_vmps[vmp_code]["name"],
+                "ddd_comment": expected_vmps[vmp_code]["comment"]
+            }
+            for vmp_code in missing_vmps
+        ]
+        raise ValueError(f"VMPs with 'expressed as' DDD comments not covered in populated table: {missing_details}")
+
+    logger.info(f"All {len(expected_vmps)} VMPs with 'expressed as' DDD comments are covered in the populated table")
+
+
+@task
 def get_populated_data() -> pd.DataFrame:
     """Get the data that was just populated in BigQuery"""
     logger = get_run_logger()
@@ -167,6 +233,7 @@ def populate_ddd_expressed_as_table():
     validate_expressed_as_vmps(df)
     validate_expressed_as_units(df)
     validate_expressed_as_ingredients(df)
+    validate_all_expressed_as_vmps_covered(df)
 
     logger.info("All validations passed successfully")
 
