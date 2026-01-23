@@ -7,7 +7,7 @@ WITH ddd_comments_with_refers_to AS (
     -- Extract ingredient name from "Refers to [ingredient]" pattern
     CASE 
       WHEN LOWER(comment) LIKE 'refers to %' THEN 
-        TRIM(REGEXP_REPLACE(comment, r'(?i)^refers to\s+', ''))
+        TRIM(REGEXP_REPLACE(comment, r'(?i)^refers to[[:space:]]+', ''))
       ELSE NULL
     END AS refers_to_ingredient
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ WHO_DDD_TABLE_ID }}`
@@ -15,12 +15,12 @@ WITH ddd_comments_with_refers_to AS (
     AND LOWER(comment) LIKE 'refers to %'
 ),
 
--- Get all unique ingredients from dm+d data
+-- Get all unique ingredients from dm+d data (full table)
 dmd_ingredients AS (
-  SELECT DISTINCT 
+  SELECT DISTINCT
     ingredient.ing_code AS dmd_ingredient_code,
     ingredient.ing_name AS dmd_ingredient_name
-  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_TABLE_ID }}`,
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_FULL_TABLE_ID }}`,
   UNNEST(ingredients) AS ingredient
   WHERE ingredient.ing_code IS NOT NULL
     AND ingredient.ing_name IS NOT NULL
