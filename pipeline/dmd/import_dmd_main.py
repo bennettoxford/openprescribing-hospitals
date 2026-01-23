@@ -123,11 +123,11 @@ def validate_amp_data():
     logger.info("All AMP data is valid")
     return {"valid": True}
 
-@flow(name="Import dm+d")
+@flow(name="Import dm+d Filtered")
 def import_dmd_main():
-    """Import and validate dm+d data"""
+    """Create filtered dm+d table (SCMD VMPs only) and validate"""
     logger = get_run_logger()
-    logger.info("Importing dm+d")
+    logger.info("Creating filtered dm+d table (SCMD VMPs only)")
 
     sql_file_path = Path(__file__).parent / "import_dmd.sql"
     sql_result = execute_bigquery_query_from_sql_file(str(sql_file_path))
