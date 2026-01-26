@@ -11,6 +11,11 @@ vmps_with_expressed_as AS (
     expressed.expressed_as_strnt_nmrtr,
     expressed.expressed_as_strnt_nmrtr_uom,
     expressed.expressed_as_strnt_nmrtr_uom_name,
+    expressed.expressed_as_strnt_dnmtr,
+    expressed.expressed_as_strnt_dnmtr_uom,
+    expressed.expressed_as_strnt_dnmtr_uom_name,
+    expressed.expressed_as_strnt_dnmtr_basis_val,
+    expressed.expressed_as_strnt_dnmtr_basis_uom,
     expressed.ingredient_code AS expressed_ingredient_code,
     expressed.ingredient_name AS expressed_ingredient_name
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DDD_CALCULATION_LOGIC_TABLE_ID }}` ddd_logic
@@ -41,19 +46,11 @@ ingredient_matching AS (
   FROM vmps_with_expressed_as vwea
 ),
 
--- Get denominator information for expressed_as ingredient from VMP table
+-- Use denominator information from vmp_expressed_as table
 expressed_as_with_denominator AS (
   SELECT
-    im.*,
-    vmp_ing.strnt_dnmtr_basis_val AS expressed_as_strnt_dnmtr_basis_val,
-    vmp_ing.strnt_dnmtr_basis_uom AS expressed_as_strnt_dnmtr_basis_uom,
-    vmp_ing.strnt_dnmtr_val AS expressed_as_strnt_dnmtr,
-    vmp_ing.strnt_dnmtr_uom_name AS expressed_as_strnt_dnmtr_uom_name
+    im.*
   FROM ingredient_matching im
-  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_TABLE_ID }}` vmp
-    ON im.vmp_code = vmp.vmp_code
-  LEFT JOIN UNNEST(vmp.ingredients) AS vmp_ing
-    ON vmp_ing.ingredient_code = im.expressed_ingredient_code
   WHERE im.expressed_ingredient_in_vmp = TRUE
 ),
 -- Convert expressed_as unit to basis unit
