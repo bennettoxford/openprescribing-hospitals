@@ -13,6 +13,20 @@ WITH ddd_comments_with_refers_to AS (
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ WHO_DDD_TABLE_ID }}`
   WHERE comment IS NOT NULL 
     AND LOWER(comment) LIKE 'refers to %'
+    AND LOWER(comment) != 'refers to sc injection' -- This is a different type of DDD comment handled elsewhere
+    -- Exclude comments where the refers to inredient is not relevant to UK products  
+    AND LOWER(comment) NOT IN (
+      'refers to cefoperazone',
+      'refers to cyclothiazide',
+      'refers to etidronic acid',
+      'refers to fenofibric acid',
+      'refers to mefruside',
+      'refers to methyclothiazide',
+      'refers to panipenem',
+      'refers to propyphenazone',
+      'refers to quinethazone',
+      'refers to trichlormethiazide'
+    )
 ),
 
 -- Get all unique ingredients from dm+d data (full table)
@@ -40,6 +54,10 @@ ingredient_matches AS (
       OR (
         LOWER(TRIM(dc.refers_to_ingredient)) = 'alendronic acid'
         AND LOWER(di.dmd_ingredient_name) LIKE '%alendronate%'
+      )
+      OR (
+        LOWER(TRIM(dc.refers_to_ingredient)) = 'risedronic acid'
+        AND LOWER(di.dmd_ingredient_name) LIKE '%risedronate%'
       )
     )
   WHERE dc.refers_to_ingredient IS NOT NULL
