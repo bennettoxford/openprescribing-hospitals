@@ -37,6 +37,7 @@ from pipeline.setup.config import (
     INGREDIENT_CALCULATION_LOGIC_TABLE_ID,
     DDD_CALCULATION_LOGIC_TABLE_ID,
     VMP_EXPRESSED_AS_TABLE_ID,
+    DDD_ROUTE_COMMENTS_TABLE_ID,
 )
 
 
@@ -1715,10 +1716,35 @@ VMP_EXPRESSED_AS_TABLE_SPEC = TableSpec(
             description="Ingredient code for the dm+d ingredient that the expressed as strength refers to"
         ),
         bigquery.SchemaField(
-            "ingredient_name", 
+            "ingredient_name",
             "STRING",
             mode="REQUIRED",
             description="Name of the dm+d ingredient that the expressed as strength refers to"
         ),
     ],
+)
+
+DDD_ROUTE_COMMENTS_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=DDD_ROUTE_COMMENTS_TABLE_ID,
+    description="VMP DDD information including code, name, DDD value, unit, and comment",
+    schema=[
+        bigquery.SchemaField(
+            "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
+        ),
+        bigquery.SchemaField(
+            "vmp_name", "STRING", mode="REQUIRED", description="VMP name"
+        ),
+        bigquery.SchemaField(
+            "ddd", "FLOAT", mode="NULLABLE", description="DDD value"
+        ),
+        bigquery.SchemaField(
+            "ddd_uom", "STRING", mode="NULLABLE", description="DDD unit of measure"
+        ),
+        bigquery.SchemaField(
+            "ddd_comment", "STRING", mode="NULLABLE", description="DDD comment"
+        ),
+    ],
+    cluster_fields=["vmp_code"],
 )
