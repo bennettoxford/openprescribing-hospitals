@@ -14,6 +14,19 @@ WITH ddd_comments_with_refers_to AS (
   WHERE comment IS NOT NULL 
     AND LOWER(comment) LIKE 'refers to %'
     AND LOWER(comment) != 'refers to sc injection' -- This is a different type of DDD comment handled elsewhere
+    -- Exclude comments where the refers to inredient is not relevant to UK products  
+    AND LOWER(comment) NOT IN (
+      'refers to cefoperazone',
+      'refers to cyclothiazide',
+      'refers to etidronic acid',
+      'refers to fenofibric acid',
+      'refers to mefruside',
+      'refers to methyclothiazide',
+      'refers to panipenem',
+      'refers to propyphenazone',
+      'refers to quinethazone',
+      'refers to trichlormethiazide'
+    )
 ),
 
 -- Get all unique ingredients from dm+d data (full table)
