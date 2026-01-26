@@ -137,22 +137,46 @@ expressed_as_mapped AS (
       'expressed as tiotropium, delivered dose', 'expressed as umeclidinium, delivered dose',
       'anti xa', 'fe', 'fe2+'
     )
+),
+
+-- ============================================================================
+-- STEP 3: Get denominator information from DMD ingredients
+-- ============================================================================
+expressed_as_with_denominator AS (
+  SELECT
+    eam.*,
+    vmp_ing.strnt_dnmtr_val AS expressed_as_strnt_dnmtr,
+    vmp_ing.strnt_dnmtr_uom_name AS expressed_as_strnt_dnmtr_uom_name,
+    vmp_ing.strnt_dnmtr_basis_val AS expressed_as_strnt_dnmtr_basis_val,
+    vmp_ing.strnt_dnmtr_basis_uom AS expressed_as_strnt_dnmtr_basis_uom
+  FROM expressed_as_mapped eam
+  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_TABLE_ID }}` vmp
+    ON eam.vmp_code = vmp.vmp_code
+  LEFT JOIN UNNEST(vmp.ingredients) AS vmp_ing
+    ON eam.matched_ingredient_code = vmp_ing.ingredient_code
+  WHERE eam.expressed_as_strnt_nmrtr IS NOT NULL
 )
 
 -- ============================================================================
--- STEP 3: Format final output with UOM codes
+-- STEP 4: Format final output with UOM codes
 -- ============================================================================
 SELECT DISTINCT
   vmp_code AS vmp_id,
   vmp_nm AS vmp_name,
   ddd_comment,
   expressed_as_strnt_nmrtr,
-  uom_lookup.uom_code AS expressed_as_strnt_nmrtr_uom,
+  nmrtr_uom_lookup.uom_code AS expressed_as_strnt_nmrtr_uom,
   expressed_as_strnt_uom_name AS expressed_as_strnt_nmrtr_uom_name,
+  expressed_as_strnt_dnmtr,
+  dnmtr_uom_lookup.uom_code AS expressed_as_strnt_dnmtr_uom,
+  expressed_as_strnt_dnmtr_uom_name,
+  expressed_as_strnt_dnmtr_basis_val,
+  expressed_as_strnt_dnmtr_basis_uom,
   matched_ingredient_code AS ingredient_code,
   matched_ingredient_name AS ingredient_name
-FROM expressed_as_mapped
-LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_UOM_TABLE_ID }}` uom_lookup
-  ON expressed_as_strnt_uom_name = uom_lookup.description
-WHERE expressed_as_strnt_nmrtr IS NOT NULL
+FROM expressed_as_with_denominator
+LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_UOM_TABLE_ID }}` nmrtr_uom_lookup
+  ON expressed_as_strnt_uom_name = nmrtr_uom_lookup.description
+LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_UOM_TABLE_ID }}` dnmtr_uom_lookup
+  ON expressed_as_strnt_dnmtr_uom_name = dnmtr_uom_lookup.description
 ORDER BY who_ddd_comment, vmp_nm
