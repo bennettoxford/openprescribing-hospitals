@@ -4,7 +4,7 @@ title: Data source
 
 ### Where do you get the data from?
 
-The primary data source for the OpenPrescribing Hospitals platform is the [Secondary Care Medicines Dataset (SCMD)](https://opendata.nhsbsa.net/dataset/secondary-care-medicines-data-indicative-price). The SCMD is collated by [Rx-info](https://www.rx-info.co.uk/) and hosted on the [National Health Service Business Services Authority (NHSBSA) Open Data Portal](https://opendata.nhsbsa.net/dataset/secondary-care-medicines-data-indicative-price). 
+The primary data source for the OpenPrescribing Hospitals platform is the [Secondary Care Medicines Data (SCMD)](https://opendata.nhsbsa.net/dataset/secondary-care-medicines-data-indicative-price). The SCMD is collated by [Rx-info](https://www.rx-info.co.uk/) and hosted on the [National Health Service Business Services Authority (NHSBSA) Open Data Portal](https://opendata.nhsbsa.net/dataset/secondary-care-medicines-data-indicative-price). 
 
 There is detailed user guide provided on the NHSBSA Open Data Portal alongside the data but briefly the SCMD contains processed pharmacy stock control data. Data is collected and curated from individual trusts by Rx-info. Rx-info then shares the data with the NHSBSA who make it openly available. 
 
