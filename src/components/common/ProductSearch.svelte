@@ -288,7 +288,7 @@
                             lastSearchResults = [];
                         }
                     }}
-                    class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500 pr-8
+                    class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500 pr-8 placeholder:text-sm
                            {filteredItems.length > 0 ? 'rounded-b-none' : ''}"
                 />
                 {#if isLoading}

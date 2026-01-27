@@ -293,7 +293,7 @@
                         on:focus={() => !disabled && (isOpen = true)}
                         placeholder={placeholderText}
                         disabled={disabled}
-                        class="w-full p-2 border border-gray-300 rounded-l-md
+                        class="w-full p-2 border border-gray-300 rounded-l-md placeholder:text-sm
                                {isOpen ? 'rounded-bl-none' : ''} 
                                {disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}"
                     />
