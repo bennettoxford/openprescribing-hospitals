@@ -250,9 +250,9 @@
         expandedItems = expandedItems;
     }
 
-    $: placeholder = type === 'product' ? "Search by product name or code..." :
-                     type === 'ingredient' ? "Search by ingredient name..." :
-                     type === 'atc' ? "Search by ATC level name or code..." :
+    $: placeholder = type === 'product' ? "Search by product name or dm+d code..." :
+                     type === 'ingredient' ? "Search by ingredient name or dm+d code..." :
+                     type === 'atc' ? "Search by ATC level name or ATC code..." :
                      "Search by product name or code...";
 </script>
 
