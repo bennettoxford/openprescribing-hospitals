@@ -37,28 +37,26 @@ expressed_as_mapped AS (
     -- Calculate expressed_as_strnt_nmrtr based on specific rules
     CASE
       -- Folate derivatives (expressed as folinic/levofolinic acid) - use actual strength
-      WHEN ingredient.ing_code = '126223008' AND ddd.comment = 'Expressed as folinic acid' THEN ingredient.strnt_nmrtr_val
-      WHEN ingredient.ing_code = '4812211000001103' AND ddd.comment = 'Expressed as folinic acid' THEN ingredient.strnt_nmrtr_val
-      WHEN ingredient.ing_code = '4640211000001100' AND ddd.comment = 'Expressed as levofolinic acid' THEN ingredient.strnt_nmrtr_val
-      WHEN ingredient.ing_code = '36002211000001107' AND ddd.comment = 'Expressed as levofolinic acid' THEN ingredient.strnt_nmrtr_val
+      WHEN dmd.vtm = '776024003' AND ddd.comment = 'Expressed as folinic acid' THEN ingredient.strnt_nmrtr_val -- VTM for folinic acid
+      WHEN dmd.vtm = '782480006' AND ddd.comment = 'Expressed as levofolinic acid' THEN ingredient.strnt_nmrtr_val -- VTM for levofolinic acid
 
-      -- Minerals and metals - use actual strength
-      WHEN ingredient.ing_code = '414571007' AND ddd.comment = 'Expressed as lanthanum' THEN ingredient.strnt_nmrtr_val
-      WHEN ingredient.ing_code = '129497004' AND ddd.comment = 'Fe' THEN ingredient.strnt_nmrtr_val -- Iron sucrose
-      WHEN ingredient.ing_code = '387118003' AND ddd.comment = 'Fe' THEN ingredient.strnt_nmrtr_val -- Iron dextran
+      -- Lanthanum - use actual strength
+      WHEN dmd.vtm = '785371003' AND ddd.comment = 'Expressed as lanthanum' THEN ingredient.strnt_nmrtr_val -- VTM for lanthanum carbonate
 
       -- Benzathine benzylpenicillin (expressed as benzylpenicillin) - specific conversion factors
-      WHEN dmd.vmp_code IN ('10150911000001107') AND ddd.comment = 'Expressed as benzylpenicillin' THEN 360 -- Benzathine benzylpenicillin
-      WHEN dmd.vmp_code IN ('10153111000001102', '42683111000001104') AND ddd.comment = 'Expressed as benzylpenicillin' THEN 720 -- Benzathine benzylpenicillin
-      WHEN dmd.vmp_code IN ('10153211000001108', '44168511000001109') AND ddd.comment = 'Expressed as benzylpenicillin' THEN 1440 -- Benzathine benzylpenicillin
+      WHEN dmd.vmp_code IN ('10150911000001107') AND ddd.comment = 'Expressed as benzylpenicillin' THEN 360 -- Benzathine benzylpenicillin 600,000 units vial
+      WHEN dmd.vmp_code IN ('10153111000001102', '42683111000001104') AND ddd.comment = 'Expressed as benzylpenicillin' THEN 720 -- Benzathine benzylpenicillin 1.2 million units vial
+      WHEN dmd.vmp_code IN ('10153211000001108', '44168511000001109') AND ddd.comment = 'Expressed as benzylpenicillin' THEN 1440 -- Benzathine benzylpenicillin 2.4 million units vial
 
       -- Respiratory inhalers (delivered dose) - specific delivered dose values
       WHEN dmd.vmp_code = '38893611000001108' AND ddd.comment = 'Expressed as aclidinium, delivered dose' THEN 322 -- Aclidinium
       WHEN dmd.vmp_code = '21496211000001102' AND ddd.comment = 'Expressed as glycopyrronium, delivered dose' THEN 44 -- Glycopyrronium
-      WHEN dmd.vmp_code IN ('33596311000001107', '9478911000001107', '9479011000001103') AND ddd.comment = 'Expressed as tiotropium, delivered dose' THEN 10 -- Tiotropium
+      WHEN dmd.vmp_code IN ('33596311000001107', '9478911000001107', '9479011000001103') AND ddd.comment = 'Expressed as tiotropium, delivered dose' THEN 10 -- Tiotropium powder for inhalation capsules
       WHEN dmd.vmp_code = '27890611000001109' AND ddd.comment = 'Expressed as umeclidinium, delivered dose' THEN 55 -- Umeclidinium
 
       -- Iron supplements (expressed as Fe2+ elemental iron) - specific elemental iron values
+      WHEN dmd.vtm = '776398000' AND ddd.comment = 'Fe' THEN ingredient.strnt_nmrtr_val -- VTM for iron sucrose
+      WHEN dmd.vtm = '776395002' AND ddd.comment = 'Fe' THEN ingredient.strnt_nmrtr_val -- VTM for iron dextran
       WHEN dmd.vmp_code = '41984711000001104' AND ddd.comment = 'Fe2+' THEN 69 -- Ferrous fumarate 210mg tablets
       WHEN dmd.vmp_code = '41984811000001107' AND ddd.comment = 'Fe2+' THEN 100 -- Ferrous fumarate 305mg capsules
       WHEN dmd.vmp_code = '41985011000001102' AND ddd.comment = 'Fe2+' THEN 106 -- Ferrous fumarate 322mg tablets
@@ -74,44 +72,42 @@ expressed_as_mapped AS (
       WHEN dmd.vmp_code = '39107411000001105' AND ddd.comment = 'Fe2+' THEN 105 -- Ferrous sulfate 325mg modified-release tablets
 
       -- Anticoagulants (anti-Xa) - conversion to units
-      WHEN ingredient.ing_code = '108983001' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_val * 100 -- Enoxaparin (mg to units)
-      WHEN ingredient.ing_code = '108987000' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_val -- Dalteparin (already in units)
-      WHEN ingredient.ing_code = '386954009' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_val -- Danaparoid (already in units)
-      WHEN ingredient.ing_code = '395864005' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_val -- Reviparin (already in units)
-      WHEN ingredient.ing_code = '395908006' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_val -- Tinzaparin (already in units)
+      WHEN dmd.vtm = '775768002' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_val * 100 -- Enoxaparin (mg to units)
+      WHEN dmd.vtm = '775440000' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_val -- Dalteparin (already in units)
+      WHEN dmd.vtm = '775441001' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_val -- Danaparoid (already in units)
+      WHEN dmd.vtm = '777430002' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_val -- Reviparin (already in units)
+      WHEN dmd.vtm = '777776004' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_val -- Tinzaparin (already in units)
     END AS expressed_as_strnt_nmrtr,
 
     -- Determine expressed_as_strnt_uom_name
     CASE
       -- Folate derivatives
-      WHEN ingredient.ing_code = '126223008' AND ddd.comment = 'Expressed as folinic acid' THEN ingredient.strnt_nmrtr_uom_name
-      WHEN ingredient.ing_code = '4812211000001103' AND ddd.comment = 'Expressed as folinic acid' THEN ingredient.strnt_nmrtr_uom_name
-      WHEN ingredient.ing_code = '4640211000001100' AND ddd.comment = 'Expressed as levofolinic acid' THEN ingredient.strnt_nmrtr_uom_name
-      WHEN ingredient.ing_code = '36002211000001107' AND ddd.comment = 'Expressed as levofolinic acid' THEN ingredient.strnt_nmrtr_uom_name
+      WHEN dmd.vtm = '776024003' AND ddd.comment = 'Expressed as folinic acid' THEN ingredient.strnt_nmrtr_uom_name -- VTM for folinic acid
+      WHEN dmd.vtm = '782480006' AND ddd.comment = 'Expressed as levofolinic acid' THEN ingredient.strnt_nmrtr_uom_name -- VTM for levofolinic acid
 
       -- Minerals and metals
-      WHEN ingredient.ing_code = '414571007' AND ddd.comment = 'Expressed as lanthanum' THEN ingredient.strnt_nmrtr_uom_name
-      WHEN ingredient.ing_code = '129497004' AND ddd.comment = 'Fe' THEN ingredient.strnt_nmrtr_uom_name -- Iron sucrose
-      WHEN ingredient.ing_code = '387118003' AND ddd.comment = 'Fe' THEN ingredient.strnt_nmrtr_uom_name -- Iron dextran
+      WHEN dmd.vtm = '785371003' AND ddd.comment = 'Expressed as lanthanum' THEN ingredient.strnt_nmrtr_uom_name -- VTM for lanthanum carbonate
 
-      -- Benzathine benzylpenicillin
+      -- Benzathine benzylpenicillin 600,000 units vial, 1.2 million units vial, 2.4 million units vial
       WHEN dmd.vmp_code IN ('10150911000001107', '10153111000001102', '42683111000001104', '10153211000001108', '44168511000001109') AND ddd.comment = 'Expressed as benzylpenicillin' THEN 'mg'
 
       -- Respiratory inhalers
-      WHEN dmd.vmp_code = '38893611000001108' AND ddd.comment = 'Expressed as aclidinium, delivered dose' THEN ingredient.strnt_nmrtr_uom_name -- Aclidinium
-      WHEN dmd.vmp_code = '21496211000001102' AND ddd.comment = 'Expressed as glycopyrronium, delivered dose' THEN ingredient.strnt_nmrtr_uom_name -- Glycopyrronium
-      WHEN dmd.vmp_code IN ('33596311000001107', '9478911000001107', '9479011000001103') AND ddd.comment = 'Expressed as tiotropium, delivered dose' THEN ingredient.strnt_nmrtr_uom_name -- Tiotropium
-      WHEN dmd.vmp_code = '27890611000001109' AND ddd.comment = 'Expressed as umeclidinium, delivered dose' THEN ingredient.strnt_nmrtr_uom_name -- Umeclidinium
+      WHEN dmd.vmp_code = '38893611000001108' AND ddd.comment = 'Expressed as aclidinium, delivered dose' THEN 'microgram' -- Aclidinium
+      WHEN dmd.vmp_code = '21496211000001102' AND ddd.comment = 'Expressed as glycopyrronium, delivered dose' THEN 'microgram' -- Glycopyrronium
+      WHEN dmd.vmp_code IN ('33596311000001107', '9478911000001107', '9479011000001103') AND ddd.comment = 'Expressed as tiotropium, delivered dose' THEN 'microgram' -- Tiotropium powder for inhalation capsules
+      WHEN dmd.vmp_code = '27890611000001109' AND ddd.comment = 'Expressed as umeclidinium, delivered dose' THEN 'microgram' -- Umeclidinium
 
       -- Iron supplements (Fe2+)
+      WHEN dmd.vtm = '776398000' AND ddd.comment = 'Fe' THEN ingredient.strnt_nmrtr_uom_name -- Iron sucrose
+      WHEN dmd.vtm = '776395002' AND ddd.comment = 'Fe' THEN ingredient.strnt_nmrtr_uom_name -- Iron dextran
       WHEN dmd.vmp_code IN ('41984711000001104', '41984811000001107', '41985011000001102', '38898111000001109', '39108711000001103', '7820811000001101', '12313711000001105', '8513511000001107', '8513311000001101', '41985211000001107', '41985111000001101', '12661411000001106', '39107411000001105') AND ddd.comment = 'Fe2+' THEN 'mg'
 
       -- Anticoagulants
-      WHEN ingredient.ing_code = '108983001' AND ddd.comment = 'anti Xa' THEN 'unit' -- Enoxaparin (converted from mg to units)
-      WHEN ingredient.ing_code = '108987000' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_uom_name -- Dalteparin
-      WHEN ingredient.ing_code = '386954009' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_uom_name -- Danaparoid
-      WHEN ingredient.ing_code = '395864005' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_uom_name -- Reviparin
-      WHEN ingredient.ing_code = '395908006' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_uom_name -- Tinzaparin
+      WHEN dmd.vtm = '775768002' AND ddd.comment = 'anti Xa' THEN 'unit' -- Enoxaparin (converted from mg to units)
+      WHEN dmd.vtm = '775440000' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_uom_name -- Dalteparin
+      WHEN dmd.vtm = '775441001' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_uom_name -- Danaparoid
+      WHEN dmd.vtm = '777430002' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_uom_name -- Reviparin
+      WHEN dmd.vtm = '777776004' AND ddd.comment = 'anti Xa' THEN ingredient.strnt_nmrtr_uom_name -- Tinzaparin
     END AS expressed_as_strnt_uom_name
 
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_TABLE_ID }}` dmd
