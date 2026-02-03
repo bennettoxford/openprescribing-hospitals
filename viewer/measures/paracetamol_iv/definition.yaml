@@ -4,7 +4,7 @@ description: |
   The percentage of paracetamol intravenous formulation of all oral and intravenous paracetamol issued.
 
 why_it_matters: |
-  [NICE guidance for perioperative care in adults](https://www.nice.org.uk/guidance/ng180/chapter/Recommendations#paracetamol) recommends offering oral paracetamol before and after surgery irrespective of pain severity, and advises that intravenous paracetamol should not be used unless the person cannot take oral medication. This reflects the [absence of clear clinical benefit](https://www.nice.org.uk/guidance/ng180/evidence/n1-managing-acute-postoperative-pain-pdf-317993437913) of intravenous paracetamol over oral formulations in patients who can take medicines orally. Intravenous paracetamol is significantly more expensive than oral formulations and has a higher carbon footprint. [NHS Scotland guidance](https://www.nhscfsd.co.uk/media/ohqpgog3/ngtp-paracetamol-iv-to-oral-v20-aug-23.pdf), informed by available evidence, supports switching suitable patients from intravenous to oral paracetamol as a safe and effective intervention. Reducing unnecessary use of intravenous paracetamol can lead to substantial cost and carbon savings.
+  [NICE guidance for perioperative care in adults](https://www.nice.org.uk/guidance/ng180/chapter/Recommendations#paracetamol) recommends offering oral paracetamol before and after surgery irrespective of pain severity, and advises that intravenous paracetamol should not be used unless the person cannot take oral medication. This reflects the [absence of clear clinical benefit](https://www.nice.org.uk/guidance/ng180/evidence/n1-managing-acute-postoperative-pain-pdf-317993437913) of intravenous paracetamol over oral formulations in patients who can take medicines orally. Intravenous paracetamol is significantly more expensive than oral formulations and has a higher carbon footprint. In addition, [NHS Scotland guidance](https://www.nhscfsd.co.uk/media/ohqpgog3/ngtp-paracetamol-iv-to-oral-v20-aug-23.pdf), based on current evidence, supports switching suitable patients from intravenous to oral paracetamol as a safe and effective intervention. Reducing unnecessary use of intravenous paracetamol can lead to substantial cost savings and reductions in carbon emissions.
 
 how_is_it_calculated: >
   We divide the number of [Defined Daily Doses (DDDs)](/faq/#what-is-a-defined-daily-dose-ddd) of intravenous paracetamol products by the total number of DDDs of all oral and intravenous paracetamol products and then multiply by 100 to obtain a percentage each month.
@@ -14,7 +14,7 @@ tags:
 quantity_type: ddd
 authored_by: Chris Wood
 checked_by: Vicky Speed
-date_reviewed: 2025-12-11
-next_review: 2026-12-11
-first_published: 2025-12-11
-status: preview
+date_reviewed: 2026-02-03
+next_review: 2027-02-03
+first_published: 2026-02-03
+status: published
