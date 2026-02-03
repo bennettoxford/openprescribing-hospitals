@@ -7,11 +7,30 @@ scmd_vmps AS (
   SELECT DISTINCT vmp_code 
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ SCMD_PROCESSED_TABLE_ID }}`
 ),
+-- Lithium citrate tetrahydrate = 509mg/5ml
+-- Equivalent to 5.4mmol of lithium ion
+-- Equivalant to 200mg lithium carbonate
+-- See quantitative composition in the summary of product characteristics - https://www.medicines.org.uk/emc/product/6679/smpc
+
+lithium_vtms AS (
+  -- Lithium citrate: 94.26mg:1mmol (509/5.4)
+  SELECT 
+    '776556004' AS vtm_code,
+    'Lithium citrate' AS vtm_name,
+    94.26 AS mg_per_mmol
+  UNION ALL
+  -- Lithium carbonate: 37.04mg:1mmol (200/5.4)
+  SELECT 
+    '776555000' AS vtm_code,
+    'Lithium carbonate' AS vtm_name,
+    37.04 AS mg_per_mmol
+),
 
 vmp_enriched AS (
   SELECT
     vmp.vmp_code,
     vmp.vmp_name,
+    vmp.vtm_code,
     vmp.scmd_uom_id,
     vmp.scmd_uom_name,
     vmp.scmd_basis_uom_id,
@@ -60,7 +79,16 @@ vmp_enriched AS (
     ON route.route_name = route_map.dmd_ontformroute
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ WHO_DDD_TABLE_ID }}` ddd
     ON atc_struct.atc_code = ddd.atc_code
-  GROUP BY vmp.vmp_code, vmp.vmp_name, vmp.ont_form_routes, vmp.ingredients, vmp.scmd_uom_id, vmp.scmd_uom_name, vmp.scmd_basis_uom_id, vmp.scmd_basis_uom_name
+  GROUP BY vmp.vmp_code, vmp.vmp_name, vmp.vtm_code, vmp.ont_form_routes, vmp.ingredients, vmp.scmd_uom_id, vmp.scmd_uom_name, vmp.scmd_basis_uom_id, vmp.scmd_basis_uom_name
+),
+
+lithium_vmps AS (
+  SELECT 
+    v.vmp_code,
+    lv.vtm_name AS lithium_vtm_name,
+    lv.mg_per_mmol
+  FROM vmp_enriched v
+  INNER JOIN lithium_vtms lv ON v.vtm_code = lv.vtm_code
 ),
 
 ddd_analysis AS (
@@ -115,7 +143,7 @@ ddd_route_selection AS (
         (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1) IS NULL 
         OR TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) = ''
         OR LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))) = 'independent of strength'
-        OR LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))) = 'new ddd'
+        OR STARTS_WITH(LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))), 'atc code altered from')
       ) AS route_match_ok,
     CASE
       WHEN NOT has_atc_codes THEN 'No ATC codes found'
@@ -126,7 +154,7 @@ ddd_route_selection AS (
       WHEN (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1) IS NOT NULL 
         AND TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1)) != ''
         AND LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))) != 'independent of strength'
-        AND LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))) != 'new ddd'
+        AND NOT STARTS_WITH(LOWER(TRIM((SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1))), 'atc code altered from')
         THEN CONCAT('DDD has unsupported comment (', (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1), ')')
       ELSE NULL
     END AS route_matching_issue,
@@ -204,7 +232,9 @@ ddd_calculation_status AS (
     drs.vmp_code,
     drs.vmp_name,
     drs.who_ddds,
+    lv.lithium_vtm_name,
     CASE
+      WHEN lv.vmp_code IS NOT NULL AND drs.route_match_ok = TRUE THEN TRUE
       WHEN drs.route_match_ok = FALSE THEN FALSE
       WHEN uc.has_compatible_units = TRUE THEN TRUE
       WHEN uia.has_single_ingredient 
@@ -212,6 +242,8 @@ ddd_calculation_status AS (
       ELSE FALSE
     END AS can_calculate_ddd,
     CASE
+      WHEN lv.vmp_code IS NOT NULL AND drs.route_match_ok = TRUE 
+        THEN CONCAT('Ingredient quantity (mmol lithium ', LOWER(lv.lithium_vtm_name), ') / DDD')
       WHEN drs.route_match_ok = FALSE THEN CONCAT('Not calculated: ', drs.route_matching_issue)
       WHEN uc.has_compatible_units = TRUE THEN 'SCMD quantity / DDD'
       WHEN uia.has_single_ingredient 
@@ -223,6 +255,7 @@ ddd_calculation_status AS (
       ELSE 'Not calculated: unknown route or unit compatibility issue'
     END AS ddd_calculation_logic,
     CASE
+      WHEN lv.vmp_code IS NOT NULL AND drs.route_match_ok = TRUE THEN drs.selected_ddd_value
       WHEN drs.route_match_ok = FALSE THEN NULL
       WHEN uc.has_compatible_units = TRUE THEN drs.selected_ddd_value
       WHEN uia.has_single_ingredient 
@@ -230,6 +263,7 @@ ddd_calculation_status AS (
       ELSE NULL
     END AS selected_ddd_value,
     CASE
+      WHEN lv.vmp_code IS NOT NULL AND drs.route_match_ok = TRUE THEN drs.selected_ddd_unit
       WHEN drs.route_match_ok = FALSE THEN NULL
       WHEN uc.has_compatible_units = TRUE THEN drs.selected_ddd_unit
       WHEN uia.has_single_ingredient 
@@ -237,6 +271,7 @@ ddd_calculation_status AS (
       ELSE NULL
     END AS selected_ddd_unit,
     CASE
+      WHEN lv.vmp_code IS NOT NULL AND drs.route_match_ok = TRUE THEN drs.selected_ddd_route_code
       WHEN drs.route_match_ok = FALSE THEN NULL
       WHEN uc.has_compatible_units = TRUE THEN drs.selected_ddd_route_code
       WHEN uia.has_single_ingredient 
@@ -244,6 +279,7 @@ ddd_calculation_status AS (
       ELSE NULL
     END AS selected_ddd_route_code,
     CASE
+      WHEN lv.vmp_code IS NOT NULL AND drs.route_match_ok = TRUE THEN uc.selected_ddd_basis_unit
       WHEN drs.route_match_ok = FALSE THEN NULL
       WHEN uc.has_compatible_units = TRUE THEN uc.selected_ddd_basis_unit
       WHEN uia.has_single_ingredient 
@@ -254,6 +290,7 @@ ddd_calculation_status AS (
   FROM ddd_route_selection drs
   LEFT JOIN unit_compatibility uc ON drs.vmp_code = uc.vmp_code
   LEFT JOIN unit_and_ingredient_analysis uia ON drs.vmp_code = uia.vmp_code
+  LEFT JOIN lithium_vmps lv ON drs.vmp_code = lv.vmp_code
 )
 SELECT
   v.vmp_code,

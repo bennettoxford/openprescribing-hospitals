@@ -2,7 +2,20 @@ CREATE OR REPLACE TABLE `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DDD_QUANTITY_TABLE
 PARTITION BY year_month
 CLUSTER BY vmp_code
 AS
-WITH normalized_data AS (
+WITH 
+lithium_vtms AS (
+  SELECT 
+    '776556004' AS vtm_code,
+    'Lithium citrate' AS vtm_name,
+    94.26/1000 AS grams_per_mmol
+  UNION ALL
+  SELECT 
+    '776555000' AS vtm_code,
+    'Lithium carbonate' AS vtm_name,
+    37.04/1000 AS grams_per_mmol
+),
+
+normalized_data AS (
   SELECT
     processed.year_month,
     processed.ods_code,
@@ -32,6 +45,7 @@ data_with_ddd_logic AS (
     ddd_logic.expressed_as_ingredient_code,
     ddd_logic.expressed_as_strnt_nmrtr,
     ddd_logic.expressed_as_strnt_nmrtr_uom_name,
+    lv.grams_per_mmol AS lithium_grams_per_mmol,
     -- Convert DDD to basis units
     CASE 
       WHEN ddd_logic.selected_ddd_value IS NOT NULL AND unit_conv.conversion_factor IS NOT NULL
@@ -66,8 +80,8 @@ data_with_ddd_logic AS (
             FROM UNNEST(iq.ingredients) ing
             WHERE UPPER(ing.ingredient_name) = UPPER(TRIM(ddd_logic.refers_to_ingredient))
             LIMIT 1)
-          -- For single ingredient case: use the first and only ingredient
-          WHEN ddd_logic.ddd_calculation_logic = 'Ingredient quantity / DDD' THEN
+          -- For single ingredient case (including lithium): use the first and only ingredient
+          WHEN ddd_logic.ddd_calculation_logic LIKE 'Ingredient quantity%' THEN
             (SELECT AS STRUCT 
               ingredient_code,
               ingredient_quantity_basis,
@@ -80,6 +94,10 @@ data_with_ddd_logic AS (
   FROM normalized_data n
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DDD_CALCULATION_LOGIC_TABLE_ID }}` ddd_logic
     ON n.vmp_code = ddd_logic.vmp_code
+  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_TABLE_ID }}` vmp
+    ON n.vmp_code = vmp.vmp_code
+  LEFT JOIN lithium_vtms lv
+    ON vmp.vtm_code = lv.vtm_code
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` unit_conv
     ON ddd_logic.selected_ddd_unit = unit_conv.unit
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` expressed_as_unit_conv
@@ -119,6 +137,13 @@ ddd_calculations AS (
           ELSE
             (quantity * expressed_as_strnt_nmrtr_basis_val) / selected_ddd_basis_value
         END
+      -- Ingredient quantity (mmol lithium): convert grams to mmol, then divide by DDD
+      WHEN ddd_calculation_logic LIKE 'Ingredient quantity (mmol lithium%'
+        AND ingredient_info IS NOT NULL
+        AND lithium_grams_per_mmol IS NOT NULL
+        AND lithium_grams_per_mmol > 0
+        AND ingredient_info.ingredient_basis_unit = 'gram' THEN
+        ((ingredient_info.ingredient_quantity_basis) / lithium_grams_per_mmol) / selected_ddd_basis_value
       -- Ingredient quantity / DDD: use ingredient quantity (applies to both single ingredient and "refers to" cases)
       WHEN ddd_calculation_logic LIKE 'Ingredient quantity%' 
         AND ingredient_info IS NOT NULL

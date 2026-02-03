@@ -123,6 +123,13 @@
                 
                 <div class="px-4 sm:px-8">
                     <span class="block w-full h-px bg-gray-300 my-8"></span>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Why does it matter?</h2>
+                    <div class="markdown-content">
+                        {{ why_it_matters|safe }}
+                    </div>
+                </div>
+
+                <div class="px-4 sm:px-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">How is it calculated?</h2>
                     <div class="markdown-content">
                         {{ how_is_it_calculated|safe }}
@@ -138,16 +145,13 @@
                 </div>
 
                 <div class="px-4 sm:px-8">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Why does it matter?</h2>
-                    <div class="markdown-content">
-                        {{ why_it_matters|safe }}
-                    </div>
-                </div>
-
-                <div class="px-4 sm:px-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">Which NHS Trusts are included?</h2>
                     <div class="[&_p]:text-lg [&_p]:text-gray-900 [&_p]:mb-8 [&_a]:underline [&_a]:font-semibold">
+                        {% if has_denominators %}
                         <p>Trusts are only included in this measure if they have issued any products included in the denominator for this measure.</p>
+                        {% else %}
+                        <p>Trusts are only included in this measure if they have issued any products included in this measure.</p>
+                        {% endif %}
                         <p>For this measure, {{ trusts_included.included }}/{{ trusts_included.total }} Trusts are included. A full list of Trusts included is available on the <a href="{% url 'viewer:submission_history' %}" target="_blank" class="underline font-semibold">Submission History</a> page.</p>
                     </div>
                 </div>

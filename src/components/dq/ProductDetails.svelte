@@ -402,6 +402,33 @@
                               {/if}
                             </span>
                           </div>
+
+                          <div class="grid grid-cols-[auto_1fr] gap-3 items-baseline">
+                            <div class="flex items-center gap-1">
+                              <span class="text-sm font-medium whitespace-nowrap">Unlicensed:</span>
+                              <div class="relative inline-block group ml-2">
+                                <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
+                                  <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                  </svg>
+                                </button>
+                                <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
+                                            group-hover:scale-100 w-[240px] left-0 -translate-x-1/2 -ml-1 sm:translate-x-0 sm:left-full sm:-ml-1 top-3 rounded-md shadow-lg bg-white 
+                                            ring-1 ring-black ring-opacity-5 p-4">
+                                  <p class="text-sm text-gray-500">
+                                    A product is identified as unlicensed if all of it's AMPs are unlicensed. See the <a href="/faq/#how-do-we-identify-if-a-vmp-is-unlicensed" class="underline font-semibold" target="_blank" rel="noopener noreferrer">FAQs</a> for more.
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            <span class="text-sm break-words hyphens-auto min-w-0">
+                              {#if product.special}
+                                Yes
+                              {:else}
+                                No
+                              {/if}
+                            </span>
+                          </div>
                           
                           <div class="grid grid-cols-[auto_1fr] gap-3 items-baseline">
                             <span class="text-sm font-medium whitespace-nowrap">Unit dose unit of measure:</span>
@@ -536,9 +563,9 @@
                                     </td>
                                     
                                     <!-- Units Column -->
-                                    <td class="px-1 md:px-3 py-3 whitespace-nowrap">
+                                    <td class="px-1 md:px-3 py-3">
                                       {#if quantityItem.units && quantityItem.units.length > 0}
-                                        <span class="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700 border border-blue-200">
+                                        <span class="text-xs text-gray-900 break-words">
                                           {quantityItem.units.join(', ')}
                                         </span>
                                       {:else}

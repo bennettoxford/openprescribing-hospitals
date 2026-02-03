@@ -250,9 +250,9 @@
         expandedItems = expandedItems;
     }
 
-    $: placeholder = type === 'product' ? "Search by product name or code..." :
-                     type === 'ingredient' ? "Search by ingredient name..." :
-                     type === 'atc' ? "Search by ATC level name or code..." :
+    $: placeholder = type === 'product' ? "Search by product name or dm+d code..." :
+                     type === 'ingredient' ? "Search by ingredient name or dm+d code..." :
+                     type === 'atc' ? "Search by ATC level name or ATC code..." :
                      "Search by product name or code...";
 </script>
 
@@ -288,7 +288,7 @@
                             lastSearchResults = [];
                         }
                     }}
-                    class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500 pr-8
+                    class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500 pr-8 placeholder:text-sm
                            {filteredItems.length > 0 ? 'rounded-b-none' : ''}"
                 />
                 {#if isLoading}
