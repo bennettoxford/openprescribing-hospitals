@@ -8,7 +8,7 @@ from pipeline.quantity.ingredient_calculation_logic import ingredient_calculatio
 from pipeline.quantity.ddd_calculation_logic import ddd_calculation_logic
 from pipeline.atc_ddd.ddd_comments.populate_ddd_refers_to import populate_ddd_refers_to_table
 from pipeline.quantity.ddd_comment_handling_refers_to import ddd_comment_handling_refers_to
-from pipeline.atc_ddd.ddd_comments.import_ddd_expressed_as import import_expressed_as
+from pipeline.atc_ddd.ddd_comments.populate_ddd_expressed_as import populate_ddd_expressed_as_table
 from pipeline.atc_ddd.ddd_comments.handle_ddd_comments_expressed_as import handle_ddd_comments_expressed_as
 
 
@@ -22,7 +22,7 @@ def check_quantity_calculations():
     ddd_calculation_logic()
     populate_ddd_refers_to_table()
     ddd_comment_handling_refers_to()
-    import_expressed_as()
+    populate_ddd_expressed_as_table()
     handle_ddd_comments_expressed_as()
 
 
