@@ -13,6 +13,7 @@ from pipeline.setup.config import (
     UNITS_CONVERSION_TABLE_ID,
     ORG_AE_STATUS_TABLE_ID,
     DMD_TABLE_ID,
+    DMD_FULL_TABLE_ID,
     DMD_SUPP_TABLE_ID,
     WHO_ATC_TABLE_ID,
     WHO_DDD_TABLE_ID,
@@ -335,6 +336,114 @@ DMD_TABLE_SPEC = TableSpec(
     dataset_id=DATASET_ID,
     table_id=DMD_TABLE_ID,
     description="Dictionary of Medicines and Devices (dm+d) data",
+    schema=[
+        bigquery.SchemaField(
+            "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
+        ),
+        bigquery.SchemaField("vmp_name", "STRING", description="VMP name"),
+        bigquery.SchemaField(
+            "vtm", "STRING", mode="NULLABLE", description="Virtual Therapeutic Moiety (VTM) code"
+        ),
+        bigquery.SchemaField("vtm_name", "STRING", mode="NULLABLE", description="VTM name"),
+        bigquery.SchemaField("df_ind", "STRING", mode="REQUIRED", description="Dose form indicator"),
+        bigquery.SchemaField("udfs", "FLOAT", mode="NULLABLE", description="Unit dose form size"),
+        bigquery.SchemaField(
+            "udfs_uom", "STRING", mode="NULLABLE", description="Unit dose form size unit of measure"
+        ),
+        bigquery.SchemaField(
+            "unit_dose_uom", "STRING", mode="NULLABLE", description="Unit dose unit of measure"
+        ),
+        bigquery.SchemaField("dform_form", "STRING", mode="NULLABLE", description="Dose form"),
+        bigquery.SchemaField(
+            "ingredients",
+            "RECORD",
+            mode="REPEATED",
+            description="Ingredients information",
+            fields=[
+                bigquery.SchemaField(
+                    "ing_code", "STRING", mode="REQUIRED", description="Ingredient code"
+                ),
+                bigquery.SchemaField(
+                    "ing_name", "STRING", mode="REQUIRED", description="Ingredient name"
+                ),
+                bigquery.SchemaField(
+                    "strnt_nmrtr_val", "FLOAT", mode="NULLABLE", description="Strength numerator value"
+                ),
+                bigquery.SchemaField(
+                    "strnt_nmrtr_uom_name",
+                    "STRING",
+                    mode="NULLABLE",
+                    description="Strength numerator unit of measure",
+                ),
+                bigquery.SchemaField(
+                    "strnt_dnmtr_val", "FLOAT", mode="NULLABLE", description="Strength denominator value"
+                ),
+                bigquery.SchemaField(
+                    "strnt_dnmtr_uom_name",
+                    "STRING",
+                    mode="NULLABLE",
+                    description="Strength denominator unit of measure",
+                ),
+                bigquery.SchemaField(
+                    "basis_of_strength_code",
+                    "STRING",
+                    mode="NULLABLE",
+                    description="SNOMED code for the basis of strength substance",
+                ),
+                bigquery.SchemaField(
+                    "basis_of_strength_name",
+                    "STRING",
+                    mode="NULLABLE",
+                    description="Name of the basis of strength substance",
+                ),
+                bigquery.SchemaField(
+                    "basis_of_strength_type",
+                    "INTEGER",
+                    mode="NULLABLE",
+                    description="Type of basis of strength (1=Ingredient Substance, 2=Base Substance)",
+                ),
+            ],
+        ),
+        bigquery.SchemaField(
+            "ontformroutes",
+            "RECORD",
+            mode="REPEATED",
+            description="Routes of administration",
+            fields=[
+                bigquery.SchemaField(
+                    "ontformroute_cd", "STRING", mode="REQUIRED", description="Route code"
+                ),
+                bigquery.SchemaField(
+                    "ontformroute_descr", "STRING", mode="REQUIRED", description="Route description"
+                ),
+            ],
+        ),
+        bigquery.SchemaField(
+            "amps",
+            "RECORD",
+            mode="REPEATED",
+            description="Actual Medicinal Products (AMPs) associated with this VMP",
+            fields=[
+                bigquery.SchemaField(
+                    "amp_code", "STRING", mode="REQUIRED", description="AMP code"
+                ),
+                bigquery.SchemaField(
+                    "amp_name", "STRING", mode="REQUIRED", description="AMP name"
+                ),
+                bigquery.SchemaField(
+                    "avail_restrict", "STRING", mode="NULLABLE", description="Availability restriction description"
+                ),
+            ],
+        ),
+    ],
+    cluster_fields=["vmp_code"],
+)
+
+DMD_FULL_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=DMD_FULL_TABLE_ID,
+    description="Complete Dictionary of Medicines and Devices (dm+d) data - all VMPs, not filtered by SCMD",
     schema=[
         bigquery.SchemaField(
             "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
