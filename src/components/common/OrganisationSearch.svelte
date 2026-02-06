@@ -87,12 +87,56 @@
         }
     }
 
+    function stripTrustSuffix(str) {
+        if (str == null || typeof str !== 'string') return '';
+        return str
+            .replace(/\s+NHS\s+Foundation\s+Trust\s*$/i, '')
+            .replace(/\s+NHS\s+Trust\s*$/i, '')
+            .trim();
+    }
+
+    /** Words to skip when building initials (e.g. "Guy's and St Thomas" → "gst"). */
+    const INITIALS_STOP_WORDS = new Set(['and']);
+
+    /** Initial letters of each word (after normalising, excluding stop words), e.g. "Guy's and St Thomas" → "gst". */
+    function getInitials(str) {
+        const normalized = normalizeString(str);
+        if (!normalized) return '';
+        return normalized
+            .split(/\s+/)
+            .filter((w) => w && !INITIALS_STOP_WORDS.has(w))
+            .map((w) => w[0])
+            .join('');
+    }
+
     function normalizeString(str) {
+        if (str == null || typeof str !== 'string') return '';
         return str
             .toLowerCase()
-            .replace(/['".,\/#!$%\^&\*;:{}=\-_`~()]/g, '') // Remove punctuation
-            .replace(/\s+/g, ' ') // Normalize whitespace
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/['".,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
+            .replace(/\s+/g, ' ')
             .trim();
+    }
+
+    function tokenize(str) {
+        const normalized = normalizeString(str);
+        return normalized ? normalized.split(' ').filter(Boolean) : [];
+    }
+
+    /** True if search token matches an org token (exact or substring: "king" matches "kings"). */
+    function tokenMatches(searchToken, orgTokens) {
+        return orgTokens.some(
+            ot => ot === searchToken || ot.includes(searchToken)
+        );
+    }
+
+    /** Score 0..1: fraction of search tokens that appear in the org's searchable text. */
+    function coverageScore(searchTokens, orgSearchableTokens) {
+        if (searchTokens.length === 0) return 1;
+        const matched = searchTokens.filter(t => tokenMatches(t, orgSearchableTokens));
+        return matched.length / searchTokens.length;
     }
 
     $: hierarchicalItems = items.filter(item => {
@@ -104,39 +148,46 @@
 
     $: filteredItems = (() => {
         if (!searchTerm.trim()) return hierarchicalItems;
-        
-        const normalizedSearchTerm = normalizeString(searchTerm);
-        
-        return hierarchicalItems.filter(item => {
-            const matchesMain = normalizeString(item.name).includes(normalizedSearchTerm);
-            
-            const orgCode = source.getOrgCode(item.name);
-            const matchesCode = orgCode && normalizeString(orgCode).includes(normalizedSearchTerm);
-            
-            const matchesPredecessor = item.predecessors.some(pred => {
-                const normalizedPred = normalizeString(pred);
-                if (normalizedPred.includes(normalizedSearchTerm)) return true;
-                
-                const predCode = source.getOrgCode(pred);
-                return predCode && normalizeString(predCode).includes(normalizedSearchTerm);
-            });
-            
-            return matchesMain || matchesPredecessor || matchesCode;
+
+        const searchTokens = tokenize(searchTerm);
+        if (searchTokens.length === 0) return hierarchicalItems;
+
+        const itemsWithScore = hierarchicalItems.map(item => {
+            const strippedName = stripTrustSuffix(item.name);
+            const parts = [
+                strippedName,
+                getInitials(strippedName),
+                source.getOrgCode?.(item.name),
+                ...(item.predecessors || []).flatMap((p) => {
+                    const strippedP = stripTrustSuffix(p);
+                    return [strippedP, getInitials(strippedP), source.getOrgCode?.(p)];
+                })
+            ].filter(Boolean);
+            const orgSearchableText = parts.join(' ');
+            const orgTokens = [...new Set(tokenize(orgSearchableText))];
+            const score = coverageScore(searchTokens, orgTokens);
+            return { item, score };
         });
-    })().sort((a, b) => {
-        if (isItemSelected(a.name) !== isItemSelected(b.name)) {
-            return isItemSelected(a.name) ? -1 : 1;
-        }
-            
-            const aSelectable = isItemAvailable(a.name);
-            const bSelectable = isItemAvailable(b.name);
-            
-            if (!isItemSelected(a.name) && !isItemSelected(b.name) && aSelectable !== bSelectable) {
-                return aSelectable ? -1 : 1;
-            }
-        
-            return a.name.localeCompare(b.name);
-        });
+
+        const passing = itemsWithScore.filter(({ score }) => score > 0);
+
+        return passing
+            .sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                const x = a.item;
+                const y = b.item;
+                if (isItemSelected(x.name) !== isItemSelected(y.name)) {
+                    return isItemSelected(x.name) ? -1 : 1;
+                }
+                const aSelectable = isItemAvailable(x.name);
+                const bSelectable = isItemAvailable(y.name);
+                if (!isItemSelected(x.name) && !isItemSelected(y.name) && aSelectable !== bSelectable) {
+                    return aSelectable ? -1 : 1;
+                }
+                return x.name.localeCompare(y.name);
+            })
+            .map(({ item }) => item);
+    })();
 
     $: isItemSelected = (item) => {
         const selected = $source.selectedItems || [];
