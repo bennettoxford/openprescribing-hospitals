@@ -1662,6 +1662,36 @@ VMP_EXPRESSED_AS_TABLE_SPEC = TableSpec(
             description="Expressed as strength numerator unit of measure name"
         ),
         bigquery.SchemaField(
+            "expressed_as_strnt_dnmtr", 
+            "FLOAT",
+            mode="NULLABLE",
+            description="Expressed as strength denominator value from dm+d ingredient (only populated when denominator exists)"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strnt_dnmtr_uom", 
+            "STRING",
+            mode="NULLABLE",
+            description="Expressed as strength denominator unit of measure identifier (only populated when denominator exists)"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strnt_dnmtr_uom_name", 
+            "STRING",
+            mode="NULLABLE",
+            description="Expressed as strength denominator unit of measure name (only populated when denominator exists)"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strnt_dnmtr_basis_val", 
+            "FLOAT",
+            mode="NULLABLE",
+            description="Expressed as strength denominator value converted to basis units (only populated when denominator exists)"
+        ),
+        bigquery.SchemaField(
+            "expressed_as_strnt_dnmtr_basis_uom", 
+            "STRING",
+            mode="NULLABLE",
+            description="Basis unit for expressed as strength denominator (only populated when denominator exists)"
+        ),
+        bigquery.SchemaField(
             "ingredient_code", 
             "STRING",
             mode="REQUIRED",
