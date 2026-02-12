@@ -43,6 +43,17 @@ Products are reported in the SCMD at the level of [Virtual Medicinal Products](/
 
 The platform includes data from all NHS hospital trusts in England that submit data to Rx-Info. This includes all NHS Acute, Teaching, Specialist, Mental Health and Community Trusts in England (this does not include medications dispensed by community pharmacy but this is [available separately](https://opendata.nhsbsa.net/dataset/hospital-prescribing-dispensed-in-the-community)).
 
+### How does the organisation search work?
+
+When you search for NHS Trusts (or Integrated Care Boards or regions), the results match your search in several ways:
+
+- **Trust name** — You can type part of the trust name. Each word you type is matched separately, so "guys thomas" will find "Guy's and St Thomas' NHS Foundation Trust". You don't have to type the complete word (e.g. "king" matches "Kings"). You do not need to type the full name or "NHS Foundation Trust"; the search ignores those suffixes.
+- **Initials** — You can search by the first letters of the main words in the name. For example, "Guy's and St Thomas'" can be returned by typing "gst"; common words like "and" are ignored when building initials.
+- **Organisation code** — If an organisation code is available, it is included in the search, so you can find a trust by its code.
+- **Predecessor names** — Trusts that have merged or been renamed are also matched by their previous names and codes, so you can find the current trust using an old name.
+
+Results are ordered by how well they match (more matching words first), then alphabetically by name. 
+
 ### Why can't I find my hospital on the platform?
 
 There are multiple reasons your hospital may not be present in the data presented. These include:
