@@ -383,7 +383,8 @@ class TestProcessOrgDetails:
             "ABC1": [],  # No successors
             "DEF2": ["GHI3"],  # One successor
             "GHI3": [],  # No successors
-            "JKL4": ["GHI3"]  # One successor
+            "JKL4": ["GHI3"],  # One successor
+            "RYK": ["TAJ"], # added manually
         }
         
         # Test predecessor relationships
@@ -391,7 +392,8 @@ class TestProcessOrgDetails:
             "ABC1": [],  # No predecessors
             "DEF2": [],  # No predecessors
             "GHI3": ["DEF2", "JKL4"],  # Two predecessors
-            "JKL4": []  # No predecessors
+            "JKL4": [],  # No predecessors
+            "TAJ": ["RYK"], # added manually
         }
         
         # Verify XYZ9 (Welsh org) is not included in any mappings

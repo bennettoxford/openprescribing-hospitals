@@ -98,6 +98,14 @@ def process_org_details(all_orgs_details: Dict[str, Any]) -> tuple:
                 if rel["id"] == "RE5":
                     icbs[current_code] = rel["Target"]["OrgId"]["extension"]
 
+    # Successor relationship not present in ORD API relationship info.
+    # RYK (Dudley Integrated Health and Care NHS Trust) was dissolved Oct 2024;
+    # staff, property, services and liabilities transferred to TAJ (Black Country
+    # Healthcare NHS Foundation Trust).
+    # Ref: https://www.england.nhs.uk/publication/dudley-and-walsall-mental-health-partnership-nhs-trust/
+    successors["RYK"] = list(dict.fromkeys(successors.get("RYK", []) + ["TAJ"]))
+    predecessors["TAJ"] = list(dict.fromkeys(predecessors.get("TAJ", []) + ["RYK"]))
+
     logger.info(f"Found {len(icbs)} ICBs")
 
     return icbs, successors, predecessors, filtered_org_details
