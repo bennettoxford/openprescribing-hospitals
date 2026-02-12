@@ -196,6 +196,7 @@ class BaseMeasureItemView(TemplateView):
             "has_denominators": len(denominator_vmps) > 0,
             "annotations": json.dumps(annotations_data, cls=DjangoJSONEncoder),
             "default_view_mode": measure.default_view_mode,
+            "lower_is_better": measure.lower_is_better,
         }
 
     def get_precomputed_data(self, measure):

@@ -98,6 +98,16 @@
                     <div class="markdown-content">
                         {{ measure_description|safe }}
                     </div>
+                    <div class="markdown-content">
+                        <p>For this measure, {% if lower_is_better is True %}
+                        a lower value is better
+                    {% elif lower_is_better is False %}
+                        a higher value is better
+                    {% else %}
+                        We don’t apply a value judgement for this measure.
+                    {% endif %}
+                    . <a href="{% url 'viewer:faq' %}#is-lower-better">See the FAQs for more details</a></p>
+                    </div>
                     <span class="block w-full h-px bg-gray-300 my-8"></span>
                 </div>
 

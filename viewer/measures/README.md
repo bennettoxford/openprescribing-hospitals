@@ -22,6 +22,7 @@ tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Safety
 quantity_type: dose # Type of measurement (e.g. scmd, dose, ingredient, ddd, indicative_cost)
+lower_is_better: true # true, false, or null when no value judgement
 authored_by: John Doe # Name of original author
 checked_by: Jane Smith # Name of clinical/technical reviewer
 date_reviewed: 2024-03-20 # Date of last review (YYYY-MM-DD)
@@ -35,6 +36,8 @@ annotations:  # Optional data annotations - vertical lines with labels on charts
       description: "Annotation description"
       colour: "#DC3220"
 ```
+
+Set `lower_is_better: null` for measures where we do not apply a better/worse interpretation.
 
 ## Importing Measures
 

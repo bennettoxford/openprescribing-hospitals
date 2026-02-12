@@ -8,6 +8,12 @@ Measures can simply be a count of the amount of a drug being issued but more com
 
 You can read more about measures in our blog, [Introducing OpenPrescribing Hospitals measures](https://www.bennett.ox.ac.uk/blog/2025/04/introducing-openprescribing-hospitals-measures/).
 
+### Is lower better?
+
+We are often able to make a value judgement — based on guidance, evidence or national priorities underpinning the measure — to determine what represents "better" practice. When we can do this, we aim to present measures using a "lower is better" principle to ensure consistency with how data is displayed. To achieve this we may need to design and phrase measures [slightly differently to what you may have seen elsewhere](https://www.bennett.ox.ac.uk/blog/2024/01/spot-the-difference-part-1-source-datasets/). For example, for the [Best value DOACs measure](/measures/best_value_doacs/), instead of showing the percentage of DOACs prescribed as the preferred choice, we display the percentage of DOACs that are NOT prescribed as the preferred choices.
+
+For some measures it is not always possible to determine what is "better," as this can depend on various local factors, so we cannot apply a value judgement. For such measures, we present the data as it is, allowing users to interpret it in the context of their specific circumstances.
+
 ### What are percentile charts?
 
 Percentile charts show the extent of variation in medication use at the level of individual trusts. You can read more about why we use them in our blogs, [communicating variation in prescribing](https://www.bennett.ox.ac.uk/blog/2019/04/communicating-variation-in-prescribing-why-we-use-deciles/) and [highlighting variation in hospitals medicines usage](https://www.bennett.ox.ac.uk/blog/2025/04/highlighting-variation-in-hospitals-medicines-usage).

@@ -497,6 +497,11 @@ class Measure(models.Model):
     )
     vmps = models.ManyToManyField(VMP, through='MeasureVMP', related_name='measures')
     quantity_type = models.CharField(max_length=20, choices=QUANTITY_TYPES, default='dose')
+    lower_is_better = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text="True if lower values indicate better practice; null for no value judgement"
+    )
     authored_by = models.CharField(max_length=255, null=True)
     checked_by = models.CharField(max_length=255, null=True)
     date_reviewed = models.DateField(null=True)

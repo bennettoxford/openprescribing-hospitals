@@ -30,6 +30,7 @@ tags:
     - Low value prescribing
     - Value
 quantity_type: scmd # Type of measurement (e.g. dose, ingredient, ddd)
+lower_is_better: true
 authored_by: Chris Wood # Name of original author
 checked_by:  Victoria Speed # 
 first_published: 2025-09-09
