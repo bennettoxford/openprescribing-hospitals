@@ -75,7 +75,8 @@ class Command(BaseCommand):
                     'next_review': data.get('next_review', None),
                     'first_published': data.get('first_published', None),
                     'status': data.get('status', 'in_development'),
-                    'default_view_mode': data.get('default_view_mode', 'trust')
+                    'default_view_mode': data.get('default_view_mode', 'trust'),
+                    'lower_is_better': data.get('lower_is_better', None),
                 }
             )
             
