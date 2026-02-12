@@ -199,6 +199,7 @@ def validate_measure_yaml(data):
             lambda mode: mode in [choice[0] for choice in Measure.VIEW_MODE_CHOICES],
             error='default_view_mode must be one of: trust, icb, region, national'
         ),
+        Optional('lower_is_better'): Or(bool, None, error='lower_is_better must be true, false, or null'),
         Optional('annotations'): And(
             list,
             lambda annotations: all(isinstance(a, dict) for a in annotations),
