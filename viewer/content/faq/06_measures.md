@@ -14,6 +14,14 @@ We are often able to make a value judgement — based on guidance, evidence or n
 
 For some measures it is not always possible to determine what is "better," as this can depend on various local factors, so we cannot apply a value judgement. For such measures, we present the data as it is, allowing users to interpret it in the context of their specific circumstances.
 
+### How is "potential for improvement" and "most improved" determined?
+
+**Potential for improvement** ranks trusts based on their percentile position over the last 12 months. A trust at a high percentile (e.g. 90th) for a "lower is better" measure has more potential to improve than one at the 50th percentile.
+
+**Most improved** compares the average of the trust's percentile rank in the first 3 months of the 12‑month period to the average in the most recent 3 months. A drop in average percentile (for "lower is better" measures) or rise (for "higher is better" measures) counts as improvement.
+
+These metrics are not calculated for measures where we cannot make a value judgement (no "lower is better" or "higher is better"). These measures will appear at the end, when sorting by one of these metrics.
+
 ### What are percentile charts?
 
 Percentile charts show the extent of variation in medication use at the level of individual trusts. You can read more about why we use them in our blogs, [communicating variation in prescribing](https://www.bennett.ox.ac.uk/blog/2019/04/communicating-variation-in-prescribing-why-we-use-deciles/) and [highlighting variation in hospitals medicines usage](https://www.bennett.ox.ac.uk/blog/2025/04/highlighting-variation-in-hospitals-medicines-usage).
