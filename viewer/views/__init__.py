@@ -10,7 +10,6 @@ from .measures import (
     MeasuresListView,
     MeasureItemView,
     MeasurePreviewItemView,
-    MeasuresPreviewListView,
 )
 
 from .analyse import AnalyseView
@@ -50,7 +49,6 @@ __all__ = [
     'MeasuresListView',
     'MeasureItemView',
     'MeasurePreviewItemView',
-    'MeasuresPreviewListView',
     
     'AnalyseView',
     
