@@ -301,8 +301,8 @@
 <div class="dropdown relative w-full h-full flex flex-col">
     <div class="flex flex-col">
         <div class="flex flex-col">
-            {#if showTitle}
-                <div class="flex items-center">
+            <div class="flex items-center justify-between mb-1">
+                {#if showTitle}
                     <label class="text-sm font-medium {disabled ? 'text-gray-400' : 'text-gray-700'}">
                         Select {$source.filterType === 'icb' ? 'ICB' : 
                                $source.filterType === 'region' ? 'Region' : 
@@ -311,10 +311,9 @@
                             <span class="text-xs text-gray-500 ml-1">(max {maxItems})</span>
                         {/if}
                     </label>
-                </div>
-            {/if}
-
-            <div class="flex justify-end">
+                {:else}
+                    <span></span>
+                {/if}
                 <div class="flex items-center gap-1 text-sm">
                     {#if !hideSelectAll}
                         <button 
@@ -344,7 +343,7 @@
                         on:focus={() => !disabled && (isOpen = true)}
                         placeholder={placeholderText}
                         disabled={disabled}
-                        class="w-full p-2 border border-gray-300 rounded-l-md placeholder:text-sm
+                        class="w-full p-2 border border-gray-300 rounded-l-md
                                {isOpen ? 'rounded-bl-none' : ''} 
                                {disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}"
                     />
