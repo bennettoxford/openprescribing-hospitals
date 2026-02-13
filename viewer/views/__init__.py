@@ -20,6 +20,7 @@ from .api import (
     get_product_details,
     select_quantity_type,
     validate_analysis_params,
+    get_measures_chart_data,
 )
 
 from .auth import LoginView
@@ -59,6 +60,7 @@ __all__ = [
     'search_products',
     'get_product_details',
     'validate_analysis_params',
+    'get_measures_chart_data',
     'LoginView',
 
     'SubmissionHistoryView',
