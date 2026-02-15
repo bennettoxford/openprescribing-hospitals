@@ -1,23 +1,30 @@
 import re
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from django.db.models import Q
+from django.db.models import Q, OuterRef, Exists
 from typing import List, Set
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_protect
 from django.contrib.postgres.aggregates import ArrayAgg
 from ..models import (
-    VMP, 
-    SCMDQuantity, 
-    Dose, 
-    IngredientQuantity, 
+    VMP,
+    SCMDQuantity,
+    Dose,
+    IngredientQuantity,
     DDDQuantity,
     VTM,
     Ingredient,
     ATC,
-    Organisation
+    Organisation,
+    Measure,
+    MeasureVMP,
 )
 from ..utils import safe_float
+
+from .measures import (
+    expand_trust_codes,
+    get_bulk_trust_series_for_measures,
+)
 
 
 @api_view(["GET"])
@@ -1255,3 +1262,44 @@ def validate_analysis_params(request):
         'errors': errors,
         'vmp_count': len(vmp_ids)
     })
+
+
+@api_view(["GET"])
+def get_measures_chart_data(request):
+    """
+    Fetch measure data for a single trust.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=403)
+
+    try:
+        trust_code = request.GET.get('trust', '').strip()
+        if not trust_code:
+            return JsonResponse({"error": "trust parameter required"}, status=400)
+
+        preview = request.GET.get('preview', 'false').lower() == 'true'
+        denom_exists = MeasureVMP.objects.filter(measure=OuterRef('pk'), type='denominator')
+        status_filter = {'status__in': ['preview', 'in_development']} if preview else {'status': 'published'}
+        measures = list(
+            Measure.objects.filter(**status_filter)
+            .annotate(has_denominators=Exists(denom_exists))
+            .order_by('name')
+        )
+
+        trust_codes = expand_trust_codes(trust_code)
+        if not trust_codes:
+            return JsonResponse({'trust_overlay': {m.slug: {'trustData': []}} for m in measures})
+
+        overlay_by_measure = get_bulk_trust_series_for_measures(measures, trust_codes)
+
+        trust_overlay = {}
+        for m in measures:
+            series = overlay_by_measure.get(m.id, {})
+            trust_overlay[m.slug] = {
+                'trustData': [[mo.isoformat(), v] for mo, v in sorted(series.items())]
+            }
+
+        return JsonResponse({'trust_overlay': trust_overlay})
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

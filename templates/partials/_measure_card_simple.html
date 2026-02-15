@@ -1,0 +1,54 @@
+<div class="flex flex-col h-full">
+    <div class="relative h-full">
+        <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col h-full border border-gray-100">
+            {% if measure.is_new %}
+            <div class="absolute -top-3 -right-3 z-10">
+                <span class="inline-flex items-center justify-center text-4xl" aria-label="New measure">🆕</span>
+            </div>
+            {% endif %}
+            <div class="{{ card_header_class|default:'py-2 px-4 border-b border-gray-100' }} flex items-center rounded-t-xl relative h-[5rem]">
+                {% if status_badge %}
+                <div class="absolute top-0 left-0 right-0 flex items-center justify-center py-1 text-xs font-medium {{ status_badge_class }}">
+                    {{ status_badge }}
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 line-clamp-2 leading-tight w-full mt-6">
+                    {{ measure.short_name }}
+                </h3>
+                {% else %}
+                <h3 class="text-xl font-semibold text-gray-900 line-clamp-2 leading-tight w-full">
+                    {{ measure.short_name }}
+                </h3>
+                {% endif %}
+            </div>
+            <div class="p-4 text-gray-600 flex-grow">
+                <div class="prose prose-sm max-w-none line-clamp-3">{{ measure.description|safe }}</div>
+            </div>
+            {% if measure.tags.all %}
+            <div class="px-6 pb-4">
+                <div class="inline-block">
+                    <span class="text-sm font-medium text-gray-500 mr-2">Tags:</span>
+                    {% for tag in measure.tags.all %}
+                    <span class="inline-flex items-center text-sm font-normal px-3 py-1 rounded-full cursor-help relative group mb-2 mr-2"
+                          style="background-color: {{ tag.colour }}20; color: {{ tag.colour }};">
+                        <span class="w-2 h-2 rounded-full mr-2" style="background-color: {{ tag.colour }}"></span>
+                        {{ tag.name }}
+                        {% if tag.description %}
+                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-4 bg-white rounded-lg shadow-lg invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-300 text-sm text-gray-600 z-10">
+                            {{ tag.description|safe }}
+                            <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white transform rotate-45"></div>
+                        </div>
+                        {% endif %}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            <div class="p-6 pt-2">
+                <a href="{% url detail_url_name measure.slug %}"
+                   class="inline-flex w-full justify-center items-center px-4 py-2 {{ link_classes }} rounded-lg transition-colors duration-200 font-medium">
+                    {{ link_text }}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

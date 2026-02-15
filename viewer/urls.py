@@ -11,7 +11,6 @@ from .views import (
     AboutView,
     AlertsView,
     MeasuresListView,
-    MeasuresPreviewListView,
     MeasureItemView,
     MeasurePreviewItemView,
     select_quantity_type,
@@ -19,6 +18,7 @@ from .views import (
     get_product_details,
     search_products,
     validate_analysis_params,
+    get_measures_chart_data,
     LoginView,
     SubmissionHistoryView,
 )
@@ -29,7 +29,7 @@ urlpatterns = [
     path("", IndexView.as_view(), name="index"),
     path("analyse/", AnalyseView.as_view(), name="analyse"),
     path("measures/", MeasuresListView.as_view(), name="measures_list"),
-    path("measures/preview/", MeasuresPreviewListView.as_view(), 
+    path("measures/preview/", MeasuresListView.as_view(), {"preview_mode": True},
          name="measures_preview_list"),
     path("measures/preview/<slug:slug>/", MeasurePreviewItemView.as_view(), 
          name="measure_preview_item"),
@@ -50,4 +50,5 @@ urlpatterns = [
     path("api/get-product-details/", get_product_details, name="get_product_details"),
     path("api/search-products/", search_products, name="search_products"),
     path("api/validate-analysis-params/", validate_analysis_params, name="validate_analysis_params"),
+    path("api/measures-data/", get_measures_chart_data, name="get_measures_chart_data"),
 ]
