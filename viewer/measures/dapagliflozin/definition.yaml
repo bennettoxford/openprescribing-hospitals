@@ -26,7 +26,7 @@ how_is_it_calculated: >
     We identify all SGLT-2 inhibitor products using Virtual Therapeutic Moieties (VTM) codes. The quantity of each product issued as DDDs is calculated. We then divide the
     DDDs of SGLT-2 inhibtors excluding dapagliflozin by the total DDDs of all SGLT-2 inhibitors and then multiply that by 100 to obtain a percentage each month.
 tags:
-    - Low value prescribing
+    - Value
 quantity_type: ddd
 lower_is_better: true
 authored_by: Louis Fisher
