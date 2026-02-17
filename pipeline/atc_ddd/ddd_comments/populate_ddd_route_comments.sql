@@ -7,6 +7,22 @@ WITH scmd_vmps AS (
   SELECT DISTINCT vmp_code
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ SCMD_PROCESSED_TABLE_ID }}`
 ),
+vmp_strength AS (
+  SELECT
+    vmp.vmp_code,
+    COALESCE(
+      (SELECT ing.strnt_nmrtr_val FROM UNNEST(vmp.ingredients) AS ing
+       WHERE ing.basis_of_strength_type = 1 LIMIT 1),
+      (SELECT ing.strnt_nmrtr_val FROM UNNEST(vmp.ingredients) AS ing LIMIT 1)
+    ) AS strnt_nmrtr_val,
+    COALESCE(
+      (SELECT ing.strnt_dnmtr_val FROM UNNEST(vmp.ingredients) AS ing
+       WHERE ing.basis_of_strength_type = 1 LIMIT 1),
+      (SELECT ing.strnt_dnmtr_val FROM UNNEST(vmp.ingredients) AS ing LIMIT 1)
+    ) AS strnt_dnmtr_val
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_TABLE_ID }}` vmp
+  INNER JOIN scmd_vmps sv ON vmp.vmp_code = sv.vmp_code
+),
 
 -- Get ATC codes and routes for each VMP
 vmp_with_atcs_and_routes AS (
@@ -31,6 +47,7 @@ vmp_with_atcs_and_routes AS (
     ARRAY_AGG(DISTINCT route_map.who_route IGNORE NULLS) AS who_route_codes,
     ARRAY_AGG(
       STRUCT(
+        atc_struct.atc_code AS atc_code,
         ddd.ddd,
         ddd.ddd_unit,
         ddd.adm_code AS ddd_route_code,
@@ -123,7 +140,7 @@ ddd_selection AS (
     CASE
           -- If comment contains "gel" and product has ontformroute starting with "gel"
           WHEN has_gel_comment_ddd AND has_gel_route THEN (
-            SELECT AS STRUCT ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
             WHERE LOWER(COALESCE(ddd.ddd_comment, '')) LIKE '%gel%'
             LIMIT 1
@@ -131,7 +148,7 @@ ddd_selection AS (
 
           -- If comment contains "spray" and product has ontformroute starting with "solutionspray"
           WHEN has_spray_comment_ddd AND has_spray_route THEN (
-            SELECT AS STRUCT ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
             WHERE LOWER(COALESCE(ddd.ddd_comment, '')) LIKE '%spray%'
             LIMIT 1
@@ -139,7 +156,7 @@ ddd_selection AS (
 
           -- If comment contains "vaginal ring" and product has ontformroute = "ring.vaginal"
           WHEN has_vaginal_ring_comment_ddd AND has_vaginal_ring_route THEN (
-            SELECT AS STRUCT ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
             WHERE LOWER(COALESCE(ddd.ddd_comment, '')) LIKE '%vaginal ring%'
             LIMIT 1
@@ -147,7 +164,7 @@ ddd_selection AS (
 
           -- If comment contains "patch" and product has ontformroute containing "patch.transdermal"
           WHEN has_patch_comment_ddd AND has_patch_route THEN (
-            SELECT AS STRUCT ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
             WHERE LOWER(COALESCE(ddd.ddd_comment, '')) LIKE '%patch%'
             LIMIT 1
@@ -155,7 +172,7 @@ ddd_selection AS (
 
           -- If comment is "lipid formulations" and VTM is in specific list, select that DDD
           WHEN has_lipid_formulations_comment_ddd AND vtm_code IN ('773381005', '21202811000001101', '773379008') THEN (
-            SELECT AS STRUCT ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
             WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'lipid formulations'
             LIMIT 1
@@ -163,7 +180,7 @@ ddd_selection AS (
 
           -- If comment is "erythromycin ethylsuccinate tablets" and VMP code matches, select that DDD
           WHEN has_erythromycin_tablets_comment_ddd AND vmp_code = '41949111000001108' THEN (
-            SELECT AS STRUCT ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
             WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'erythromycin ethylsuccinate tablets'
             LIMIT 1
@@ -177,7 +194,7 @@ ddd_selection AS (
             FROM UNNEST(matching_route_ddds) AS ddd
             WHERE COALESCE(ddd.ddd_comment, '') = ''
           ) = 1 THEN (
-            SELECT AS STRUCT ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(matching_route_ddds) AS ddd
             WHERE COALESCE(ddd.ddd_comment, '') = ''
             LIMIT 1
@@ -190,12 +207,16 @@ ddd_selection AS (
 )
 
 SELECT
-  vmp_code,
-  vmp_name,
+  ds.vmp_code,
+  ds.vmp_name,
+  selected_ddd.atc_code,
   selected_ddd.ddd,
   selected_ddd.ddd_unit AS ddd_uom,
-  selected_ddd.ddd_comment
-FROM ddd_selection
+  selected_ddd.ddd_comment,
+  vs.strnt_nmrtr_val AS strength_numerator,
+  vs.strnt_dnmtr_val AS strength_denominator
+FROM ddd_selection ds
+LEFT JOIN vmp_strength vs ON ds.vmp_code = vs.vmp_code
 WHERE has_atc_codes
   AND has_ddds
   AND has_who_routes
