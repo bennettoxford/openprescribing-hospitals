@@ -31,6 +31,7 @@ vmp_with_atcs_and_routes AS (
     vmp.vmp_name,
     vmp.df_ind,
     vmp.vtm_code,
+    vmp.vtm_name,
     ARRAY_AGG(
       STRUCT(
         atc_struct.atc_code,
@@ -66,7 +67,7 @@ vmp_with_atcs_and_routes AS (
     ON route.route_name = route_map.dmd_ontformroute
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ WHO_DDD_TABLE_ID }}` ddd
     ON atc_struct.atc_code = ddd.atc_code
-  GROUP BY vmp.vmp_code, vmp.vmp_name, vmp.df_ind, vmp.vtm_code
+  GROUP BY vmp.vmp_code, vmp.vmp_name, vmp.df_ind, vmp.vtm_code, vmp.vtm_name
 ),
 
 -- Analyse DDD options for each VMP
@@ -76,6 +77,7 @@ ddd_analysis AS (
     vmp_name,
     df_ind,
     vtm_code,
+    vtm_name,
     atcs,
     who_ddds,
     who_route_codes,
@@ -129,7 +131,12 @@ ddd_analysis AS (
      WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'lipid formulations') > 0 AS has_lipid_formulations_comment_ddd,
 
     (SELECT COUNT(1) FROM UNNEST(who_ddds) AS ddd
-     WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'erythromycin ethylsuccinate tablets') > 0 AS has_erythromycin_tablets_comment_ddd
+     WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'erythromycin ethylsuccinate tablets') > 0 AS has_erythromycin_tablets_comment_ddd,
+
+    (SELECT COUNT(1) FROM UNNEST(who_ddds) AS ddd
+     WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'depot') > 0 AS has_depot_comment_ddd,
+    LOWER(COALESCE(vtm_name, '')) LIKE '%decanoate%' AS vtm_name_contains_decanoate,
+    (SELECT COUNT(1) FROM UNNEST(who_route_codes) AS code WHERE code = 'P') > 0 AS has_p_route
   FROM vmp_with_atcs_and_routes
 ),
 
@@ -183,6 +190,14 @@ ddd_selection AS (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
             WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'erythromycin ethylsuccinate tablets'
+            LIMIT 1
+          )
+
+          -- If comment is "depot" and VTM name contains "decanoate" and product has P route, select that DDD
+          WHEN has_depot_comment_ddd AND vtm_name_contains_decanoate AND has_p_route THEN (
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
+            WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'depot'
             LIMIT 1
           )
 
