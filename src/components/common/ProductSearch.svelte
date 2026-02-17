@@ -26,23 +26,8 @@
     let selectedItemsData = [];
     let expandedItems = new Set();  // Track which VTMs are expanded
 
-    $: {
-        if (type === 'product') {
-            filteredItems = filterItems($analyseOptions.productNames, searchTerm);
-        } else if (type === 'ingredient') {
-            filteredItems = filterItems($analyseOptions.ingredientNames, searchTerm);
-        } else if (type === 'atc') {
-            if (!searchTerm) {
-                filteredItems = [];
-            }
-        }
-    }
-
-    function filterItems(items, term) {
-        if (!items) return [];
-        return items.filter(item => 
-            item.toLowerCase().includes(term.toLowerCase())
-        );
+    $: if (!searchTerm && filteredItems.length > 0) {
+        filteredItems = [];
     }
 
     async function handleInput() {
@@ -61,8 +46,13 @@
             try {
                 const response = await fetch(`/api/search-products/?type=${type}&term=${encodeURIComponent(searchTerm)}`);
                 const data = await response.json();
-                
-                filteredItems = data.results.map(item => ({
+                if (!response.ok) {
+                    filteredItems = [];
+                    lastSearchResults = [];
+                    return;
+                }
+                const results = Array.isArray(data.results) ? data.results : [];
+                filteredItems = results.map(item => ({
                     ...item,
                     isExpanded: item.type === 'vtm' ? true : false,
                     has_vmps: true
