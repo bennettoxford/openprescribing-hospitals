@@ -1737,6 +1737,9 @@ DDD_ROUTE_COMMENTS_TABLE_SPEC = TableSpec(
             "vmp_name", "STRING", mode="REQUIRED", description="VMP name"
         ),
         bigquery.SchemaField(
+            "atc_code", "STRING", mode="NULLABLE", description="ATC code"
+        ),
+        bigquery.SchemaField(
             "ddd", "FLOAT", mode="NULLABLE", description="DDD value"
         ),
         bigquery.SchemaField(
@@ -1744,6 +1747,12 @@ DDD_ROUTE_COMMENTS_TABLE_SPEC = TableSpec(
         ),
         bigquery.SchemaField(
             "ddd_comment", "STRING", mode="NULLABLE", description="DDD comment"
+        ),
+        bigquery.SchemaField(
+            "strength_numerator", "FLOAT", mode="NULLABLE", description="Strength numerator value from VMP ingredient"
+        ),
+        bigquery.SchemaField(
+            "strength_denominator", "FLOAT", mode="NULLABLE", description="Strength denominator value from VMP ingredient"
         ),
     ],
     cluster_fields=["vmp_code"],
