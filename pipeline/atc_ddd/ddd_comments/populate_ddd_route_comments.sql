@@ -122,7 +122,8 @@ ddd_analysis AS (
     (SELECT COUNT(1) FROM UNNEST(who_ddds) AS ddd
      WHERE LOWER(COALESCE(ddd.ddd_comment, '')) LIKE '%vaginal ring%') > 0 AS has_vaginal_ring_comment_ddd,
     (SELECT COUNT(1) FROM UNNEST(routes) AS route
-     WHERE LOWER(COALESCE(route.ontformroute_descr, '')) = 'ring.vaginal') > 0 AS has_vaginal_ring_route,
+     WHERE LOWER(COALESCE(route.ontformroute_descr, '')) IN ('ring.vaginal', 'vaginaldeliverysystem.vaginal'))
+     > 0 AS has_vaginal_ring_route,
 
     (SELECT COUNT(1) FROM UNNEST(who_ddds) AS ddd
      WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bpatch\b')) > 0 AS has_patch_comment_ddd,
@@ -164,7 +165,7 @@ ddd_selection AS (
             LIMIT 1
           )
 
-          -- If comment contains "vaginal ring" and product has ontformroute = "ring.vaginal"
+          -- If comment contains "vaginal ring" and product has ontformroute = "ring.vaginal" or "vaginaldeliverysystem"
           WHEN has_vaginal_ring_comment_ddd AND has_vaginal_ring_route THEN (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
