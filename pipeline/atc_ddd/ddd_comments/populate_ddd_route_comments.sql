@@ -32,6 +32,7 @@ vmp_with_atcs_and_routes AS (
     vmp.df_ind,
     vmp.vtm_code,
     vmp.vtm_name,
+    dmd.dform_form,
     ARRAY_AGG(
       STRUCT(
         atc_struct.atc_code,
@@ -67,7 +68,7 @@ vmp_with_atcs_and_routes AS (
     ON route.route_name = route_map.dmd_ontformroute
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ WHO_DDD_TABLE_ID }}` ddd
     ON atc_struct.atc_code = ddd.atc_code
-  GROUP BY vmp.vmp_code, vmp.vmp_name, vmp.df_ind, vmp.vtm_code, vmp.vtm_name
+  GROUP BY vmp.vmp_code, vmp.vmp_name, vmp.df_ind, vmp.vtm_code, vmp.vtm_name, dmd.dform_form
 ),
 
 -- Analyse DDD options for each VMP
@@ -78,6 +79,7 @@ ddd_analysis AS (
     df_ind,
     vtm_code,
     vtm_name,
+    dform_form,
     atcs,
     who_ddds,
     who_route_codes,
@@ -136,7 +138,8 @@ ddd_analysis AS (
     (SELECT COUNT(1) FROM UNNEST(who_ddds) AS ddd
      WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'depot') > 0 AS has_depot_comment_ddd,
     LOWER(COALESCE(vtm_name, '')) LIKE '%decanoate%' AS vtm_name_contains_decanoate,
-    (SELECT COUNT(1) FROM UNNEST(who_route_codes) AS code WHERE code = 'P') > 0 AS has_p_route
+    (SELECT COUNT(1) FROM UNNEST(who_route_codes) AS code WHERE code = 'P') > 0 AS has_p_route,
+    LOWER(COALESCE(dform_form, '')) LIKE '%prolonged-release%' AS has_prolonged_release_form
   FROM vmp_with_atcs_and_routes
 ),
 
@@ -195,6 +198,14 @@ ddd_selection AS (
 
           -- If comment is "depot" and VTM name contains "decanoate" and product has P route, select that DDD
           WHEN has_depot_comment_ddd AND vtm_name_contains_decanoate AND has_p_route THEN (
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
+            WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'depot'
+            LIMIT 1
+          )
+
+          -- If comment is "depot" and product has P route and form contains "prolonged-release", select that DDD
+          WHEN has_depot_comment_ddd AND has_p_route AND has_prolonged_release_form THEN (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
             WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'depot'
