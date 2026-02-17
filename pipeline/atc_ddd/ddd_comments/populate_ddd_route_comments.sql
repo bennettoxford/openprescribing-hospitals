@@ -139,6 +139,10 @@ ddd_analysis AS (
     (SELECT COUNT(1) FROM UNNEST(who_ddds) AS ddd
      WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'depot') > 0 AS has_depot_comment_ddd,
     LOWER(COALESCE(vtm_name, '')) LIKE '%decanoate%' AS vtm_name_contains_decanoate,
+
+    -- Glibenclamide (VTM 776105003): one DDD is for micronised forms (microcryst.substance), one is not
+    (SELECT COUNT(1) FROM UNNEST(who_ddds) AS ddd
+     WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bmicrocryst\b')) > 0 AS has_micronised_comment_ddd,
     (SELECT COUNT(1) FROM UNNEST(who_route_codes) AS code WHERE code = 'P') > 0 AS has_p_route,
     LOWER(COALESCE(dform_form, '')) LIKE '%prolonged-release%' AS has_prolonged_release_form
   FROM vmp_with_atcs_and_routes
@@ -210,6 +214,15 @@ ddd_selection AS (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
             WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'depot'
+            LIMIT 1
+          )
+
+          -- Glibenclamide (VTM 776105003): pick DDD for non-micronised forms (exclude microcryst.substance)
+          WHEN vtm_code = '776105003' AND has_micronised_comment_ddd
+            AND ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN (
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            FROM UNNEST(matching_route_ddds) AS ddd
+            WHERE NOT REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bmicrocryst\b')
             LIMIT 1
           )
 
