@@ -106,12 +106,12 @@ ddd_analysis AS (
 
     -- Check DDD comments for route specific comments AND corresponding routes
     (SELECT COUNT(1) FROM UNNEST(who_ddds) AS ddd
-     WHERE LOWER(COALESCE(ddd.ddd_comment, '')) LIKE '%gel%') > 0 AS has_gel_comment_ddd,
+     WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bgel\b')) > 0 AS has_gel_comment_ddd,
     (SELECT COUNT(1) FROM UNNEST(routes) AS route
      WHERE LOWER(COALESCE(route.ontformroute_descr, '')) LIKE 'gel%') > 0 AS has_gel_route,
 
     (SELECT COUNT(1) FROM UNNEST(who_ddds) AS ddd
-     WHERE LOWER(COALESCE(ddd.ddd_comment, '')) LIKE '%spray%') > 0 AS has_spray_comment_ddd,
+     WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bspray\b')) > 0 AS has_spray_comment_ddd,
     (SELECT COUNT(1) FROM UNNEST(routes) AS route
      WHERE LOWER(COALESCE(route.ontformroute_descr, '')) LIKE 'solutionspray%') > 0 AS has_spray_route,
 
@@ -121,7 +121,7 @@ ddd_analysis AS (
      WHERE LOWER(COALESCE(route.ontformroute_descr, '')) = 'ring.vaginal') > 0 AS has_vaginal_ring_route,
 
     (SELECT COUNT(1) FROM UNNEST(who_ddds) AS ddd
-     WHERE LOWER(COALESCE(ddd.ddd_comment, '')) LIKE '%patch%') > 0 AS has_patch_comment_ddd,
+     WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bpatch\b')) > 0 AS has_patch_comment_ddd,
     (SELECT COUNT(1) FROM UNNEST(routes) AS route
      WHERE LOWER(COALESCE(route.ontformroute_descr, '')) LIKE '%patch.transdermal%') > 0 AS has_patch_route,
 
@@ -142,7 +142,7 @@ ddd_selection AS (
           WHEN has_gel_comment_ddd AND has_gel_route THEN (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
-            WHERE LOWER(COALESCE(ddd.ddd_comment, '')) LIKE '%gel%'
+            WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bgel\b')
             LIMIT 1
           )
 
@@ -150,7 +150,7 @@ ddd_selection AS (
           WHEN has_spray_comment_ddd AND has_spray_route THEN (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
-            WHERE LOWER(COALESCE(ddd.ddd_comment, '')) LIKE '%spray%'
+            WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bspray\b')
             LIMIT 1
           )
 
@@ -166,7 +166,7 @@ ddd_selection AS (
           WHEN has_patch_comment_ddd AND has_patch_route THEN (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
-            WHERE LOWER(COALESCE(ddd.ddd_comment, '')) LIKE '%patch%'
+            WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bpatch\b')
             LIMIT 1
           )
 
