@@ -58,3 +58,7 @@ To hide annotations on a measure chart:
 2. Select **"Hide annotations"** from the dropdown menu
 
 To show annotations again, repeat the same steps and select **"Show annotations"**.
+
+### Can I see patterns in a single measure for each trust individually?
+
+From the measures list, when you have **NHS Trust** selected in `View Mode`, each measure card shows a **View measure for all trusts** link. This opens a page that shows the pattern for each trust against percentiles calculated across all other trusts included in that measure.
