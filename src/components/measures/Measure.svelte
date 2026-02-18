@@ -19,11 +19,11 @@
 <script>
     import { onMount, tick } from 'svelte';
     import { createChartStore } from '../../stores/chartStore.js';
-    import { 
-        selectedMode, 
-        orgdata as orgdataStore, 
-        regiondata as regionStore, 
-        icbdata as icbStore, 
+    import {
+        selectedMode,
+        orgdata as orgdataStore,
+        regiondata as regionStore,
+        icbdata as icbStore,
         nationaldata as nationalStore,
         percentiledata as percentileStore,
         visibleRegions,
@@ -31,15 +31,16 @@
         visibleICBs,
         showPercentiles,
         updatePercentilesVisibility,
-        getDatasetVisibility
+        getDatasetVisibility,
+        filteredData,
     } from '../../stores/measureChartStore.js';
     import Chart from '../common/Chart.svelte';
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
     import ModeSelector from '../common/ModeSelector.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore';
     import { modeSelectorStore } from '../../stores/modeSelectorStore.js';
-    import { filteredData } from '../../stores/measureChartStore.js';
     import { formatNumber, getUrlParams, setUrlParams, parseArrayParam, formatArrayParam, getCurrentUrl, copyToClipboard } from '../../utils/utils.js';
+    import { flattenOrganisationsToData } from '../../utils/regionIcbFilterUtils.js';
     import pluralize from 'pluralize';
 
     export let orgdata = '[]';
@@ -59,6 +60,8 @@
     let regions = [];
     let uniqueUnits = [];
     let parsedOrgData = {};
+
+    $: flatOrgData = flattenOrganisationsToData(parsedOrgData.organisations || []);
     let parsedRegionData = [];
     let parsedIcbData = [];
     let showToast = false;
@@ -104,7 +107,7 @@
     }
 
     function getAvailableTrusts() {
-        return trusts.filter(trust => parsedOrgData.data[trust]?.available);
+        return trusts.filter((trust) => flatOrgData[trust]?.available);
     }
 
     function isPercentilesDisabled() {
@@ -201,7 +204,7 @@
         if (urlParams.mode === 'trust') {
             applySelectionFromCodes(
                 urlParams.trusts,
-                trusts.filter(trust => parsedOrgData.data[trust]?.available),
+                trusts.filter((trust) => flatOrgData[trust]?.available),
                 visibleTrusts,
                 code => {
                     for (const [name, trustCode] of Object.entries(parsedOrgData.org_codes || {})) {
@@ -211,7 +214,7 @@
                 }
             );
             
-            const availableTrusts = trusts.filter(trust => parsedOrgData.data[trust]?.available);
+            const availableTrusts = trusts.filter((trust) => flatOrgData[trust]?.available);
             const percentilesDisabled = availableTrusts.length < 30;
             
             if (percentilesDisabled) {
@@ -394,18 +397,19 @@
     onMount(async () => {
         parsedOrgData = JSON.parse(orgdata);
 
-        orgdataStore.set(parsedOrgData.data || {});
-        
+        const flat = flattenOrganisationsToData(parsedOrgData.organisations || []);
+        orgdataStore.set(flat);
+
         uniqueUnits = extractUniqueUnits();
-        
+
         measureChartStore.setDimensions({
             height: 500,
             margin: { top: 10, right: 20, bottom: 30, left: 80 }
         });
 
-        trusts = Object.keys(parsedOrgData.data || {});
+        trusts = Object.keys(flat);
 
-        const availableTrusts = trusts.filter(trust => parsedOrgData.data[trust].available);
+        const availableTrusts = trusts.filter((trust) => flat[trust]?.available);
         
         const shouldDisablePercentiles = availableTrusts.length < 30;
         
