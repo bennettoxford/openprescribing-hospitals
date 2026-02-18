@@ -12,6 +12,7 @@
 <script>
     import { onMount } from 'svelte';
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
+    import LazyLoad from '../common/LazyLoad.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore';
     import OrgSubmissionChart from './OrgSubmissionChart.svelte';
     import OrgSubmissionChartLazy from './OrgSubmissionChartLazy.svelte';
@@ -173,11 +174,7 @@
         }
         
         window.addEventListener('scroll', handleScroll);
-        document.addEventListener('click', handleClickOutside);
-        return () => {
-            window.removeEventListener('scroll', handleScroll);
-            document.removeEventListener('click', handleClickOutside);
-        };
+        return () => window.removeEventListener('scroll', handleScroll);
     });
    
     $: {
@@ -494,13 +491,21 @@
     {:else}
 
         {#each filteredOrganisations as org (org.name)}
-            <OrgSubmissionChartLazy>
+            <LazyLoad>
                 <OrgSubmissionChart 
                     {org}
                     latestDates={parsedLatestDates}
                     {months}
                 />
-            </OrgSubmissionChartLazy>
+                <div slot="placeholder" class="bg-white rounded-lg shadow-sm p-4 mb-6 h-[200px] flex items-center justify-center">
+                    <div class="flex space-x-4 w-full">
+                        <div class="flex-1 space-y-4">
+                            <div class="h-4 bg-gray-200 rounded w-1/4"></div>
+                            <div class="h-[150px] bg-gray-200 rounded"></div>
+                        </div>
+                    </div>
+                </div>
+            </LazyLoad>
         {/each}
     {/if}
 

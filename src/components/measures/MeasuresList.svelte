@@ -21,6 +21,7 @@
 <script>
   import MeasuresListControls from './MeasuresListControls.svelte';
   import MeasureCard from './MeasureCard.svelte';
+  import LazyLoad from '../common/LazyLoad.svelte';
   import {
     selectedTags, sort, mode,
     chartData as chartDataStore
@@ -140,53 +141,107 @@
   </div>
 {:else}
 {#if parsedMeasures.length > 0 && previewMode !== 'true'}
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" data-measures-section="published">
-    {#each sortedPublished as measure (measure.slug)}
-      <MeasureCard
-        measure={measure}
-        section="published"
-        linkClasses="bg-oxford-50 text-oxford-600 hover:bg-oxford-100"
-        linkText="View measure details"
-      />
-    {/each}
-  </div>
+  <LazyLoad>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" data-measures-section="published">
+      {#each sortedPublished as measure (measure.slug)}
+        <MeasureCard
+          measure={measure}
+          section="published"
+          linkClasses="bg-oxford-50 text-oxford-600 hover:bg-oxford-100"
+          linkText="View measure details"
+        />
+      {/each}
+    </div>
+    <div slot="placeholder" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {#each [1, 2] as _}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div class="h-[5rem] bg-gray-200 rounded animate-pulse mb-4"></div>
+          <div class="space-y-3 mb-4">
+            <div class="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+            <div class="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+            <div class="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+          </div>
+          <div class="h-[280px] bg-gray-200 rounded-lg animate-pulse mb-4"></div>
+          <div class="h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+        </div>
+      {/each}
+    </div>
+  </LazyLoad>
 {/if}
 
 {#if parsedPreviewMeasures.length > 0}
-  <div class="mb-12">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" data-measures-section="preview">
-      {#each sortedPreview as measure (measure.slug)}
-        <MeasureCard
-          measure={measure}
-          section="preview"
-          cardHeaderClass="bg-blue-50 py-2 px-4 border-b border-gray-100"
-          statusBadge="Preview"
-          statusBadgeClass="bg-blue-100 text-blue-800"
-          linkClasses="bg-blue-50 text-blue-600 hover:bg-blue-100"
-          linkText="View preview"
-        />
-      {/each}
+  <LazyLoad>
+    <div class="mb-12">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" data-measures-section="preview">
+        {#each sortedPreview as measure (measure.slug)}
+          <MeasureCard
+            measure={measure}
+            section="preview"
+            cardHeaderClass="bg-blue-50 py-2 px-4 border-b border-gray-100"
+            statusBadge="Preview"
+            statusBadgeClass="bg-blue-100 text-blue-800"
+            linkClasses="bg-blue-50 text-blue-600 hover:bg-blue-100"
+            linkText="View preview"
+          />
+        {/each}
+      </div>
     </div>
-  </div>
+    <div slot="placeholder" class="mb-12">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {#each [1, 2] as _}
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <div class="h-[5rem] bg-gray-200 rounded animate-pulse mb-4"></div>
+            <div class="space-y-3 mb-4">
+              <div class="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+              <div class="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+              <div class="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+            </div>
+            <div class="h-[280px] bg-gray-200 rounded-lg animate-pulse mb-4"></div>
+            <div class="h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+          </div>
+        {/each}
+      </div>
+    </div>
+  </LazyLoad>
 {/if}
 
 {#if parsedInDevelopmentMeasures.length > 0}
-  <div class="mb-12">
-    <h2 class="text-2xl font-semibold mb-6 text-gray-900">In Development</h2>
-    <p class="text-gray-600 mb-6">These measures are currently in development. Public previews are not available for these measures. You can see them because you are logged in.</p>
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" data-measures-section="in_development">
-      {#each sortedInDevelopment as measure (measure.slug)}
-        <MeasureCard
-          measure={measure}
-          section="in_development"
-          cardHeaderClass="bg-amber-50 py-2 px-4 border-b border-gray-100"
-          statusBadge="🚧 In development"
-          statusBadgeClass="bg-amber-100 text-amber-800"
-          linkClasses="bg-amber-50 text-amber-600 hover:bg-amber-100"
-          linkText="View in development"
-        />
-      {/each}
+  <LazyLoad>
+    <div class="mb-12">
+      <h2 class="text-2xl font-semibold mb-6 text-gray-900">In Development</h2>
+      <p class="text-gray-600 mb-6">These measures are currently in development. Public previews are not available for these measures. You can see them because you are logged in.</p>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" data-measures-section="in_development">
+        {#each sortedInDevelopment as measure (measure.slug)}
+          <MeasureCard
+            measure={measure}
+            section="in_development"
+            cardHeaderClass="bg-amber-50 py-2 px-4 border-b border-gray-100"
+            statusBadge="🚧 In development"
+            statusBadgeClass="bg-amber-100 text-amber-800"
+            linkClasses="bg-amber-50 text-amber-600 hover:bg-amber-100"
+            linkText="View in development"
+          />
+        {/each}
+      </div>
     </div>
-  </div>
+    <div slot="placeholder" class="mb-12">
+      <div class="h-8 bg-gray-200 rounded w-48 animate-pulse mb-6"></div>
+      <div class="h-4 bg-gray-200 rounded w-full animate-pulse mb-6"></div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {#each [1, 2] as _}
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <div class="h-[5rem] bg-gray-200 rounded animate-pulse mb-4"></div>
+            <div class="space-y-3 mb-4">
+              <div class="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+              <div class="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+              <div class="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+            </div>
+            <div class="h-[280px] bg-gray-200 rounded-lg animate-pulse mb-4"></div>
+            <div class="h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+          </div>
+        {/each}
+      </div>
+    </div>
+  </LazyLoad>
 {/if}
 {/if}
