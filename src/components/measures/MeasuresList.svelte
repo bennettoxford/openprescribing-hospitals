@@ -149,6 +149,7 @@
           section="published"
           linkClasses="bg-oxford-50 text-oxford-600 hover:bg-oxford-100"
           linkText="View measure details"
+          isAuthenticated={userAuthenticated === 'true'}
         />
       {/each}
     </div>
@@ -182,6 +183,7 @@
             statusBadgeClass="bg-blue-100 text-blue-800"
             linkClasses="bg-blue-50 text-blue-600 hover:bg-blue-100"
             linkText="View preview"
+            isAuthenticated={userAuthenticated === 'true'}
           />
         {/each}
       </div>
@@ -220,6 +222,7 @@
             statusBadgeClass="bg-amber-100 text-amber-800"
             linkClasses="bg-amber-50 text-amber-600 hover:bg-amber-100"
             linkText="View in development"
+            isAuthenticated={userAuthenticated === 'true'}
           />
         {/each}
       </div>
