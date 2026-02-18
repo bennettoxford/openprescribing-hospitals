@@ -2,10 +2,11 @@ import json
 from collections import defaultdict
 from datetime import datetime, timedelta
 from markdown2 import Markdown
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
 from django.core.serializers.json import DjangoJSONEncoder
 from django.shortcuts import redirect
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils.text import slugify
 from django.db.models import Exists, OuterRef
 
@@ -652,6 +653,86 @@ class BaseMeasureItemView(TemplateView):
                 percentiles_list, cls=DjangoJSONEncoder
             ),
         }
+
+
+class MeasureTrustsView(LoginRequiredMixin, MaintenanceModeMixin, TemplateView):
+    """View showing one percentile chart per trust for a given measure."""
+
+    template_name = "measure_trusts.html"
+    login_url = reverse_lazy("viewer:login")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        slug = self.kwargs.get("slug")
+
+        try:
+            measure = Measure.objects.prefetch_related('tags').get(slug=slug)
+            if measure.status != 'published':
+                return redirect('viewer:measure_item', slug=slug)
+
+            org_measures = PrecomputedMeasure.objects.filter(
+                measure=measure
+            ).select_related('organisation')
+            percentiles = PrecomputedPercentile.objects.filter(measure=measure)
+            shared_org_data = get_organisation_data()
+
+            org_data = build_measure_org_data(org_measures, shared_org_data, include_region_icb=True)
+            percentile_data = list(
+                percentiles.values('month', 'percentile', 'quantity')
+            )
+            for p in percentile_data:
+                p['month'] = p['month'].isoformat()
+
+            denom_exists = MeasureVMP.objects.filter(
+                measure=measure, type='denominator'
+            ).exists()
+
+            markdowner = Markdown()
+            tags_data = [
+                {
+                    "name": tag.name,
+                    "description": (
+                        markdowner.convert(tag.description)
+                        if tag.description
+                        else None
+                    ),
+                    "colour": tag.colour or "#6b7280",
+                }
+                for tag in measure.tags.all()
+            ]
+            context.update({
+                "measure": measure,
+                "measure_description": markdowner.convert(measure.description),
+                "tags": tags_data,
+                "trusts": org_data['organisations'],
+                "org_data_json": json.dumps(
+                    {k: v for k, v in org_data.items() if k not in ('available_count', 'regions_hierarchy')},
+                    cls=DjangoJSONEncoder,
+                ),
+                "percentile_data_json": json.dumps(
+                    percentile_data, cls=DjangoJSONEncoder
+                ),
+                "regions_hierarchy_json": json.dumps(
+                    org_data.get('regions_hierarchy', []),
+                    cls=DjangoJSONEncoder,
+                ),
+                "measure_has_denominators": denom_exists,
+                "measure_quantity_type": measure.quantity_type or "",
+                "measure_lower_is_better": (
+                    "true"
+                    if measure.lower_is_better is True
+                    else "false"
+                    if measure.lower_is_better is False
+                    else ""
+                ),
+                "selected_sort": self.request.GET.get("sort", "name"),
+            })
+        except Measure.DoesNotExist:
+            context["error"] = "Measure not found"
+        except Exception as e:
+            context["error"] = str(e)
+
+        return context
 
 
 class MeasureItemView(MaintenanceModeMixin, BaseMeasureItemView):
