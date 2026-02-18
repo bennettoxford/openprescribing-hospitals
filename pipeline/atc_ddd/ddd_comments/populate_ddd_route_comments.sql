@@ -137,7 +137,7 @@ ddd_analysis AS (
      WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'erythromycin ethylsuccinate tablets') > 0 AS has_erythromycin_tablets_comment_ddd,
 
     (SELECT COUNT(1) FROM UNNEST(who_ddds) AS ddd
-     WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'depot') > 0 AS has_depot_comment_ddd,
+     WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bdepot\b')) > 0 AS has_depot_comment_ddd,
     LOWER(COALESCE(vtm_name, '')) LIKE '%decanoate%' AS vtm_name_contains_decanoate,
 
     -- Glibenclamide (VTM 776105003): one DDD is for micronised forms (microcryst.substance), one is not
@@ -201,19 +201,19 @@ ddd_selection AS (
             LIMIT 1
           )
 
-          -- If comment is "depot" and VTM name contains "decanoate" and product has P route, select that DDD
+          -- If comment contains "depot" (e.g. "depot", "depot inj") and VTM name contains "decanoate" and product has P route, select that DDD
           WHEN has_depot_comment_ddd AND vtm_name_contains_decanoate AND has_p_route THEN (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
-            WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'depot'
+            WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bdepot\b')
             LIMIT 1
           )
 
-          -- If comment is "depot" and product has P route and form contains "prolonged-release", select that DDD
+          -- If comment contains "depot" and product has P route and form contains "prolonged-release", select that DDD
           WHEN has_depot_comment_ddd AND has_p_route AND has_prolonged_release_form THEN (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
-            WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'depot'
+            WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bdepot\b')
             LIMIT 1
           )
 
