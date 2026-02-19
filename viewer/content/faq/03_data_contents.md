@@ -43,6 +43,22 @@ Products are reported in the SCMD at the level of [Virtual Medicinal Products](/
 
 The platform includes data from all NHS hospital trusts in England that submit data to Rx-Info. This includes all NHS Acute, Teaching, Specialist, Mental Health and Community Trusts in England (this does not include medications dispensed by community pharmacy but this is [available separately](https://opendata.nhsbsa.net/dataset/hospital-prescribing-dispensed-in-the-community)).
 
+### How are trust types determined?
+
+The trust type for each trust submitting data to the SCMD is taken from the [Estates Returns Information Collection (ERIC)](https://digital.nhs.uk/data-and-information/publications/statistical/estates-returns-information-collection). This is a data collection containing information relating to the costs of providing and maintaining NHS estates and is mandatory for all NHS trusts. Within this, every trust is assigned a single trust type. There are 9 types of trust:
+
+* Acute -Teaching
+* Acute - Small
+* Acute - Medium
+* Acute - Large
+* Acute - Specialist
+* Acute - Multi-Service
+* Mental Health and Learning Disability
+* Community
+* Ambulance
+
+You can see the trust type for each NHS Trust on the [Submission History page](https://hospitals.openprescribing.net/submission-history/), where it is shown above each organisation's chart when available.
+
 ### How does the organisation search work?
 
 When you search for NHS Trusts (or Integrated Care Boards or regions), the results match your search in several ways:

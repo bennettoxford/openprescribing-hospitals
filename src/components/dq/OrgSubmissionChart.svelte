@@ -227,6 +227,11 @@
 
 <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
     {#if chartInitialized && org?.data && months?.length}
+        {#if org.trust_type}
+            <div class="mb-1.5 -mt-1">
+                <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500 leading-normal">{org.trust_type}</span>
+            </div>
+        {/if}
         <Chart options={getChartOptions(org)} />
         
         {#if org.predecessors?.length}

@@ -18,19 +18,20 @@ class SubmissionHistoryView(MaintenanceModeMixin, TemplateView):
         
         shared_org_data = get_organisation_data()
         
-        all_orgs = Organisation.objects.select_related('successor', 'region', 'icb').values(
-            'ods_code', 'ods_name', 'successor__ods_name', 'region__name', 'region__code', 'icb__name', 'icb__code'
+        all_orgs = Organisation.objects.select_related('successor', 'region', 'icb', 'trust_type').values(
+            'ods_code', 'ods_name', 'successor__ods_name', 'region__name', 'region__code', 'icb__name', 'icb__code', 'trust_type__name'
         ).order_by('ods_name')
         
         org_data_template = defaultdict(lambda: {
-            'successor': None, 
-            'submissions': {}, 
-            'predecessors': [], 
+            'successor': None,
+            'submissions': {},
+            'predecessors': [],
             'ods_code': None,
             'region': None,
             'region_code': None,
             'icb': None,
-            'icb_code': None
+            'icb_code': None,
+            'trust_type': None
         })
         
         regions_with_icbs = {}
@@ -50,7 +51,8 @@ class SubmissionHistoryView(MaintenanceModeMixin, TemplateView):
             org_data_template[name]['region_code'] = region_code
             org_data_template[name]['icb'] = icb
             org_data_template[name]['icb_code'] = icb_code
-            
+            org_data_template[name]['trust_type'] = org.get('trust_type__name')
+
             if not successor_name:
                 if region not in regions_with_icbs:
                     regions_with_icbs[region] = {'icbs': set(), 'region_code': region_code}
@@ -138,19 +140,21 @@ class SubmissionHistoryView(MaintenanceModeMixin, TemplateView):
             if org_name in org_data:
                 org_info = org_data[org_name]
                 if org_info['successor']:
-                    # Use successor's region/ICB if this org has a successor
+                    # Use successor's region/ICB/trust_type if this org has a successor
                     successor_info = org_data.get(org_info['successor'], {})
                     org_entry['region'] = successor_info.get('region', org_info.get('region'))
                     org_entry['region_code'] = successor_info.get('region_code', org_info.get('region_code'))
                     org_entry['icb'] = successor_info.get('icb', org_info.get('icb'))
                     org_entry['icb_code'] = successor_info.get('icb_code', org_info.get('icb_code'))
+                    org_entry['trust_type'] = successor_info.get('trust_type', org_info.get('trust_type'))
                 else:
-                    # Use own region/ICB
+                    # Use own region/ICB/trust_type
                     org_entry['region'] = org_info.get('region')
                     org_entry['region_code'] = org_info.get('region_code')
                     org_entry['icb'] = org_info.get('icb')
                     org_entry['icb_code'] = org_info.get('icb_code')
-            
+                    org_entry['trust_type'] = org_info.get('trust_type')
+
             for pred in org_entry.get('predecessors', []):
                 assign_region_icb(pred)
 
