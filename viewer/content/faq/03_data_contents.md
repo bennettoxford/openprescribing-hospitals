@@ -54,6 +54,18 @@ When you search for NHS Trusts (or Integrated Care Boards or regions), the resul
 
 Results are ordered by how well they match (more matching words first), then alphabetically by name. 
 
+### How does product search work?
+
+When you add products to an analysis, you can search in three ways using the **Product**, **Ingredient**, and **ATC Code** tabs.
+
+**Product search** finds medicines by product name or [dm+d](/faq/#what-is-the-dmd) code. You can type several words (for example, "paracetamol 500mg"); the search looks for matches across the medicine name, code, [virtual therapeutic group (VTM)](/faq/#what-is-a-vtm), and ingredients. Results are grouped by VTM where applicable, and ordered by how well they match your search. You can pick a whole group (all products in a VTM) or individual products (VMPs).
+
+**Ingredient search** finds substances by ingredient name or dm+d code. Results show each matching ingredient and how many products contain it. Selecting an ingredient includes all those products in your analysis.
+
+**ATC code search** finds medicines by [ATC](/faq/#what-is-the-anatomical-therapeutic-chemical-atc-system) level name or code. You can search at any level of the ATC hierarchy; results show the matching ATC level, its hierarchy path, and how many products it covers. Selecting an ATC code includes all products under that code.
+
+You need to type at least three characters before results appear.
+
 ### Why can't I find my hospital on the platform?
 
 There are multiple reasons your hospital may not be present in the data presented. These include:
@@ -78,6 +90,16 @@ VMP is short for Virtual Medicinal Product. This is a component of the [dictiona
      style="max-height: 26rem; margin-left: auto; margin-right: auto; max-width: 100%;" />
 
 You can read more about VMPs in our blogs, [Understanding the secondary care medicines dataset](https://www.bennett.ox.ac.uk/blog/2025/02/understanding-the-secondary-care-medicines-dataset/) and [Getting more from the secondary care medicines data using the dictionary of medicines and devices](https://www.bennett.ox.ac.uk/blog/2025/03/getting-more-from-the-secondary-care-medicines-data-using-the-dictionary-of-medicines-and-devices/).
+
+### What is a VTM?
+
+VTM is short for Virtual Therapeutic Moiety. VTMs are an abstract representation of medical substances or devices, without any indication of strength or form. VTMs are associated with [VMPs](/faq/#what-is-a-vmp) in a hierarchical relationship; each VMP is associated with one VTM, but a single VTM can be associated with many individual VMPs.
+
+Note:
+
+* VMPs within the same VTM can have different forms and different units of measure, so aggregation of quantity across all VMPs within a VTM is not always straightforward.
+* VTMs can be a single substance (e.g. paracetamol), a combination of substances (e.g. Budesonide + Formoterol), or different VTMs for different salts (e.g. Perindopril erbumine and Perindopril arginine).
+
 
 ### How do we identify if a VMP is unlicensed?
 
