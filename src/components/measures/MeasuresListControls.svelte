@@ -379,20 +379,16 @@
     </div>
 
     <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-4 xl:gap-12">
-        <div class="order-last xl:order-none w-full xl:max-w-[520px] xl:shrink-0 relative z-30"
-             class:xl:w-0={$mode === 'national'}
-             class:xl:min-w-0={$mode === 'national'}
-             class:xl:overflow-hidden={$mode === 'national'}>
-            {#if $mode !== 'national'}
-                <OrganisationSearch
-                    source={organisationSearchStore}
-                    overlayMode={true}
-                    maxItems={1}
-                    hideSelectAll={true}
-                    showTitle={true}
-                    on:selectionChange={handleSelectionChange}
-                />
-            {/if}
+        <div class="order-last xl:order-none w-full xl:max-w-[520px] xl:shrink-0 relative z-30">
+            <OrganisationSearch
+                source={organisationSearchStore}
+                overlayMode={true}
+                maxItems={1}
+                hideSelectAll={true}
+                showTitle={true}
+                disabled={$mode === 'national'}
+                on:selectionChange={handleSelectionChange}
+            />
         </div>
 
         <div class="measures-list-controls-right order-first xl:order-none flex flex-col xl:flex-row items-stretch xl:items-end gap-4 w-full xl:w-auto">

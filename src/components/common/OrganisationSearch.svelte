@@ -17,7 +17,7 @@
     export let showTitle = true;
 
     $: placeholderText = disabled ? 
-        'Selection disabled' :
+        'Selection disabled in National mode' :
         `Search and select ${
             $source.filterType === 'icb' ? 'Integrated Care Boards' : 
             $source.filterType === 'region' ? 'regions' : 
