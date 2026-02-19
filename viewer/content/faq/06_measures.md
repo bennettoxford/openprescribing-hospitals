@@ -26,6 +26,10 @@ These metrics are not calculated for measures where we cannot make a value judge
 
 Percentile charts show the extent of variation in medication use at the level of individual trusts. You can read more about why we use them in our blogs, [communicating variation in prescribing](https://www.bennett.ox.ac.uk/blog/2019/04/communicating-variation-in-prescribing-why-we-use-deciles/) and [highlighting variation in hospitals medicines usage](https://www.bennett.ox.ac.uk/blog/2025/04/highlighting-variation-in-hospitals-medicines-usage).
 
+### How should I interpret percentiles for measures without denominators?
+
+Measures with a denominator are normalised and comparable across trusts of different sizes. However, for measures without denominators and in custom analyses, percentiles show variation in absolute quantities. In these cases, variation in percentiles can simply reflect differences in hospital size rather than genuine variation in what is being measured. When interpreting percentiles for measures without denominators or custom analyses, consider whether differences might be explained by the size or activity level of the trusts rather than differences in issuing patterns.
+
 ### What does a value of zero mean in a measure?
 
 When viewing measures, you may see trusts with a value of zero for certain months. This can happen for two main reasons:
