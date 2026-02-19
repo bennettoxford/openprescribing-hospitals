@@ -61,15 +61,24 @@
         { value: 'most_improved', label: 'Sort: Most improved' },
     ];
     const TRUST_ONLY_SORT_VALUES = ['potential_improvement', 'most_improved'];
-    // Show trust sort options only when in trust mode with exactly one trust selected
     $: selectedItems = $organisationSearchStore?.selectedItems || [];
     $: singleTrustCode = $mode === 'trust' && selectedItems.length === 1
         ? findPrimaryTrustCode(selectedItems)
         : null;
     $: effectiveTrustCode = $selectedCodeStore || singleTrustCode || '';
-    $: sortOptions = $mode === 'trust' && effectiveTrustCode
-        ? [...baseSortOptions, ...trustSortOptions]
-        : baseSortOptions;
+    // Show all sorts; trust-only sorts are disabled when not in trust mode or no trust selected
+    $: trustSortsEnabled = $mode === 'trust' && !!effectiveTrustCode;
+    $: disabledSortTooltip = $mode === 'trust'
+        ? 'Select a trust to use this sort'
+        : 'Only available in NHS Trust mode';
+    $: sortOptions = [
+        ...baseSortOptions.map(opt => ({ ...opt, disabled: false, title: '' })),
+        ...trustSortOptions.map(opt => ({
+            ...opt,
+            disabled: !trustSortsEnabled,
+            title: trustSortsEnabled ? '' : disabledSortTooltip,
+        })),
+    ];
 
     function findPrimaryTrustCode(items) {
         const predecessorMap = parsedOrgData.predecessor_map || {};
@@ -396,7 +405,7 @@
                     value={$sort}
                 >
                     {#each sortOptions as option}
-                        <option value={option.value}>{option.label}</option>
+                        <option value={option.value} disabled={option.disabled} title={option.title}>{option.label}</option>
                     {/each}
                 </select>
             </div>
