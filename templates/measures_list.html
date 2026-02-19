@@ -51,6 +51,7 @@
             chartData="{{ chart_data_json|default:'{}' }}"
             previewMode="{{ preview_mode|yesno:'true,false' }}"
             userAuthenticated="true"
+            measureTrustsBasePath="{{ measure_trusts_base_path|default:'/measures/' }}"
             orgData="{{ org_data_json }}"
             regionData="{{ region_data_json }}"
             tagsData="{{ tags_json|default:'[]' }}"

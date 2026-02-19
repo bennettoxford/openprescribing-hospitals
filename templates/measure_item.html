@@ -162,7 +162,8 @@
                         {% else %}
                         <p>Trusts are only included in this measure if they have issued any products included in this measure.</p>
                         {% endif %}
-                        <p>For this measure, {{ trusts_included.included }}/{{ trusts_included.total }} Trusts are included. A full list of Trusts included is available on the <a href="{% url 'viewer:submission_history' %}" target="_blank" class="underline font-semibold">Submission History</a> page.</p>
+                        <p>For this measure, {{ trusts_included.included }}/{{ trusts_included.total }} trusts are included. {% if user.is_authenticated %} <a href="{% url 'viewer:measure_trusts' measure_slug %}" class="underline font-semibold">
+                            View this measure for each trust individually here</a>.{% endif %} A full list of trusts submitting data is available on the <a href="{% url 'viewer:submission_history' %}" target="_blank" class="underline font-semibold">Submission History</a> page.</p>
                     </div>
                 </div>
                 {% endif %}

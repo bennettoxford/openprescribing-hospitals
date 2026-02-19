@@ -2,10 +2,11 @@ import json
 from collections import defaultdict
 from datetime import datetime, timedelta
 from markdown2 import Markdown
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
 from django.core.serializers.json import DjangoJSONEncoder
 from django.shortcuts import redirect
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils.text import slugify
 from django.db.models import Exists, OuterRef
 
@@ -182,6 +183,142 @@ def build_trust_chart_data(measure, bulk_percentiles, overlay_series=None):
         chart_data['trustData'] = [[m.isoformat(), v] for m, v in sorted(overlay_series.items())]
 
     return chart_data
+
+
+def build_measure_org_data(org_measures, shared_org_data, include_region_icb=False):
+    """
+    Build org data for measure views.
+
+    When include_region_icb=True, adds region/icb per org and regions_hierarchy for RegionIcbFilter.
+    """
+    measure_orgs = set(
+        org_measures.values_list('organisation__ods_code', flat=True).distinct()
+    )
+    if include_region_icb:
+        current_orgs = Organisation.objects.filter(
+            successor__isnull=True
+        ).select_related('region', 'icb').values(
+            'ods_code', 'ods_name',
+            'region__name', 'region__code',
+            'icb__name', 'icb__code',
+        ).order_by('ods_name')
+    else:
+        current_orgs = Organisation.objects.filter(
+            successor__isnull=True
+        ).values('ods_code', 'ods_name').order_by('ods_name')
+
+    flat_data = {}
+    predecessor_map = shared_org_data['predecessor_map']
+    org_codes = shared_org_data['org_codes']
+    regions_with_icbs = defaultdict(lambda: {'icbs': set(), 'region_code': None}) if include_region_icb else None
+
+    for org in current_orgs:
+        org_name = org['ods_name']
+        is_available = org['ods_code'] in measure_orgs
+        entry = {'available': is_available, 'data': []}
+        if include_region_icb:
+            region = org.get('region__name')
+            region_code = org.get('region__code')
+            icb = org.get('icb__name')
+            icb_code = org.get('icb__code')
+            entry['region'] = region
+            entry['icb'] = icb
+            if region and icb:
+                regions_with_icbs[region]['region_code'] = region_code
+                regions_with_icbs[region]['icbs'].add((icb, icb_code or ''))
+        flat_data[org_name] = entry
+
+    for successor, predecessors in predecessor_map.items():
+        if successor in flat_data and flat_data[successor]['available']:
+            pred_entry = {'available': True, 'data': []}
+            if include_region_icb:
+                pred_entry['region'] = flat_data[successor].get('region')
+                pred_entry['icb'] = flat_data[successor].get('icb')
+            for predecessor in predecessors:
+                flat_data[predecessor] = dict(pred_entry)
+
+    for row in org_measures.values(
+        'organisation__ods_code', 'organisation__ods_name',
+        'month', 'quantity', 'numerator', 'denominator',
+    ):
+        org_name = row['organisation__ods_name']
+        if org_name in flat_data:
+            flat_data[org_name]['data'].append({
+                'month': row['month'],
+                'quantity': row['quantity'],
+                'numerator': row['numerator'],
+                'denominator': row['denominator'],
+            })
+
+    for successor, predecessors in predecessor_map.items():
+        if successor in flat_data and flat_data[successor]['data']:
+            succ_data = flat_data[successor]['data']
+            for predecessor in predecessors:
+                if predecessor in flat_data:
+                    flat_data[predecessor]['data'] = list(succ_data)
+
+    orgs_with_data = {
+        name for name, info in flat_data.items()
+        if info.get('available') and info.get('data')
+    }
+    all_predecessors = set()
+    for preds in predecessor_map.values():
+        all_predecessors.update(preds)
+
+    current_org_names = [
+        name for name in flat_data
+        if name in orgs_with_data
+        and (name in predecessor_map or name not in all_predecessors)
+    ]
+    current_org_names.sort(key=lambda n: n.lower())
+
+    processed = set()
+
+    def build_org_entry(org_name):
+        if org_name not in flat_data or org_name not in orgs_with_data or org_name in processed:
+            return None
+        processed.add(org_name)
+        entry = flat_data[org_name]
+        org_entry = {
+            'name': org_name,
+            'ods_code': org_codes.get(org_name),
+            'data': entry.get('data', []),
+            'region': entry.get('region'),
+            'icb': entry.get('icb'),
+            'predecessors': [],
+        }
+        for pred in predecessor_map.get(org_name, []):
+            pred_entry = build_org_entry(pred)
+            if pred_entry:
+                org_entry['predecessors'].append(pred_entry)
+        return org_entry
+
+    organisations = []
+    for org_name in current_org_names:
+        if org_name not in processed:
+            org_entry = build_org_entry(org_name)
+            if org_entry:
+                organisations.append(org_entry)
+
+    result = {
+        'organisations': organisations,
+        'org_codes': org_codes,
+        'predecessor_map': predecessor_map,
+        'available_count': len(orgs_with_data),
+    }
+    if include_region_icb and regions_with_icbs:
+        result['regions_hierarchy'] = [
+            {
+                'region': region,
+                'region_code': data['region_code'],
+                'icbs': sorted(
+                    [{'name': n, 'code': c} for n, c in data['icbs']],
+                    key=lambda x: x['name'],
+                ),
+            }
+            for region, data in sorted(regions_with_icbs.items())
+        ]
+    return result
 
 
 def _serialize_measures(measures, detail_url_name, prefetched):
@@ -455,73 +592,15 @@ class BaseMeasureItemView(TemplateView):
         return context
 
     def get_org_data(self, org_measures):
-        
         total_orgs = Organisation.objects.count()
-        
         shared_org_data = get_organisation_data()
-
-        current_orgs = Organisation.objects.filter(
-            successor__isnull=True
-        ).values('ods_code', 'ods_name').order_by('ods_name')
-        
-        measure_orgs = set(
-            org_measures.values_list(
-                'organisation__ods_code', flat=True
-            ).distinct()
-        )
-        
-        predecessor_to_successor = {}
-        for successor, predecessors in shared_org_data['predecessor_map'].items():
-            for predecessor in predecessors:
-                predecessor_to_successor[predecessor] = successor
-       
-        org_data = {
-            'data': {},
-            'predecessor_map': shared_org_data['predecessor_map'],
-            'org_codes': shared_org_data['org_codes']
-        }
-        
-        available_orgs = set()
-        
-        for org in current_orgs:
-            org_name = org['ods_name']
-            is_available = org['ods_code'] in measure_orgs
-            org_data['data'][org_name] = {
-                'available': is_available,
-                'data': []
-            }
-            if is_available:
-                available_orgs.add(org_name)
-        
-        for successor, predecessors in shared_org_data['predecessor_map'].items():
-            if (successor in org_data['data'] and 
-                    org_data['data'][successor]['available']):
-                for predecessor in predecessors:
-                    org_data['data'][predecessor] = {
-                        'available': True,
-                        'data': []
-                    }
-                    available_orgs.add(predecessor)
-        
-        for measure in org_measures.values(
-            'organisation__ods_code', 'organisation__ods_name', 
-            'month', 'quantity', 'numerator', 'denominator'
-        ):
-            org_name = measure['organisation__ods_name']
-            if org_name in org_data['data']:
-                org_data['data'][org_name]['data'].append({
-                    'month': measure['month'],
-                    'quantity': measure['quantity'],
-                    'numerator': measure['numerator'],
-                    'denominator': measure['denominator']
-                })
-        
+        org_data = build_measure_org_data(org_measures, shared_org_data, include_region_icb=False)
         return {
-            "trusts_included": {
-                "included": len(available_orgs),
-                "total": total_orgs
-            },
-            "org_data": json.dumps(org_data, cls=DjangoJSONEncoder),
+            "trusts_included": {"included": org_data['available_count'], "total": total_orgs},
+            "org_data": json.dumps(
+                {k: v for k, v in org_data.items() if k != 'available_count'},
+                cls=DjangoJSONEncoder,
+            ),
         }
 
     def get_aggregated_data(self, aggregated_measures):
@@ -574,6 +653,86 @@ class BaseMeasureItemView(TemplateView):
                 percentiles_list, cls=DjangoJSONEncoder
             ),
         }
+
+
+class MeasureTrustsView(LoginRequiredMixin, MaintenanceModeMixin, TemplateView):
+    """View showing one percentile chart per trust for a given measure."""
+
+    template_name = "measure_trusts.html"
+    login_url = reverse_lazy("viewer:login")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        slug = self.kwargs.get("slug")
+
+        try:
+            measure = Measure.objects.prefetch_related('tags').get(slug=slug)
+            if measure.status != 'published':
+                return redirect('viewer:measure_item', slug=slug)
+
+            org_measures = PrecomputedMeasure.objects.filter(
+                measure=measure
+            ).select_related('organisation')
+            percentiles = PrecomputedPercentile.objects.filter(measure=measure)
+            shared_org_data = get_organisation_data()
+
+            org_data = build_measure_org_data(org_measures, shared_org_data, include_region_icb=True)
+            percentile_data = list(
+                percentiles.values('month', 'percentile', 'quantity')
+            )
+            for p in percentile_data:
+                p['month'] = p['month'].isoformat()
+
+            denom_exists = MeasureVMP.objects.filter(
+                measure=measure, type='denominator'
+            ).exists()
+
+            markdowner = Markdown()
+            tags_data = [
+                {
+                    "name": tag.name,
+                    "description": (
+                        markdowner.convert(tag.description)
+                        if tag.description
+                        else None
+                    ),
+                    "colour": tag.colour or "#6b7280",
+                }
+                for tag in measure.tags.all()
+            ]
+            context.update({
+                "measure": measure,
+                "measure_description": markdowner.convert(measure.description),
+                "tags": tags_data,
+                "trusts": org_data['organisations'],
+                "org_data_json": json.dumps(
+                    {k: v for k, v in org_data.items() if k not in ('available_count', 'regions_hierarchy')},
+                    cls=DjangoJSONEncoder,
+                ),
+                "percentile_data_json": json.dumps(
+                    percentile_data, cls=DjangoJSONEncoder
+                ),
+                "regions_hierarchy_json": json.dumps(
+                    org_data.get('regions_hierarchy', []),
+                    cls=DjangoJSONEncoder,
+                ),
+                "measure_has_denominators": denom_exists,
+                "measure_quantity_type": measure.quantity_type or "",
+                "measure_lower_is_better": (
+                    "true"
+                    if measure.lower_is_better is True
+                    else "false"
+                    if measure.lower_is_better is False
+                    else ""
+                ),
+                "selected_sort": self.request.GET.get("sort", "name"),
+            })
+        except Measure.DoesNotExist:
+            context["error"] = "Measure not found"
+        except Exception as e:
+            context["error"] = str(e)
+
+        return context
 
 
 class MeasureItemView(MaintenanceModeMixin, BaseMeasureItemView):

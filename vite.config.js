@@ -23,6 +23,7 @@ export default defineConfig({
         'totals-table': "./src/components/analyse/results/TotalsTable.svelte",
         'measure': "./src/components/measures/Measure.svelte",
         'measures-list': "./src/components/measures/MeasuresList.svelte",
+        'measure-trusts-list': "./src/components/measures/MeasureTrustsList.svelte",
         'submission-history': "./src/components/dq/SubmissionHistory.svelte",
         'measure-products': "./src/components/measures/MeasureProducts.svelte",
         'chart': "./src/components/common/Chart.svelte",

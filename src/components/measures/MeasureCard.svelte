@@ -9,8 +9,11 @@
   export let statusBadgeClass = '';
   export let linkClasses = 'bg-oxford-50 text-oxford-600 hover:bg-oxford-100';
   export let linkText = 'View measure details';
+  export let isAuthenticated = false;
 
   $: detailHref = measure.detail_base_url + measure.slug + '/' + ($detailLinkQuery || '');
+  $: measureTrustsHref = '/measures/' + measure.slug + '/trusts/';
+  $: showAllTrustsButton = isAuthenticated && $mode === 'trust';
   $: initialChartData = '{}';
 </script>
 
@@ -87,6 +90,14 @@
         >
           {linkText}
         </a>
+        {#if showAllTrustsButton}
+          <a
+            href={measureTrustsHref}
+            class="inline-flex w-full justify-center items-center px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors duration-200 font-medium text-sm measure-all-trusts-link"
+          >
+            View measure for all trusts
+          </a>
+        {/if}
       </div>
     </div>
   </div>
