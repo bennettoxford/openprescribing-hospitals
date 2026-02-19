@@ -39,7 +39,7 @@
   export let orgData = '{}';
   export let regionData = '[]';
   export let tagsData = '[]';
-  export let initialMode = 'default';
+  export let initialMode = 'trust';
   export let initialCode = '';
   export let initialSort = 'name';
   export let initialTags = '';

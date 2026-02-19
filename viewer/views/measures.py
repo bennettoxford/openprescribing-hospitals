@@ -365,9 +365,9 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
         preview_mode = self.kwargs.get('preview_mode', False)
 
         if is_authenticated:
-            selected_mode = (self.request.GET.get('mode') or 'default').strip()
-            if selected_mode not in ('national', 'region', 'trust', 'default'):
-                selected_mode = 'default'
+            selected_mode = (self.request.GET.get('mode') or 'trust').strip()
+            if selected_mode not in ('national', 'region', 'trust'):
+                selected_mode = 'trust'
             selected_trust_code = (self.request.GET.get('trust') or '').strip() if selected_mode == 'trust' else ''
             selected_region = (self.request.GET.get('region') or '').strip() if selected_mode == 'region' else ''
             sort = (self.request.GET.get('sort') or 'name').strip()
@@ -441,15 +441,7 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
                     national_data[measure.slug] = build_national_chart_data(measure, bulk_national)
                     region_data[measure.slug] = build_region_chart_data(measure, bulk_all_regions)
                     trust_percentiles_data[measure.slug] = build_trust_chart_data(measure, bulk_percentiles)
-                    if selected_mode == 'default':
-                        mode_val = measure.default_view_mode
-                        effective_mode = (
-                            mode_val if mode_val in ('national', 'region', 'trust')
-                            else (None if mode_val == 'icb' else 'national')
-                        )
-                        modes_by_slug[measure.slug] = effective_mode if effective_mode is not None else 'national'
-                    else:
-                        modes_by_slug[measure.slug] = selected_mode
+                    modes_by_slug[measure.slug] = selected_mode
                 prefetched = {
                     'national': national_data,
                     'region': region_data,

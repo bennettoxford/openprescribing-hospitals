@@ -31,7 +31,7 @@
     export let orgData = '{}';
     export let regionData = '[]';
     export let chartDataJson = '{}';
-    export let selectedMode = 'national';
+    export let selectedMode = 'trust';
     export let selectedCode = '';
     export let selectedSort = 'name';
     export let tagsData = '[]';
@@ -47,7 +47,6 @@
     let showShareToast = false;
 
     const modeOptions = [
-        { value: 'default', label: 'Default' },
         { value: 'national', label: 'National' },
         { value: 'region', label: 'Region' },
         { value: 'trust', label: 'NHS Trust' },
@@ -84,7 +83,7 @@
 
     function syncUrl() {
         const params = {};
-        if ($mode && $mode !== 'default') params.mode = $mode;
+        if ($mode && $mode !== 'trust') params.mode = $mode;
         if ($mode === 'trust' && $selectedCodeStore) params.trust = $selectedCodeStore;
         if ($mode === 'region' && $selectedCodeStore) params.region = $selectedCodeStore;
         if ($sort) params.sort = $sort;
@@ -197,15 +196,6 @@
             for (const s of allSlugs) {
                 chartBySlug[s] = pickBestDataForSlug(s, nat, reg, trust, 'trust');
                 modesBySlug[s] = 'trust';
-            }
-        } else if (modeVal === 'default') {
-            modesBySlug = { ...(modes_by_slug || {}) };
-            for (const s of allSlugs) {
-                const m = modes_by_slug?.[s] || 'national';
-                chartBySlug[s] = m === 'national' ? nat[s] : m === 'region' ? reg[s] : trust[s];
-                if (!hasValidChartData(chartBySlug[s])) {
-                    chartBySlug[s] = pickBestDataForSlug(s, nat, reg, trust, m);
-                }
             }
         }
         setChartData(chartBySlug, modesBySlug);
@@ -320,9 +310,8 @@
             const urlSort = params.get('sort') || selectedSort || 'name';
             const urlTags = (params.get('tags') || selectedTags || '').split(',').map(s => s.trim()).filter(Boolean);
 
-            const initialMode = urlMode && ['national', 'region', 'trust', 'default'].includes(urlMode)
-                ? urlMode
-                : (selectedMode || 'default');
+            const rawMode = urlMode || selectedMode || 'trust';
+            const initialMode = ['national', 'region', 'trust'].includes(rawMode) ? rawMode : 'trust';
             const initialCode = initialMode === 'trust' ? (urlTrust || selectedCode || '')
                 : initialMode === 'region' ? (urlRegion || selectedCode || '') : '';
 
@@ -382,10 +371,10 @@
 
     <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-4 xl:gap-12">
         <div class="order-last xl:order-none w-full xl:max-w-[520px] xl:shrink-0 relative z-30"
-             class:xl:w-0={$mode === 'national' || $mode === 'default'}
-             class:xl:min-w-0={$mode === 'national' || $mode === 'default'}
-             class:xl:overflow-hidden={$mode === 'national' || $mode === 'default'}>
-            {#if $mode !== 'national' && $mode !== 'default'}
+             class:xl:w-0={$mode === 'national'}
+             class:xl:min-w-0={$mode === 'national'}
+             class:xl:overflow-hidden={$mode === 'national'}>
+            {#if $mode !== 'national'}
                 <OrganisationSearch
                     source={organisationSearchStore}
                     overlayMode={true}
