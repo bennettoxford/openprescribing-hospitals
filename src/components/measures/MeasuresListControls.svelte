@@ -31,7 +31,7 @@
     export let orgData = '{}';
     export let regionData = '[]';
     export let chartDataJson = '{}';
-    export let selectedMode = 'national';
+    export let selectedMode = 'trust';
     export let selectedCode = '';
     export let selectedSort = 'name';
     export let tagsData = '[]';
@@ -47,7 +47,6 @@
     let showShareToast = false;
 
     const modeOptions = [
-        { value: 'default', label: 'Default' },
         { value: 'national', label: 'National' },
         { value: 'region', label: 'Region' },
         { value: 'trust', label: 'NHS Trust' },
@@ -62,15 +61,24 @@
         { value: 'most_improved', label: 'Sort: Most improved' },
     ];
     const TRUST_ONLY_SORT_VALUES = ['potential_improvement', 'most_improved'];
-    // Show trust sort options only when in trust mode with exactly one trust selected
     $: selectedItems = $organisationSearchStore?.selectedItems || [];
     $: singleTrustCode = $mode === 'trust' && selectedItems.length === 1
         ? findPrimaryTrustCode(selectedItems)
         : null;
     $: effectiveTrustCode = $selectedCodeStore || singleTrustCode || '';
-    $: sortOptions = $mode === 'trust' && effectiveTrustCode
-        ? [...baseSortOptions, ...trustSortOptions]
-        : baseSortOptions;
+    // Show all sorts; trust-only sorts are disabled when not in trust mode or no trust selected
+    $: trustSortsEnabled = $mode === 'trust' && !!effectiveTrustCode;
+    $: disabledSortTooltip = $mode === 'trust'
+        ? 'Select a trust to use this sort'
+        : 'Only available in NHS Trust mode';
+    $: sortOptions = [
+        ...baseSortOptions.map(opt => ({ ...opt, disabled: false, title: '' })),
+        ...trustSortOptions.map(opt => ({
+            ...opt,
+            disabled: !trustSortsEnabled,
+            title: trustSortsEnabled ? '' : disabledSortTooltip,
+        })),
+    ];
 
     function findPrimaryTrustCode(items) {
         const predecessorMap = parsedOrgData.predecessor_map || {};
@@ -84,7 +92,7 @@
 
     function syncUrl() {
         const params = {};
-        if ($mode && $mode !== 'default') params.mode = $mode;
+        if ($mode && $mode !== 'trust') params.mode = $mode;
         if ($mode === 'trust' && $selectedCodeStore) params.trust = $selectedCodeStore;
         if ($mode === 'region' && $selectedCodeStore) params.region = $selectedCodeStore;
         if ($sort) params.sort = $sort;
@@ -197,15 +205,6 @@
             for (const s of allSlugs) {
                 chartBySlug[s] = pickBestDataForSlug(s, nat, reg, trust, 'trust');
                 modesBySlug[s] = 'trust';
-            }
-        } else if (modeVal === 'default') {
-            modesBySlug = { ...(modes_by_slug || {}) };
-            for (const s of allSlugs) {
-                const m = modes_by_slug?.[s] || 'national';
-                chartBySlug[s] = m === 'national' ? nat[s] : m === 'region' ? reg[s] : trust[s];
-                if (!hasValidChartData(chartBySlug[s])) {
-                    chartBySlug[s] = pickBestDataForSlug(s, nat, reg, trust, m);
-                }
             }
         }
         setChartData(chartBySlug, modesBySlug);
@@ -320,9 +319,8 @@
             const urlSort = params.get('sort') || selectedSort || 'name';
             const urlTags = (params.get('tags') || selectedTags || '').split(',').map(s => s.trim()).filter(Boolean);
 
-            const initialMode = urlMode && ['national', 'region', 'trust', 'default'].includes(urlMode)
-                ? urlMode
-                : (selectedMode || 'default');
+            const rawMode = urlMode || selectedMode || 'trust';
+            const initialMode = ['national', 'region', 'trust'].includes(rawMode) ? rawMode : 'trust';
             const initialCode = initialMode === 'trust' ? (urlTrust || selectedCode || '')
                 : initialMode === 'region' ? (urlRegion || selectedCode || '') : '';
 
@@ -381,20 +379,16 @@
     </div>
 
     <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-4 xl:gap-12">
-        <div class="order-last xl:order-none w-full xl:max-w-[520px] xl:shrink-0 relative z-30"
-             class:xl:w-0={$mode === 'national' || $mode === 'default'}
-             class:xl:min-w-0={$mode === 'national' || $mode === 'default'}
-             class:xl:overflow-hidden={$mode === 'national' || $mode === 'default'}>
-            {#if $mode !== 'national' && $mode !== 'default'}
-                <OrganisationSearch
-                    source={organisationSearchStore}
-                    overlayMode={true}
-                    maxItems={1}
-                    hideSelectAll={true}
-                    showTitle={true}
-                    on:selectionChange={handleSelectionChange}
-                />
-            {/if}
+        <div class="order-last xl:order-none w-full xl:max-w-[520px] xl:shrink-0 relative z-30">
+            <OrganisationSearch
+                source={organisationSearchStore}
+                overlayMode={true}
+                maxItems={1}
+                hideSelectAll={true}
+                showTitle={true}
+                disabled={$mode === 'national'}
+                on:selectionChange={handleSelectionChange}
+            />
         </div>
 
         <div class="measures-list-controls-right order-first xl:order-none flex flex-col xl:flex-row items-stretch xl:items-end gap-4 w-full xl:w-auto">
@@ -407,7 +401,7 @@
                     value={$sort}
                 >
                     {#each sortOptions as option}
-                        <option value={option.value}>{option.label}</option>
+                        <option value={option.value} disabled={option.disabled} title={option.title}>{option.label}</option>
                     {/each}
                 </select>
             </div>

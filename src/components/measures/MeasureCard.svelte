@@ -72,7 +72,7 @@
             <MeasureMiniChart
               slug={measure.slug}
               chartdata={initialChartData}
-              mode={$mode === 'default' ? 'national' : $mode}
+              mode={$mode}
               ispercentage={measure.has_denominators ? 'true' : 'false'}
               quantitytype={measure.quantity_type || ''}
             />

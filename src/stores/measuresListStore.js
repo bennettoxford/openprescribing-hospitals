@@ -1,6 +1,6 @@
 import { writable, derived } from 'svelte/store';
 
-export const mode = writable('national');
+export const mode = writable('trust');
 export const selectedCode = writable('');
 export const sort = writable('name');
 export const selectedTags = writable([]);
@@ -11,9 +11,18 @@ export const isLoadingCharts = writable(false);
 export const detailLinkQuery = derived(
   [mode, selectedCode],
   ([$mode, $code]) => {
-    if ($mode === 'trust' && $code) return `?mode=trust&trusts=${encodeURIComponent($code)}`;
-    if ($mode === 'region' && $code) return `?mode=region&regions=${encodeURIComponent($code)}`;
-    return '';
+    const params = new URLSearchParams();
+    if ($mode === 'trust') {
+      params.set('mode', 'trust');
+      if ($code) params.set('trusts', $code);
+    } else if ($mode === 'region') {
+      params.set('mode', 'region');
+      if ($code) params.set('regions', $code);
+    } else if ($mode === 'national') {
+      params.set('mode', 'national');
+    }
+    const qs = params.toString();
+    return qs ? `?${qs}` : '';
   }
 );
 
