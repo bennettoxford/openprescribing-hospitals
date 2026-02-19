@@ -15,9 +15,29 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <!-- Header Section -->
         <div class="mb-4">
-            <h1 class="text-4xl font-bold mb-6 text-gray-900 tracking-tight">
-                {% if preview_mode %}Measure Previews{% else %}Measures{% endif %}
-            </h1>
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <h1 class="text-4xl font-bold text-gray-900 tracking-tight">
+                    {% if preview_mode %}Measure Previews{% else %}Measures{% endif %}
+                </h1>
+                {% if user.is_authenticated %}
+                    {% if preview_mode %}
+                    <a href="{% url 'viewer:measures_list' %}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                        </svg>
+                        Back to measures
+                    </a>
+                    {% else %}
+                    <a href="{% url 'viewer:measures_preview_list' %}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                        </svg>
+                        View preview measures
+                    </a>
+                    {% endif %}
+                {% endif %}
+            </div>
             <p class="text-lg text-gray-600 mb-4 leading-relaxed">
                 Measures are pre-built analyses of medicines use in hospitals. They provide valuable insights into areas such as cost-effectiveness, patient safety, and adherence to best practices.
             </p>
