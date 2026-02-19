@@ -711,7 +711,7 @@
                             </div>
                         {:else if currentModeHasData || canShowPercentilesWithoutTrustData}
                             <div class="grid grid-cols-1 gap-4">
-                                <div class="relative h-[550px] mb-6 sm:mb-0">
+                                <div class="relative h-[550px] mb-8">
                                     <Chart 
                                         store={resultsChartStore} 
                                         data={filteredData.length > 0 ? filteredData : selectedData}
@@ -745,7 +745,7 @@
                         {/if}
                     </section>
 
-                    <section class="bg-amber-50 border-l-4 border-amber-400 p-4 mx-4 mb-4 mt-2 relative z-10">
+                    <section class="bg-amber-50 border-l-4 border-amber-400 p-4 mx-4 mb-12 mt-16 relative z-10">
                       <div class="flex flex-col sm:flex-row">
                         <div class="flex-shrink-0 mb-2 sm:mb-0">
                           <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
