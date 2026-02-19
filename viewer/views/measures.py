@@ -1,8 +1,10 @@
+import hashlib
 import json
 from collections import defaultdict
 from datetime import datetime, timedelta
 from markdown2 import Markdown
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.cache import cache
 from django.views.generic import TemplateView
 from django.core.serializers.json import DjangoJSONEncoder
 from django.shortcuts import redirect
@@ -27,6 +29,21 @@ from ..utils import get_organisation_data
 
 
 PERCENTILE_LEVELS = [5, 15, 25, 35, 45, 50, 55, 65, 75, 85, 95]
+MEASURES_LIST_CHART_CACHE_TIMEOUT = 86400
+MEASURES_LIST_CHART_CACHE_VERSION_KEY = 'measures_list_chart_version'
+MEASURE_ITEM_PRECOMPUTED_CACHE_TIMEOUT = 86400
+MEASURE_ITEM_PRECOMPUTED_CACHE_KEY_PREFIX = 'measure_item_precomputed:'
+
+
+def invalidate_measures_list_chart_cache():
+    """Invalidate the measures list chart cache by bumping the version. Call after computing measures."""
+    version = cache.get(MEASURES_LIST_CHART_CACHE_VERSION_KEY, 0)
+    cache.set(MEASURES_LIST_CHART_CACHE_VERSION_KEY, version + 1, timeout=None)
+
+
+def invalidate_measure_item_cache(measure_slug):
+    """Invalidate the measure item precomputed data cache. Call after computing a measure."""
+    cache.delete(f'{MEASURE_ITEM_PRECOMPUTED_CACHE_KEY_PREFIX}{measure_slug}')
 
 def _is_measure_new(measure):
     """True if measure was first published within the last 30 days."""
@@ -443,17 +460,33 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
             if not measures:
                 prefetched = {'national': {}, 'region': {}, 'trust_percentiles': {}, 'modes_by_slug': {}}
             else:
-                bulk_all_regions, bulk_national = get_bulk_regions_and_national_series_for_measures(measures)
-                bulk_percentiles = get_bulk_percentiles_for_measures(measures)
-                national_data = {}
-                region_data = {}
-                trust_percentiles_data = {}
-                modes_by_slug = {}
-                for measure in measures:
-                    national_data[measure.slug] = build_national_chart_data(measure, bulk_national)
-                    region_data[measure.slug] = build_region_chart_data(measure, bulk_all_regions)
-                    trust_percentiles_data[measure.slug] = build_trust_chart_data(measure, bulk_percentiles)
-                    modes_by_slug[measure.slug] = selected_mode
+                slugs_part = ",".join(sorted(m.slug for m in measures))
+                slugs_hash = hashlib.sha256(slugs_part.encode()).hexdigest()[:16]
+                cache_version = cache.get(MEASURES_LIST_CHART_CACHE_VERSION_KEY, 0)
+                cache_key = "measures_list_chart_data:{}:{}:{}".format(
+                    "preview" if preview_mode else "published",
+                    slugs_hash,
+                    cache_version,
+                )
+                cached_chart = cache.get(cache_key)
+                if cached_chart is not None:
+                    national_data, region_data, trust_percentiles_data = cached_chart
+                else:
+                    bulk_all_regions, bulk_national = get_bulk_regions_and_national_series_for_measures(measures)
+                    bulk_percentiles = get_bulk_percentiles_for_measures(measures)
+                    national_data = {}
+                    region_data = {}
+                    trust_percentiles_data = {}
+                    for measure in measures:
+                        national_data[measure.slug] = build_national_chart_data(measure, bulk_national)
+                        region_data[measure.slug] = build_region_chart_data(measure, bulk_all_regions)
+                        trust_percentiles_data[measure.slug] = build_trust_chart_data(measure, bulk_percentiles)
+                    cache.set(
+                        cache_key,
+                        (national_data, region_data, trust_percentiles_data),
+                        timeout=MEASURES_LIST_CHART_CACHE_TIMEOUT,
+                    )
+                modes_by_slug = {m.slug: selected_mode for m in measures}
                 prefetched = {
                     'national': national_data,
                     'region': region_data,
@@ -494,7 +527,8 @@ class BaseMeasureItemView(TemplateView):
         try:
             measure = self.get_measure(slug)
             context.update(self.get_measure_context(measure))
-            context.update(self.get_precomputed_data(measure))
+            precomputed, _ = self.get_precomputed_data(measure)
+            context.update(precomputed)
             context['is_new'] = _is_measure_new(measure)
         except Exception as e:
             context["error"] = str(e)
@@ -576,6 +610,11 @@ class BaseMeasureItemView(TemplateView):
         }
 
     def get_precomputed_data(self, measure):
+        cache_key = f'{MEASURE_ITEM_PRECOMPUTED_CACHE_KEY_PREFIX}{measure.slug}'
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached, True
+
         org_measures = PrecomputedMeasure.objects.filter(
             measure=measure
         ).select_related('organisation')
@@ -593,7 +632,8 @@ class BaseMeasureItemView(TemplateView):
         context.update(self.get_aggregated_data(aggregated_measures))
         context.update(self.get_percentile_data(percentiles))
 
-        return context
+        cache.set(cache_key, context, timeout=MEASURE_ITEM_PRECOMPUTED_CACHE_TIMEOUT)
+        return context, False
 
     def get_org_data(self, org_measures):
         total_orgs = Organisation.objects.count()

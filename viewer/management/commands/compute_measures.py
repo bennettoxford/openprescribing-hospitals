@@ -22,6 +22,10 @@ from viewer.models import (
     SCMDQuantity,
     DataStatus
 )
+from viewer.views.measures import (
+    invalidate_measures_list_chart_cache,
+    invalidate_measure_item_cache,
+)
 
 
 class Command(BaseCommand):
@@ -411,4 +415,8 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f'Successfully created {icb_count} ICB, {region_count} region, and {national_count} national aggregated measures')
         )
+
+        invalidate_measures_list_chart_cache()
+        invalidate_measure_item_cache(measure_slug)
+        self.stdout.write(self.style.SUCCESS('Invalidated measures list and item chart cache'))
 
