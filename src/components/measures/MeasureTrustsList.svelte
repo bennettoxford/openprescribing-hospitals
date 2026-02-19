@@ -301,7 +301,8 @@
                 <select
                     bind:value={sortType}
                     on:change={handleSortChange}
-                    class="w-full lg:w-auto inline-flex items-center justify-center px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 h-[38px]"
+                    class="dropdown-select dropdown-arrow w-full min-w-0 lg:w-[12rem] text-sm p-2 border border-gray-300 rounded-md bg-white h-[38px] lg:truncate"
+                    aria-label="Sort list"
                 >
                     <option value="name">Sort: Alphabetical</option>
                     <option value="potential_improvement">Sort: Potential for improvement</option>
