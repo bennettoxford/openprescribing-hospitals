@@ -885,7 +885,11 @@
                                 {#if percentilesDisabled}
                                     Percentiles are disabled when there are fewer than 30 trusts in a measure.
                                 {:else}
-                                    Percentiles show variation in this measure across Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#what-are-percentile-charts" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.
+                                    Percentiles show variation in this measure across Trusts and allow easy comparison of Trust activity relative to the median Trust level. 
+                                    {#if hasdenominators === 'false'}
+                                    Variation can reflect differences in hospital size rather than genuine variation. 
+                                    {/if}
+                                    See <a href="/faq/#what-are-percentile-charts" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.
                                 {/if}
                             </p>
                         </div>

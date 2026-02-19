@@ -642,6 +642,7 @@
                                         {/if}
                                         .
                                     {/if}
+                                    Variation can reflect differences in hospital size rather than genuine variation. 
                                     See <a href="/faq/#what-are-percentile-charts" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret this chart.
                                 {:else}
                                     {chartExplainerText}
