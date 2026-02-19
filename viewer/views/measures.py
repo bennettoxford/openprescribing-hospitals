@@ -397,7 +397,19 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
                 preview_measures = []
                 in_development_measures = []
 
-        measure_tags = list(MeasureTag.objects.all().order_by('name'))
+        if preview_mode:
+            # Only show tags used by preview and in_development measures
+            measure_tags = list(
+                MeasureTag.objects.filter(
+                    measures__status__in=['preview', 'in_development']
+                ).distinct().order_by('name')
+            )
+        else:
+            # Only show tags used by published measures
+            measure_tags = list(
+                MeasureTag.objects.filter(measures__status='published')
+                .distinct().order_by('name')
+            )
         tags_param = (self.request.GET.get('tags') or '').strip() if is_authenticated else ''
         selected_tag = ','.join(s.strip() for s in tags_param.split(',') if s.strip()) if tags_param else ''
 
