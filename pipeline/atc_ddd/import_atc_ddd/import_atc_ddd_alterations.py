@@ -341,10 +341,23 @@ def process_ddd_alterations(dfs: dict, implementation_year: int) -> pd.DataFrame
     return processed_df
 
 
+def _align_df_to_schema(df: pd.DataFrame, table_spec) -> pd.DataFrame:
+    """Ensure DataFrame has all columns from table spec, in schema order.
+    Adds missing columns as pd.NA."""
+    schema_columns = [f.name for f in table_spec.schema]
+    missing = [c for c in schema_columns if c not in df.columns]
+    if missing:
+        df = df.copy()
+        for col in missing:
+            df[col] = pd.NA
+    return df[schema_columns]
+
+
 @task
 def load_to_bigquery(df: pd.DataFrame, table_spec):
     """Load DataFrame to BigQuery (replaces all existing data)"""
     logger = get_run_logger()
+    df = _align_df_to_schema(df, table_spec)
     logger.info(
         f"Loading {len(df)} rows to {table_spec.full_table_id}"
     )
@@ -400,21 +413,19 @@ def import_atc_ddd_alterations():
 
             ddd_df = process_new_ddds(excel_dfs, implementation_year)
             if not ddd_df.empty:
-                if not ddd_df.empty:
-                    all_ddd_dfs.append(ddd_df)
-                    logger.info(
-                        f"Added {len(ddd_df)} new DDD records from "
-                        f"year {year}"
-                    )
+                all_ddd_dfs.append(ddd_df)
+                logger.info(
+                    f"Added {len(ddd_df)} new DDD records from "
+                    f"year {year}"
+                )
 
             ddd_alterations_df = process_ddd_alterations(excel_dfs, implementation_year)
             if not ddd_alterations_df.empty:
-                if not ddd_alterations_df.empty:
-                    all_ddd_dfs.append(ddd_alterations_df)
-                    logger.info(
-                        f"Added {len(ddd_alterations_df)} DDD alteration records from "
-                        f"year {year}"
-                    )
+                all_ddd_dfs.append(ddd_alterations_df)
+                logger.info(
+                    f"Added {len(ddd_alterations_df)} DDD alteration records from "
+                    f"year {year}"
+                )
 
             year_atc_dfs = []
 
@@ -454,7 +465,8 @@ def import_atc_ddd_alterations():
 
             
         if all_ddd_dfs:
-            combined_ddd_df = pd.concat(all_ddd_dfs, ignore_index=True)
+            ddd_dfs_clean = [df.dropna(axis=1, how='all') for df in all_ddd_dfs]
+            combined_ddd_df = pd.concat(ddd_dfs_clean, ignore_index=True)
             logger.info(
                 f"Total DDD records aggregated: {len(combined_ddd_df)}"
             )
@@ -465,7 +477,8 @@ def import_atc_ddd_alterations():
             logger.warning("No DDD data to load")
 
         if all_atc_dfs:
-            combined_atc_df = pd.concat(all_atc_dfs, ignore_index=True)
+            atc_dfs_clean = [df.dropna(axis=1, how='all') for df in all_atc_dfs]
+            combined_atc_df = pd.concat(atc_dfs_clean, ignore_index=True)
             logger.info(
                 f"Total ATC records aggregated: {len(combined_atc_df)}"
             )
