@@ -56,7 +56,7 @@ expressed_as_with_denominator AS (
 -- Convert expressed_as unit to basis unit
 expressed_as_with_basis AS (
   SELECT
-    eawd.*,
+    eawd.* EXCEPT(expressed_as_strnt_dnmtr_uom),
     unit_conv.basis AS expressed_as_basis_unit,
     unit_conv.conversion_factor AS expressed_as_conversion_factor,
     eawd.expressed_as_strnt_nmrtr * COALESCE(unit_conv.conversion_factor, 1.0) AS expressed_as_strnt_nmrtr_basis_val,
