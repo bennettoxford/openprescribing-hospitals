@@ -6,7 +6,8 @@ import argparse
 
 from prefect import flow, get_run_logger
 from pipeline.setup.setup_bq_tables import setup_tables
-from pipeline.dmd.import_dmd import import_dmd
+from pipeline.dmd.import_dmd_base import import_dmd_base
+from pipeline.dmd.import_dmd_filtered import import_dmd_filtered
 from pipeline.organisations.import_organisations import import_organisations
 from pipeline.scmd.import_scmd import import_scmd
 from pipeline.atc_ddd.import_atc_ddd.import_atc_ddd import import_atc_ddd
@@ -34,12 +35,13 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
         logger.info("Starting import flows")
 
         setup_tables()
-        import_dmd()
+        import_dmd_base()
         import_organisations()
         import_scmd()
         import_atc_ddd()
         import_mappings()
         process_scmd()
+        import_dmd_filtered()
         populate_vmp_table()
         check_quantity_calculations()
         calculate_quantities()
