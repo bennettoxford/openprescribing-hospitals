@@ -42,7 +42,7 @@ normalized_vmps AS (
   SELECT 
     CAST(vmp_code AS STRING) as vmp_code,
     vmp_name
-  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_TABLE_ID }}`
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_FULL_TABLE_ID }}`
 ),
 normalized_uoms AS (
   SELECT

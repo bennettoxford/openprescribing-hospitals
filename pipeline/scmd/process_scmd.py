@@ -10,7 +10,7 @@ from pipeline.setup.bq_tables import (
     UNITS_CONVERSION_TABLE_SPEC,
     SCMD_PROCESSED_TABLE_SPEC,
     VMP_UNIT_STANDARDISATION_TABLE_SPEC,
-    DMD_TABLE_SPEC,
+    DMD_FULL_TABLE_SPEC,
     DMD_HISTORY_TABLE_SPEC,
 )
 
@@ -62,7 +62,7 @@ def validate_scmd_data():
             ),
             dmd_vmps AS (
                 SELECT DISTINCT vmp_code
-                FROM `{DMD_TABLE_SPEC.full_table_id}`
+                FROM `{DMD_FULL_TABLE_SPEC.full_table_id}`
             )
             SELECT 
                 p.vmp_code,
