@@ -268,8 +268,11 @@ def build_measure_org_data(org_measures, shared_org_data, include_region_icb=Fal
         flat_data[org_name] = entry
 
     for successor, predecessors in predecessor_map.items():
-        if successor in flat_data and flat_data[successor]['available']:
-            pred_entry = {'available': True, 'data': []}
+        if successor in flat_data:
+            pred_entry = {
+                'available': flat_data[successor]['available'],
+                'data': [],
+            }
             if include_region_icb:
                 pred_entry['region'] = flat_data[successor].get('region')
                 pred_entry['icb'] = flat_data[successor].get('icb')
@@ -306,15 +309,14 @@ def build_measure_org_data(org_measures, shared_org_data, include_region_icb=Fal
 
     current_org_names = [
         name for name in flat_data
-        if name in orgs_with_data
-        and (name in predecessor_map or name not in all_predecessors)
+        if name in predecessor_map or name not in all_predecessors
     ]
     current_org_names.sort(key=lambda n: n.lower())
 
     processed = set()
 
     def build_org_entry(org_name):
-        if org_name not in flat_data or org_name not in orgs_with_data or org_name in processed:
+        if org_name not in flat_data or org_name in processed:
             return None
         processed.add(org_name)
         entry = flat_data[org_name]
@@ -324,6 +326,7 @@ def build_measure_org_data(org_measures, shared_org_data, include_region_icb=Fal
             'data': entry.get('data', []),
             'region': entry.get('region'),
             'icb': entry.get('icb'),
+            'available': entry.get('available', False),
             'predecessors': [],
         }
         for pred in predecessor_map.get(org_name, []):

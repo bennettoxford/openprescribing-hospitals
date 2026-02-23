@@ -96,13 +96,13 @@
 
     function getAvailableItemsFromFilters() {
         return getOrgsFromRegionIcbFilter(
-            orgsWithData,
+            availableOrgs,
             (item) => item.region,
             (item) => item.icb,
             (item) => item.name,
             selectedRegions,
             selectedICBs,
-            allOrgsForSearch
+            allAvailableOrgsNames
         );
     }
 
@@ -110,8 +110,8 @@
         if (selectedRegions.size > 0 || selectedICBs.size > 0) {
             selectedRegions = new Set();
             selectedICBs = new Set();
-            organisationSearchStore.setAvailableItems(allOrgsForSearch);
-            organisationSearchStore.updateSelection(allOrgsForSearch);
+            organisationSearchStore.setAvailableItems(allAvailableOrgsNames);
+            organisationSearchStore.updateSelection(allAvailableOrgsNames);
         }
     }
 
@@ -133,13 +133,16 @@
     $: allPredecessors = new Set(
         Object.values(parsedOrgData?.predecessor_map || {}).flat()
     );
+    $: hasTrustData = (o) => (o.data?.length ?? 0) > 0 && o.available !== false;
     $: searchableOrgs = [...new Set(
         orgsWithData
+            .filter((o) => !allPredecessors.has(o.name) && hasTrustData(o))
             .map((o) => o.name)
-            .filter((name) => !allPredecessors.has(name))
     )];
 
     $: allOrgsForSearch = [...new Set(orgsWithData.map((o) => o.name))];
+    $: availableOrgs = orgsWithData.filter(hasTrustData);
+    $: allAvailableOrgsNames = [...new Set(availableOrgs.map((o) => o.name))];
     $: orgDataByTrust = Object.fromEntries(orgsWithData.map((o) => [o.name, o]));
 
     $: {
@@ -204,7 +207,8 @@
 
     function getChartDataForTrust(trustName, percentiles) {
         const trustData = buildTrustData(trustName);
-        if (Object.keys(percentiles).length === 0 && trustData.length === 0) return null;
+        if (trustData.length === 0) return null;
+        if (Object.keys(percentiles).length === 0) return null;
         return { percentiles, trustData };
     }
 

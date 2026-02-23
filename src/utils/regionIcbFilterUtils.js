@@ -1,7 +1,7 @@
 /**
- * Flattens nested organisations to array of { name, region, icb, data }.
- * @param {Array<{name: string, region?: string, icb?: string, data?: Array, predecessors?: Array}>} orgs
- * @returns {Array<{name: string, region?: string, icb?: string, data: Array}>}
+ * Flattens nested organisations to array of { name, region, icb, data, available }.
+ * @param {Array<{name: string, region?: string, icb?: string, data?: Array, available?: boolean, predecessors?: Array}>} orgs
+ * @returns {Array<{name: string, region?: string, icb?: string, data: Array, available?: boolean}>}
  */
 export function flattenOrganisationsWithMetadata(orgs) {
     const result = [];
@@ -11,6 +11,7 @@ export function flattenOrganisationsWithMetadata(orgs) {
             region: org.region ?? null,
             icb: org.icb ?? null,
             data: org.data || [],
+            available: org.available ?? true,
         });
         if (org.predecessors) {
             org.predecessors.forEach((pred) => collect(pred));
@@ -22,15 +23,16 @@ export function flattenOrganisationsWithMetadata(orgs) {
 
 /**
  * Flattens nested organisations to flat data format: { name: { available, data } }.
- * @param {Array<{name: string, data: Array, predecessors?: Array}>} orgs - Nested org objects
+ * available is true only when org has data for the measure (consistent with MeasureTrustsList).
+ * @param {Array<{name: string, data: Array, available?: boolean, predecessors?: Array}>} orgs - Nested org objects
  * @returns {Object<string, {available: boolean, data: Array}>}
  */
 export function flattenOrganisationsToData(orgs) {
     return Object.fromEntries(
-        flattenOrganisationsWithMetadata(orgs).map((o) => [
-            o.name,
-            { available: true, data: o.data || [] },
-        ])
+        flattenOrganisationsWithMetadata(orgs).map((o) => {
+            const hasData = (o.data?.length ?? 0) > 0 && o.available !== false;
+            return [o.name, { available: hasData, data: o.data || [] }];
+        })
     );
 }
 
