@@ -490,8 +490,20 @@
     {:else if $mode === 'trust'}
         <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 pt-2 border-t border-gray-100">
             <span class="font-medium text-gray-700 mr-1">Key:</span>
-            <span class="inline-flex items-center gap-1.5"><span class="inline-block w-4 h-0.5 rounded" style="background-color: #005AB5;"></span> Percentile range</span>
-            <span class="inline-flex items-center gap-1.5"><span class="inline-block w-4 h-0.5 rounded" style="background-color: #DC3220;"></span> Median</span>
+            <span class="inline-flex items-center gap-1.5">Median <span class="inline-block w-4 h-0.5 rounded" style="background-color: #DC3220;"></span></span>
+            <span class="inline-flex items-center gap-1.5 flex-wrap">
+                <span class="text-gray-600 mr-0.5">Percentiles:</span>
+                {#each [{ lo: 5, hi: 95, opacity: 0.1 }, { lo: 15, hi: 85, opacity: 0.2 }, { lo: 25, hi: 75, opacity: 0.4 }, { lo: 35, hi: 65, opacity: 0.6 }, { lo: 45, hi: 55, opacity: 0.8 }] as band}
+                    <span class="inline-flex items-center gap-1 text-xs">
+                        <span
+                            class="inline-block w-3 h-3 rounded-sm shrink-0 border border-gray-200"
+                            style="background-color: rgba(0,90,181,{band.opacity});"
+                            title="{band.lo}th–{band.hi}th"
+                        ></span>
+                        <span class="text-gray-600 whitespace-nowrap">{band.lo}th–{band.hi}th</span>
+                    </span>
+                {/each}
+            </span>
             {#if $organisationSearchStore.selectedItems?.length > 0}
                 <span class="inline-flex items-center gap-1.5"><span class="inline-block w-4 h-0.5 rounded" style="background-color: #D97706;"></span> {$organisationSearchStore.selectedItems[0]}</span>
             {/if}
