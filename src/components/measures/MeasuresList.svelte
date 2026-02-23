@@ -24,7 +24,7 @@
   import MeasureCard from './MeasureCard.svelte';
   import LazyLoad from '../common/LazyLoad.svelte';
   import {
-    selectedTags, sort, mode,
+    selectedTags, sort, mode, selectedCode,
     chartData as chartDataStore
   } from '../../stores/measuresListStore.js';
   import { deriveSortMetricsFromChartData } from '../../utils/measuresSortUtils.js';
@@ -51,6 +51,13 @@
   $: selectedTagsVal = $selectedTags;
   $: sortVal = $sort;
   $: chartDataStoreVal = $chartDataStore;
+  $: trustOverlayActive = $mode === 'trust' && !!$selectedCode;
+
+  function trustIncludedInMeasure(slug) {
+    if (!trustOverlayActive || !chartDataStoreVal) return true;
+    const trustData = chartDataStoreVal[slug]?.trustData;
+    return Array.isArray(trustData) && trustData.length > 0;
+  }
 
   $: allMeasures = [...parsedMeasures, ...parsedPreviewMeasures, ...parsedInDevelopmentMeasures];
   $: effectiveSortMetrics = $mode === 'trust' && chartDataStoreVal && Object.keys(chartDataStoreVal).length > 0
@@ -152,6 +159,8 @@
           linkClasses="bg-oxford-50 text-oxford-600 hover:bg-oxford-100"
           linkText="View measure details"
           isAuthenticated={userAuthenticated === 'true'}
+          trustIncludedInMeasure={trustIncludedInMeasure(measure.slug)}
+          trustSelected={trustOverlayActive}
           {measureTrustsBasePath}
         />
       {/each}
@@ -187,6 +196,8 @@
             linkClasses="bg-blue-50 text-blue-600 hover:bg-blue-100"
             linkText="View preview"
             isAuthenticated={userAuthenticated === 'true'}
+            trustIncludedInMeasure={trustIncludedInMeasure(measure.slug)}
+            trustSelected={trustOverlayActive}
             {measureTrustsBasePath}
           />
         {/each}
@@ -227,6 +238,8 @@
             linkClasses="bg-amber-50 text-amber-600 hover:bg-amber-100"
             linkText="View in development"
             isAuthenticated={userAuthenticated === 'true'}
+            trustIncludedInMeasure={trustIncludedInMeasure(measure.slug)}
+            trustSelected={trustOverlayActive}
             {measureTrustsBasePath}
           />
         {/each}

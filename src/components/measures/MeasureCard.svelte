@@ -10,8 +10,14 @@
   export let linkClasses = 'bg-oxford-50 text-oxford-600 hover:bg-oxford-100';
   export let linkText = 'View measure details';
   export let isAuthenticated = false;
+  export let trustIncludedInMeasure = true;
+  export let trustSelected = false;
 
-  $: detailHref = measure.detail_base_url + measure.slug + '/' + ($detailLinkQuery || '');
+  $: detailHref = measure.detail_base_url + measure.slug + '/' + (
+    ($mode === 'trust' && showAllTrustsButton && !trustIncludedInMeasure)
+      ? ''
+      : ($detailLinkQuery || '')
+  );
   $: measureTrustsHref = '/measures/' + measure.slug + '/trusts/';
   $: showAllTrustsButton = isAuthenticated && $mode === 'trust';
   $: initialChartData = '{}';
@@ -83,6 +89,13 @@
           </div>
         {/if}
       </div>
+      {#if showAllTrustsButton && trustSelected}
+        <div class="px-4 pb-1 h-4 flex items-center">
+          {#if !trustIncludedInMeasure}
+            <span class="text-xs font-medium text-gray-700">Selected trust is not included in this measure</span>
+          {/if}
+        </div>
+      {/if}
       <div class="p-6 pt-2 flex flex-col gap-2">
         <a
           href={detailHref}
