@@ -102,7 +102,7 @@
             (item) => item.name,
             selectedRegions,
             selectedICBs,
-            searchableOrgs
+            allOrgsForSearch
         );
     }
 
@@ -110,8 +110,8 @@
         if (selectedRegions.size > 0 || selectedICBs.size > 0) {
             selectedRegions = new Set();
             selectedICBs = new Set();
-            organisationSearchStore.setAvailableItems(searchableOrgs);
-            organisationSearchStore.updateSelection(searchableOrgs);
+            organisationSearchStore.setAvailableItems(allOrgsForSearch);
+            organisationSearchStore.updateSelection(allOrgsForSearch);
         }
     }
 
@@ -130,7 +130,16 @@
 
     $: parsedOrganisations = parsedOrgData?.organisations || [];
     $: orgsWithData = flattenOrganisationsWithMetadata(parsedOrganisations);
-    $: searchableOrgs = [...new Set(orgsWithData.map((o) => o.name))];
+    $: allPredecessors = new Set(
+        Object.values(parsedOrgData?.predecessor_map || {}).flat()
+    );
+    $: searchableOrgs = [...new Set(
+        orgsWithData
+            .map((o) => o.name)
+            .filter((name) => !allPredecessors.has(name))
+    )];
+
+    $: allOrgsForSearch = [...new Set(orgsWithData.map((o) => o.name))];
     $: orgDataByTrust = Object.fromEntries(orgsWithData.map((o) => [o.name, o]));
 
     $: {
@@ -153,7 +162,7 @@
         selectedRegions;
         selectedICBs;
         const orgs = Object.fromEntries(
-            searchableOrgs.map((name) => [parsedOrgData.org_codes?.[name] || name, name])
+            allOrgsForSearch.map((name) => [parsedOrgData.org_codes?.[name] || name, name])
         );
         organisationSearchStore.setOrganisationData({
             orgs,
