@@ -16,7 +16,7 @@
   import { onDestroy } from 'svelte';
   import * as Highcharts from 'highcharts';
   import 'highcharts/highcharts-more';
-  import { regionColors, chartConfig } from '../../utils/chartConfig.js';
+  import { regionColors, chartConfig, TRUST_OVERLAY_COLOR } from '../../utils/chartConfig.js';
   import { getChartForSlug, isLoadingCharts } from '../../stores/measuresListStore.js';
 
   export let chartdata = '{}';
@@ -221,7 +221,7 @@
 
     // Selected trust overlay
     if (data.trustData) {
-      series.push({ type: 'line', data: data.trustData, color: '#D97706', lineWidth: 3, zIndex: 3 });
+      series.push({ type: 'line', data: data.trustData, color: TRUST_OVERLAY_COLOR, lineWidth: 3, zIndex: 3 });
     }
 
     return series;
