@@ -814,7 +814,7 @@
         return tooltipContent;
     }
 
-    $: percentilesDisabled = trusts.filter(trust => $orgdataStore[trust]?.available).length < 20;
+    $: percentilesDisabled = trusts.filter(trust => $orgdataStore[trust]?.available).length < 30;
 
     function handlePercentileToggle() {
         if (!percentilesDisabled) {

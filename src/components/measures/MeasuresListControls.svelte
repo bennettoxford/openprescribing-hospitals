@@ -164,6 +164,7 @@
         if (data.data && Array.isArray(data.data) && data.data.length > 0) return true;
         if (data.regions && Object.keys(data.regions).length > 0) return true;
         if (data.percentiles && Object.keys(data.percentiles).length > 0) return true;
+        if (data.trustSeries && Object.keys(data.trustSeries).length > 0) return true;
         return false;
     }
 

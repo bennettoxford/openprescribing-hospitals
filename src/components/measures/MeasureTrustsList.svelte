@@ -313,8 +313,17 @@
 
         <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 pt-2 border-t border-gray-100">
             <span class="font-medium text-gray-700 mr-1">Key:</span>
-            <span class="inline-flex items-center gap-1.5"><span class="inline-block w-4 h-0.5 rounded" style="background-color: #005AB5;"></span> Percentile range</span>
-            <span class="inline-flex items-center gap-1.5"><span class="inline-block w-4 h-0.5 rounded" style="background-color: #DC3220;"></span> Median</span>
+            {#if searchableOrgs.length >= 30}
+                <span class="inline-flex items-center gap-1.5">
+                    <span
+                        class="inline-block w-16 h-4 rounded border border-gray-200 shrink-0"
+                        style="background: linear-gradient(to right, rgba(0,90,181,0.1), rgba(0,90,181,0.2), rgba(0,90,181,0.4), rgba(0,90,181,0.6), rgba(0,90,181,0.8));"
+                        title="Percentile bands from 5th–95th (light) to 45th–55th (dark)"
+                    ></span>
+                    5th–95th percentiles
+                </span>
+                <span class="inline-flex items-center gap-1.5"><span class="inline-block w-4 h-0.5 rounded" style="background-color: #DC3220;"></span> Median</span>
+            {/if}
             <span class="inline-flex items-center gap-1.5"><span class="inline-block w-4 h-0.5 rounded" style="background-color: #D97706;"></span> Trust</span>
         </div>
     </div>
@@ -341,11 +350,12 @@
                         </div>
                         <div class="p-2 flex-grow min-h-0 overflow-visible" style="height: 280px;">
                             <measure-mini-chart
-                                chartdata={chartDataByTrust[trustName] ? JSON.stringify(chartDataByTrust[trustName]) : '{}'}
+                                chartdata={chartDataByTrust[trustName] ? JSON.stringify({ ...chartDataByTrust[trustName], trust_count: searchableOrgs.length }) : '{}'}
                                 mode="trust"
                                 ispercentage={measureHasDenominators}
                                 quantitytype={measureQuantityType}
                                 slug=""
+                                min-trusts-for-percentiles={30}
                             />
                         </div>
                         <div class="p-6 pt-2 flex flex-col gap-2">
