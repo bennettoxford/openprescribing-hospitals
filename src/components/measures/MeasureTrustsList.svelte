@@ -324,6 +324,16 @@
             </div>
         </div>
 
+        {#if sortType === 'potential_improvement' || sortType === 'most_improved'}
+            <div class="text-sm text-gray-600 pt-2 border-t border-gray-100">
+                {#if sortType === 'potential_improvement'}
+                    Sorting by potential for improvement (over the last 12 months). <a href="/faq/#how-is-potential-for-improvement-and-most-improved-determined" target="_blank" rel="noopener noreferrer" class="text-oxford-600 hover:text-oxford-800 underline">See the FAQs for more detail on how this is calculated</a>.
+                {:else}
+                    Sorting by most improved (over the last 12 months). <a href="/faq/#how-is-potential-for-improvement-and-most-improved-determined" target="_blank" rel="noopener noreferrer" class="text-oxford-600 hover:text-oxford-800 underline">See the FAQs for more detail on how this is calculated</a>.
+                {/if}
+            </div>
+        {/if}
+
         <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 pt-2 border-t border-gray-100">
             <span class="font-medium text-gray-700 mr-1">Key:</span>
             {#if searchableOrgs.length >= 30}
