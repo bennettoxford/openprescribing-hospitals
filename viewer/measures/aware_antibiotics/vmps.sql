@@ -11,8 +11,7 @@ INNER JOIN viewer_awarevmpmapping mapping ON vmp.id = mapping.vmp_id
 INNER JOIN viewer_awareantibiotic antibiotic ON mapping.aware_antibiotic_id = antibiotic.id
 WHERE 
     antibiotic.aware_2024 IN ('Access', 'Watch', 'Reserve')
-    -- remove product which are ONLY for the below routes as the DDDs are not applicable to these routes
-    AND ofr.name NOT LIKE "%.intraarticular"
+    AND ofr.name NOT LIKE "%.intraarticular" -- remove products here and below which are ONLY for the below routes as the DDDs are not applicable to these routes
     AND ofr.name NOT LIKE "%.intracameral"
     AND ofr.name NOT LIKE "%.intracerebroventricular"
     AND ofr.name NOT LIKE "%.intraperitoneal"
