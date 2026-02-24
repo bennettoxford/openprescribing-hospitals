@@ -15,6 +15,7 @@ from pipeline.setup.config import (
     DMD_TABLE_ID,
     DMD_FULL_TABLE_ID,
     DMD_SUPP_TABLE_ID,
+    VMP_ATC_MANUAL_TABLE_ID,
     WHO_ATC_TABLE_ID,
     WHO_DDD_TABLE_ID,
     ADM_ROUTE_MAPPING_TABLE_ID,
@@ -560,6 +561,22 @@ DMD_SUPP_TABLE_SPEC = TableSpec(
         bigquery.SchemaField("atc_code", "STRING", mode="NULLABLE", description="ATC code"),
         bigquery.SchemaField("ddd", "FLOAT", mode="NULLABLE", description="DDD"),
         bigquery.SchemaField("ddd_uom", "STRING", mode="NULLABLE", description="DDD unit"),
+    ],
+)
+
+VMP_ATC_MANUAL_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=VMP_ATC_MANUAL_TABLE_ID,
+    description="Manual VMP to ATC code mappings for products without dm+d ATC",
+    schema=[
+        bigquery.SchemaField(
+            "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
+        ),
+        bigquery.SchemaField(
+            "vmp_name", "STRING", mode="NULLABLE", description="VMP name for identification"
+        ),
+        bigquery.SchemaField("atc_code", "STRING", mode="REQUIRED", description="ATC code"),
     ],
 )
 

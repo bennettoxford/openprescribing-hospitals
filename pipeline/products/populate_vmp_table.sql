@@ -97,6 +97,23 @@ vmp_routes AS (
   GROUP BY dmd.vmp_code
 ),
 
+vmp_atc_from_dmd AS (
+  SELECT atc.vmp_code, atc.atc_code
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_SUPP_TABLE_ID }}` atc
+  JOIN scmd_vmps sv ON atc.vmp_code = sv.vmp_code
+  WHERE atc.atc_code IS NOT NULL
+),
+vmp_atc_from_manual AS (
+  SELECT man.vmp_code, man.atc_code
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_ATC_MANUAL_TABLE_ID }}` man
+  JOIN scmd_vmps sv ON man.vmp_code = sv.vmp_code
+  WHERE NOT EXISTS (SELECT 1 FROM vmp_atc_from_dmd d WHERE d.vmp_code = man.vmp_code)
+),
+vmp_atc_combined AS (
+  SELECT * FROM vmp_atc_from_dmd
+  UNION ALL
+  SELECT * FROM vmp_atc_from_manual
+),
 vmp_atc_mappings AS (
   SELECT
     atc.vmp_code,
@@ -106,8 +123,7 @@ vmp_atc_mappings AS (
         who_atc.atc_name
       )
     ) AS atcs
-  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_SUPP_TABLE_ID }}` atc
-  JOIN scmd_vmps sv ON atc.vmp_code = sv.vmp_code
+  FROM vmp_atc_combined atc
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ WHO_ATC_TABLE_ID }}` who_atc
     ON atc.atc_code = who_atc.atc_code
   GROUP BY atc.vmp_code
