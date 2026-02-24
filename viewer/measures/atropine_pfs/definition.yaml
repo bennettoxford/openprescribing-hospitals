@@ -1,0 +1,24 @@
+name: Percentage of atropine as ready-to-administer pre-filled syringes # Full name of the measure/indicator
+short_name: Percentage of atropine as pre-filled syringes # Abbreviated name or acronym
+description: Percentage of atropine as ready-to-administer pre-filled syringes. # Brief 1-2 sentence description of what this measure identifies
+why_it_matters: |
+    NHS faces significant operational and productivity challenges. Licensed ready-to-administer products offer a 
+    practical means of reducing cognitive load, simplifying workflows and releasing clinical capacity. They are 
+    also safer, less chance of error or contamination. [Lord Carter’s Transforming NHS Pharmacy Aseptic Services 
+    in England review](https://assets.publishing.service.gov.uk/media/5f9afdbdd3bf7f1e405d9a23/aseptic-pharmacy.pdf), 
+    the uptake of licensed ready-to-administer injectable products remains limited. This is 
+    despite clear recommendations and reported benefits for patient safety and workforce efficiency.
+how_is_it_calculated: |
+    We divide the number of [unit doses](/faq/#unit-dose) of injectable atropine issued as ampoules by the total number of 
+    unit doses of injectable atropine issued. We then multiply that by 100 to obtain the % each month.    
+tags:
+    # List relevant categories (e.g. Safety, Prescribing, Monitoring)
+    - Efficiency
+quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
+lower_is_better: true
+authored_by: Vicky Speed # Name of original author
+checked_by: tbc # Name of clinical/technical reviewer
+first_published: 2026-02-24 # Date of first publication (YYYY-MM-DD)
+date_reviewed: 2026-02-24 # Date of last review (YYYY-MM-DD)
+next_review: 2027-02-24 # Date of next scheduled review (YYYY-MM-DD)
+status: preview
