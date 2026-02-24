@@ -72,17 +72,24 @@ SELECT
     END,
     FALSE
   ) AS can_calculate_ddd,
-  COALESCE(
-    CASE
-      WHEN vdo.vmp_code IS NOT NULL AND vdo.override_has_compatible_scmd_units THEN 'SCMD quantity / DDD'
-      WHEN vdo.vmp_code IS NOT NULL AND NOT vdo.override_has_compatible_scmd_units AND vdo.override_has_single_ingredient AND vdo.override_has_compatible_ingredient_units THEN 'Ingredient quantity / DDD'
-      WHEN vdo.vmp_code IS NOT NULL AND NOT vdo.override_has_compatible_scmd_units AND vdo.override_has_missing_ingredient_units THEN 'Not calculated: missing ingredient unit information, cannot calculate'
-      WHEN vdo.vmp_code IS NOT NULL AND NOT vdo.override_has_compatible_scmd_units AND NOT vdo.override_has_ingredients THEN 'Not calculated: DDD unit incompatible with SCMD unit. No ingredients found'
-      WHEN vdo.vmp_code IS NOT NULL AND NOT vdo.override_has_compatible_scmd_units AND NOT vdo.override_has_single_ingredient THEN 'Not calculated: DDD unit incompatible with SCMD unit. Multiple ingredients found, fallback not possible'
-      WHEN vdo.vmp_code IS NOT NULL AND NOT vdo.override_has_compatible_scmd_units AND NOT vdo.override_has_compatible_ingredient_units THEN 'Not calculated: ingredient basis units incompatible with DDD and SCMD basis units'
-      ELSE cr.ddd_calculation_logic
-    END,
-    'Unknown/unhandled case'
+  CONCAT(
+      COALESCE(
+        CASE
+          WHEN vdo.vmp_code IS NOT NULL AND vdo.override_has_compatible_scmd_units THEN 'SCMD quantity / DDD'
+          WHEN vdo.vmp_code IS NOT NULL AND NOT vdo.override_has_compatible_scmd_units AND vdo.override_has_single_ingredient AND vdo.override_has_compatible_ingredient_units THEN 'Ingredient quantity / DDD'
+          WHEN vdo.vmp_code IS NOT NULL AND NOT vdo.override_has_compatible_scmd_units AND vdo.override_has_missing_ingredient_units THEN 'Not calculated: missing ingredient unit information, cannot calculate'
+          WHEN vdo.vmp_code IS NOT NULL AND NOT vdo.override_has_compatible_scmd_units AND NOT vdo.override_has_ingredients THEN 'Not calculated: DDD unit incompatible with SCMD unit. No ingredients found'
+          WHEN vdo.vmp_code IS NOT NULL AND NOT vdo.override_has_compatible_scmd_units AND NOT vdo.override_has_single_ingredient THEN 'Not calculated: DDD unit incompatible with SCMD unit. Multiple ingredients found, fallback not possible'
+          WHEN vdo.vmp_code IS NOT NULL AND NOT vdo.override_has_compatible_scmd_units AND NOT vdo.override_has_compatible_ingredient_units THEN 'Not calculated: ingredient basis units incompatible with DDD and SCMD basis units'
+          ELSE cr.ddd_calculation_logic
+        END,
+        'Unknown/unhandled case'
+      ),
+      -- Erythromycin (VTM 36408511000001102) suspension.oral: append rationale for using standard DDD
+      CASE WHEN vmp.vtm_code = '36408511000001102'
+        AND (SELECT COUNT(1) FROM UNNEST(cr.routes) AS r WHERE LOWER(COALESCE(r.ontformroute_descr, '')) = 'suspension.oral') > 0
+        THEN ' (Follows WHO ATC/DDD classification, applying the standard erythromycin DDD as there is no dosing distinction in the BNF and the formulations are used interchangeably in practice)'
+        ELSE '' END
   ) AS ddd_calculation_logic,
   CASE
     WHEN vdo.vmp_code IS NOT NULL AND (vdo.override_has_compatible_scmd_units OR (NOT vdo.override_has_compatible_scmd_units AND vdo.override_has_single_ingredient AND vdo.override_has_compatible_ingredient_units)) THEN vdo.override_ddd_value
@@ -112,10 +119,16 @@ SELECT
   cr.routes,
   cr.who_ddds,
   cr.ingredients_info,
-  COALESCE(
-    CASE WHEN vdo.vmp_code IS NOT NULL THEN vdo.override_ddd_comment ELSE cr.selected_ddd_comment END,
-    cr.selected_ddd_comment
-  ) AS selected_ddd_comment,
+  -- Erythromycin suspension.oral: append rationale for using standard DDD
+  CASE WHEN vmp.vtm_code = '36408511000001102'
+    AND (SELECT COUNT(1) FROM UNNEST(cr.routes) AS r WHERE LOWER(COALESCE(r.ontformroute_descr, '')) = 'suspension.oral') > 0
+    THEN CONCAT(
+      COALESCE(CASE WHEN vdo.vmp_code IS NOT NULL THEN vdo.override_ddd_comment ELSE cr.selected_ddd_comment END, ''),
+      IF(TRIM(COALESCE(CASE WHEN vdo.vmp_code IS NOT NULL THEN vdo.override_ddd_comment ELSE cr.selected_ddd_comment END, '')) != '', ' ', ''),
+      '(Follows WHO ATC/DDD classification, applying the standard erythromycin DDD as there is no dosing distinction in the BNF and the formulations are used interchangeably in practice)'
+    )
+    ELSE COALESCE(CASE WHEN vdo.vmp_code IS NOT NULL THEN vdo.override_ddd_comment ELSE cr.selected_ddd_comment END, cr.selected_ddd_comment)
+  END AS selected_ddd_comment,
   cr.refers_to_ingredient,
   cr.expressed_as_strnt_nmrtr,
   cr.expressed_as_strnt_nmrtr_uom,
@@ -129,3 +142,4 @@ SELECT
   cr.expressed_as_ingredient_name
 FROM current_results cr
 LEFT JOIN vmp_ddd_overrides vdo ON cr.vmp_code = vdo.vmp_code
+LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_TABLE_ID }}` vmp ON cr.vmp_code = vmp.vmp_code
