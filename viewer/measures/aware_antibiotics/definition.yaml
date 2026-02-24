@@ -1,22 +1,34 @@
 name: Access, Watch and Reserve (AWaRe) Antibiotics
 short_name: AWaRe Antibiotics
-description: Percentage of antibiotic DDDs that are classified as "Watch" or "Reserve" antibiotics according to the UK-AWaRe classification
+description: Percentage of antibiotic DDDs that are classified as "Watch" or "Reserve" antibiotics according to the [UK-AWaRe classification](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification).
 why_it_matters: |
-    The [UK Health Security Agency (UKHSA)](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification) has adapted the [World Health Organization’s (WHO) AWaRe classification](https://www.who.int/publications/i/item/WHO-MHP-HPS-EML-2023.04) to develop the [UK-AWaRe antibiotic classification](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification), taking into account antibiotic resistance profiles, antibiotic prescribing and stewardship practice in the UK. The classification groups antibiotics into four categories: Access, Watch, Reserve and Other, to support appropriate prescribing and promote effective antimicrobial stewardship.  
-    - **Access antibiotics** are generally narrow-spectrum and associated with a lower risk of resistance. They are recommended as first or second choice options for common infections and should be readily available.  
-    - **Watch antibiotics** are broader-spectrum with a higher resistance potential. Their use should be limited to specific indications and monitored closely.  
-    - **Reserve antibiotics** are last-line treatments, often reserved for severe infections caused by multidrug-resistant organisms. These medicines require strict oversight to maintain their effectiveness.  
-    Monitoring the use of Watch and Reserve antibiotics can help identify areas to improve prescribing, encouraging the appropriate use of Access antibiotics where clinically suitable, and ensuring that higher-risk antibiotics are used only when necessary.
+    The UK Health Security Agency (UKHSA) has developed the [UK-AWaRe classification](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification) adapted from the [World Health Organization’s (WHO) AWaRe classification](https://www.who.int/publications/i/item/WHO-MHP-HPS-EML-2023.04). The UK adapted classification takes into account antibiotic resistance profiles, antibiotic prescribing and stewardship practice in the UK. The classification groups antibiotics into four categories to support appropriate prescribing and promote effective antimicrobial stewardship: 
+    
+    > **Access**  
+    > Access antibiotics are those with a narrow spectrum of activity, fewer side effects, lower costs, and importantly lower resistance potential. These are first or second choice antibiotics recommended for empiric treatment of the most common infections and should be widely available. That is to say, these antibiotics should offer the best therapeutic value while minimizing the potential for resistance.
+    >  
+    > **Watch**  
+    > Watch antibiotics have a higher resistance potential and are broader-spectrum antibiotics. These are first or second choice antibiotics indicated for a limited number of infective syndromes. As these antibiotics are considered to have a higher potential for selection of AMR, their use should be carefully monitored.
+    >  
+    > **Reserve**  
+    > Reserve antibiotics are “last resort” antibiotics, including new antibiotics. These are used for highly selected patients (life-threatening infections due to multi-drug-resistant bacteria) and are closely monitored and prioritized as targets of stewardship programmes to ensure continued effectiveness.
+    >  
+    > **Other**  
+    > Some antibiotics do not fit into one of these 3 classifications. For example those that are only used to treat very specific conditions. These are classed as “Other”.
+    
+    Monitoring the use of "Watch" and "Reserve" antibiotics can help identify areas to improve prescribing, encouraging the appropriate use of "Access" antibiotics where clinically appropriate.
 how_is_it_calculated: >
     The numerator includes all DDDs of antibiotics classified as "Watch" or "Reserve" in the [UK-AWaRe list](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification).  
     The denominator includes all DDDs of antibiotics classified as "Access", "Watch", or "Reserve" in the [UK-AWaRe list](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification).  
     This creates a percentage showing the proportion of higher-concern antibiotics (Watch and Reserve) relative to all classified antibiotics used.
+    "Other" antibiotics are excluded from both the numerator and denominator as they do not fit into the Access, Watch, or Reserve categories.
+    A small number of relevant antibiotics do not have a DDD assigned by the WHO. These are excluded from the calculation, but we list them in the table "Products included in this measure" for visibility. 
 tags:
     - Antimicrobial stewardship
 quantity_type: ddd
 lower_is_better: true
 authored_by: "Chris Wood"
 checked_by: ""
-date_reviewed: 2025-07-29
-next_review: 2026-07-29
+date_reviewed: 2026-02-24
+next_review: 2027-02-24
 status: preview
