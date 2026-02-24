@@ -1,6 +1,6 @@
 name: Access, Watch and Reserve (AWaRe) Antibiotics
 short_name: AWaRe Antibiotics
-description: Percentage of antibiotic DDDs that are classified as "Watch" or "Reserve" antibiotics according to the [UK-AWaRe classification](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification).
+description: Percentage of antibiotic DDDs that are classified as "Watch" or "Reserve" antibiotics according to the UK-AWaRe classification.
 why_it_matters: |
     The UK Health Security Agency (UKHSA) has developed the [UK-AWaRe classification](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification) adapted from the [World Health Organization’s (WHO) AWaRe classification](https://www.who.int/publications/i/item/WHO-MHP-HPS-EML-2023.04). The UK adapted classification takes into account antibiotic resistance profiles, antibiotic prescribing and stewardship practice in the UK. The classification groups antibiotics into four categories to support appropriate prescribing and promote effective antimicrobial stewardship: 
     
