@@ -332,6 +332,12 @@ SELECT
   CAST(NULL AS FLOAT64) AS expressed_as_strnt_dnmtr_basis_val,
   CAST(NULL AS STRING) AS expressed_as_strnt_dnmtr_basis_uom,
   CAST(NULL AS STRING) AS expressed_as_ingredient_code,
-  CAST(NULL AS STRING) AS expressed_as_ingredient_name
+  CAST(NULL AS STRING) AS expressed_as_ingredient_name,
+  ovr.strnt_nmrtr_val AS override_strnt_nmrtr_val,
+  ovr.strnt_nmrtr_uom AS override_strnt_nmrtr_uom,
+  ovr.strnt_dnmtr_val AS override_strnt_dnmtr_val,
+  ovr.strnt_dnmtr_uom AS override_strnt_dnmtr_uom,
+  ovr.comments AS override_comments
 FROM vmp_enriched v
 LEFT JOIN ddd_calculation_status dcs ON v.vmp_code = dcs.vmp_code
+LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_STRENGTH_OVERRIDES_TABLE_ID }}` ovr ON v.vmp_code = ovr.vmp_code

@@ -1633,6 +1633,21 @@ DDD_CALCULATION_LOGIC_TABLE_SPEC = TableSpec(
         bigquery.SchemaField(
             "expressed_as_ingredient_name", "STRING", mode="NULLABLE", description="Expressed as ingredient name (only populated for VMPs with expressed as DDD comments)"
         ),
+        bigquery.SchemaField(
+            "override_strnt_nmrtr_val", "FLOAT", mode="NULLABLE", description="Override strength numerator (from vmp_strength_overrides when dm+d strength is wrong)"
+        ),
+        bigquery.SchemaField(
+            "override_strnt_nmrtr_uom", "STRING", mode="NULLABLE", description="Override strength numerator unit"
+        ),
+        bigquery.SchemaField(
+            "override_strnt_dnmtr_val", "FLOAT", mode="NULLABLE", description="Override strength denominator"
+        ),
+        bigquery.SchemaField(
+            "override_strnt_dnmtr_uom", "STRING", mode="NULLABLE", description="Override strength denominator unit"
+        ),
+        bigquery.SchemaField(
+            "override_comments", "STRING", mode="NULLABLE", description="Reason for strength override (from vmp_strength_overrides)"
+        ),
     ],
     cluster_fields=["vmp_code"],
 )
