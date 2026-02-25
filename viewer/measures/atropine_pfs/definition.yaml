@@ -9,12 +9,12 @@ why_it_matters: |
     the uptake of licensed ready-to-administer injectable products remains limited. This is 
     despite clear recommendations and reported benefits for patient safety and workforce efficiency.
 how_is_it_calculated: |
-    We divide the number of [unit doses](/faq/#unit-dose) of injectable atropine issued as ampoules by the total number of 
-    unit doses of injectable atropine issued. We then multiply that by 100 to obtain the % each month.    
+    We divide the number of [DDDs](/faq/#what-is-ddd-quantity) of injectable atropine issued as ampoules by the total number of 
+    ddds of injectable atropine issued. We then multiply that by 100 to obtain the % each month.    
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Efficiency
-quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
+quantity_type: ddd # Type of measurement (e.g. dose, ingredient, ddd)
 lower_is_better: true
 authored_by: Vicky Speed # Name of original author
 checked_by: tbc # Name of clinical/technical reviewer
