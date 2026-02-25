@@ -8,6 +8,7 @@ from pipeline.quantity.ingredient_calculation_logic import ingredient_calculatio
 from pipeline.quantity.ddd_calculation_logic import ddd_calculation_logic
 from pipeline.atc_ddd.ddd_comments.populate_ddd_route_comments import populate_ddd_route_comments_table
 from pipeline.quantity.handle_ddd_route_comments import handle_ddd_route_comments
+from pipeline.atc_ddd.ddd_comments.populate_vmp_strength_overrides import populate_vmp_strength_overrides_table
 from pipeline.atc_ddd.ddd_comments.populate_ddd_refers_to import populate_ddd_refers_to_table
 from pipeline.quantity.ddd_comment_handling_refers_to import ddd_comment_handling_refers_to
 from pipeline.atc_ddd.ddd_comments.populate_ddd_expressed_as import populate_ddd_expressed_as_table
@@ -21,6 +22,7 @@ def check_quantity_calculations():
 
     dose_calculation_logic()
     ingredient_calculation_logic()
+    populate_vmp_strength_overrides_table()
     ddd_calculation_logic()
     populate_ddd_route_comments_table()
     handle_ddd_route_comments()
