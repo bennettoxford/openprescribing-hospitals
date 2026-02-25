@@ -139,7 +139,12 @@ SELECT
   cr.expressed_as_strnt_dnmtr_basis_val,
   cr.expressed_as_strnt_dnmtr_basis_uom,
   cr.expressed_as_ingredient_code,
-  cr.expressed_as_ingredient_name
+  cr.expressed_as_ingredient_name,
+  cr.override_strnt_nmrtr_val,
+  cr.override_strnt_nmrtr_uom,
+  cr.override_strnt_dnmtr_val,
+  cr.override_strnt_dnmtr_uom,
+  cr.override_comments
 FROM current_results cr
 LEFT JOIN vmp_ddd_overrides vdo ON cr.vmp_code = vdo.vmp_code
 LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_TABLE_ID }}` vmp ON cr.vmp_code = vmp.vmp_code
