@@ -1194,7 +1194,7 @@ def validate_analysis_params(request):
                         errors.append(f"Trust codes not found: {codes_list}")
 
     MAX_TRUST_SELECTION_LIMIT = 10
-    if len(valid_trusts) > MAX_TRUST_SELECTION_LIMIT:
+    if not request.user.is_authenticated and len(valid_trusts) > MAX_TRUST_SELECTION_LIMIT:
         valid_trusts = valid_trusts[:MAX_TRUST_SELECTION_LIMIT]
         errors.append(f"Maximum of {MAX_TRUST_SELECTION_LIMIT} trusts allowed")
 
