@@ -11,5 +11,5 @@ WHERE
     vtm.vtm IN (
         '775745006', -- eltrombopag
         '777463009', -- rompiplostim
-        '774706009', -- avatrombopag
+        '774706009'  -- avatrombopag
     )
