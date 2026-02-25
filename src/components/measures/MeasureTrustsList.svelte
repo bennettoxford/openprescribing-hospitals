@@ -96,13 +96,13 @@
 
     function getAvailableItemsFromFilters() {
         return getOrgsFromRegionIcbFilter(
-            orgsWithData,
+            availableOrgs,
             (item) => item.region,
             (item) => item.icb,
             (item) => item.name,
             selectedRegions,
             selectedICBs,
-            searchableOrgs
+            allAvailableOrgsNames
         );
     }
 
@@ -110,8 +110,8 @@
         if (selectedRegions.size > 0 || selectedICBs.size > 0) {
             selectedRegions = new Set();
             selectedICBs = new Set();
-            organisationSearchStore.setAvailableItems(searchableOrgs);
-            organisationSearchStore.updateSelection(searchableOrgs);
+            organisationSearchStore.setAvailableItems(allAvailableOrgsNames);
+            organisationSearchStore.updateSelection(allAvailableOrgsNames);
         }
     }
 
@@ -130,7 +130,19 @@
 
     $: parsedOrganisations = parsedOrgData?.organisations || [];
     $: orgsWithData = flattenOrganisationsWithMetadata(parsedOrganisations);
-    $: searchableOrgs = [...new Set(orgsWithData.map((o) => o.name))];
+    $: allPredecessors = new Set(
+        Object.values(parsedOrgData?.predecessor_map || {}).flat()
+    );
+    $: hasTrustData = (o) => (o.data?.length ?? 0) > 0 && o.available !== false;
+    $: searchableOrgs = [...new Set(
+        orgsWithData
+            .filter((o) => !allPredecessors.has(o.name) && hasTrustData(o))
+            .map((o) => o.name)
+    )];
+
+    $: allOrgsForSearch = [...new Set(orgsWithData.map((o) => o.name))];
+    $: availableOrgs = orgsWithData.filter(hasTrustData);
+    $: allAvailableOrgsNames = [...new Set(availableOrgs.map((o) => o.name))];
     $: orgDataByTrust = Object.fromEntries(orgsWithData.map((o) => [o.name, o]));
 
     $: {
@@ -153,7 +165,7 @@
         selectedRegions;
         selectedICBs;
         const orgs = Object.fromEntries(
-            searchableOrgs.map((name) => [parsedOrgData.org_codes?.[name] || name, name])
+            allOrgsForSearch.map((name) => [parsedOrgData.org_codes?.[name] || name, name])
         );
         organisationSearchStore.setOrganisationData({
             orgs,
@@ -195,7 +207,8 @@
 
     function getChartDataForTrust(trustName, percentiles) {
         const trustData = buildTrustData(trustName);
-        if (Object.keys(percentiles).length === 0 && trustData.length === 0) return null;
+        if (trustData.length === 0) return null;
+        if (Object.keys(percentiles).length === 0) return null;
         return { percentiles, trustData };
     }
 
@@ -311,10 +324,34 @@
             </div>
         </div>
 
+        {#if sortType === 'potential_improvement' || sortType === 'most_improved'}
+            <div class="text-sm text-gray-600 pt-2 border-t border-gray-100">
+                {#if sortType === 'potential_improvement'}
+                    Sorting by potential for improvement (over the last 12 months). <a href="/faq/#how-is-potential-for-improvement-and-most-improved-determined" target="_blank" rel="noopener noreferrer" class="text-oxford-600 hover:text-oxford-800 underline">See the FAQs for more detail on how this is calculated</a>.
+                {:else}
+                    Sorting by most improved (over the last 12 months). <a href="/faq/#how-is-potential-for-improvement-and-most-improved-determined" target="_blank" rel="noopener noreferrer" class="text-oxford-600 hover:text-oxford-800 underline">See the FAQs for more detail on how this is calculated</a>.
+                {/if}
+            </div>
+        {/if}
+
         <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 pt-2 border-t border-gray-100">
             <span class="font-medium text-gray-700 mr-1">Key:</span>
-            <span class="inline-flex items-center gap-1.5"><span class="inline-block w-4 h-0.5 rounded" style="background-color: #005AB5;"></span> Percentile range</span>
-            <span class="inline-flex items-center gap-1.5"><span class="inline-block w-4 h-0.5 rounded" style="background-color: #DC3220;"></span> Median</span>
+            {#if searchableOrgs.length >= 30}
+                <span class="inline-flex items-center gap-1.5">Median <span class="inline-block w-4 h-0.5 rounded" style="background-color: #DC3220;"></span></span>
+                <span class="inline-flex items-center gap-1.5 flex-wrap">
+                    <span class="text-gray-600 mr-0.5">Percentiles:</span>
+                    {#each [{ lo: 5, hi: 95, opacity: 0.1 }, { lo: 15, hi: 85, opacity: 0.2 }, { lo: 25, hi: 75, opacity: 0.4 }, { lo: 35, hi: 65, opacity: 0.6 }, { lo: 45, hi: 55, opacity: 0.8 }] as band}
+                        <span class="inline-flex items-center gap-1 text-xs">
+                            <span
+                                class="inline-block w-3 h-3 rounded-sm shrink-0 border border-gray-200"
+                                style="background-color: rgba(0,90,181,{band.opacity});"
+                                title="{band.lo}th–{band.hi}th"
+                            ></span>
+                            <span class="text-gray-600 whitespace-nowrap">{band.lo}th–{band.hi}th</span>
+                        </span>
+                    {/each}
+                </span>
+            {/if}
             <span class="inline-flex items-center gap-1.5"><span class="inline-block w-4 h-0.5 rounded" style="background-color: #D97706;"></span> Trust</span>
         </div>
     </div>
@@ -341,11 +378,12 @@
                         </div>
                         <div class="p-2 flex-grow min-h-0 overflow-visible" style="height: 280px;">
                             <measure-mini-chart
-                                chartdata={chartDataByTrust[trustName] ? JSON.stringify(chartDataByTrust[trustName]) : '{}'}
+                                chartdata={chartDataByTrust[trustName] ? JSON.stringify({ ...chartDataByTrust[trustName], trust_count: searchableOrgs.length }) : '{}'}
                                 mode="trust"
                                 ispercentage={measureHasDenominators}
                                 quantitytype={measureQuantityType}
                                 slug=""
+                                min-trusts-for-percentiles={30}
                             />
                         </div>
                         <div class="p-6 pt-2 flex flex-col gap-2">

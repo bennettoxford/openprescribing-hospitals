@@ -5,7 +5,8 @@
         mode: { type: 'String', reflect: true },
         ispercentage: { type: 'String', reflect: true },
         quantitytype: { type: 'String', reflect: true },
-        slug: { type: 'String', reflect: true }
+        slug: { type: 'String', reflect: true },
+        minTrustsForPercentiles: { type: 'Number', reflect: true, attribute: 'min-trusts-for-percentiles' }
     },
     shadow: 'none'
 }} />
@@ -15,7 +16,7 @@
   import { onDestroy } from 'svelte';
   import * as Highcharts from 'highcharts';
   import 'highcharts/highcharts-more';
-  import { regionColors } from '../../utils/chartConfig.js';
+  import { regionColors, chartConfig, TRUST_OVERLAY_COLOR } from '../../utils/chartConfig.js';
   import { getChartForSlug, isLoadingCharts } from '../../stores/measuresListStore.js';
 
   export let chartdata = '{}';
@@ -23,6 +24,7 @@
   export let ispercentage = 'false';
   export let quantitytype = '';
   export let slug = '';
+  export let minTrustsForPercentiles = 30;
 
   let chartContainer;
   let chart;
@@ -73,6 +75,7 @@
       const structureChanged =
         modeChanged ||
         (effectiveMode === 'trust' && !!parsedData.trustData !== !!oldData.trustData) ||
+        (effectiveMode === 'trust' && !!parsedData.trustSeries !== !!oldData.trustSeries) ||
         (effectiveMode === 'region' && parsedData.highlightRegion !== oldData.highlightRegion);
 
       const options = buildChartOptions(parsedData, effectiveMode);
@@ -179,29 +182,46 @@
 
   function buildTrustSeries(data) {
     const series = [];
+    const trustCount = data.trust_count;
+    const showPercentileBands = trustCount === undefined || trustCount >= minTrustsForPercentiles;
 
-    for (const { lower, upper, opacity } of PERCENTILE_BANDS) {
-      const lo = data.percentiles?.[lower];
-      const hi = data.percentiles?.[upper];
-      if (!lo?.length || !hi?.length) continue;
-      const len = Math.min(lo.length, hi.length);
-      const rangeData = Array.from({ length: len }, (_, i) => [lo[i][0], lo[i][1], hi[i][1]]);
-      series.push({
-        type: 'arearange',
-        data: rangeData,
-        color: '#005AB5', fillOpacity: opacity, lineWidth: 0,
-        zIndex: 1, enableMouseTracking: false
+    if (showPercentileBands) {
+      for (const { lower, upper, opacity } of PERCENTILE_BANDS) {
+        const lo = data.percentiles?.[lower];
+        const hi = data.percentiles?.[upper];
+        if (!lo?.length || !hi?.length) continue;
+        const len = Math.min(lo.length, hi.length);
+        const rangeData = Array.from({ length: len }, (_, i) => [lo[i][0], lo[i][1], hi[i][1]]);
+        series.push({
+          type: 'arearange',
+          data: rangeData,
+          color: '#005AB5', fillOpacity: opacity, lineWidth: 0,
+          zIndex: 1, enableMouseTracking: false
+        });
+      }
+    } else if (data.trustSeries && Object.keys(data.trustSeries).length > 0) {
+      Object.entries(data.trustSeries).forEach(([name, lineData], i) => {
+        series.push({
+          type: 'line',
+          name,
+          data: lineData,
+          color: chartConfig.allColours[i % chartConfig.allColours.length],
+          lineWidth: 2,
+          zIndex: 1,
+          enableMouseTracking: false
+        });
       });
     }
 
-    // Median line
-    if (data.percentiles?.[50]) {
+    // Median line: only when showing percentile bands
+    const showMedian = showPercentileBands;
+    if (showMedian && data.percentiles?.[50]) {
       series.push({ type: 'line', data: data.percentiles[50], color: '#DC3220', lineWidth: 2, zIndex: 2 });
     }
 
     // Selected trust overlay
     if (data.trustData) {
-      series.push({ type: 'line', data: data.trustData, color: '#D97706', lineWidth: 3, zIndex: 3 });
+      series.push({ type: 'line', data: data.trustData, color: TRUST_OVERLAY_COLOR, lineWidth: 3, zIndex: 3 });
     }
 
     return series;

@@ -21,6 +21,9 @@ export const modeOptions = [
     { value: 'icb', label: 'ICB' }
 ];
 
+/** Orange colour used for trust overlay when a single trust is selected (matches list views) */
+export const TRUST_OVERLAY_COLOR = '#D97706';
+
 export const chartConfig = {
   allColours: [
     '#332288',

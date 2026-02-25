@@ -10,7 +10,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.text import slugify
-from django.db.models import Exists, OuterRef
+from django.db.models import Count, Exists, OuterRef
 
 from ..mixins import MaintenanceModeMixin
 from ..models import (
@@ -83,52 +83,74 @@ def expand_trust_codes(trust_code):
         return []
 
 
-def get_bulk_trust_series_for_measures(measures, trust_codes):
+def _compute_measure_value_from_rows(measure, rows):
+    """Compute chart value from PrecomputedMeasure rows. Reused by get_bulk_trust_series_for_measures."""
+    if measure.has_denominators:
+        total_numerator = sum(row['numerator'] or 0 for row in rows)
+        total_denominator = sum(row['denominator'] or 0 for row in rows)
+        if total_denominator > 0:
+            value = (total_numerator / total_denominator) * 100
+        else:
+            value = 0
+        return max(0, min(100, value))
+    return max(0, sum(row['quantity'] or 0 for row in rows))
+
+
+def get_bulk_trust_series_for_measures(measures, trust_codes=None, per_org=False):
     """
-    Fetch trust series data for a set of measures and trust codes.
-    Returns grouped data by measure_id, then by month.
+    Fetch trust series for measures.
+
+    - trust_codes provided, per_org=False: aggregated series for selected trust(s)
+      (merges predecessors). Returns { measure_id: { month: value } }.
+    - trust_codes=None, per_org=True: per-org series for all trusts.
+      Returns { measure_id: { org_name: [[date_iso, value], ...] } }.
     """
-    if not trust_codes:
+    if not measures:
+        return {}
+    if not per_org and not trust_codes:
         return {}
 
     measure_ids = [m.id for m in measures]
-    trust_series = PrecomputedMeasure.objects.filter(
-        measure_id__in=measure_ids,
-        organisation__ods_code__in=trust_codes
-    ).select_related('measure', 'organisation').values(
-        'measure_id', 'month', 'quantity', 'numerator', 'denominator'
-    ).order_by('measure_id', 'month')
+    measure_by_id = {m.id: m for m in measures}
 
-    grouped_data = defaultdict(lambda: defaultdict(list))
-    for row in trust_series:
-        grouped_data[row['measure_id']][row['month']].append(row)
+    qs = PrecomputedMeasure.objects.filter(measure_id__in=measure_ids)
+    if trust_codes:
+        qs = qs.filter(organisation__ods_code__in=trust_codes)
+    qs = qs.values(
+        'measure_id', 'organisation__ods_name', 'month', 'quantity', 'numerator', 'denominator'
+    ).order_by('measure_id', 'organisation__ods_name', 'month')
 
-    aggregated_data = defaultdict(dict)
-    for measure_id, months_data in grouped_data.items():
-        for month, rows in months_data.items():
-            measure = next((m for m in measures if m.id == measure_id), None)
+    if per_org:
+        grouped = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+        for row in qs:
+            org_name = row['organisation__ods_name']
+            if org_name:
+                grouped[row['measure_id']][org_name][row['month']].append(row)
+        result = defaultdict(dict)
+        for measure_id, orgs_data in grouped.items():
+            measure = measure_by_id.get(measure_id)
             if not measure:
                 continue
-
-            if measure.has_denominators:
-                # For percentage measures, sum numerators and denominators, then compute percentage
-                total_numerator = sum(row['numerator'] or 0 for row in rows)
-                total_denominator = sum(row['denominator'] or 0 for row in rows)
-                if total_denominator > 0:
-                    value = (total_numerator / total_denominator) * 100
-                else:
-                    value = 0
-                # Clamp percentage values to 0-100%
-                value = max(0, min(100, value))
-            else:
-                # For other measures, sum quantity
-                value = sum(row['quantity'] or 0 for row in rows)
-                # Clamp to minimum of 0, no upper limit
-                value = max(0, value)
-
-            aggregated_data[measure_id][month] = value
-
-    return aggregated_data
+            for org_name, months_data in orgs_data.items():
+                series = [
+                    [month.isoformat(), _compute_measure_value_from_rows(measure, rows)]
+                    for month, rows in sorted(months_data.items())
+                ]
+                if series:
+                    result[measure_id][org_name] = series
+        return dict(result)
+    else:
+        grouped_data = defaultdict(lambda: defaultdict(list))
+        for row in qs:
+            grouped_data[row['measure_id']][row['month']].append(row)
+        aggregated_data = defaultdict(dict)
+        for measure_id, months_data in grouped_data.items():
+            measure = measure_by_id.get(measure_id)
+            if not measure:
+                continue
+            for month, rows in months_data.items():
+                aggregated_data[measure_id][month] = _compute_measure_value_from_rows(measure, rows)
+        return aggregated_data
 
 
 def get_bulk_regions_and_national_series_for_measures(measures):
@@ -246,8 +268,11 @@ def build_measure_org_data(org_measures, shared_org_data, include_region_icb=Fal
         flat_data[org_name] = entry
 
     for successor, predecessors in predecessor_map.items():
-        if successor in flat_data and flat_data[successor]['available']:
-            pred_entry = {'available': True, 'data': []}
+        if successor in flat_data:
+            pred_entry = {
+                'available': flat_data[successor]['available'],
+                'data': [],
+            }
             if include_region_icb:
                 pred_entry['region'] = flat_data[successor].get('region')
                 pred_entry['icb'] = flat_data[successor].get('icb')
@@ -284,15 +309,14 @@ def build_measure_org_data(org_measures, shared_org_data, include_region_icb=Fal
 
     current_org_names = [
         name for name in flat_data
-        if name in orgs_with_data
-        and (name in predecessor_map or name not in all_predecessors)
+        if name in predecessor_map or name not in all_predecessors
     ]
     current_org_names.sort(key=lambda n: n.lower())
 
     processed = set()
 
     def build_org_entry(org_name):
-        if org_name not in flat_data or org_name not in orgs_with_data or org_name in processed:
+        if org_name not in flat_data or org_name in processed:
             return None
         processed.add(org_name)
         entry = flat_data[org_name]
@@ -302,6 +326,7 @@ def build_measure_org_data(org_measures, shared_org_data, include_region_icb=Fal
             'data': entry.get('data', []),
             'region': entry.get('region'),
             'icb': entry.get('icb'),
+            'available': entry.get('available', False),
             'predecessors': [],
         }
         for pred in predecessor_map.get(org_name, []):
@@ -474,13 +499,36 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
                 else:
                     bulk_all_regions, bulk_national = get_bulk_regions_and_national_series_for_measures(measures)
                     bulk_percentiles = get_bulk_percentiles_for_measures(measures)
+                    trust_counts = dict(
+                        PrecomputedMeasure.objects.filter(measure_id__in=[m.id for m in measures])
+                        .values('measure_id')
+                        .annotate(count=Count('organisation_id', distinct=True))
+                        .values_list('measure_id', 'count')
+                    )
                     national_data = {}
                     region_data = {}
                     trust_percentiles_data = {}
+                    measures_with_few_trusts = [m for m in measures if trust_counts.get(m.id, 0) < 30]
+                    bulk_trust_series_per_org = (
+                        get_bulk_trust_series_for_measures(measures_with_few_trusts, per_org=True)
+                        if measures_with_few_trusts else {}
+                    )
                     for measure in measures:
                         national_data[measure.slug] = build_national_chart_data(measure, bulk_national)
                         region_data[measure.slug] = build_region_chart_data(measure, bulk_all_regions)
-                        trust_percentiles_data[measure.slug] = build_trust_chart_data(measure, bulk_percentiles)
+                        chart_data = build_trust_chart_data(measure, bulk_percentiles)
+                        trust_count = trust_counts.get(measure.id, 0)
+                        trust_series = bulk_trust_series_per_org.get(measure.id, {}) if trust_count < 30 else {}
+                        if chart_data:
+                            chart_data['trust_count'] = trust_count
+                            if trust_series:
+                                chart_data['trustSeries'] = trust_series
+                            trust_percentiles_data[measure.slug] = chart_data
+                        elif trust_series:
+                            trust_percentiles_data[measure.slug] = {
+                                'trust_count': trust_count,
+                                'trustSeries': trust_series,
+                            }
                     cache.set(
                         cache_key,
                         (national_data, region_data, trust_percentiles_data),

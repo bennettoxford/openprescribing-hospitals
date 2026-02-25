@@ -1,5 +1,5 @@
 import { writable, derived, get } from 'svelte/store';
-import { regionColors } from '../utils/chartConfig.js';
+import { regionColors, TRUST_OVERLAY_COLOR } from '../utils/chartConfig.js';
 import { organisationSearchStore } from '../stores/organisationSearchStore';
 
 export const orgdata = writable([]);
@@ -156,18 +156,21 @@ export const filteredData = derived(
             isRange: true,
             hidden: !$showPercentiles
           })),
-          ...visibleNonPredecessors.map(org => {
+          ...visibleNonPredecessors.map((org, index) => {
             const orgDataPoints = $orgdata[org]?.data?.reduce((acc, d) => {
               acc[d.month] = d;
               return acc;
             }, {}) || {};
+
+            // First trust consistenly uses the same colour as the list overlay
+            const trustColor = index === 0 ? TRUST_OVERLAY_COLOR : getOrAssignColor(org);
 
             return {
               label: org,
               data: labels.map(date => orgDataPoints[date]?.quantity || 0),
               numerator: labels.map(date => orgDataPoints[date]?.numerator || 0),
               denominator: labels.map(date => orgDataPoints[date]?.denominator || 0),
-              color: getOrAssignColor(org),
+              color: trustColor,
               strokeWidth: 2,
               isTrust: true,
               isOrganisation: true,
