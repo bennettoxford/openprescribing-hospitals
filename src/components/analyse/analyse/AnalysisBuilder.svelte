@@ -8,6 +8,7 @@
     import '../../../styles/styles.css';
     import ProductSearch from '../../common/ProductSearch.svelte';
     import OrganisationSearch from '../../common/OrganisationSearch.svelte';
+    import OrganisationSearchFiltered from '../../common/OrganisationSearchFiltered.svelte';
     import { createEventDispatcher } from 'svelte';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
@@ -110,6 +111,8 @@
     }
 
     export let orgData = null;
+    export let isAuthenticated = false;
+    $: isAuth = isAuthenticated === true;
     export let mindate = null;
     export let maxdate = null;
 
@@ -326,7 +329,11 @@
                     organisationSearchStore.setOrganisationData({
                         orgs: parsedData.orgs || {},
                         org_codes: parsedData.org_codes || {},
-                        predecessor_map: parsedData.predecessorMap || {}
+                        predecessor_map: parsedData.predecessorMap || parsedData.predecessor_map || {},
+                        trust_types: parsedData.trust_types || {},
+                        org_regions: parsedData.org_regions || {},
+                        org_icbs: parsedData.org_icbs || {},
+                        regions_hierarchy: parsedData.regions_hierarchy || []
                     });
                 } catch (error) {
                     console.error('Error parsing ODS data:', error);
@@ -661,7 +668,7 @@
                   ring-1 ring-black ring-opacity-5 p-4">
                   <div class="text-sm text-gray-500 space-y-3">
                     <div class="space-y-1 text-xs">
-                      <p>Select up to 10 NHS Trusts.</p>
+                      <p>{#if isAuth}Select NHS Trusts to filter the analysis.{:else}Select up to 10 NHS Trusts.{/if}</p>
                       <ul>
                         <li><strong>No trusts selected:</strong> Shows national data with regional/ICB breakdowns available</li>
                         <li><strong>Trusts selected:</strong> Filters analysis results to the selected trusts</li>
@@ -677,15 +684,25 @@
                 </div>
               </div>
             </div>
-            <div class="relative">
-              <OrganisationSearch 
-                source={organisationSearchStore}
-                overlayMode={false}
-                on:selectionChange={handleODSSelection}
-                maxItems=10
-                hideSelectAll={true}
-                showTitle={false}
-              />
+            <div class="relative min-w-0">
+              {#if isAuth}
+                <OrganisationSearchFiltered
+                  source={organisationSearchStore}
+                  overlayMode={false}
+                  on:selectionChange={handleODSSelection}
+                  showTitle={false}
+                  filterAutoSelectsAll={false}
+                />
+              {:else}
+                <OrganisationSearch
+                  source={organisationSearchStore}
+                  overlayMode={false}
+                  on:selectionChange={handleODSSelection}
+                  maxItems={10}
+                  hideSelectAll={true}
+                  showTitle={false}
+                />
+              {/if}
             </div>
           </div>
 

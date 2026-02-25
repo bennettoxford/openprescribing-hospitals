@@ -11,7 +11,8 @@
         denominatorvmps: { type: 'String', reflect: true },
         numeratorvmps: { type: 'String', reflect: true },
         annotations: { type: 'String', reflect: true },
-        defaultviewmode: { type: 'String', reflect: true }
+        defaultviewmode: { type: 'String', reflect: true },
+        userauthenticated: { type: 'String', reflect: true, attribute: 'user-authenticated' }
     },
     shadow: 'none'
 }} />
@@ -36,6 +37,7 @@
     } from '../../stores/measureChartStore.js';
     import Chart from '../common/Chart.svelte';
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
+    import OrganisationSearchFiltered from '../common/OrganisationSearchFiltered.svelte';
     import ModeSelector from '../common/ModeSelector.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore';
     import { modeSelectorStore } from '../../stores/modeSelectorStore.js';
@@ -54,7 +56,8 @@
     export let numeratorvmps = '[]';
     export let annotations = '[]';
     export let defaultviewmode = 'trust';
-   
+    export let userauthenticated = 'false';
+
     let trusts = [];
     let icbs = [];
     let regions = [];
@@ -338,14 +341,19 @@
         if ($selectedMode === 'icb') {
             organisationSearchStore.setOrganisationData({
                 orgs: Object.fromEntries(icbs.map(name => [name, name])),
-                predecessor_map: {}
+                predecessor_map: {},
+                regions_hierarchy: parsedOrgData.regions_hierarchy || []
             });
             organisationSearchStore.setFilterType('icb');
         } else if ($selectedMode === 'trust') {
             organisationSearchStore.setOrganisationData({
                 orgs: Object.fromEntries(trusts.map(name => [parsedOrgData.org_codes?.[name] || name, name])),
                 org_codes: parsedOrgData.org_codes || {},
-                predecessor_map: parsedOrgData.predecessor_map || {}
+                predecessor_map: parsedOrgData.predecessor_map || {},
+                trust_types: parsedOrgData.trust_types || {},
+                org_regions: parsedOrgData.org_regions || {},
+                org_icbs: parsedOrgData.org_icbs || {},
+                regions_hierarchy: parsedOrgData.regions_hierarchy || []
             });
             organisationSearchStore.setFilterType('trust');
         } else if ($selectedMode === 'region') {
@@ -543,7 +551,8 @@
             if (currentMode === 'icb') {
                 organisationSearchStore.setOrganisationData({
                     orgs: Object.fromEntries(icbs.map(name => [name, name])),
-                    predecessor_map: {}
+                    predecessor_map: {},
+                    regions_hierarchy: parsedOrgData.regions_hierarchy || []
                 });
                 organisationSearchStore.setFilterType('icb');
                 organisationSearchStore.setAvailableItems(icbs);
@@ -578,7 +587,11 @@
                 organisationSearchStore.setOrganisationData({
                     orgs: Object.fromEntries(trusts.map(name => [parsedOrgData.org_codes?.[name] || name, name])),
                     org_codes: parsedOrgData.org_codes || {},
-                    predecessor_map: parsedOrgData.predecessor_map || {}
+                    predecessor_map: parsedOrgData.predecessor_map || {},
+                    trust_types: parsedOrgData.trust_types || {},
+                    org_regions: parsedOrgData.org_regions || {},
+                    org_icbs: parsedOrgData.org_icbs || {},
+                    regions_hierarchy: parsedOrgData.regions_hierarchy || []
                 });
                 organisationSearchStore.setFilterType('trust');
                 const availableTrusts = trusts.filter(trust => $orgdataStore[trust]?.available);
@@ -640,6 +653,23 @@
 
     function handleModeChange(newMode) {
         selectedMode.set(newMode);
+
+        if (newMode === 'region') {
+            visibleRegions.set(new Set(regions));
+            visibleICBs.set(new Set());
+            visibleTrusts.set(new Set());
+            organisationSearchStore.updateSelection([...regions]);
+        } else if (newMode === 'icb') {
+            visibleICBs.set(new Set(icbs));
+            visibleRegions.set(new Set());
+            visibleTrusts.set(new Set());
+            organisationSearchStore.updateSelection([...icbs]);
+        } else {
+            visibleICBs.set(new Set());
+            visibleRegions.set(new Set());
+            visibleTrusts.set(new Set());
+            organisationSearchStore.updateSelection([]);
+        }
 
         if ($filteredData) {
             const updatedData = {
@@ -731,7 +761,8 @@
         if ($selectedMode === 'icb') {
             organisationSearchStore.setOrganisationData({
                 orgs: Object.fromEntries(icbs.map(name => [name, name])),
-                predecessor_map: {}
+                predecessor_map: {},
+                regions_hierarchy: parsedOrgData.regions_hierarchy || []
             });
             organisationSearchStore.setFilterType('icb');
             organisationSearchStore.setAvailableItems(icbs);
@@ -746,7 +777,11 @@
             organisationSearchStore.setOrganisationData({
                 orgs: Object.fromEntries(trusts.map(name => [parsedOrgData.org_codes?.[name] || name, name])),
                 org_codes: parsedOrgData.org_codes || {},
-                predecessor_map: parsedOrgData.predecessor_map || {}
+                predecessor_map: parsedOrgData.predecessor_map || {},
+                trust_types: parsedOrgData.trust_types || {},
+                org_regions: parsedOrgData.org_regions || {},
+                org_icbs: parsedOrgData.org_icbs || {},
+                regions_hierarchy: parsedOrgData.regions_hierarchy || []
             });
             organisationSearchStore.setFilterType('trust');
             const availableTrusts = trusts.filter(trust => $orgdataStore[trust]?.available);
@@ -843,13 +878,25 @@
     <div class="flex flex-col md:flex-row justify-between gap-4 px-4 sm:px-8">
         {#if showFilter}
             <div class="w-full md:w-7/12 relative z-10">
-                <OrganisationSearch 
-                    source={organisationSearchStore}
-                    overlayMode={true}
-                    on:selectionChange={handleSelectionChange}
-                    on:clearAll={handleClearAll}
-                    disabled={$selectedMode === 'national'}
-                />
+                {#if userauthenticated === 'true'}
+                    <OrganisationSearchFiltered
+                        source={organisationSearchStore}
+                        filterResetKey={$selectedMode}
+                        overlayMode={true}
+                        filterAutoSelectsAll={false}
+                        on:selectionChange={handleSelectionChange}
+                        on:clearAll={handleClearAll}
+                        disabled={$selectedMode === 'national'}
+                    />
+                {:else}
+                    <OrganisationSearch
+                        source={organisationSearchStore}
+                        overlayMode={true}
+                        on:selectionChange={handleSelectionChange}
+                        on:clearAll={handleClearAll}
+                        disabled={$selectedMode === 'national'}
+                    />
+                {/if}
             </div>
         {:else}
             <div class="w-full md:w-7/12"></div>

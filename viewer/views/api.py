@@ -977,9 +977,10 @@ def build_single_product_data(vmp, quantity_data):
 
 
 
-def validate_and_sanitize_codes(codes_list, max_length, code_type, regex_pattern=None, numeric_only=False, errors=None):
-
-    """Validate and sanitize a list of codes"""
+def validate_and_sanitize_codes(codes_list, max_length, code_type, regex_pattern=None, numeric_only=False, errors=None, allowed_lengths=None):
+    """Validate and sanitize a list of codes.
+    If allowed_lengths is provided (e.g. (3, 5)), code length must match one of those values.
+    Otherwise, code length must not exceed max_length."""
     if errors is None:
         errors = []
 
@@ -989,7 +990,12 @@ def validate_and_sanitize_codes(codes_list, max_length, code_type, regex_pattern
         if not code:
             continue
 
-        if len(code) > max_length:
+        if allowed_lengths is not None:
+            if len(code) not in allowed_lengths:
+                lengths_str = ' or '.join(str(n) for n in sorted(allowed_lengths))
+                errors.append(f"{code_type} code '{code}' must be {lengths_str} characters")
+                continue
+        elif len(code) > max_length:
             errors.append(f"{code_type} code '{code}' exceeds maximum length of {max_length} characters")
             continue
 
@@ -1170,7 +1176,9 @@ def validate_analysis_params(request):
     if trusts_str:
         raw_trust_codes = [code.strip() for code in trusts_str.split(',') if code.strip()]
         if raw_trust_codes and raw_trust_codes != ['all']:
-            validated_trust_codes = validate_and_sanitize_codes(raw_trust_codes, 3, 'Trust', errors=errors)
+            validated_trust_codes = validate_and_sanitize_codes(
+                raw_trust_codes, 5, 'Trust', errors=errors, allowed_lengths=(3, 5)
+            )
             if validated_trust_codes:
                 valid_trusts = Organisation.objects.filter(ods_code__in=validated_trust_codes).values('ods_code', 'ods_name')
                 valid_trusts = list(valid_trusts)
@@ -1186,7 +1194,7 @@ def validate_analysis_params(request):
                         errors.append(f"Trust codes not found: {codes_list}")
 
     MAX_TRUST_SELECTION_LIMIT = 10
-    if len(valid_trusts) > MAX_TRUST_SELECTION_LIMIT:
+    if not request.user.is_authenticated and len(valid_trusts) > MAX_TRUST_SELECTION_LIMIT:
         valid_trusts = valid_trusts[:MAX_TRUST_SELECTION_LIMIT]
         errors.append(f"Maximum of {MAX_TRUST_SELECTION_LIMIT} trusts allowed")
 

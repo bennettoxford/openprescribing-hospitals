@@ -10,7 +10,12 @@ function createOrganisationSearchStore() {
         items: [],
         availableItems: new Set(),
         predecessorMap: new Map(),
-        orgCodes: new Map()
+        orgCodes: new Map(),
+        trustTypes: new Map(),
+        orgRegions: new Map(),
+        orgIcbs: new Map(),
+        regionsHierarchy: [],
+        filtersApplied: false
     });
 
     return {
@@ -23,6 +28,13 @@ function createOrganisationSearchStore() {
                 const orgNames = Object.values(orgData.orgs || {});
                 const orgCodes = orgData.org_codes || {};
                 const predecessorMap = orgData.predecessor_map || orgData.predecessorMap || {};
+                const trustTypesRaw = orgData.trust_types || {};
+                const trustTypes = new Map(Object.entries(trustTypesRaw));
+                const orgRegionsRaw = orgData.org_regions || {};
+                const orgRegions = new Map(Object.entries(orgRegionsRaw));
+                const orgIcbsRaw = orgData.org_icbs || {};
+                const orgIcbs = new Map(Object.entries(orgIcbsRaw));
+                const regionsHierarchy = Array.isArray(orgData.regions_hierarchy) ? orgData.regions_hierarchy : [];
                 
                 orgNames.forEach(name => {
                     organisations.set(name, {
@@ -73,15 +85,24 @@ function createOrganisationSearchStore() {
                     }
                 });
                 
-                return { 
-                    ...store, 
+                return {
+                    ...store,
                     organisations,
                     items,
                     availableItems,
                     predecessorMap: computedPredecessorMap,
-                    orgCodes: computedOrgCodes
+                    orgCodes: computedOrgCodes,
+                    trustTypes,
+                    orgRegions,
+                    orgIcbs,
+                    regionsHierarchy,
+                    filtersApplied: false
                 };
             });
+        },
+
+        setFiltersApplied: (flag) => {
+            update(store => ({ ...store, filtersApplied: !!flag }));
         },
         
         updateSelection: (selectedItems) => {
@@ -95,16 +116,16 @@ function createOrganisationSearchStore() {
         setAvailableItems: (availableItems) => {
             update(store => {
                 const availableSet = new Set(availableItems);
-                store.organisations.forEach((org) => {
-                    org.available = availableSet.has(org.name);
+                const newOrganisations = new Map();
+                store.organisations.forEach((org, name) => {
+                    newOrganisations.set(name, { ...org, available: availableSet.has(name) });
                 });
-                
-                const newAvailableItems = new Set(Array.from(store.organisations.entries())
-                    .filter(([name, org]) => org.available)
+                const newAvailableItems = new Set(Array.from(newOrganisations.entries())
+                    .filter(([, org]) => org.available)
                     .map(([name]) => name));
-                
                 return {
                     ...store,
+                    organisations: newOrganisations,
                     availableItems: newAvailableItems
                 };
             });
@@ -128,7 +149,98 @@ function createOrganisationSearchStore() {
             if (!org) return orgName;
             return org.code ? `${orgName} (${org.code})` : orgName;
         },
-        
+
+        getTrustType(orgName) {
+            const currentStore = get(this);
+            return currentStore.trustTypes?.get(orgName) ?? null;
+        },
+
+        getTrustTypes() {
+            const currentStore = get(this);
+            const types = currentStore.trustTypes ? [...new Set(currentStore.trustTypes.values())] : [];
+            return types.sort((a, b) => a.localeCompare(b));
+        },
+
+        getOrgsByTrustType(trustType) {
+            const currentStore = get(this);
+            if (!currentStore.trustTypes || !trustType) return [];
+            const result = [];
+            currentStore.trustTypes.forEach((type, orgName) => {
+                if (type === trustType && currentStore.availableItems.has(orgName)) {
+                    result.push(orgName);
+                }
+            });
+            return result;
+        },
+
+        getRegionsHierarchy() {
+            const currentStore = get(this);
+            return currentStore.regionsHierarchy || [];
+        },
+
+        getOrgRegion(orgName) {
+            const currentStore = get(this);
+            return currentStore.orgRegions?.get(orgName) ?? null;
+        },
+
+        getOrgICB(orgName) {
+            const currentStore = get(this);
+            return currentStore.orgIcbs?.get(orgName) ?? null;
+        },
+
+        getOrgsByRegion(regionName) {
+            const currentStore = get(this);
+            if (!currentStore.orgRegions || !regionName) return [];
+            const result = [];
+            currentStore.organisations.forEach((org, name) => {
+                if (currentStore.orgRegions.get(name) === regionName) {
+                    result.push(name);
+                }
+            });
+            return result;
+        },
+
+        getOrgsByICB(icbName) {
+            const currentStore = get(this);
+            if (!currentStore.orgIcbs || !icbName) return [];
+            const result = [];
+            currentStore.organisations.forEach((org, name) => {
+                if (currentStore.orgIcbs.get(name) === icbName) {
+                    result.push(name);
+                }
+            });
+            return result;
+        },
+
+        getOrgsByRegionsOrICBs(selectedRegions, selectedICBs) {
+            const result = new Set();
+            if (selectedRegions && selectedRegions.size > 0) {
+                selectedRegions.forEach((regionName) => {
+                    this.getOrgsByRegion(regionName).forEach((name) => result.add(name));
+                });
+            }
+            if (selectedICBs && selectedICBs.size > 0) {
+                selectedICBs.forEach((icbName) => {
+                    this.getOrgsByICB(icbName).forEach((name) => result.add(name));
+                });
+            }
+            return Array.from(result);
+        },
+
+        getICBsByRegions(selectedRegions) {
+            const currentStore = get(this);
+            const hierarchy = currentStore.regionsHierarchy || [];
+            const result = new Set();
+            if (selectedRegions && selectedRegions.size > 0) {
+                hierarchy.forEach((r) => {
+                    if (selectedRegions.has(r.region)) {
+                        (r.icbs || []).forEach((icb) => result.add(icb.name));
+                    }
+                });
+            }
+            return Array.from(result);
+        },
+
         getRelatedOrgs(orgName) {
             const store = get(this);
             const related = new Set([orgName]);

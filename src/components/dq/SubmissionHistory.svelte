@@ -5,7 +5,7 @@
         orgdata: { type: 'String' },
         latestDates: { type: 'String' },
         regions: { type: 'String' },
-        regionsHierarchy: { type: 'String' }
+        userAuthenticated: { type: 'String' }
     }
   }} />
 
@@ -13,6 +13,7 @@
     import { onMount } from 'svelte';
     import OrganisationSearch from '../common/OrganisationSearch.svelte';
     import LazyLoad from '../common/LazyLoad.svelte';
+    import OrganisationSearchFiltered from '../common/OrganisationSearchFiltered.svelte';
     import RegionIcbFilter from '../common/RegionIcbFilter.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore';
     import {
@@ -26,7 +27,7 @@
     export let orgData = '{}';
     export let latestDates = '{}';
     export let regions = '[]';
-    export let regionsHierarchy = '[]';
+    export let userAuthenticated = 'false';
 
     let parsedOrgData = [];
     let parsedLatestDates = {};
@@ -138,10 +139,10 @@
             const unescapedData = unescapeUnicode(orgData);
             const parsedData = JSON.parse(unescapedData);
 
-            parsedOrgData = parsedData.organisations;          
+            parsedOrgData = parsedData.organisations;
+            parsedRegionsHierarchy = parsedData.regions_hierarchy || [];
             parsedLatestDates = JSON.parse(unescapeUnicode(latestDates));
             parsedRegions = JSON.parse(unescapeUnicode(regions));
-            parsedRegionsHierarchy = JSON.parse(unescapeUnicode(regionsHierarchy));
             
             const allMonths = new Set();
             function collectMonths(org) {
@@ -162,7 +163,11 @@
                 organisationSearchStore.setOrganisationData({
                     orgs: Object.fromEntries(searchableOrgs.map(name => [name, name])),
                     org_codes: parsedData.org_codes || {},
-                    predecessor_map: parsedData.predecessor_map || buildPredecessorMap(parsedOrgData)
+                    predecessor_map: parsedData.predecessor_map || buildPredecessorMap(parsedOrgData),
+                    trust_types: parsedData.trust_types || {},
+                    org_regions: parsedData.org_regions || {},
+                    org_icbs: parsedData.org_icbs || {},
+                    regions_hierarchy: parsedData.regions_hierarchy || []
                 });
                 organisationSearchStore.updateSelection(searchableOrgs);
             }
@@ -179,28 +184,32 @@
    
     $: {
         if (parsedOrgData.length > 0) {
-            let orgs = parsedOrgData;
-            
             const hasRegionFilters = selectedRegions.size > 0 || selectedICBs.size > 0;
             const hasSearchFilters = $organisationSearchStore.selectedItems.length > 0;
             
             if (!hasSearchFilters) {
                 filteredOrganisations = [];
             } else {
-                if (hasRegionFilters || hasSearchFilters) {
+                let orgs = parsedOrgData;
+                if (userAuthenticated !== 'true' && (hasRegionFilters || hasSearchFilters)) {
                     orgs = orgs.filter(org => {
-                        const passesRegionFilter = !hasRegionFilters || 
-                            selectedRegions.has(org.region) || 
+                        const passesRegionFilter = !hasRegionFilters ||
+                            selectedRegions.has(org.region) ||
                             selectedICBs.has(org.icb);
-                            
-                        const passesSearchFilter = !hasSearchFilters || 
+                        const passesSearchFilter = !hasSearchFilters ||
                             $organisationSearchStore.selectedItems.includes(org.name) ||
-                            org.predecessors?.some(pred => 
+                            org.predecessors?.some(pred =>
                                 $organisationSearchStore.selectedItems.includes(pred.name)
                             );
-                            
                         return passesRegionFilter && passesSearchFilter;
                     });
+                } else if (userAuthenticated === 'true') {
+                    orgs = orgs.filter(org =>
+                        $organisationSearchStore.selectedItems.includes(org.name) ||
+                        org.predecessors?.some(pred =>
+                            $organisationSearchStore.selectedItems.includes(pred.name)
+                        )
+                    );
                 }
 
                 filteredOrganisations = [...orgs].sort((a, b) => {
@@ -249,23 +258,32 @@
 
 <div class="flex flex-col w-full">
     <div class="w-full">
-        <RegionIcbFilter
-            regionsHierarchy={parsedRegionsHierarchy}
-            selectedRegions={selectedRegions}
-            selectedICBs={selectedICBs}
-            onRegionClick={handleRegionClick}
-            onIcbClick={handleIcbClick}
-            onClear={handleFilterClear}
-        />
-
+        {#if userAuthenticated !== 'true' && parsedRegionsHierarchy.length > 0}
+            <RegionIcbFilter
+                regionsHierarchy={parsedRegionsHierarchy}
+                selectedRegions={selectedRegions}
+                selectedICBs={selectedICBs}
+                onRegionClick={handleRegionClick}
+                onIcbClick={handleIcbClick}
+                onClear={handleFilterClear}
+            />
+        {/if}
         <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 lg:gap-12 mb-4">
             <div class="w-full lg:max-w-[600px] relative z-50">
                 {#if searchableOrgs.length > 0}
-                    <OrganisationSearch 
-                        source={organisationSearchStore}
-                        overlayMode={true}
-                        on:selectionChange={handleSearchSelect}
-                    />
+                    {#if userAuthenticated === 'true'}
+                        <OrganisationSearchFiltered 
+                            source={organisationSearchStore}
+                            overlayMode={true}
+                            on:selectionChange={handleSearchSelect}
+                        />
+                    {:else}
+                        <OrganisationSearch 
+                            source={organisationSearchStore}
+                            overlayMode={true}
+                            on:selectionChange={handleSearchSelect}
+                        />
+                    {/if}
                 {:else}
                     <div class="text-sm text-gray-600">Loading organisations...</div>
                 {/if}
@@ -342,18 +360,6 @@
     
     select option {
         font-family: system-ui, -apple-system, sans-serif;
-    }
-    
-    select option[value^="region::"] {
-        font-weight: 600;
-        color: #1a1a1a;
-        background-color: #f3f4f6;
-    }
-    
-    select option[value^="icb::"] {
-        color: #4b5563;
-        padding-left: 1.5rem;
-        border-left: 2px solid transparent;
     }
     
     select option:hover {

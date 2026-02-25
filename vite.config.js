@@ -20,6 +20,7 @@ export default defineConfig({
         'analyse': "./src/components/analyse/Analyse.svelte",
         'product-search-box': "./src/components/common/ProductSearch.svelte",
         'organisation-search': "./src/components/common/OrganisationSearch.svelte",
+        'organisation-search-filtered': "./src/components/common/OrganisationSearchFiltered.svelte",
         'totals-table': "./src/components/analyse/results/TotalsTable.svelte",
         'measure': "./src/components/measures/Measure.svelte",
         'measures-list': "./src/components/measures/MeasuresList.svelte",

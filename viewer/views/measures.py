@@ -687,12 +687,16 @@ class BaseMeasureItemView(TemplateView):
         total_orgs = Organisation.objects.count()
         shared_org_data = get_organisation_data()
         org_data = build_measure_org_data(org_measures, shared_org_data, include_region_icb=False)
+        org_data_for_json = {k: v for k, v in org_data.items() if k != 'available_count'}
+        org_data_for_json.update({
+            'trust_types': shared_org_data.get('trust_types', {}),
+            'org_regions': shared_org_data.get('org_regions', {}),
+            'org_icbs': shared_org_data.get('org_icbs', {}),
+            'regions_hierarchy': shared_org_data.get('regions_hierarchy', []),
+        })
         return {
             "trusts_included": {"included": org_data['available_count'], "total": total_orgs},
-            "org_data": json.dumps(
-                {k: v for k, v in org_data.items() if k != 'available_count'},
-                cls=DjangoJSONEncoder,
-            ),
+            "org_data": json.dumps(org_data_for_json, cls=DjangoJSONEncoder),
         }
 
     def get_aggregated_data(self, aggregated_measures):
@@ -766,6 +770,16 @@ class MeasureTrustsView(LoginRequiredMixin, MaintenanceModeMixin, TemplateView):
             shared_org_data = get_organisation_data()
 
             org_data = build_measure_org_data(org_measures, shared_org_data, include_region_icb=True)
+
+            org_data_for_json = {
+                k: v for k, v in org_data.items()
+                if k not in ('available_count',)
+            }
+            org_data_for_json.update({
+                'trust_types': shared_org_data.get('trust_types', {}),
+                'org_regions': shared_org_data.get('org_regions', {}),
+                'org_icbs': shared_org_data.get('org_icbs', {}),
+            })
             percentile_data = list(
                 percentiles.values('month', 'percentile', 'quantity')
             )
@@ -795,7 +809,7 @@ class MeasureTrustsView(LoginRequiredMixin, MaintenanceModeMixin, TemplateView):
                 "tags": tags_data,
                 "trusts": org_data['organisations'],
                 "org_data_json": json.dumps(
-                    {k: v for k, v in org_data.items() if k not in ('available_count', 'regions_hierarchy')},
+                    org_data_for_json,
                     cls=DjangoJSONEncoder,
                 ),
                 "percentile_data_json": json.dumps(

@@ -14,7 +14,7 @@
         minDate="{{ date_range.min_date }}"
         maxDate="{{ date_range.max_date }}"
         orgData="{{ org_data }}"
-        isAuthenticated="{{ user.is_authenticated|lower }}"
+        {% if user.is_authenticated %}isAuthenticated="true"{% endif %}
     ></layout-component>
 </div>
 {% endblock %}

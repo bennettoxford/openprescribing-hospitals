@@ -33,9 +33,7 @@ class SubmissionHistoryView(MaintenanceModeMixin, TemplateView):
             'icb_code': None,
             'trust_type': None
         })
-        
-        regions_with_icbs = {}
-        
+
         for org in all_orgs:
             name = org['ods_name']
             code = org['ods_code']
@@ -53,26 +51,9 @@ class SubmissionHistoryView(MaintenanceModeMixin, TemplateView):
             org_data_template[name]['icb_code'] = icb_code
             org_data_template[name]['trust_type'] = org.get('trust_type__name')
 
-            if not successor_name:
-                if region not in regions_with_icbs:
-                    regions_with_icbs[region] = {'icbs': set(), 'region_code': region_code}
-                if icb:
-                    regions_with_icbs[region]['icbs'].add((icb, icb_code))
-            
             if successor_name:
                 org_data_template[successor_name]['predecessors'].append(name)
-        
-        hierarchy = [
-            {
-                'region': region,
-                'region_code': data['region_code'],
-                'icbs': sorted([{'name': icb_name, 'code': icb_code} for icb_name, icb_code in data['icbs']], key=lambda x: x['name'])
-            }
-            for region, data in sorted(regions_with_icbs.items())
-        ]
-        
-        context['regions_hierarchy'] = json.dumps(hierarchy)
-        
+
         # Get latest dates for each file type
         latest_dates = {}
         for file_type in ['final']:
@@ -161,10 +142,24 @@ class SubmissionHistoryView(MaintenanceModeMixin, TemplateView):
         for org_entry in restructured_data:
             assign_region_icb(org_entry)
 
+        def collect_trust_types(org_entry, out):
+            if org_entry.get('trust_type'):
+                out[org_entry['name']] = org_entry['trust_type']
+            for pred in org_entry.get('predecessors', []):
+                collect_trust_types(pred, out)
+
+        trust_types = {}
+        for org_entry in restructured_data:
+            collect_trust_types(org_entry, trust_types)
+
         context['org_data_json'] = mark_safe(json.dumps({
             'organisations': restructured_data,
             'org_codes': shared_org_data['org_codes'],
-            'predecessor_map': shared_org_data['predecessor_map']
+            'predecessor_map': shared_org_data['predecessor_map'],
+            'trust_types': trust_types,
+            'org_regions': shared_org_data.get('org_regions', {}),
+            'org_icbs': shared_org_data.get('org_icbs', {}),
+            'regions_hierarchy': shared_org_data.get('regions_hierarchy', []),
         }))
 
         if all_dates:
