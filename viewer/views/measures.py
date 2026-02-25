@@ -759,9 +759,6 @@ class MeasureTrustsView(LoginRequiredMixin, MaintenanceModeMixin, TemplateView):
 
         try:
             measure = Measure.objects.prefetch_related('tags').get(slug=slug)
-            if measure.status != 'published':
-                return redirect('viewer:measure_item', slug=slug)
-
             org_measures = PrecomputedMeasure.objects.filter(
                 measure=measure
             ).select_related('organisation')
