@@ -1,6 +1,6 @@
-name: Percentage of adrenaline (1 in 10,000) as ready-to-administer pre-filled syringes # Full name of the measure/indicator
-short_name: Percentage of adrenaline (1 in 10,000) as pre-filled syringes # Abbreviated name or acronym
-description: Percentage of adrenaline (1 in 10,000) as ready-to-administer pre-filled syringes. # Brief 1-2 sentence description of what this measure identifies
+name: Percentage of adrenaline (1 in 10,000) not issued as ready-to-administer pre-filled syringes # Full name of the measure/indicator
+short_name: Percentage of adrenaline (1 in 10,000) not issued as pre-filled syringes # Abbreviated name or acronym
+description: Percentage of adrenaline (1 in 10,000) not issued as ready-to-administer pre-filled syringes. # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |
     NHS faces significant operational and productivity challenges. Licensed ready-to-administer products offer a 
     practical means of reducing cognitive load, simplifying workflows and releasing clinical capacity. They are 
