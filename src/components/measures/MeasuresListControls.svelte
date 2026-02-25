@@ -15,7 +15,7 @@
 
 <script>
     import { onMount, onDestroy } from 'svelte';
-    import OrganisationSearch from '../common/OrganisationSearch.svelte';
+    import OrganisationSearchFiltered from '../common/OrganisationSearchFiltered.svelte';
     import ModeSelector from '../common/ModeSelector.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore.js';
     import { modeSelectorStore } from '../../stores/modeSelectorStore.js';
@@ -138,7 +138,15 @@
 
     function updateOrganisationStore(mode) {
         if (mode === 'trust') {
-            organisationSearchStore.setOrganisationData(parsedOrgData);
+            organisationSearchStore.setOrganisationData({
+                orgs: parsedOrgData.orgs || {},
+                org_codes: parsedOrgData.org_codes || {},
+                predecessor_map: parsedOrgData.predecessor_map || {},
+                trust_types: parsedOrgData.trust_types || {},
+                org_regions: parsedOrgData.org_regions || {},
+                org_icbs: parsedOrgData.org_icbs || {},
+                regions_hierarchy: parsedOrgData.regions_hierarchy || [],
+            });
             organisationSearchStore.setFilterType('trust');
             organisationSearchStore.setAvailableItems(Object.values(parsedOrgData.orgs || []));
         } else if (mode === 'region') {
@@ -381,12 +389,14 @@
 
     <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-4 xl:gap-12">
         <div class="order-last xl:order-none w-full xl:max-w-[520px] xl:shrink-0 relative z-30">
-            <OrganisationSearch
+            <OrganisationSearchFiltered
                 source={organisationSearchStore}
+                filterResetKey={$mode}
                 overlayMode={true}
                 maxItems={1}
                 hideSelectAll={true}
                 showTitle={true}
+                filterAutoSelectsAll={false}
                 disabled={$mode === 'national'}
                 on:selectionChange={handleSelectionChange}
             />

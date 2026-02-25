@@ -17,17 +17,10 @@
     import { onMount } from 'svelte';
     import './MeasureMiniChart.svelte';
     import LazyLoad from '../common/LazyLoad.svelte';
-    import OrganisationSearch from '../common/OrganisationSearch.svelte';
-    import RegionIcbFilter from '../common/RegionIcbFilter.svelte';
+    import OrganisationSearchFiltered from '../common/OrganisationSearchFiltered.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore.js';
     import { deriveSortMetricsFromChartData } from '../../utils/measuresSortUtils.js';
-    import { setUrlParams } from '../../utils/utils.js';
-    import {
-        getOrgsFromRegionIcbFilter,
-        flattenOrganisationsWithMetadata,
-        updateRegionSelection,
-        updateIcbSelection,
-    } from '../../utils/regionIcbFilterUtils.js';
+    import { flattenOrganisationsWithMetadata } from '../../utils/regionIcbFilterUtils.js';
 
     export let orgData = '{}';
     export let percentileDataJson = '[]';
@@ -44,8 +37,6 @@
     let parsedPercentileData = [];
     let parsedRegionsHierarchy = [];
     let showScrollButton = false;
-    let selectedRegions = new Set();
-    let selectedICBs = new Set();
     let hasInitializedStore = false;
 
     function handleScroll() {
@@ -161,9 +152,8 @@
         }
     }
 
-    $: if (searchableOrgs.length > 0 && Object.keys(parsedOrgData).length > 0) {
-        selectedRegions;
-        selectedICBs;
+    $: if (searchableOrgs.length > 0 && Object.keys(parsedOrgData).length > 0 && !hasInitializedStore) {
+        hasInitializedStore = true;
         const orgs = Object.fromEntries(
             allOrgsForSearch.map((name) => [parsedOrgData.org_codes?.[name] || name, name])
         );
@@ -171,14 +161,14 @@
             orgs,
             org_codes: parsedOrgData.org_codes || {},
             predecessor_map: parsedOrgData.predecessor_map || {},
+            trust_types: parsedOrgData.trust_types || {},
+            org_regions: parsedOrgData.org_regions || {},
+            org_icbs: parsedOrgData.org_icbs || {},
+            regions_hierarchy: parsedOrgData.regions_hierarchy || parsedRegionsHierarchy || [],
         });
         organisationSearchStore.setFilterType('trust');
-        const availableFromFilters = getAvailableItemsFromFilters();
-        organisationSearchStore.setAvailableItems(availableFromFilters);
-        if (!hasInitializedStore) {
-            hasInitializedStore = true;
-            organisationSearchStore.updateSelection(availableFromFilters);
-        }
+        organisationSearchStore.setAvailableItems(searchableOrgs);
+        organisationSearchStore.updateSelection(searchableOrgs);
     }
 
     function buildPercentiles() {
@@ -263,11 +253,6 @@
         );
     }
 
-    function handleSortChange(event) {
-        const newSort = event.target.value;
-        setUrlParams({ sort: newSort }, ['sort']);
-    }
-
     $: filteredTrusts = (() => {
         const selectedItems = $organisationSearchStore?.selectedItems || [];
         const filtered = searchableOrgs.filter(
@@ -289,19 +274,10 @@
 
 <div id="measure-trusts-list-top" class="flex flex-col w-full">
     <div class="w-full mb-6">
-        <RegionIcbFilter
-            regionsHierarchy={parsedRegionsHierarchy}
-            selectedRegions={selectedRegions}
-            selectedICBs={selectedICBs}
-            onRegionClick={handleRegionClick}
-            onIcbClick={handleIcbClick}
-            onClear={handleFilterClear}
-        />
-
         <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 lg:gap-12">
             <div class="w-full lg:max-w-[600px] relative z-50">
                 {#if searchableOrgs.length > 0}
-                    <OrganisationSearch
+                    <OrganisationSearchFiltered
                         source={organisationSearchStore}
                         overlayMode={true}
                         on:selectionChange={handleSearchSelect}
@@ -313,7 +289,6 @@
             <div class="flex flex-col lg:flex-row gap-4">
                 <select
                     bind:value={sortType}
-                    on:change={handleSortChange}
                     class="dropdown-select dropdown-arrow w-full min-w-0 lg:w-[12rem] text-sm p-2 border border-gray-300 rounded-md bg-white h-[38px] lg:truncate"
                     aria-label="Sort list"
                 >
