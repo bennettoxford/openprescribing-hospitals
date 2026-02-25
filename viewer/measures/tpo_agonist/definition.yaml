@@ -1,0 +1,26 @@
+name: Proportion of thrombopoietin (TPO) receptor agonists not prescribed as eltrombopag
+short_name: TPO Agonists
+description: |
+  The proportion of TPO agonists not prescribed as eltrombopag 
+  tablets.
+ 
+why_it_matters: |
+    NEEDS UPDATING
+
+how_is_it_calculated: >
+    We identify all TPO agonist products using Virtual Therapeutic Moieties (VTM) codes. The quantity of each product issued as DDDs is calculated. We then divide the
+    DDDs of TPO agonists excluding eltrombopag by the total DDDs of all TPO agonists and then multiply that by 100 to obtain a percentage each month.
+tags:
+    - Value
+quantity_type: ddd
+lower_is_better: true
+authored_by: Vicky Speed
+checked_by: tbc
+date_reviewed: 2026-02-25
+next_review: 2027-02-25
+first_published: 2026-02-25
+status: preview
+annotations:
+    - date: 2025-10-01
+      label: "Generic eltrombopag pricing starts"
+      colour: "#fb8f2b"
