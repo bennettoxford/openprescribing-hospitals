@@ -7,7 +7,7 @@ from django.conf import settings
 import os
 
 
-from .models import Organisation
+from .models import Organisation, Region
 
 
 def normalise_string(s):
@@ -46,38 +46,71 @@ def coverage_score(search_tokens, item_tokens):
 
 def get_organisation_data():
     """
-    Get standardised organisation data.
-    
+    Get standardised organisation data for NHS organisations.
+
     Returns:
-        dict: Contains orgs (code->name mapping), org_codes (name->code mapping), 
-              and predecessor_map (successor_name->list of predecessor names)
+        dict with keys:
+            orgs: ODS code -> organisation name (e.g. "RGT01" -> "Royal General Trust")
+            org_codes: organisation name -> ODS code (reverse of orgs)
+            predecessor_map: successor name -> list of predecessor names (for merged orgs)
+            trust_types: organisation name -> trust type (e.g. "Acute", "Mental Health")
+            org_regions: organisation name -> NHS region name
+            org_icbs: organisation name -> ICB  name
+            regions_hierarchy: list of dicts with region, region_code, and icbs
     """
-    
-    orgs = Organisation.objects.select_related('successor').values(
-        'ods_code', 'ods_name', 'successor__ods_name'
+    orgs = Organisation.objects.select_related(
+        'successor', 'trust_type', 'region', 'icb'
+    ).values(
+        'ods_code', 'ods_name', 'successor__ods_name', 'trust_type__name',
+        'region__name', 'region__code', 'icb__name', 'icb__code'
     ).order_by('ods_name')
-    
+
     org_names = {}
     org_codes = {}
     predecessor_map = {}
-    
+    trust_types = {}
+    org_regions = {}
+    org_icbs = {}
+
     for org in orgs:
         name = org['ods_name']
         code = org['ods_code']
-        
+
         org_names[code] = name
         org_codes[name] = code
-        
+        if org.get('trust_type__name'):
+            trust_types[name] = org['trust_type__name']
+        if org.get('region__name'):
+            org_regions[name] = org['region__name']
+        if org.get('icb__name'):
+            org_icbs[name] = org['icb__name']
+
         if org['successor__ods_name']:
             successor_name = org['successor__ods_name']
             if successor_name not in predecessor_map:
                 predecessor_map[successor_name] = []
             predecessor_map[successor_name].append(name)
-    
+
+    regions_hierarchy = []
+    for region in Region.objects.prefetch_related('icbs').order_by('name'):
+        icbs = [
+            {'name': icb.name, 'code': icb.code}
+            for icb in region.icbs.all().order_by('name')
+        ]
+        regions_hierarchy.append({
+            'region': region.name,
+            'region_code': region.code or '',
+            'icbs': icbs,
+        })
+
     return {
         'orgs': org_names,
         'org_codes': org_codes,
-        'predecessor_map': predecessor_map
+        'predecessor_map': predecessor_map,
+        'trust_types': trust_types,
+        'org_regions': org_regions,
+        'org_icbs': org_icbs,
+        'regions_hierarchy': regions_hierarchy,
     }
 
 
