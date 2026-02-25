@@ -17,6 +17,10 @@ class AnalyseView(MaintenanceModeMixin, TemplateView):
             'orgs': org_data['orgs'],
             'org_codes': org_data['org_codes'],
             'predecessorMap': org_data['predecessor_map'],
+            'trust_types': org_data.get('trust_types', {}),
+            'org_regions': org_data.get('org_regions', {}),
+            'org_icbs': org_data.get('org_icbs', {}),
+            'regions_hierarchy': org_data.get('regions_hierarchy', []),
         }, default=str)
 
         return context

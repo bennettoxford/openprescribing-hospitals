@@ -89,7 +89,11 @@
             organisationSearchStore.setOrganisationData({
                 orgs: parsedData.orgs || {},
                 org_codes: parsedData.org_codes || {},
-                predecessor_map: parsedData.predecessorMap || {}
+                predecessor_map: parsedData.predecessorMap || {},
+                trust_types: parsedData.trust_types || {},
+                org_regions: parsedData.org_regions || {},
+                org_icbs: parsedData.org_icbs || {},
+                regions_hierarchy: parsedData.regions_hierarchy || []
             });
             organisationSearchStore.setFilterType('trust');
         } catch (error) {
@@ -114,6 +118,7 @@
                         {minDate}
                         {maxDate}
                         {orgData}
+                        isAuthenticated={isAuthenticated}
                         on:analysisStart={handleAnalysisStart}
                         on:analysisComplete={handleAnalysisComplete}
                         on:analysisError={handleAnalysisError}
