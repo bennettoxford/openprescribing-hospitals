@@ -126,6 +126,7 @@
                             numeratorvmps="{{ numerator_vmps }}"
                             annotations="{{ annotations }}"
                             defaultviewmode="{{ default_view_mode }}"
+                            user-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
                         ></measure-component>
                     </div>
                 </div>
