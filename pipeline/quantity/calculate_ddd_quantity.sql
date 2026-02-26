@@ -39,6 +39,7 @@ data_with_ddd_logic AS (
     n.quantity,
     ddd_logic.can_calculate_ddd,
     ddd_logic.ddd_calculation_logic,
+    ddd_logic.override_comments,
     ddd_logic.refers_to_ingredient,
     ddd_logic.selected_ddd_value,
     ddd_logic.selected_ddd_unit,
@@ -67,6 +68,18 @@ data_with_ddd_logic AS (
     ddd_logic.expressed_as_strnt_dnmtr_basis_uom,
     -- Extract ingredient info when calculation uses ingredient quantity (for non-expressed-as cases)
     CASE 
+      -- Strength override: use override from DDD_CALCULATION_LOGIC_TABLE (populated from vmp_strength_overrides)
+      WHEN ddd_logic.ddd_calculation_logic LIKE 'Ingredient quantity%' 
+        AND ddd_logic.expressed_as_ingredient_code IS NULL
+        AND ddd_logic.override_strnt_nmrtr_uom IS NOT NULL
+        AND ddd_logic.override_strnt_nmrtr_val IS NOT NULL
+        AND override_unit_conv.conversion_factor IS NOT NULL THEN
+        (SELECT AS STRUCT 
+          ing.ingredient_code,
+          n.quantity * ddd_logic.override_strnt_nmrtr_val * override_unit_conv.conversion_factor AS ingredient_quantity_basis,
+          COALESCE(override_unit_conv.basis, ddd_logic.selected_ddd_basis_unit) AS ingredient_basis_unit
+        FROM UNNEST(ddd_logic.ingredients_info) ing
+        LIMIT 1)
       WHEN ddd_logic.ddd_calculation_logic LIKE 'Ingredient quantity%' 
         AND ddd_logic.expressed_as_ingredient_code IS NULL
         AND iq.ingredients IS NOT NULL THEN
@@ -108,6 +121,8 @@ data_with_ddd_logic AS (
     AND n.ods_code = iq.ods_code
     AND ddd_logic.ddd_calculation_logic LIKE 'Ingredient quantity%'
     AND ddd_logic.expressed_as_ingredient_code IS NULL
+  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` override_unit_conv
+    ON ddd_logic.override_strnt_nmrtr_uom = override_unit_conv.unit
 ),
 
 ddd_calculations AS (
@@ -167,5 +182,8 @@ SELECT
   selected_ddd_unit AS ddd_unit,
   -- Include ingredient code when DDD calculation uses ingredient quantity
   COALESCE(expressed_as_ingredient_code, ingredient_info.ingredient_code) AS ingredient_code,
-  ddd_calculation_logic AS calculation_logic
+  CASE
+    WHEN override_comments IS NOT NULL THEN CONCAT(ddd_calculation_logic, ' ("', override_comments, '")')
+    ELSE ddd_calculation_logic
+  END AS calculation_logic
 FROM ddd_calculations

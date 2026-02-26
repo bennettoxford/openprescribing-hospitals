@@ -37,6 +37,8 @@ from pipeline.setup.config import (
     INGREDIENT_CALCULATION_LOGIC_TABLE_ID,
     DDD_CALCULATION_LOGIC_TABLE_ID,
     VMP_EXPRESSED_AS_TABLE_ID,
+    DDD_ROUTE_COMMENTS_TABLE_ID,
+    VMP_STRENGTH_OVERRIDES_TABLE_ID,
 )
 
 
@@ -1631,6 +1633,21 @@ DDD_CALCULATION_LOGIC_TABLE_SPEC = TableSpec(
         bigquery.SchemaField(
             "expressed_as_ingredient_name", "STRING", mode="NULLABLE", description="Expressed as ingredient name (only populated for VMPs with expressed as DDD comments)"
         ),
+        bigquery.SchemaField(
+            "override_strnt_nmrtr_val", "FLOAT", mode="NULLABLE", description="Override strength numerator (from vmp_strength_overrides when dm+d strength is wrong)"
+        ),
+        bigquery.SchemaField(
+            "override_strnt_nmrtr_uom", "STRING", mode="NULLABLE", description="Override strength numerator unit"
+        ),
+        bigquery.SchemaField(
+            "override_strnt_dnmtr_val", "FLOAT", mode="NULLABLE", description="Override strength denominator"
+        ),
+        bigquery.SchemaField(
+            "override_strnt_dnmtr_uom", "STRING", mode="NULLABLE", description="Override strength denominator unit"
+        ),
+        bigquery.SchemaField(
+            "override_comments", "STRING", mode="NULLABLE", description="Reason for strength override (from vmp_strength_overrides)"
+        ),
     ],
     cluster_fields=["vmp_code"],
 )
@@ -1715,10 +1732,72 @@ VMP_EXPRESSED_AS_TABLE_SPEC = TableSpec(
             description="Ingredient code for the dm+d ingredient that the expressed as strength refers to"
         ),
         bigquery.SchemaField(
-            "ingredient_name", 
+            "ingredient_name",
             "STRING",
             mode="REQUIRED",
             description="Name of the dm+d ingredient that the expressed as strength refers to"
         ),
     ],
+)
+
+DDD_ROUTE_COMMENTS_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=DDD_ROUTE_COMMENTS_TABLE_ID,
+    description="VMP DDD information including code, name, DDD value, unit, and comment",
+    schema=[
+        bigquery.SchemaField(
+            "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
+        ),
+        bigquery.SchemaField(
+            "vmp_name", "STRING", mode="REQUIRED", description="VMP name"
+        ),
+        bigquery.SchemaField(
+            "atc_code", "STRING", mode="NULLABLE", description="ATC code"
+        ),
+        bigquery.SchemaField(
+            "ddd", "FLOAT", mode="NULLABLE", description="DDD value"
+        ),
+        bigquery.SchemaField(
+            "ddd_uom", "STRING", mode="NULLABLE", description="DDD unit of measure"
+        ),
+        bigquery.SchemaField(
+            "ddd_comment", "STRING", mode="NULLABLE", description="DDD comment"
+        ),
+        bigquery.SchemaField(
+            "strength_numerator", "FLOAT", mode="NULLABLE", description="Strength numerator value from VMP ingredient"
+        ),
+        bigquery.SchemaField(
+            "strength_denominator", "FLOAT", mode="NULLABLE", description="Strength denominator value from VMP ingredient"
+        ),
+    ],
+    cluster_fields=["vmp_code"],
+)
+
+VMP_STRENGTH_OVERRIDES_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=VMP_STRENGTH_OVERRIDES_TABLE_ID,
+    description="VMPs where dm+d strength is incorrect; override values used for DDD calculation",
+    schema=[
+        bigquery.SchemaField(
+            "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
+        ),
+        bigquery.SchemaField(
+            "strnt_nmrtr_val", "FLOAT", mode="NULLABLE", description="Override strength numerator value"
+        ),
+        bigquery.SchemaField(
+            "strnt_dnmtr_val", "FLOAT", mode="NULLABLE", description="Override strength denominator value"
+        ),
+        bigquery.SchemaField(
+            "strnt_nmrtr_uom", "STRING", mode="NULLABLE", description="Strength numerator unit (e.g. microgram)"
+        ),
+        bigquery.SchemaField(
+            "strnt_dnmtr_uom", "STRING", mode="NULLABLE", description="Strength denominator unit (e.g. hour)"
+        ),
+        bigquery.SchemaField(
+            "comments", "STRING", mode="NULLABLE", description="Reason for override (e.g. why dm+d strength is wrong)"
+        ),
+    ],
+    cluster_fields=["vmp_code"],
 )
