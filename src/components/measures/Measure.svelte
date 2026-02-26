@@ -458,7 +458,6 @@
 
         const hasExplicitPercentileOverride = !shouldDisablePercentiles && getUrlParams().has('show_percentiles');
         await tick();
-        isInitialLoad = false;
 
         if (hasExplicitModeOverride || hasExplicitSelections || hasExplicitPercentileOverride) {
             const effectiveUrlParams = {
@@ -466,6 +465,7 @@
                 mode: urlParams.mode || defaultviewmode
             };
             applyUrlParams(effectiveUrlParams);
+            await tick();
         } else {
             selectedMode.set(defaultviewmode);
             modeSelectorStore.setSelectedMode(defaultviewmode);
@@ -476,6 +476,8 @@
                 organisationSearchStore.updateSelection([]);
             }
         }
+
+        isInitialLoad = false;
 
         const parsedNationalData = JSON.parse(nationaldata);
         nationalStore.set(parsedNationalData);
@@ -652,6 +654,8 @@
     }
 
     function handleModeChange(newMode) {
+        if (isInitialLoad) return;
+
         selectedMode.set(newMode);
 
         if (newMode === 'region') {
