@@ -217,6 +217,15 @@ ddd_selection AS (
             LIMIT 1
           )
 
+          -- Leuprorelin 22.5mg depot (VMP 30806811000001103): powder and solvent for suspension for injection is depot
+          -- dm+d form lacks "prolonged-release" but product is prolonged-release depot
+          WHEN vmp_code = '30806811000001103' AND has_depot_comment_ddd AND has_p_route THEN (
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
+            WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bdepot\b')
+            LIMIT 1
+          )
+
           -- Glibenclamide (VTM 776105003): pick DDD for non-micronised forms (exclude microcryst.substance)
           WHEN vtm_code = '776105003' AND has_micronised_comment_ddd
             AND ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN (
