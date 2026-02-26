@@ -135,6 +135,10 @@ ddd_calculations AS (
       WHEN ddd_calculation_logic = 'SCMD quantity / DDD' 
         AND uom_name = selected_ddd_basis_unit THEN
         quantity / selected_ddd_basis_value
+      -- Combined product DDD: same formula as SCMD quantity / DDD
+      WHEN ddd_calculation_logic = 'Calculated using DDD for combined product'
+        AND uom_name = selected_ddd_basis_unit THEN
+        quantity / selected_ddd_basis_value
       -- Ingredient quantity / DDD with "expressed as": calculate using expressed_as strength numerator
       -- Use denominator if available, as when calculating ingredient quantity
       WHEN ddd_calculation_logic LIKE 'Ingredient quantity%' 
