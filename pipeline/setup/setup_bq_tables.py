@@ -4,6 +4,7 @@ from google.api_core import exceptions
 
 from pipeline.setup.bq_tables import (
     ORGANISATION_TABLE_SPEC,
+    CANCER_ALLIANCE_CATEGORISATIONS_TABLE_SPEC,
     SCMD_RAW_PROVISIONAL_TABLE_SPEC,
     SCMD_RAW_FINALISED_TABLE_SPEC,
     SCMD_PROCESSED_TABLE_SPEC,
@@ -74,6 +75,7 @@ def setup_tables():
     """Create all required BigQuery tables if they don't exist."""
     tables_list = [
         ORGANISATION_TABLE_SPEC,
+        CANCER_ALLIANCE_CATEGORISATIONS_TABLE_SPEC,
         SCMD_DATA_STATUS_TABLE_SPEC,
         SCMD_RAW_PROVISIONAL_TABLE_SPEC,
         SCMD_RAW_FINALISED_TABLE_SPEC,
