@@ -39,6 +39,8 @@ from pipeline.setup.config import (
     VMP_EXPRESSED_AS_TABLE_ID,
     DDD_ROUTE_COMMENTS_TABLE_ID,
     VMP_STRENGTH_OVERRIDES_TABLE_ID,
+    WHO_DDD_COMBINED_PRODUCTS_TABLE_ID,
+    DDD_COMBINED_PRODUCTS_LOGIC_TABLE_ID,
 )
 
 
@@ -1739,6 +1741,181 @@ VMP_EXPRESSED_AS_TABLE_SPEC = TableSpec(
         ),
     ],
 )
+
+WHO_DDD_COMBINED_PRODUCTS_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=WHO_DDD_COMBINED_PRODUCTS_TABLE_ID,
+    description="DDD information for combined products from the WHO. Source: https://atcddd.fhi.no/ddd/list_of_ddds_combined_products/",
+    schema=[
+        bigquery.SchemaField(
+            "atc_code", 
+            "STRING",
+            mode="REQUIRED",
+            description="ATC code for the combined product"
+        ),
+        bigquery.SchemaField(
+            "brand_name", 
+            "STRING",
+            mode="NULLABLE",
+            description="Brand name of the product"
+        ),
+        bigquery.SchemaField(
+            "dosage_form", 
+            "STRING",
+            mode="NULLABLE",
+            description="Dosage form of the product given in the WHO combined product list (e.g., tab, caps, inhal powd)"
+        ),
+        bigquery.SchemaField(
+            "form", 
+            "STRING",
+            mode="NULLABLE",
+            description="Mapped dm+d standard form from dosage form (e.g., tablet, capsule, solutioninjection)"
+        ),
+        bigquery.SchemaField(
+            "route", 
+            "STRING",
+            mode="NULLABLE",
+            description="Mapped dm+d standard route from dosage form (e.g., oral, inhalation, nasal)"
+        ),
+        bigquery.SchemaField(
+            "active_ingredients", 
+            "RECORD",
+            mode="REPEATED",
+            description="Active ingredients per unit dose (UD) from the WHO combined product list",
+            fields=[
+                bigquery.SchemaField(
+                    "ingredient", "STRING", mode="REQUIRED", description="Ingredient name"
+                ),
+                bigquery.SchemaField(
+                    "numerator_quantity", "FLOAT", mode="NULLABLE", description="Numerator quantity of the ingredient"
+                ),
+                bigquery.SchemaField(
+                    "numerator_unit", "STRING", mode="NULLABLE", description="Unit of measure for the numerator quantity"
+                ),
+                bigquery.SchemaField(
+                    "denominator_quantity", "FLOAT", mode="NULLABLE", description="Denominator quantity (e.g., 25 from '178.5 mg/ 25 ml')"
+                ),
+                bigquery.SchemaField(
+                    "denominator_unit", "STRING", mode="NULLABLE", description="Unit of measure for the denominator quantity"
+                ),
+            ],
+        ),
+        bigquery.SchemaField(
+            "ddd_comb", 
+            "STRING",
+            mode="NULLABLE",
+            description="DDD for the combined product expressed as unit doses (e.g., '2 UD (=2 tab)')"
+        ),
+        bigquery.SchemaField(
+            "ddd_ud_value", 
+            "FLOAT",
+            mode="NULLABLE",
+            description="Numeric value of the DDD in unit doses extracted from ddd_comb"
+        ),
+        bigquery.SchemaField(
+            "ddd_converted_value", 
+            "FLOAT",
+            mode="NULLABLE",
+            description="Numeric value extracted from inside brackets (e.g., 2 from '(=2 tab)')"
+        ),
+        bigquery.SchemaField(
+            "ddd_converted_unit", 
+            "STRING",
+            mode="NULLABLE",
+            description="Unit converted to dm+d standard format (e.g., 'tablet' from 'tab', 'capsule' from 'caps')"
+        ),
+    ],
+    cluster_fields=["atc_code"]
+)
+
+DDD_COMBINED_PRODUCTS_LOGIC_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=DDD_COMBINED_PRODUCTS_LOGIC_TABLE_ID,
+    description="VMPs where standard DDD cannot be calculated, matched to WHO combined product DDDs with an indication of whether a combined DDD could not be chosen",
+    schema=[
+        bigquery.SchemaField("vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"),
+        bigquery.SchemaField("vmp_name", "STRING", mode="REQUIRED", description="VMP name"),
+        bigquery.SchemaField("atc_code", "STRING", mode="REQUIRED", description="ATC code"),
+        bigquery.SchemaField("atc_name", "STRING", mode="REQUIRED", description="ATC name"),
+        bigquery.SchemaField("form", "STRING", mode="NULLABLE", description="Mapped dm+d form from WHO combined product"),
+        bigquery.SchemaField("route", "STRING", mode="NULLABLE", description="Mapped dm+d route from WHO combined product"),
+        bigquery.SchemaField(
+            "active_ingredients",
+            "RECORD",
+            mode="REPEATED",
+            description="Active ingredients per unit dose from WHO combined product list",
+            fields=[
+                bigquery.SchemaField("ingredient", "STRING", mode="REQUIRED", description="Ingredient name"),
+                bigquery.SchemaField("numerator_quantity", "FLOAT", mode="NULLABLE", description="Numerator quantity"),
+                bigquery.SchemaField("numerator_unit", "STRING", mode="NULLABLE", description="Numerator unit"),
+                bigquery.SchemaField("denominator_quantity", "FLOAT", mode="NULLABLE", description="Denominator quantity"),
+                bigquery.SchemaField("denominator_unit", "STRING", mode="NULLABLE", description="Denominator unit"),
+            ],
+        ),
+        bigquery.SchemaField("ddd_ud_value", "FLOAT", mode="NULLABLE", description="DDD in unit doses"),
+        bigquery.SchemaField("ddd_converted_value", "FLOAT", mode="NULLABLE", description="DDD value from combined product (e.g. from brackets)"),
+        bigquery.SchemaField("ddd_converted_unit", "STRING", mode="NULLABLE", description="Unit of ddd_converted_value"),
+        bigquery.SchemaField("ud_unit_conversion", "FLOAT", mode="NULLABLE", description="Conversion factor: ddd_converted_value / ddd_ud_value"),
+        bigquery.SchemaField(
+            "active_ingredients_per_unit",
+            "RECORD",
+            mode="REPEATED",
+            description="Active ingredients with quantities divided by ud_unit_conversion (per converted unit)",
+            fields=[
+                bigquery.SchemaField("ingredient", "STRING", mode="REQUIRED", description="Ingredient name"),
+                bigquery.SchemaField("numerator_quantity", "FLOAT", mode="NULLABLE", description="Numerator quantity per converted unit"),
+                bigquery.SchemaField("numerator_unit", "STRING", mode="NULLABLE", description="Numerator unit"),
+                bigquery.SchemaField("denominator_quantity", "FLOAT", mode="NULLABLE", description="Denominator quantity per converted unit"),
+                bigquery.SchemaField("denominator_unit", "STRING", mode="NULLABLE", description="Denominator unit"),
+            ],
+        ),
+        bigquery.SchemaField(
+            "ingredients",
+            "RECORD",
+            mode="REPEATED",
+            description="VMP ingredients with strengths and units",
+            fields=[
+                bigquery.SchemaField("ingredient_code", "STRING", mode="REQUIRED", description="Ingredient code"),
+                bigquery.SchemaField("ingredient_name", "STRING", mode="REQUIRED", description="Ingredient name"),
+                bigquery.SchemaField("strnt_nmrtr_val", "FLOAT", mode="NULLABLE", description="Strength numerator value"),
+                bigquery.SchemaField("strnt_nmrtr_uom_name", "STRING", mode="NULLABLE", description="Strength numerator unit"),
+                bigquery.SchemaField("strnt_nmrtr_basis_val", "FLOAT", mode="NULLABLE", description="Strength numerator in basis units"),
+                bigquery.SchemaField("strnt_nmrtr_basis_uom", "STRING", mode="NULLABLE", description="Basis unit for numerator"),
+                bigquery.SchemaField("strnt_dnmtr_val", "FLOAT", mode="NULLABLE", description="Strength denominator value"),
+                bigquery.SchemaField("strnt_dnmtr_uom_name", "STRING", mode="NULLABLE", description="Strength denominator unit"),
+                bigquery.SchemaField("strnt_dnmtr_basis_val", "FLOAT", mode="NULLABLE", description="Strength denominator in basis units"),
+                bigquery.SchemaField("strnt_dnmtr_basis_uom", "STRING", mode="NULLABLE", description="Basis unit for denominator"),
+                bigquery.SchemaField("basis_of_strength_type", "INTEGER", mode="NULLABLE", description="Basis of strength type"),
+                bigquery.SchemaField("basis_of_strength_name", "STRING", mode="NULLABLE", description="Basis of strength name"),
+            ],
+        ),
+        bigquery.SchemaField(
+            "ont_form_routes",
+            "RECORD",
+            mode="REPEATED",
+            description="VMP routes of administration (form.route)",
+            fields=[
+                bigquery.SchemaField("route_code", "STRING", mode="REQUIRED", description="Route code"),
+                bigquery.SchemaField("route_name", "STRING", mode="REQUIRED", description="Route name (form.route)"),
+            ],
+        ),
+        bigquery.SchemaField("scmd_uom_id", "STRING", mode="NULLABLE", description="SCMD unit of measure identifier"),
+        bigquery.SchemaField("scmd_uom_name", "STRING", mode="NULLABLE", description="SCMD unit of measure name"),
+        bigquery.SchemaField("scmd_basis_uom_id", "STRING", mode="NULLABLE", description="SCMD basis unit identifier"),
+        bigquery.SchemaField("scmd_basis_uom_name", "STRING", mode="NULLABLE", description="SCMD basis unit name"),
+        bigquery.SchemaField("ddd_converted_basis_unit", "STRING", mode="NULLABLE", description="Basis unit for ddd_converted_unit"),
+        bigquery.SchemaField("scmd_basis_unit", "STRING", mode="NULLABLE", description="Basis unit for SCMD unit"),
+        bigquery.SchemaField("strength_ratio", "FLOAT", mode="NULLABLE", description="VMP strength / WHO strength; 1.0 = exact match, other = proportional match"),
+        bigquery.SchemaField("why_ddd_not_chosen", "STRING", mode="NULLABLE", description="Reasons why a combined DDD could not be chosen (NULL when chosen)"),
+        bigquery.SchemaField("chosen_ddd_value", "FLOAT", mode="NULLABLE", description="Chosen DDD value in basis units when all checks pass"),
+        bigquery.SchemaField("chosen_ddd_unit", "STRING", mode="NULLABLE", description="Chosen DDD unit (basis) when all checks pass"),
+    ],
+    cluster_fields=["vmp_code"],
+)
+
+
 
 DDD_ROUTE_COMMENTS_TABLE_SPEC = TableSpec(
     project_id=PROJECT_ID,
