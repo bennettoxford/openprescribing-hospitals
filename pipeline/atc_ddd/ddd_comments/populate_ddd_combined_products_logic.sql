@@ -194,6 +194,8 @@ SELECT
   vmp_name,
   atc_code,
   atc_name,
+  brand_name,
+  dosage_form,
   form,
   route,
   active_ingredients,

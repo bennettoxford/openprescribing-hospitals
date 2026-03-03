@@ -1839,6 +1839,8 @@ DDD_COMBINED_PRODUCTS_LOGIC_TABLE_SPEC = TableSpec(
         bigquery.SchemaField("vmp_name", "STRING", mode="REQUIRED", description="VMP name"),
         bigquery.SchemaField("atc_code", "STRING", mode="REQUIRED", description="ATC code"),
         bigquery.SchemaField("atc_name", "STRING", mode="REQUIRED", description="ATC name"),
+        bigquery.SchemaField("brand_name", "STRING", mode="NULLABLE", description="Brand name from WHO combined product list"),
+        bigquery.SchemaField("dosage_form", "STRING", mode="NULLABLE", description="WHO dosage form from combined product list (e.g. tab, caps, inhal powd)"),
         bigquery.SchemaField("form", "STRING", mode="NULLABLE", description="Mapped dm+d form from WHO combined product"),
         bigquery.SchemaField("route", "STRING", mode="NULLABLE", description="Mapped dm+d route from WHO combined product"),
         bigquery.SchemaField(
