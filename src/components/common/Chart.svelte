@@ -30,7 +30,18 @@
   export let chartOptions = {};
   export let annotations = '[]';
   export let exportData = null;
-  
+
+  const LEGEND_TITLE_BY_MODE = {
+    trust: 'NHS Trust',
+    icb: 'ICB',
+    region: 'Region',
+    product: 'Product',
+    productGroup: 'Product Group',
+    unit: 'Unit',
+    ingredient: 'Ingredient'
+  };
+  $: legendTitle = LEGEND_TITLE_BY_MODE[mode] || undefined;
+
   let showAnnotations = true;
   let showDownloadModal = false;
 
@@ -234,7 +245,7 @@
     ...chartOptions,
     chart: {
       type: 'line',
-      height: 500,
+      height: 600,
       zoomType: 'xy',
       panning: true,
       panKey: 'shift',
@@ -311,10 +322,14 @@
     },
     legend: {
       enabled: true,
+      title: {
+        text: legendTitle,
+        style: { fontSize: '12px', fontWeight: 600, color: '#374151' }
+      },
       align: 'right',
       verticalAlign: 'top',
       layout: 'vertical',
-      maxHeight: 400,
+      maxHeight: 500,
       navigation: {
         activeColor: '#2563eb',
         animation: false,
@@ -347,16 +362,20 @@
         },
         chartOptions: {
           chart: {
-            height: 550,
+            height: 650,
             spacingBottom: 40
           },
           legend: {
-            align: 'center',
+            title: {
+              text: legendTitle,
+              style: { fontSize: '12px', fontWeight: 600, color: '#374151' }
+            },
+            align: 'left',
+            x: 80,
             verticalAlign: 'bottom',
             layout: 'horizontal',
-            maxHeight: 130,
+            maxHeight: 180,
             y: 40,
-            x: 0,
             itemStyle: {
               width: 120
             },
