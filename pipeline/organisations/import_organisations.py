@@ -6,6 +6,8 @@ from prefect import flow, get_run_logger
 from pipeline.organisations.import_ord_data import import_ord_data
 from pipeline.organisations.import_eric import import_eric_data
 from pipeline.organisations.import_org_ae_status import import_org_ae_status
+from pipeline.organisations.import_cancer_alliance import import_cancer_alliance_data
+
 
 @flow(name="Import Organisations")
 def import_organisations():
@@ -13,6 +15,7 @@ def import_organisations():
     logger.info("Starting Organisations Import")
 
     import_ord_data()
+    import_cancer_alliance_data()
     import_eric_data()
     import_org_ae_status()
 
