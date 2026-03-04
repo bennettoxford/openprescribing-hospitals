@@ -692,7 +692,9 @@ class BaseMeasureItemView(TemplateView):
             'trust_types': shared_org_data.get('trust_types', {}),
             'org_regions': shared_org_data.get('org_regions', {}),
             'org_icbs': shared_org_data.get('org_icbs', {}),
+            'org_cancer_alliances': shared_org_data.get('org_cancer_alliances', {}),
             'regions_hierarchy': shared_org_data.get('regions_hierarchy', []),
+            'cancer_alliances': shared_org_data.get('cancer_alliances', []),
         })
         return {
             "trusts_included": {"included": org_data['available_count'], "total": total_orgs},
@@ -779,6 +781,9 @@ class MeasureTrustsView(LoginRequiredMixin, MaintenanceModeMixin, TemplateView):
                 'trust_types': shared_org_data.get('trust_types', {}),
                 'org_regions': shared_org_data.get('org_regions', {}),
                 'org_icbs': shared_org_data.get('org_icbs', {}),
+                'org_cancer_alliances': shared_org_data.get('org_cancer_alliances', {}),
+                'regions_hierarchy': shared_org_data.get('regions_hierarchy', []),
+                'cancer_alliances': shared_org_data.get('cancer_alliances', []),
             })
             percentile_data = list(
                 percentiles.values('month', 'percentile', 'quantity')

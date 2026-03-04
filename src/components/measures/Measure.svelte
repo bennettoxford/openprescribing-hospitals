@@ -353,7 +353,9 @@
                 trust_types: parsedOrgData.trust_types || {},
                 org_regions: parsedOrgData.org_regions || {},
                 org_icbs: parsedOrgData.org_icbs || {},
-                regions_hierarchy: parsedOrgData.regions_hierarchy || []
+                org_cancer_alliances: parsedOrgData.org_cancer_alliances || {},
+                regions_hierarchy: parsedOrgData.regions_hierarchy || [],
+                cancer_alliances: parsedOrgData.cancer_alliances || []
             });
             organisationSearchStore.setFilterType('trust');
         } else if ($selectedMode === 'region') {
@@ -424,7 +426,13 @@
         organisationSearchStore.setOrganisationData({
             orgs: Object.fromEntries(trusts.map(name => [parsedOrgData.org_codes?.[name] || name, name])),
             org_codes: parsedOrgData.org_codes || {},
-            predecessor_map: parsedOrgData.predecessor_map || {}
+            predecessor_map: parsedOrgData.predecessor_map || {},
+            trust_types: parsedOrgData.trust_types || {},
+            org_regions: parsedOrgData.org_regions || {},
+            org_icbs: parsedOrgData.org_icbs || {},
+            org_cancer_alliances: parsedOrgData.org_cancer_alliances || {},
+            regions_hierarchy: parsedOrgData.regions_hierarchy || [],
+            cancer_alliances: parsedOrgData.cancer_alliances || []
         });
         organisationSearchStore.setFilterType('trust');
         organisationSearchStore.setAvailableItems(availableTrusts);
@@ -593,7 +601,9 @@
                     trust_types: parsedOrgData.trust_types || {},
                     org_regions: parsedOrgData.org_regions || {},
                     org_icbs: parsedOrgData.org_icbs || {},
-                    regions_hierarchy: parsedOrgData.regions_hierarchy || []
+                    org_cancer_alliances: parsedOrgData.org_cancer_alliances || {},
+                    regions_hierarchy: parsedOrgData.regions_hierarchy || [],
+                    cancer_alliances: parsedOrgData.cancer_alliances || []
                 });
                 organisationSearchStore.setFilterType('trust');
                 const availableTrusts = trusts.filter(trust => $orgdataStore[trust]?.available);
@@ -785,7 +795,9 @@
                 trust_types: parsedOrgData.trust_types || {},
                 org_regions: parsedOrgData.org_regions || {},
                 org_icbs: parsedOrgData.org_icbs || {},
-                regions_hierarchy: parsedOrgData.regions_hierarchy || []
+                org_cancer_alliances: parsedOrgData.org_cancer_alliances || {},
+                regions_hierarchy: parsedOrgData.regions_hierarchy || [],
+                cancer_alliances: parsedOrgData.cancer_alliances || []
             });
             organisationSearchStore.setFilterType('trust');
             const availableTrusts = trusts.filter(trust => $orgdataStore[trust]?.available);

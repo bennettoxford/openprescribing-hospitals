@@ -7,7 +7,7 @@ from django.conf import settings
 import os
 
 
-from .models import Organisation, Region
+from .models import Organisation, Region, CancerAlliance
 
 
 def normalise_string(s):
@@ -55,14 +55,17 @@ def get_organisation_data():
             predecessor_map: successor name -> list of predecessor names (for merged orgs)
             trust_types: organisation name -> trust type (e.g. "Acute", "Mental Health")
             org_regions: organisation name -> NHS region name
-            org_icbs: organisation name -> ICB  name
+            org_icbs: organisation name -> ICB name
+            org_cancer_alliances: organisation name -> Cancer Alliance name
             regions_hierarchy: list of dicts with region, region_code, and icbs
+            cancer_alliances: list of dicts with name and code for filter dropdown
     """
     orgs = Organisation.objects.select_related(
-        'successor', 'trust_type', 'region', 'icb'
+        'successor', 'trust_type', 'region', 'icb', 'cancer_alliance'
     ).values(
         'ods_code', 'ods_name', 'successor__ods_name', 'trust_type__name',
-        'region__name', 'region__code', 'icb__name', 'icb__code'
+        'region__name', 'region__code', 'icb__name', 'icb__code',
+        'cancer_alliance__name', 'cancer_alliance__code'
     ).order_by('ods_name')
 
     org_names = {}
@@ -71,6 +74,7 @@ def get_organisation_data():
     trust_types = {}
     org_regions = {}
     org_icbs = {}
+    org_cancer_alliances = {}
 
     for org in orgs:
         name = org['ods_name']
@@ -84,6 +88,8 @@ def get_organisation_data():
             org_regions[name] = org['region__name']
         if org.get('icb__name'):
             org_icbs[name] = org['icb__name']
+        if org.get('cancer_alliance__name'):
+            org_cancer_alliances[name] = org['cancer_alliance__name']
 
         if org['successor__ods_name']:
             successor_name = org['successor__ods_name']
@@ -103,6 +109,11 @@ def get_organisation_data():
             'icbs': icbs,
         })
 
+    cancer_alliances = [
+        {'name': ca.name, 'code': ca.code or ''}
+        for ca in CancerAlliance.objects.all().order_by('name')
+    ]
+
     return {
         'orgs': org_names,
         'org_codes': org_codes,
@@ -110,7 +121,9 @@ def get_organisation_data():
         'trust_types': trust_types,
         'org_regions': org_regions,
         'org_icbs': org_icbs,
+        'org_cancer_alliances': org_cancer_alliances,
         'regions_hierarchy': regions_hierarchy,
+        'cancer_alliances': cancer_alliances,
     }
 
 

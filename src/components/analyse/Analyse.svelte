@@ -93,7 +93,9 @@
                 trust_types: parsedData.trust_types || {},
                 org_regions: parsedData.org_regions || {},
                 org_icbs: parsedData.org_icbs || {},
-                regions_hierarchy: parsedData.regions_hierarchy || []
+                org_cancer_alliances: parsedData.org_cancer_alliances || {},
+                regions_hierarchy: parsedData.regions_hierarchy || [],
+                cancer_alliances: parsedData.cancer_alliances || []
             });
             organisationSearchStore.setFilterType('trust');
         } catch (error) {
