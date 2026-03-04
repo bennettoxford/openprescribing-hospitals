@@ -51,6 +51,11 @@
         unselectedSectionCollapsed = false;
         unselectableSectionCollapsed = true;
     }
+    $: if (!filterDropdownOpen) {
+        collapsedTrustType = true;
+        collapsedRegionIcb = true;
+        collapsedCancerAlliance = true;
+    }
 
     $: groupedItems = (() => {
         availableItems;
@@ -301,6 +306,9 @@
     let selectedCancerAlliances = new Set();
     let expandedRegions = new Set();
     let expandedAcute = false;
+    let collapsedTrustType = true;
+    let collapsedRegionIcb = true;
+    let collapsedCancerAlliance = true;
     let acuteParentCheckbox;
     function toggleTrustType(type) {
         const next = new Set(selectedTrustTypes);
@@ -474,7 +482,11 @@
                     </div>
                     {#if $source.filterType === 'trust' && trustTypes.length > 0}
                     <div class="px-2 pb-2">
-                        <div class="px-2 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Trust type</div>
+                        <button type="button" class="w-full flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 hover:bg-gray-50 transition-colors" on:click={() => collapsedTrustType = !collapsedTrustType}>
+                            <span>Trust type</span>
+                            <svg class="w-3.5 h-3.5 transition-transform duration-200 {collapsedTrustType ? '' : 'rotate-180'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        {#if !collapsedTrustType}
                         {#if acuteTypes.length > 0}
                         <div class="px-2 pt-1 pb-0.5">
                             <div class="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-800 hover:bg-gray-50 transition-colors">
@@ -489,11 +501,16 @@
                         </div>
                         {/if}
                         {#each otherTypes as type}<label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0"><input type="checkbox" checked={selectedTrustTypes.has(type)} on:change={() => toggleTrustType(type)} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0" /><span>{type}</span></label>{/each}
+                        {/if}
                     </div>
                     {/if}
                     {#if regionsHierarchy.length > 0}
                     <div class="px-2 pt-2 {$source.filterType === 'trust' && trustTypes.length > 0 ? 'border-t border-gray-100' : ''}">
-                        <div class="px-2 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{$source.filterType === 'icb' ? 'Region' : 'Region & ICB'}</div>
+                        <button type="button" class="w-full flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 hover:bg-gray-50 transition-colors" on:click={() => collapsedRegionIcb = !collapsedRegionIcb}>
+                            <span>{$source.filterType === 'icb' ? 'Region' : 'Region & ICB'}</span>
+                            <svg class="w-3.5 h-3.5 transition-transform duration-200 {collapsedRegionIcb ? '' : 'rotate-180'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        {#if !collapsedRegionIcb}
                         {#each regionsHierarchy as region}
                         <div class="px-1">
                             <div class="flex items-center gap-2 rounded-lg px-2 py-2 sm:py-1.5 text-sm hover:bg-gray-50 transition-colors min-h-[44px] sm:min-h-0 {selectedRegions.has(region.region) ? 'text-oxford-700' : 'text-gray-700'}">
@@ -508,11 +525,16 @@
                             {/if}
                         </div>
                         {/each}
+                        {/if}
                     </div>
                     {/if}
                     {#if cancerAlliances.length > 0}
                     <div class="px-2 pt-2 {$source.filterType === 'trust' && (trustTypes.length > 0 || regionsHierarchy.length > 0) ? 'border-t border-gray-100' : ''}">
-                        <div class="px-2 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Cancer Alliance</div>
+                        <button type="button" class="w-full flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 hover:bg-gray-50 transition-colors" on:click={() => collapsedCancerAlliance = !collapsedCancerAlliance}>
+                            <span>Cancer Alliance</span>
+                            <svg class="w-3.5 h-3.5 transition-transform duration-200 {collapsedCancerAlliance ? '' : 'rotate-180'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        {#if !collapsedCancerAlliance}
                         {#each cancerAlliances as ca}
                         <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0 {selectedCancerAlliances.has(ca.name) ? 'text-oxford-700' : ''}">
                             <input type="checkbox" checked={selectedCancerAlliances.has(ca.name)} on:change={() => toggleCancerAlliance(ca.name)} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0" />
@@ -523,6 +545,7 @@
                             <input type="checkbox" checked={selectedCancerAlliances.has('Not applicable')} on:change={() => toggleCancerAlliance('Not applicable')} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0" />
                             <span class="truncate" title="Trusts not associated with a Cancer Alliance">Not applicable</span>
                         </label>
+                        {/if}
                     </div>
                     {/if}
                 </div>
