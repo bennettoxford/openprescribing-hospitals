@@ -370,12 +370,12 @@
               text: legendTitle,
               style: { fontSize: '12px', fontWeight: 600, color: '#374151' }
             },
-            align: 'center',
+            align: 'left',
+            x: 80,
             verticalAlign: 'bottom',
             layout: 'horizontal',
             maxHeight: 180,
             y: 40,
-            x: 0,
             itemStyle: {
               width: 120
             },
