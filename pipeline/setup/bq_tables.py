@@ -6,6 +6,7 @@ from pipeline.setup.config import (
     PROJECT_ID,
     DATASET_ID,
     ORGANISATION_TABLE_ID,
+    CANCER_ALLIANCE_CATEGORISATIONS_TABLE_ID,
     SCMD_RAW_PROVISIONAL_TABLE_ID,
     SCMD_RAW_FINALISED_TABLE_ID,
     SCMD_PROCESSED_TABLE_ID,
@@ -133,6 +134,36 @@ ORGANISATION_TABLE_SPEC = TableSpec(
             description="ICB code of the organisation",
         ),
         bigquery.SchemaField("icb", "STRING", mode="NULLABLE", description="ICB of the organisation"),
+    ],
+)
+
+CANCER_ALLIANCE_CATEGORISATIONS_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=CANCER_ALLIANCE_CATEGORISATIONS_TABLE_ID,
+    description="Cancer Alliance categorisation per organisation from ONS boundaries (postcode lookup)",
+    schema=[
+        bigquery.SchemaField(
+            "ods_code", "STRING", mode="REQUIRED", description="ODS code of the organisation"
+        ),
+        bigquery.SchemaField(
+            "cancer_alliance_code",
+            "STRING",
+            mode="NULLABLE",
+            description="Cancer Alliance code from ONS July 2023 boundaries",
+        ),
+        bigquery.SchemaField(
+            "cancer_alliance_name",
+            "STRING",
+            mode="NULLABLE",
+            description="Cancer Alliance name from ONS July 2023 boundaries",
+        ),
+        bigquery.SchemaField(
+            "notes",
+            "STRING",
+            mode="NULLABLE",
+            description="Notes from the ODS-CA mapping (e.g. partnership info)",
+        ),
     ],
 )
 

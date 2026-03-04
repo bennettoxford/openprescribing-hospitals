@@ -14,7 +14,9 @@ function createOrganisationSearchStore() {
         trustTypes: new Map(),
         orgRegions: new Map(),
         orgIcbs: new Map(),
+        orgCancerAlliances: new Map(),
         regionsHierarchy: [],
+        cancerAlliances: [],
         filtersApplied: false
     });
 
@@ -34,7 +36,10 @@ function createOrganisationSearchStore() {
                 const orgRegions = new Map(Object.entries(orgRegionsRaw));
                 const orgIcbsRaw = orgData.org_icbs || {};
                 const orgIcbs = new Map(Object.entries(orgIcbsRaw));
+                const orgCancerAlliancesRaw = orgData.org_cancer_alliances || {};
+                const orgCancerAlliances = new Map(Object.entries(orgCancerAlliancesRaw));
                 const regionsHierarchy = Array.isArray(orgData.regions_hierarchy) ? orgData.regions_hierarchy : [];
+                const cancerAlliances = Array.isArray(orgData.cancer_alliances) ? orgData.cancer_alliances : [];
                 
                 orgNames.forEach(name => {
                     organisations.set(name, {
@@ -95,7 +100,9 @@ function createOrganisationSearchStore() {
                     trustTypes,
                     orgRegions,
                     orgIcbs,
+                    orgCancerAlliances,
                     regionsHierarchy,
+                    cancerAlliances,
                     filtersApplied: false
                 };
             });
@@ -186,6 +193,51 @@ function createOrganisationSearchStore() {
         getOrgICB(orgName) {
             const currentStore = get(this);
             return currentStore.orgIcbs?.get(orgName) ?? null;
+        },
+
+        getCancerAlliance(orgName) {
+            const currentStore = get(this);
+            return currentStore.orgCancerAlliances?.get(orgName) ?? null;
+        },
+
+        getCancerAlliances() {
+            const currentStore = get(this);
+            return currentStore.cancerAlliances || [];
+        },
+
+        getOrgsByCancerAlliance(caName) {
+            const currentStore = get(this);
+            if (!currentStore.orgCancerAlliances || !caName) return [];
+            const result = [];
+            currentStore.orgCancerAlliances.forEach((ca, orgName) => {
+                if (ca === caName) result.push(orgName);
+            });
+            return result;
+        },
+
+        getOrgsWithNoCancerAlliance() {
+            const currentStore = get(this);
+            if (!currentStore.organisations) return [];
+            const result = [];
+            currentStore.organisations.forEach((_, orgName) => {
+                const ca = currentStore.orgCancerAlliances?.get(orgName);
+                if (!ca || ca === '') result.push(orgName);
+            });
+            return result;
+        },
+
+        getOrgsByCancerAlliances(selectedCancerAlliances) {
+            const result = new Set();
+            if (selectedCancerAlliances && selectedCancerAlliances.size > 0) {
+                selectedCancerAlliances.forEach((caName) => {
+                    if (caName === 'Not applicable') {
+                        this.getOrgsWithNoCancerAlliance().forEach((name) => result.add(name));
+                    } else {
+                        this.getOrgsByCancerAlliance(caName).forEach((name) => result.add(name));
+                    }
+                });
+            }
+            return Array.from(result);
         },
 
         getOrgsByRegion(regionName) {

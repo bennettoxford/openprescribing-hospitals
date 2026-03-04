@@ -20,7 +20,9 @@ class AnalyseView(MaintenanceModeMixin, TemplateView):
             'trust_types': org_data.get('trust_types', {}),
             'org_regions': org_data.get('org_regions', {}),
             'org_icbs': org_data.get('org_icbs', {}),
+            'org_cancer_alliances': org_data.get('org_cancer_alliances', {}),
             'regions_hierarchy': org_data.get('regions_hierarchy', []),
+            'cancer_alliances': org_data.get('cancer_alliances', []),
         }, default=str)
 
         return context

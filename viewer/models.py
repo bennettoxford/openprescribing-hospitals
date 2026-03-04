@@ -206,6 +206,23 @@ class TrustType(models.Model):
         indexes = [
             models.Index(fields=["name"]),
         ]
+
+
+class CancerAlliance(models.Model):
+    """Cancer Alliance from ONS boundaries (July 2023)"""
+    code = models.CharField(max_length=20, unique=True, help_text="Cancer Alliance code")
+    name = models.CharField(max_length=255, help_text="Cancer Alliance name")
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["code"]),
+            models.Index(fields=["name"]),
+        ]
+
+
 class Organisation(models.Model):
     ods_code = models.CharField(max_length=10, unique=True)
     ods_name = models.CharField(max_length=255, null=False)
@@ -218,6 +235,14 @@ class Organisation(models.Model):
         blank=True,
         related_name="organisations",
         help_text="Trust type from ERIC data"
+    )
+    cancer_alliance = models.ForeignKey(
+        CancerAlliance,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="organisations",
+        help_text="Cancer Alliance from ONS boundaries (postcode lookup)",
     )
     successor = models.ForeignKey(
         "self",

@@ -59,6 +59,14 @@ The trust type for each trust submitting data to the SCMD is taken from the [Est
 
 You can see the trust type for each NHS Trust on the [Submission History page](https://hospitals.openprescribing.net/submission-history/), where it is shown above each organisation's chart when available.
 
+### Where do Cancer Alliance boundaries come from?
+
+[Cancer Alliances](https://www.england.nhs.uk/cancer/cancer-alliances-improving-care-locally/) are groups of organisations (including but not limited to NHS trusts) established to transform cancer care across geographic regions. There are 20 Cancer Alliances in England, which provide a useful grouping for analyses of cancer products.
+
+The geographic boundaries, based on cancer patient pathway flows, are published by the [Office for National Statistics (ONS)](https://geoportal.statistics.gov.uk/datasets/ons::cancer-alliances-july-2023-boundaries-en-bgc-2/about) (last updated July 2023). They roughly align with one or more whole Integrated Care Board (ICB) boundary. However, some trusts sit outside these boundaries (for example, Royal Free and UCLH in London). Additionally, not all trusts within the boundaries form part of the resepective Cancer Alliance and some trusts may partner with multiple Cancer Alliances. There is no single source of NHS Trust to Cancer Alliance mapping, but most Cancer Alliances indicate trusts they partner with on their websites ([which you can find here]((https://www.england.nhs.uk/cancer/cancer-alliances-improving-care-locally/))).
+
+We have manually created a mapping of NHS Trust to Cancer Alliance for use on the platform, which is [available here](https://github.com/bennettoxford/openprescribing-hospitals/issues/707#issuecomment-3996398270).
+
 ### How does the organisation search work?
 
 When you search for NHS Trusts (or Integrated Care Boards or regions), the results match your search in several ways:

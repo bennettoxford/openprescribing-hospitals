@@ -164,7 +164,9 @@
             trust_types: parsedOrgData.trust_types || {},
             org_regions: parsedOrgData.org_regions || {},
             org_icbs: parsedOrgData.org_icbs || {},
+            org_cancer_alliances: parsedOrgData.org_cancer_alliances || {},
             regions_hierarchy: parsedOrgData.regions_hierarchy || parsedRegionsHierarchy || [],
+            cancer_alliances: parsedOrgData.cancer_alliances || [],
         });
         organisationSearchStore.setFilterType('trust');
         organisationSearchStore.setAvailableItems(searchableOrgs);

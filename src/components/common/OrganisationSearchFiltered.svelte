@@ -290,6 +290,7 @@
 
     $: trustTypes = ($source && typeof source.getTrustTypes === 'function' ? source.getTrustTypes() : []) || [];
     $: regionsHierarchy = ($source && typeof source.getRegionsHierarchy === 'function' ? source.getRegionsHierarchy() : []) || [];
+    $: cancerAlliances = ($source && typeof source.getCancerAlliances === 'function' ? source.getCancerAlliances() : []) || [];
     const ACUTE_PREFIX = 'Acute -';
     $: acuteTypes = trustTypes.filter((t) => t.startsWith(ACUTE_PREFIX));
     $: otherTypes = trustTypes.filter((t) => !t.startsWith(ACUTE_PREFIX));
@@ -297,6 +298,7 @@
     let selectedTrustTypes = new Set();
     let selectedRegions = new Set();
     let selectedICBs = new Set();
+    let selectedCancerAlliances = new Set();
     let expandedRegions = new Set();
     let expandedAcute = false;
     let acuteParentCheckbox;
@@ -323,6 +325,7 @@
         selectedTrustTypes = new Set();
         selectedRegions = new Set();
         selectedICBs = new Set();
+        selectedCancerAlliances = new Set();
         expandedRegions = new Set();
         applyTrustTypeSelection();
     }
@@ -357,11 +360,13 @@
             } else {
                 orgList = allItems;
             }
-            if (selectedRegions.size > 0 || selectedICBs.size > 0) {
+            if (selectedRegions.size > 0 || selectedICBs.size > 0 || selectedCancerAlliances.size > 0) {
                 const byRegionIcb = typeof source.getOrgsByRegionsOrICBs === 'function' ? source.getOrgsByRegionsOrICBs(selectedRegions, selectedICBs) : [];
-                orgList = orgList.filter((name) => new Set(byRegionIcb).has(name));
+                const byCancerAlliance = typeof source.getOrgsByCancerAlliances === 'function' ? source.getOrgsByCancerAlliances(selectedCancerAlliances) : [];
+                const combined = new Set([...byRegionIcb, ...byCancerAlliance]);
+                orgList = orgList.filter((name) => combined.has(name));
             }
-            const hasFilters = selectedTrustTypes.size > 0 || selectedRegions.size > 0 || selectedICBs.size > 0;
+            const hasFilters = selectedTrustTypes.size > 0 || selectedRegions.size > 0 || selectedICBs.size > 0 || selectedCancerAlliances.size > 0;
             if (typeof source.setFiltersApplied === 'function') source.setFiltersApplied(hasFilters);
             applyFilterAndSelection(orgList, source.setAvailableItems);
         } else if (store.filterType === 'icb') {
@@ -395,9 +400,16 @@
         selectedICBs = next;
         applyTrustTypeSelection();
     }
-    $: filterBadgeCount = selectedTrustTypes.size + selectedRegions.size + selectedICBs.size;
-    $: hasFilterSelection = selectedTrustTypes.size > 0 || selectedRegions.size > 0 || selectedICBs.size > 0;
-    $: hasFilters = $source.filterType === 'trust' && (trustTypes.length > 0 || regionsHierarchy.length > 0);
+    function toggleCancerAlliance(caName) {
+        const next = new Set(selectedCancerAlliances);
+        if (next.has(caName)) next.delete(caName);
+        else next.add(caName);
+        selectedCancerAlliances = next;
+        applyTrustTypeSelection();
+    }
+    $: filterBadgeCount = selectedTrustTypes.size + selectedRegions.size + selectedICBs.size + selectedCancerAlliances.size;
+    $: hasFilterSelection = selectedTrustTypes.size > 0 || selectedRegions.size > 0 || selectedICBs.size > 0 || selectedCancerAlliances.size > 0;
+    $: hasFilters = $source.filterType === 'trust' && (trustTypes.length > 0 || regionsHierarchy.length > 0 || cancerAlliances.length > 0);
     $: selectedAvailableCount = selectedItems.filter((item) => isItemAvailable(item)).length;
     $: totalAvailable = Array.from($source.availableItems || []).length;
     $: allSelected = totalAvailable > 0 && selectedAvailableCount >= totalAvailable;
@@ -496,6 +508,21 @@
                             {/if}
                         </div>
                         {/each}
+                    </div>
+                    {/if}
+                    {#if cancerAlliances.length > 0}
+                    <div class="px-2 pt-2 {$source.filterType === 'trust' && (trustTypes.length > 0 || regionsHierarchy.length > 0) ? 'border-t border-gray-100' : ''}">
+                        <div class="px-2 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Cancer Alliance</div>
+                        {#each cancerAlliances as ca}
+                        <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0 {selectedCancerAlliances.has(ca.name) ? 'text-oxford-700' : ''}">
+                            <input type="checkbox" checked={selectedCancerAlliances.has(ca.name)} on:change={() => toggleCancerAlliance(ca.name)} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0" />
+                            <span class="truncate" title={ca.name}>{ca.name}</span>
+                        </label>
+                        {/each}
+                        <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0 border-t border-gray-100 mt-1 pt-1.5 {selectedCancerAlliances.has('Not applicable') ? 'text-oxford-700' : ''}">
+                            <input type="checkbox" checked={selectedCancerAlliances.has('Not applicable')} on:change={() => toggleCancerAlliance('Not applicable')} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0" />
+                            <span class="truncate" title="Trusts not associated with a Cancer Alliance">Not applicable</span>
+                        </label>
                     </div>
                     {/if}
                 </div>

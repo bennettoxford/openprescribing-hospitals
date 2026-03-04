@@ -159,7 +159,9 @@ class SubmissionHistoryView(MaintenanceModeMixin, TemplateView):
             'trust_types': trust_types,
             'org_regions': shared_org_data.get('org_regions', {}),
             'org_icbs': shared_org_data.get('org_icbs', {}),
+            'org_cancer_alliances': shared_org_data.get('org_cancer_alliances', {}),
             'regions_hierarchy': shared_org_data.get('regions_hierarchy', []),
+            'cancer_alliances': shared_org_data.get('cancer_alliances', []),
         }))
 
         if all_dates:
