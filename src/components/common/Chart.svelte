@@ -245,7 +245,7 @@
     ...chartOptions,
     chart: {
       type: 'line',
-      height: 500,
+      height: 600,
       zoomType: 'xy',
       panning: true,
       panKey: 'shift',
@@ -329,7 +329,7 @@
       align: 'right',
       verticalAlign: 'top',
       layout: 'vertical',
-      maxHeight: 400,
+      maxHeight: 500,
       navigation: {
         activeColor: '#2563eb',
         animation: false,
@@ -362,7 +362,7 @@
         },
         chartOptions: {
           chart: {
-            height: 550,
+            height: 650,
             spacingBottom: 40
           },
           legend: {
@@ -373,7 +373,7 @@
             align: 'center',
             verticalAlign: 'bottom',
             layout: 'horizontal',
-            maxHeight: 130,
+            maxHeight: 180,
             y: 40,
             x: 0,
             itemStyle: {

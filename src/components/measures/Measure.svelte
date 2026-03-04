@@ -413,7 +413,7 @@
         uniqueUnits = extractUniqueUnits();
 
         measureChartStore.setDimensions({
-            height: 500,
+            height: 600,
             margin: { top: 10, right: 20, bottom: 30, left: 80 }
         });
 
@@ -973,7 +973,7 @@
         </div>
     </div>
 
-    <div class="lg:col-span-4 relative h-[550px]">
+    <div class="lg:col-span-4 relative h-[650px] mb-4">
         <div class="chart-container absolute inset-0">
             {#if $orgdataStore.length === 0}
                 <p class="text-center text-gray-500 pt-8">No data available.</p>

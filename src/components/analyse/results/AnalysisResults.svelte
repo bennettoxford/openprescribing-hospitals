@@ -4,7 +4,7 @@
   }} />
 
 <script>
-    import { onDestroy } from 'svelte';
+    import { onDestroy, onMount } from 'svelte';
     import TotalsTable from './TotalsTable.svelte';
     import ProductsTable from './ProductsTable.svelte';
     import { resultsStore } from '../../../stores/resultsStore';
@@ -57,6 +57,13 @@
             padTop: 1.1,
             resetToInitial: true
         }
+    });
+
+    onMount(() => {
+        resultsChartStore.setDimensions({
+            height: 600,
+            margin: { top: 10, right: 20, bottom: 30, left: 50 }
+        });
     });
 
     $: excludedVmps = Array.isArray($resultsStore.excludedVmps) ? $resultsStore.excludedVmps : [];
@@ -712,7 +719,7 @@
                             </div>
                         {:else if currentModeHasData || canShowPercentilesWithoutTrustData}
                             <div class="grid grid-cols-1 gap-4">
-                                <div class="relative h-[550px] mb-8">
+                                <div class="relative h-[650px] mb-8">
                                     <Chart 
                                         store={resultsChartStore} 
                                         data={filteredData.length > 0 ? filteredData : selectedData}
