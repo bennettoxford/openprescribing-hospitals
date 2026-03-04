@@ -7,7 +7,7 @@ from pipeline.load_data.load_organisations import (
     create_trust_types,
     load_organisation_data,
 )
-from viewer.models import Organisation, TrustType, Region, ICB
+from viewer.models import Organisation, TrustType, Region, ICB, CancerAlliance
 
 
 @pytest.fixture
@@ -21,6 +21,8 @@ def sample_bigquery_data():
             "region_code": "REG001",
             "icb": "ICB North",
             "icb_code": "ICB1",
+            "cancer_alliance_code": "E56000010",
+            "cancer_alliance": "South East London",
             "successors": ["DEF456"],
             "ultimate_successors": ["DEF456"],
             "trust_type": "ACUTE - TEACHING",
@@ -32,6 +34,8 @@ def sample_bigquery_data():
             "region_code": "REG002",
             "icb": "ICB South",
             "icb_code": "ICB2",
+            "cancer_alliance_code": "E56000010",
+            "cancer_alliance": "South East London",
             "successors": [],
             "ultimate_successors": [],
             "trust_type": "COMMUNITY",
@@ -43,6 +47,8 @@ def sample_bigquery_data():
             "region_code": "REG003",
             "icb": "ICB East",
             "icb_code": "ICB3",
+            "cancer_alliance_code": None,
+            "cancer_alliance": None,
             "successors": [],
             "ultimate_successors": [],
             "trust_type": None,
@@ -61,6 +67,8 @@ def sample_transformed_data():
             "region_code": "REG001",
             "icb": "ICB North",
             "icb_code": "ICB1",
+            "cancer_alliance_code": "E56000010",
+            "cancer_alliance": "South East London",
             "successor_code": "DEF456",
             "trust_type": "ACUTE - TEACHING",
         },
@@ -71,6 +79,8 @@ def sample_transformed_data():
             "region_code": "REG002",
             "icb": "ICB South",
             "icb_code": "ICB2",
+            "cancer_alliance_code": "E56000010",
+            "cancer_alliance": "South East London",
             "successor_code": None,
             "trust_type": "COMMUNITY",
         },
@@ -81,6 +91,8 @@ def sample_transformed_data():
             "region_code": "REG003",
             "icb": "ICB East",
             "icb_code": "ICB3",
+            "cancer_alliance_code": "",
+            "cancer_alliance": "",
             "successor_code": None,
             "trust_type": None,
         },
@@ -107,6 +119,8 @@ class TestLoadOrganisations:
                 "region_code",
                 "icb",
                 "icb_code",
+                "cancer_alliance_code",
+                "cancer_alliance",
                 "successors",
                 "ultimate_successors",
                 "trust_type",
@@ -125,7 +139,11 @@ class TestLoadOrganisations:
         assert result[1]["successor_code"] is None  # Second org has no successor
         assert all(
             key in result[0]
-            for key in ["ods_code", "ods_name", "region", "region_code", "icb", "icb_code", "successor_code", "trust_type"]
+            for key in [
+                "ods_code", "ods_name", "region", "region_code",
+                "icb", "icb_code", "cancer_alliance_code", "cancer_alliance",
+                "successor_code", "trust_type",
+            ]
         )
 
     @pytest.mark.django_db
@@ -171,9 +189,13 @@ class TestLoadOrganisations:
         assert orgs_list[0].icb.name == "ICB North"
         assert orgs_list[0].icb.code == "ICB1"
         assert orgs_list[0].trust_type.name == "ACUTE - TEACHING"
+        assert orgs_list[0].cancer_alliance is not None
+        assert orgs_list[0].cancer_alliance.name == "South East London"
 
         assert orgs_list[1].trust_type.name == "COMMUNITY"
+        assert orgs_list[1].cancer_alliance.name == "South East London"
         assert orgs_list[2].trust_type is None  # GHI789 has no trust type
+        assert orgs_list[2].cancer_alliance is None
 
         assert (
             orgs_list[0].successor == orgs_list[1]

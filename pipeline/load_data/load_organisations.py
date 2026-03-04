@@ -5,6 +5,7 @@ from pipeline.setup.config import (
     PROJECT_ID,
     DATASET_ID,
     ORGANISATION_TABLE_ID,
+    CANCER_ALLIANCE_CATEGORISATIONS_TABLE_ID,
     SCMD_PROCESSED_TABLE_ID,
     ERIC_TRUST_DATA_TABLE_ID,
 )
@@ -12,7 +13,8 @@ from pipeline.utils.utils import setup_django_environment, execute_bigquery_quer
 
 setup_django_environment()
 from viewer.models import (
-    Organisation, 
+    Organisation,
+    CancerAlliance,
     TrustType,
     Region,
     ICB,
@@ -40,6 +42,8 @@ def extract_organisations() -> List[Dict]:
         org.region_code,
         org.icb,
         org.icb_code,
+        ca.cancer_alliance_code,
+        ca.cancer_alliance_name AS cancer_alliance,
         org.successors, 
         org.ultimate_successors,
         eric.trust_type
@@ -48,6 +52,9 @@ def extract_organisations() -> List[Dict]:
     LEFT JOIN 
         `{PROJECT_ID}.{DATASET_ID}.{ERIC_TRUST_DATA_TABLE_ID}` eric
         ON org.ods_code = eric.trust_code
+    LEFT JOIN 
+        `{PROJECT_ID}.{DATASET_ID}.{CANCER_ALLIANCE_CATEGORISATIONS_TABLE_ID}` ca
+        ON org.ods_code = ca.ods_code
     WHERE 
         org.ods_code IN (
             SELECT DISTINCT ods_code 
@@ -80,6 +87,8 @@ def transform_organisations(data: List[Dict]) -> List[Dict]:
             "region_code": row["region_code"] or "",
             "icb": row["icb"] or "",
             "icb_code": row["icb_code"] or "",
+            "cancer_alliance_code": row.get("cancer_alliance_code") or "",
+            "cancer_alliance": row.get("cancer_alliance") or "",
             "successor_code": successor_map.get(row["ods_code"]),
             "trust_type": row.get("trust_type"),
         }
@@ -192,6 +201,10 @@ def load_organisation_data(data: List[Dict], trust_type_lookup: Dict) -> Dict:
         region_deleted_count = Region.objects.all().delete()[0]
         logger.info(f"Deleted {region_deleted_count} Region records")
 
+        logger.info("Deleting CancerAlliance records...")
+        cancer_alliance_deleted_count = CancerAlliance.objects.all().delete()[0]
+        logger.info(f"Deleted {cancer_alliance_deleted_count} CancerAlliance records")
+
         total_related_deleted = (scmd_deleted_total + dose_deleted_total + ingredient_deleted_total + 
                                ddd_deleted_total + cost_deleted_total + measure_deleted_total + cache_deleted_total)
         logger.info(f"Deletion summary - Related records: {total_related_deleted}, Organisations: {deleted_count}, ICBs: {icb_deleted_count}, Regions: {region_deleted_count}")
@@ -240,13 +253,29 @@ def load_organisation_data(data: List[Dict], trust_type_lookup: Dict) -> Dict:
         created_icbs = ICB.objects.bulk_create(icb_objects, batch_size=1000)
         logger.info(f"Created {len(created_icbs)} ICB records")
 
+        unique_cancer_alliances = {}
+        for row in data:
+            ca_code = row.get("cancer_alliance_code")
+            ca_name = row.get("cancer_alliance")
+            if ca_code and ca_name and ca_code not in unique_cancer_alliances:
+                unique_cancer_alliances[ca_code] = ca_name
+
+        cancer_alliance_objects = [
+            CancerAlliance(code=code, name=name)
+            for code, name in unique_cancer_alliances.items()
+        ]
+        CancerAlliance.objects.bulk_create(cancer_alliance_objects, batch_size=1000)
+        logger.info(f"Created {len(cancer_alliance_objects)} CancerAlliance records")
+
+        cancer_alliance_lookup = {ca.code: ca for ca in CancerAlliance.objects.all()}
         icb_lookup = {icb.code: icb for icb in ICB.objects.all()}
 
         organisation_objects = []
         for row in data:
             region = region_lookup.get(row.get("region_code"))
             icb = icb_lookup.get(row.get("icb_code"))
-            
+            cancer_alliance = cancer_alliance_lookup.get(row.get("cancer_alliance_code"))
+
             if region and icb:
                 organisation_objects.append(Organisation(
                     ods_code=row["ods_code"],
@@ -254,6 +283,7 @@ def load_organisation_data(data: List[Dict], trust_type_lookup: Dict) -> Dict:
                     region=region,
                     icb=icb,
                     trust_type=trust_type_lookup.get(row.get("trust_type")),
+                    cancer_alliance=cancer_alliance,
                 ))
 
         created_objects = Organisation.objects.bulk_create(
