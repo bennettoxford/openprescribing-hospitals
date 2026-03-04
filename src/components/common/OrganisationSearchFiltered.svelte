@@ -51,6 +51,11 @@
         unselectedSectionCollapsed = false;
         unselectableSectionCollapsed = true;
     }
+    $: if (!filterDropdownOpen) {
+        collapsedTrustType = true;
+        collapsedRegionIcb = true;
+        collapsedCancerAlliance = true;
+    }
 
     $: groupedItems = (() => {
         availableItems;
@@ -301,6 +306,9 @@
     let selectedCancerAlliances = new Set();
     let expandedRegions = new Set();
     let expandedAcute = false;
+    let collapsedTrustType = true;
+    let collapsedRegionIcb = true;
+    let collapsedCancerAlliance = true;
     let acuteParentCheckbox;
     function toggleTrustType(type) {
         const next = new Set(selectedTrustTypes);
@@ -474,55 +482,73 @@
                     </div>
                     {#if $source.filterType === 'trust' && trustTypes.length > 0}
                     <div class="px-2 pb-2">
-                        <div class="px-2 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Trust type</div>
+                        <button type="button" class="w-full flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 hover:bg-gray-50 transition-colors" on:click={() => collapsedTrustType = !collapsedTrustType}>
+                            <span>Trust type</span>
+                            <svg class="w-3.5 h-3.5 transition-transform duration-200 {collapsedTrustType ? '' : 'rotate-180'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        {#if !collapsedTrustType}
                         {#if acuteTypes.length > 0}
                         <div class="px-2 pt-1 pb-0.5">
                             <div class="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-800 hover:bg-gray-50 transition-colors">
                                 <button type="button" class="p-1 -m-1 hover:bg-gray-200/60 rounded-md transition-colors shrink-0 text-gray-400" on:click={() => expandedAcute = !expandedAcute} aria-label={expandedAcute ? 'Collapse' : 'Expand'}><svg class="w-3.5 h-3.5 transition-transform duration-200 {expandedAcute ? 'rotate-90' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>
                                 <label class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0"><input bind:this={acuteParentCheckbox} type="checkbox" checked={allAcuteSelected} on:change={toggleAcuteParent} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0" /><span>Acute</span></label>
+                                <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">{acuteTypes.reduce((n, t) => n + (source.getOrgsByTrustType?.(t) || []).length, 0)} trusts</span>
                             </div>
                             {#if expandedAcute}
                             <div class="ml-6 pl-3 mt-0.5 border-l-2 border-gray-200 space-y-0.5">
-                                {#each acuteTypes as type}<label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-1 text-sm text-gray-600 transition-colors"><input type="checkbox" checked={selectedTrustTypes.has(type)} on:change={() => toggleTrustType(type)} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0" /><span>{type.replace(ACUTE_PREFIX, '').trim()}</span></label>{/each}
+                                {#each acuteTypes as type}<label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-1 text-sm text-gray-600 transition-colors"><input type="checkbox" checked={selectedTrustTypes.has(type)} on:change={() => toggleTrustType(type)} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0" /><span>{type.replace(ACUTE_PREFIX, '').trim()}</span><span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded ml-auto">{(source.getOrgsByTrustType?.(type) || []).length} trusts</span></label>{/each}
                             </div>
                             {/if}
                         </div>
                         {/if}
-                        {#each otherTypes as type}<label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0"><input type="checkbox" checked={selectedTrustTypes.has(type)} on:change={() => toggleTrustType(type)} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0" /><span>{type}</span></label>{/each}
+                        {#each otherTypes as type}<label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0"><input type="checkbox" checked={selectedTrustTypes.has(type)} on:change={() => toggleTrustType(type)} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0" /><span class="flex-1 min-w-0">{type}</span><span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">{(source.getOrgsByTrustType?.(type) || []).length} trusts</span></label>{/each}
+                        {/if}
                     </div>
                     {/if}
                     {#if regionsHierarchy.length > 0}
                     <div class="px-2 pt-2 {$source.filterType === 'trust' && trustTypes.length > 0 ? 'border-t border-gray-100' : ''}">
-                        <div class="px-2 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{$source.filterType === 'icb' ? 'Region' : 'Region & ICB'}</div>
+                        <button type="button" class="w-full flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 hover:bg-gray-50 transition-colors" on:click={() => collapsedRegionIcb = !collapsedRegionIcb}>
+                            <span>{$source.filterType === 'icb' ? 'Region' : 'Region & ICB'}</span>
+                            <svg class="w-3.5 h-3.5 transition-transform duration-200 {collapsedRegionIcb ? '' : 'rotate-180'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        {#if !collapsedRegionIcb}
                         {#each regionsHierarchy as region}
                         <div class="px-1">
                             <div class="flex items-center gap-2 rounded-lg px-2 py-2 sm:py-1.5 text-sm hover:bg-gray-50 transition-colors min-h-[44px] sm:min-h-0 {selectedRegions.has(region.region) ? 'text-oxford-700' : 'text-gray-700'}">
                                 {#if $source.filterType === 'trust'}<button type="button" class="p-1.5 -m-1 hover:bg-gray-200/60 rounded-md transition-colors shrink-0 text-gray-400" on:click={() => toggleRegionExpansion(region.region)} aria-label={expandedRegions.has(region.region) ? 'Collapse' : 'Expand'}><svg class="w-3.5 h-3.5 transition-transform duration-200 {expandedRegions.has(region.region) ? 'rotate-90' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>{/if}
                                 <label class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0"><input type="checkbox" checked={selectedRegions.has(region.region)} on:change={() => toggleRegion(region.region)} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0" /><span class="truncate" title={region.region + (region.region_code ? ' (' + region.region_code + ')' : '')}>{region.region}{#if region.region_code}&nbsp;({region.region_code}){/if}</span></label>
-                                {#if $source.filterType === 'trust'}<span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">{(region.icbs || []).length} ICBs</span>{/if}
+                                {#if $source.filterType === 'trust'}<span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">{(region.icbs || []).length} ICBs · {(source.getOrgsByRegion?.(region.region) || []).length} trusts</span>{/if}
                             </div>
                             {#if expandedRegions.has(region.region) && $source.filterType === 'trust'}
                             <div class="ml-6 pl-3 mt-0.5 border-l-2 border-gray-200 space-y-0.5">
-                                {#each (region.icbs || []) as icb}<label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-1 text-sm transition-colors {selectedRegions.has(region.region) ? 'opacity-50' : ''} {selectedICBs.has(icb.name) ? 'text-oxford-700' : 'text-gray-600'}"><input type="checkbox" checked={selectedICBs.has(icb.name) || selectedRegions.has(region.region)} disabled={selectedRegions.has(region.region)} on:change={() => toggleICB(icb.name)} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0" /><span class="truncate" title={icb.name + (icb.code ? ' (' + icb.code + ')' : '')}>{stripNhsPrefix(icb.name)}{#if icb.code}&nbsp;({icb.code}){/if}</span></label>{/each}
+                                {#each (region.icbs || []) as icb}<label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-1 text-sm transition-colors {selectedRegions.has(region.region) ? 'opacity-50' : ''} {selectedICBs.has(icb.name) ? 'text-oxford-700' : 'text-gray-600'}"><input type="checkbox" checked={selectedICBs.has(icb.name) || selectedRegions.has(region.region)} disabled={selectedRegions.has(region.region)} on:change={() => toggleICB(icb.name)} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0" /><span class="truncate flex-1 min-w-0" title={icb.name + (icb.code ? ' (' + icb.code + ')' : '')}>{stripNhsPrefix(icb.name)}{#if icb.code}&nbsp;({icb.code}){/if}</span><span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">{(source.getOrgsByICB?.(icb.name) || []).length} trusts</span></label>{/each}
                             </div>
                             {/if}
                         </div>
                         {/each}
+                        {/if}
                     </div>
                     {/if}
                     {#if cancerAlliances.length > 0}
                     <div class="px-2 pt-2 {$source.filterType === 'trust' && (trustTypes.length > 0 || regionsHierarchy.length > 0) ? 'border-t border-gray-100' : ''}">
-                        <div class="px-2 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Cancer Alliance</div>
+                        <button type="button" class="w-full flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 hover:bg-gray-50 transition-colors" on:click={() => collapsedCancerAlliance = !collapsedCancerAlliance}>
+                            <span>Cancer Alliance</span>
+                            <svg class="w-3.5 h-3.5 transition-transform duration-200 {collapsedCancerAlliance ? '' : 'rotate-180'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        {#if !collapsedCancerAlliance}
                         {#each cancerAlliances as ca}
                         <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0 {selectedCancerAlliances.has(ca.name) ? 'text-oxford-700' : ''}">
                             <input type="checkbox" checked={selectedCancerAlliances.has(ca.name)} on:change={() => toggleCancerAlliance(ca.name)} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0" />
-                            <span class="truncate" title={ca.name}>{ca.name}</span>
+                            <span class="truncate flex-1 min-w-0" title={ca.name}>{ca.name}</span>
+                            <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">{(source.getOrgsByCancerAlliance?.(ca.name) || []).length} trusts</span>
                         </label>
                         {/each}
                         <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0 border-t border-gray-100 mt-1 pt-1.5 {selectedCancerAlliances.has('Not applicable') ? 'text-oxford-700' : ''}">
                             <input type="checkbox" checked={selectedCancerAlliances.has('Not applicable')} on:change={() => toggleCancerAlliance('Not applicable')} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0" />
-                            <span class="truncate" title="Trusts not associated with a Cancer Alliance">Not applicable</span>
+                            <span class="truncate flex-1 min-w-0" title="Trusts not associated with a Cancer Alliance">Not applicable</span>
+                            <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">{(source.getOrgsWithNoCancerAlliance?.() || []).length} trusts</span>
                         </label>
+                        {/if}
                     </div>
                     {/if}
                 </div>
