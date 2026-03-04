@@ -30,7 +30,18 @@
   export let chartOptions = {};
   export let annotations = '[]';
   export let exportData = null;
-  
+
+  const LEGEND_TITLE_BY_MODE = {
+    trust: 'NHS Trust',
+    icb: 'ICB',
+    region: 'Region',
+    product: 'Product',
+    productGroup: 'Product Group',
+    unit: 'Unit',
+    ingredient: 'Ingredient'
+  };
+  $: legendTitle = LEGEND_TITLE_BY_MODE[mode] || undefined;
+
   let showAnnotations = true;
   let showDownloadModal = false;
 
@@ -311,6 +322,10 @@
     },
     legend: {
       enabled: true,
+      title: {
+        text: legendTitle,
+        style: { fontSize: '12px', fontWeight: 600, color: '#374151' }
+      },
       align: 'right',
       verticalAlign: 'top',
       layout: 'vertical',
@@ -351,6 +366,10 @@
             spacingBottom: 40
           },
           legend: {
+            title: {
+              text: legendTitle,
+              style: { fontSize: '12px', fontWeight: 600, color: '#374151' }
+            },
             align: 'center',
             verticalAlign: 'bottom',
             layout: 'horizontal',

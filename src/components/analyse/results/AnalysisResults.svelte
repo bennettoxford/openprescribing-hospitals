@@ -716,6 +716,7 @@
                                     <Chart 
                                         store={resultsChartStore} 
                                         data={filteredData.length > 0 ? filteredData : selectedData}
+                                        mode={$modeSelectorStore.selectedMode || 'trust'}
                                         formatTooltipContent={customTooltipFormatter}
                                         exportData={{
                                             data: $resultsStore.filteredData && $resultsStore.filteredData.length > 0
