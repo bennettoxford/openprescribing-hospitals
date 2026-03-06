@@ -7,7 +7,15 @@ from django.conf import settings
 import os
 
 
-from .models import Organisation, Region, CancerAlliance
+from .models import Organisation, Region, CancerAlliance, DataStatus
+
+
+def get_quantity_months():
+    """Return sorted list of month date strings (YYYY-MM-DD) from DataStatus for dense array alignment."""
+    dates = list(
+        DataStatus.objects.order_by('year_month').values_list('year_month', flat=True)
+    )
+    return [d.strftime('%Y-%m-%d') for d in dates]
 
 
 def normalise_string(s):
