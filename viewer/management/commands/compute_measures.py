@@ -24,6 +24,7 @@ from viewer.views.measures import (
     invalidate_measures_list_chart_cache,
     invalidate_measure_item_cache,
 )
+from viewer.utils import get_ddd_unit_map
 
 
 class Command(BaseCommand):
@@ -108,6 +109,7 @@ class Command(BaseCommand):
         measure_orgs = subset.values_list('normalised_org_id', flat=True).distinct()
 
         measurevmps = MeasureVMP.objects.filter(measure=measure)
+        ddd_unit_map = get_ddd_unit_map(measure.vmps.values_list('id', flat=True))
 
         for measurevmp in measurevmps:
             vmp_records = subset.filter(vmp=measurevmp.vmp)
@@ -115,7 +117,7 @@ class Command(BaseCommand):
             if measure.quantity_type == 'indicative_cost':
                 unit = 'Indicative cost (£)'
             elif measure.quantity_type == 'ddd':
-                unit = 'DDD'
+                unit = ddd_unit_map.get(measurevmp.vmp_id, 'DDD')
             else:
                 unit = vmp_records.values_list('quantity_unit__unit', flat=True).first()
             if unit:

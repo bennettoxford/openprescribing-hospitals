@@ -24,6 +24,7 @@ from ..utils import (
     tokenize,
     coverage_score,
     get_quantity_months,
+    get_ddd_unit_map,
 )
 
 MAX_PRODUCT_CANDIDATES = 1000
@@ -561,6 +562,7 @@ def _populate_ingredient_quantity_info(vmp_ids, vmp_info):
 
 def _populate_ddd_quantity_info(vmp_ids, vmp_info):
     """Populate DDD quantity information. Unit is always DDD (details from DDD model)."""
+    ddd_unit_map = get_ddd_unit_map(vmp_ids)
     ddd_quantities = DDDQuantity.objects.filter(
         vmp_id__in=vmp_ids,
         data__0__isnull=False
@@ -573,7 +575,7 @@ def _populate_ddd_quantity_info(vmp_ids, vmp_info):
         has_valid_data = any(v != 0 for v in ddd_qty['data']) if ddd_qty.get('data') else False
         if has_valid_data:
             vmp_info[vmp_id]['has_ddd_quantity'] = True
-            vmp_info[vmp_id]['ddd_units'] = ["DDD"]
+            vmp_info[vmp_id]['ddd_units'] = [ddd_unit_map.get(vmp_id, "DDD")]
 
 
 @csrf_protect
@@ -649,6 +651,7 @@ def get_quantity_data(request):
         }.get(quantity_type)
 
         if quantity_model:
+            ddd_unit_map = get_ddd_unit_map(vmp_ids) if quantity_model is DDDQuantity else {}
             quantity_queryset = quantity_model.objects.filter(
                 vmp_id__in=vmp_ids
             )
@@ -683,7 +686,7 @@ def get_quantity_data(request):
                     'organisation__region': item.organisation.region.name if item.organisation.region else None,
                     'organisation__icb': item.organisation.icb.name if item.organisation.icb else None,
                     'data': raw_data,
-                    'unit': "DDD" if quantity_type == "Defined Daily Dose Quantity" else item.unit
+                    'unit': ddd_unit_map.get(item.vmp_id, "DDD") if quantity_type == "Defined Daily Dose Quantity" else item.unit
                 }
                 response_data.append(response_item)
 
