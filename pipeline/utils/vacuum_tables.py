@@ -5,7 +5,7 @@ from pipeline.utils.utils import setup_django_environment
 setup_django_environment()
 
 @task
-def vacuum_tables():
+def vacuum_tables_task():
     """Run VACUUM ANALYZE on specified tables or all tables if none specified"""
     logger = get_run_logger()
     
@@ -24,7 +24,7 @@ def vacuum_tables():
     logger = get_run_logger()
     logger.info("Starting vacuum flow")
     
-    vacuum_tables()
+    vacuum_tables_task()
 
     logger.info("Vacuum flow completed")
     
