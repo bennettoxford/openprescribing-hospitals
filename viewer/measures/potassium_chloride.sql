@@ -6,7 +6,7 @@ WITH measure_vmps AS (
                 SELECT 1 
                 FROM viewer_dose d 
                 WHERE d.vmp_id = vmp.id 
-                AND d.data[1][3] IN ('ampoule', 'vial')
+                AND d.unit IN ('ampoule', 'vial')
             ) THEN 'numerator'
             ELSE 'denominator'
         END as vmp_type
