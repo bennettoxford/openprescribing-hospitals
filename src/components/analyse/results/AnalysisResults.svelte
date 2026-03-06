@@ -116,7 +116,8 @@
             $organisationSearchStore.items || [],
             $organisationSearchStore.predecessorMap || new Map(),
             new Set(),
-            $resultsStore.analysisMonths || []
+            $resultsStore.analysisMonths || [],
+            $organisationSearchStore.regionsHierarchy || []
         );
         
         return tableData && tableData.length > 0 && tableData.some(entry => entry.total > 0);

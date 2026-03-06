@@ -64,7 +64,8 @@
         $organisationSearchStore.items || [],
         $organisationSearchStore.predecessorMap || new Map(),
         expandedTrusts,
-        $resultsStore.analysisMonths || []
+        $resultsStore.analysisMonths || [],
+        $organisationSearchStore.regionsHierarchy || []
     );
 
     $: titleText = selectedMode === 'national' 
@@ -208,6 +209,7 @@
                 </thead>
                 <tbody class="text-gray-600 text-sm">
                     {#each groupedData as group}
+                        {@const nonZeroUnits = group.units?.filter(u => (u.quantity || 0) > 0) ?? []}
                         {#if group.isNote}
                             <tr class="border-b border-gray-200">
                                 {#if selectedMode !== 'national'}
@@ -261,7 +263,8 @@
                                     {formatNumber(group.total)}
                                 </td>
                             </tr>
-                        {:else if group.units.length === 1}
+                        {:else if nonZeroUnits.length <= 1}
+                            {@const displayUnit = (nonZeroUnits[0] ?? group.units[0])?.unit || '-'}
                             <tr class="border-b border-gray-200 hover:bg-gray-100 
                                 {group.isSubtotal ? (group.section === 'selected' ? 'bg-green-50 font-semibold' : 'bg-blue-50 font-semibold') : ''} 
                                 {group.isPredecessor ? 'bg-gray-50' : ''}">
@@ -295,11 +298,11 @@
                                 {/if}
                                 {#if selectedMode !== 'unit'}
                                     <td class="py-3 px-6 text-left">
-                                        {group.units[0]?.unit || '-'}
+                                        {displayUnit}
                                     </td>
                                 {/if}
                                 <td class="py-3 px-6 text-right">
-                                    {formatNumber(group.units[0]?.quantity || group.total, group.units[0]?.unit)}
+                                    {formatNumber(nonZeroUnits[0]?.quantity ?? group.total, displayUnit)}
                                 </td>
                             </tr>
                         {:else}
@@ -308,7 +311,7 @@
                                 {group.isPredecessor ? 'bg-gray-50' : ''}">
                                 {#if selectedMode !== 'national'}
                                     <td class="py-3 px-6 text-left {group.isPredecessor ? 'pl-16' : ''}" 
-                                        rowspan={group.units.length + 1}>
+                                        rowspan={nonZeroUnits.length + 1}>
                                         <div class="flex items-center">
                                             {#if group.hasPredecessors}
                                                 <button 
@@ -342,7 +345,7 @@
                                     {formatNumber(group.total)}
                                 </td>
                             </tr>
-                            {#each group.units as unitData}
+                            {#each nonZeroUnits as unitData}
                                 <tr class="border-b border-gray-200 hover:bg-gray-100">
                                     {#if selectedMode !== 'unit'}
                                         <td class="py-3 px-6 text-left">{unitData.unit}</td>

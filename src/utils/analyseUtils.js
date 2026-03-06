@@ -34,11 +34,7 @@ export class ChartDataProcessor {
             });
         } else {
             Object.values(this.aggregatedData.national?.National?.products || {}).forEach(product => {
-                if (product?.data) {
-                    Object.values(product.data).forEach(({ unit }) => {
-                        if (unit) units.add(unit);
-                    });
-                }
+                if (product?.unit) units.add(product.unit);
             });
         }
         return Array.from(units);
@@ -203,7 +199,7 @@ export class ChartDataProcessor {
                     }
                     
                     if (product?.data) {
-                        Object.entries(product.data).forEach(([date, { quantity }]) => {
+                        Object.entries(product.data).forEach(([date, quantity]) => {
                             const dateIndex = this.allDates.indexOf(date);
                             if (dateIndex !== -1) {
                                 categoryData[name].data[dateIndex] += quantity;
@@ -237,7 +233,7 @@ export class ChartDataProcessor {
             }
             
             if (product?.data) {
-                Object.entries(product.data).forEach(([date, { quantity }]) => {
+                Object.entries(product.data).forEach(([date, quantity]) => {
                     const dateIndex = this.allDates.indexOf(date);
                     if (dateIndex !== -1) {
                         nationalData[dateIndex] += quantity;
@@ -705,19 +701,16 @@ function aggregateByCategory(categoryData, categoryName, productKey, timeSeriesD
     }
 
     if (!categoryData[categoryName].products[productKey]) {
+        const firstUnit = timeSeriesData[0]?.unit || '';
         categoryData[categoryName].products[productKey] = {
-            data: {}
+            data: {},
+            unit: firstUnit
         };
     }
 
-    timeSeriesData.forEach(({ date, quantity, unit }) => {
-        if (!categoryData[categoryName].products[productKey].data[date]) {
-            categoryData[categoryName].products[productKey].data[date] = {
-                quantity: 0,
-                unit: unit
-            };
-        }
-        categoryData[categoryName].products[productKey].data[date].quantity += quantity;
+    const product = categoryData[categoryName].products[productKey];
+    timeSeriesData.forEach(({ date, quantity }) => {
+        product.data[date] = (product.data[date] || 0) + quantity;
     });
 }
 
@@ -761,18 +754,33 @@ export function shouldIncludeDate(date, period, latestDate) {
     }
 }
 
-export function processTableDataByMode(data, mode, period, aggregatedData, latestDate, selectedOrganisations = [], allOrganisations = [], predecessorMap = new Map(), expandedTrusts = new Set(), months = []) {
+function getDefaultUnitsForZeroTotals(data) {
+    const units = new Set();
+    const addUnit = (u) => {
+        const n = normaliseDDDUnit(u || '');
+        if (n) units.add(n);
+    };
+
+    data?.forEach(item => addUnit(item.unit));
+
+    const arr = [...units];
+    return arr.length ? arr.map(unit => ({ unit, quantity: 0 })) : null;
+}
+
+export function processTableDataByMode(data, mode, period, aggregatedData, latestDate, selectedOrganisations = [], allOrganisations = [], predecessorMap = new Map(), expandedTrusts = new Set(), months = [], regionsHierarchy = []) {
     if (!data?.length && !aggregatedData) return [];
 
+    const defaultUnits = getDefaultUnitsForZeroTotals(data);
+    const selectedProductCodes = data?.length
+        ? new Set(data.map(item => item.vmp__code).filter(Boolean))
+        : null;
+
     if (['region', 'icb', 'national'].includes(mode) && aggregatedData) {
-        const selectedProductCodes = data && data.length > 0 
-            ? new Set(data.map(item => item.vmp__code).filter(Boolean))
-            : null;
-        return processAggregatedMode(aggregatedData, mode, period, latestDate, selectedProductCodes);
+        return processAggregatedMode(aggregatedData, mode, period, latestDate, selectedProductCodes, regionsHierarchy, defaultUnits);
     }
 
     if (mode === 'trust') {
-        return processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, predecessorMap, expandedTrusts, months);
+        return processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, predecessorMap, expandedTrusts, months, defaultUnits);
     }
 
     return processRawDataMode(data, mode, period, latestDate, selectedOrganisations, months);
@@ -783,7 +791,7 @@ function filterItemDataByPeriod(item, period, latestDate, months) {
     return { ...item };
 }
 
-function processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, predecessorMap, expandedTrusts, months = []) {
+function processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, predecessorMap, expandedTrusts, months = [], defaultUnits = null) {
 
     const filteredData = data ? data.map(item => filterItemDataByPeriod(item, period, latestDate, months)) : [];
 
@@ -877,15 +885,24 @@ function processOrganisationModeWithAggregation(data, period, latestDate, select
         return count;
     }
 
+    const toUnitsArray = (unitsObj, fallback) => {
+        const entries = Object.entries(unitsObj).sort(([, a], [, b]) => b - a);
+        if (entries.length === 0 && fallback?.length) {
+            return fallback;
+        }
+        if (entries.length === 0) {
+            return [{ unit: '--', quantity: 0 }];
+        }
+        return entries.map(([unit, quantity]) => ({ unit, quantity }));
+    };
+
     if (Object.keys(selectedTrusts).length > 0) {
         const totalSelectedCount = countTotalOrgs(selectedTrusts);
         
         results.push({
             key: `Selected trusts (${totalSelectedCount})`,
             total: selectedTotals.total,
-            units: Object.entries(selectedTotals.units)
-                .sort(([, a], [, b]) => b - a)
-                .map(([unit, quantity]) => ({ unit, quantity })),
+            units: toUnitsArray(selectedTotals.units, defaultUnits),
             isSubtotal: true
         });
 
@@ -896,7 +913,9 @@ function processOrganisationModeWithAggregation(data, period, latestDate, select
                 const isExpanded = expandedTrusts.has(trustName);
                 
                 let units = Object.entries(trustData.units);
-                if (units.length === 0) {
+                if (units.length === 0 && defaultUnits?.length) {
+                    units = defaultUnits.map(({ unit, quantity }) => [unit, quantity]);
+                } else if (units.length === 0) {
                     units = [['--', 0]];
                 }
                 
@@ -916,7 +935,9 @@ function processOrganisationModeWithAggregation(data, period, latestDate, select
                         .sort(([, a], [, b]) => b.total - a.total)
                         .forEach(([predName, predData]) => {
                             let predUnits = Object.entries(predData.units);
-                            if (predUnits.length === 0) {
+                            if (predUnits.length === 0 && defaultUnits?.length) {
+                                predUnits = defaultUnits.map(({ unit, quantity }) => [unit, quantity]);
+                            } else if (predUnits.length === 0) {
                                 predUnits = [['--', 0]];
                             }
                             
@@ -942,9 +963,7 @@ function processOrganisationModeWithAggregation(data, period, latestDate, select
         results.push({
             key: keyText,
             total: otherTotals.total,
-            units: Object.entries(otherTotals.units)
-                .sort(([, a], [, b]) => b - a)
-                .map(([unit, quantity]) => ({ unit, quantity })),
+            units: toUnitsArray(otherTotals.units, defaultUnits),
             isSubtotal: true
         });
 
@@ -955,7 +974,9 @@ function processOrganisationModeWithAggregation(data, period, latestDate, select
                 const isExpanded = expandedTrusts.has(trustName);
                 
                 let units = Object.entries(trustData.units);
-                if (units.length === 0) {
+                if (units.length === 0 && defaultUnits?.length) {
+                    units = defaultUnits.map(({ unit, quantity }) => [unit, quantity]);
+                } else if (units.length === 0) {
                     units = [['--', 0]];
                 }
                 
@@ -975,7 +996,9 @@ function processOrganisationModeWithAggregation(data, period, latestDate, select
                         .sort(([, a], [, b]) => b.total - a.total)
                         .forEach(([predName, predData]) => {
                             let predUnits = Object.entries(predData.units);
-                            if (predUnits.length === 0) {
+                            if (predUnits.length === 0 && defaultUnits?.length) {
+                                predUnits = defaultUnits.map(({ unit, quantity }) => [unit, quantity]);
+                            } else if (predUnits.length === 0) {
                                 predUnits = [['--', 0]];
                             }
                             
@@ -995,15 +1018,15 @@ function processOrganisationModeWithAggregation(data, period, latestDate, select
     return results;
 }
 
-function processAggregatedMode(aggregatedData, mode, period, latestDate, selectedProductCodes = null) {
+function processAggregatedMode(aggregatedData, mode, period, latestDate, selectedProductCodes = null, regionsHierarchy = [], defaultUnits = null) {
     const categoryMap = {
         'region': 'regions',
-        'icb': 'icbs', 
+        'icb': 'icbs',
         'national': 'national'
     };
 
     const categoryData = aggregatedData[categoryMap[mode]] || {};
-    const results = [];
+    const resultsMap = new Map();
 
     Object.entries(categoryData).forEach(([name, info]) => {
         if (!info?.products) return;
@@ -1014,14 +1037,16 @@ function processAggregatedMode(aggregatedData, mode, period, latestDate, selecte
             if (selectedProductCodes && !selectedProductCodes.has(productKey)) {
                 return;
             }
-            
+
             if (!product?.data) return;
 
-            Object.entries(product.data).forEach(([date, { quantity, unit }]) => {
+            const unit = product.unit || '';
+            const normalisedUnit = normaliseDDDUnit(unit);
+
+            Object.entries(product.data).forEach(([date, quantity]) => {
                 if (!shouldIncludeDate(date, period, latestDate)) return;
 
                 const parsedQuantity = parseFloat(quantity) || 0;
-                const normalisedUnit = normaliseDDDUnit(unit);
                 totals.total += parsedQuantity;
 
                 if (!totals.units[normalisedUnit]) {
@@ -1031,18 +1056,33 @@ function processAggregatedMode(aggregatedData, mode, period, latestDate, selecte
             });
         });
 
-        if (totals.total > 0) {
-            results.push({
-                key: name,
-                total: totals.total,
-                units: Object.entries(totals.units)
-                    .sort(([, a], [, b]) => b - a)
-                    .map(([unit, quantity]) => ({ unit, quantity }))
-            });
+        let units = Object.entries(totals.units)
+            .sort(([, a], [, b]) => b - a)
+            .map(([unit, quantity]) => ({ unit, quantity }));
+        if (units.length === 0 && defaultUnits?.length) {
+            units = defaultUnits;
+        } else if (units.length === 0) {
+            units = [{ unit: '--', quantity: 0 }];
+        }
+        resultsMap.set(name, { key: name, total: totals.total, units });
+    });
+
+    const zeroUnits = defaultUnits?.length ? defaultUnits : [{ unit: '--', quantity: 0 }];
+    let allCategoryNames = [];
+    if (mode === 'region' && regionsHierarchy.length > 0) {
+        allCategoryNames = regionsHierarchy.map(r => r.region).filter(Boolean);
+    } else if (mode === 'icb' && regionsHierarchy.length > 0) {
+        allCategoryNames = regionsHierarchy.flatMap(r => (r.icbs || []).map(i => i.name)).filter(Boolean);
+    } else if (mode === 'national') {
+        allCategoryNames = ['National'];
+    }
+    allCategoryNames.forEach(name => {
+        if (!resultsMap.has(name)) {
+            resultsMap.set(name, { key: name, total: 0, units: zeroUnits });
         }
     });
 
-    return results.sort((a, b) => b.total - a.total);
+    return Array.from(resultsMap.values()).sort((a, b) => b.total - a.total);
 }
 
 function processRawDataMode(data, mode, period, latestDate, selectedOrganisations = [], months = []) {
@@ -1056,24 +1096,27 @@ function processRawDataMode(data, mode, period, latestDate, selectedOrganisation
 
     const groupedData = {};
 
+    const singleUnitPerGroup = mode === 'product' || mode === 'unit';
+
     dataToProcess.forEach(item => {
         const groupKey = getGroupKey(item, mode);
         
         if (Array.isArray(groupKey)) {
-            groupKey.forEach(key => processItemForGroup(groupedData, key, item, months, period, latestDate));
+            groupKey.forEach(key => processItemForGroup(groupedData, key, item, months, period, latestDate, singleUnitPerGroup));
         } else {
-            processItemForGroup(groupedData, groupKey, item, months, period, latestDate);
+            processItemForGroup(groupedData, groupKey, item, months, period, latestDate, singleUnitPerGroup);
         }
     });
 
     return Object.entries(groupedData)
-        .map(([key, value]) => ({
-            key,
-            total: value.total,
-            units: Object.entries(value.units)
-                .sort(([, a], [, b]) => b - a)
-                .map(([unit, quantity]) => ({ unit, quantity }))
-        }))
+        .map(([key, value]) => {
+            const units = value.unit != null
+                ? [{ unit: value.unit, quantity: value.total }]
+                : Object.entries(value.units || {})
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([unit, quantity]) => ({ unit, quantity }));
+            return { key, total: value.total, units };
+        })
         .sort((a, b) => b.total - a.total);
 }
 
@@ -1094,24 +1137,25 @@ function getGroupKey(item, mode) {
     }
 }
 
-function processItemForGroup(groupedData, groupKey, item, months = [], period, latestDate) {
+function processItemForGroup(groupedData, groupKey, item, months = [], period, latestDate, singleUnitPerGroup = false) {
     if (!groupedData[groupKey]) {
-        groupedData[groupKey] = {
-            total: 0,
-            units: {}
-        };
+        groupedData[groupKey] = singleUnitPerGroup
+            ? { total: 0, unit: '' }
+            : { total: 0, units: {} };
     }
 
+    const g = groupedData[groupKey];
     item.data?.forEach((value, i) => {
         if (i >= months.length || !shouldIncludeDate(months[i], period, latestDate)) return;
         const parsedQuantity = parseFloat(value) || 0;
-        const normalisedUnit = normaliseDDDUnit(item.unit || '');
-        groupedData[groupKey].total += parsedQuantity;
+        g.total += parsedQuantity;
 
-        if (!groupedData[groupKey].units[normalisedUnit]) {
-            groupedData[groupKey].units[normalisedUnit] = 0;
+        if (singleUnitPerGroup) {
+            if (!g.unit && item.unit) g.unit = normaliseDDDUnit(item.unit) || item.unit;
+        } else {
+            const normalisedUnit = normaliseDDDUnit(item.unit || '');
+            g.units[normalisedUnit] = (g.units[normalisedUnit] || 0) + parsedQuantity;
         }
-        groupedData[groupKey].units[normalisedUnit] += parsedQuantity;
     });
 }
 
