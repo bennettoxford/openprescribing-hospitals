@@ -5,6 +5,7 @@ export const resultsStore = writable({
     isAnalysisRunning: false,
     showResults: false,
     analysisData: null,
+    analysisMonths: null,
     filteredData: null,
     quantityType: null,
     searchType: null,
@@ -25,9 +26,13 @@ export const resultsStore = writable({
 });
 
 export function updateResults(data, options = {}) {
+    const months = data?.months ?? [];
+    const items = data?.items ?? [];
+
     resultsStore.update(store => ({
         ...store,
         analysisData: null,
+        analysisMonths: null,
         filteredData: null,
         productData: {},
         organisationData: {},
@@ -35,7 +40,8 @@ export function updateResults(data, options = {}) {
     }));
 
     const { productData, organisationData, aggregatedData } = processAnalysisData(
-        data, 
+        months,
+        items,
         options.selectedOrganisations || [],
         options.predecessorMap || new Map()
     );
@@ -53,7 +59,7 @@ export function updateResults(data, options = {}) {
     
     const filteredData = selectedOrganisations.length === 0 ? 
         [] :
-        data.filter(item => {
+        items.filter(item => {
             const isIncluded = selectedOrganisations.includes(item.organisation__ods_name);
             return isIncluded;
         });
@@ -62,14 +68,15 @@ export function updateResults(data, options = {}) {
         ...store,
         isAnalysisRunning: false,
         showResults: true,
-        analysisData: data,
+        analysisData: items,
+        analysisMonths: months,
         filteredData: filteredData,
         productData,
         organisationData,
         aggregatedData,
         quantityType: options.quantityType || store.quantityType,
         searchType: options.searchType || store.searchType,
-        dateRange: calculateDateRange(data),
+        dateRange: calculateDateRange(months),
         selectedOrganisations: options.selectedOrganisations || [],
         showPercentiles: showPercentilesValue,
         excludedTrusts: [],
@@ -77,20 +84,14 @@ export function updateResults(data, options = {}) {
     }));
 }
 
-function calculateDateRange(data) {
-    let minDate = null;
-    let maxDate = null;
-
-    data.forEach(item => {
-        if (item.data) {
-            item.data.forEach(([date]) => {
-                const currentDate = new Date(date);
-                if (!minDate || currentDate < minDate) minDate = currentDate;
-                if (!maxDate || currentDate > maxDate) maxDate = currentDate;
-            });
-        }
-    });
-
-    return { minDate, maxDate };
+function calculateDateRange(months) {
+    if (!Array.isArray(months) || months.length === 0) {
+        return { minDate: null, maxDate: null };
+    }
+    const dates = months.map(m => new Date(m));
+    return {
+        minDate: new Date(Math.min(...dates)),
+        maxDate: new Date(Math.max(...dates))
+    };
 }
 

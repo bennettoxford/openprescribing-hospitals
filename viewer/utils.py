@@ -1,13 +1,22 @@
 import csv
 import math
+import os
 import re
 import unicodedata
+from collections import defaultdict
 from datetime import datetime, timedelta
 from django.conf import settings
-import os
 
 
-from .models import Organisation, Region, CancerAlliance
+from .models import Organisation, Region, CancerAlliance, DataStatus
+
+
+def get_quantity_months():
+    """Return sorted list of month date strings (YYYY-MM-DD) from DataStatus for dense array alignment."""
+    dates = list(
+        DataStatus.objects.order_by('year_month').values_list('year_month', flat=True)
+    )
+    return [d.strftime('%Y-%m-%d') for d in dates]
 
 
 def normalise_string(s):
@@ -138,6 +147,51 @@ def safe_float(value):
         return float_val
     except (ValueError, TypeError):
         return None
+
+
+def format_ddd_unit_label(ddd_entries):
+    """Format DDD metadata as a display label like 'DDD (1.0 mg)'."""
+    unique_entries = []
+    seen = set()
+
+    for ddd_value, unit_type in ddd_entries:
+        if ddd_value is None or not unit_type:
+            continue
+
+        entry = f"{ddd_value} {unit_type}"
+        if entry in seen:
+            continue
+
+        seen.add(entry)
+        unique_entries.append(entry)
+
+    if not unique_entries:
+        return None
+
+    return f"DDD ({' | '.join(unique_entries)})"
+
+
+def get_ddd_unit_map(vmp_ids):
+    """Return VMP id -> formatted DDD unit label."""
+    from .models import DDD
+
+    ddd_entries_by_vmp = defaultdict(list)
+    ddd_rows = (
+        DDD.objects.filter(vmp_id__in=vmp_ids)
+        .values_list("vmp_id", "ddd", "unit_type")
+        .order_by("vmp_id", "ddd", "unit_type")
+    )
+
+    for vmp_id, ddd_value, unit_type in ddd_rows:
+        ddd_entries_by_vmp[vmp_id].append((ddd_value, unit_type))
+
+    labels = {}
+    for vmp_id, ddd_entries in ddd_entries_by_vmp.items():
+        label = format_ddd_unit_label(ddd_entries)
+        if label:
+            labels[vmp_id] = label
+
+    return labels
 
 
 def generate_dummy_data_csv():

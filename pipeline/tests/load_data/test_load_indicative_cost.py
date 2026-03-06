@@ -1,6 +1,7 @@
 import pytest
 import pandas as pd
 import numpy as np
+from datetime import date
 from unittest.mock import patch, MagicMock
 from pipeline.load_data.load_indicative_cost import (
     get_unique_vmps,
@@ -9,7 +10,7 @@ from pipeline.load_data.load_indicative_cost import (
     cache_foreign_keys,
     transform_and_load_chunk,
 )
-from viewer.models import IndicativeCost, VMP, Organisation, Region, ICB
+from viewer.models import IndicativeCost, VMP, Organisation, Region, ICB, DataStatus
 
 
 @pytest.fixture
@@ -26,6 +27,8 @@ def sample_indicative_cost_data():
 
 @pytest.fixture
 def sample_foreign_keys(db):
+    DataStatus.objects.create(year_month=date(2024, 1, 1), file_type="test")
+    DataStatus.objects.create(year_month=date(2024, 2, 1), file_type="test")
     vmps = [
         VMP.objects.create(code="12345", name="Test Drug 1"),
         VMP.objects.create(code="67890", name="Test Drug 2"),
@@ -99,10 +102,10 @@ class TestLoadIndicativeCost:
         )
 
         IndicativeCost.objects.create(
-            vmp=vmp1, organisation=org, data=[["2024-01-01", "15.50"]]
+            vmp=vmp1, organisation=org, data=[15.50]
         )
         IndicativeCost.objects.create(
-            vmp=vmp2, organisation=org, data=[["2024-02-01", "18.90"]]
+            vmp=vmp2, organisation=org, data=[18.90]
         )
 
         deleted_count = clear_existing_data()
@@ -140,10 +143,7 @@ class TestLoadIndicativeCost:
         cost_record = indicative_costs.first()
         assert isinstance(cost_record.data, list)
         assert len(cost_record.data) > 0
-        assert all(
-            isinstance(entry, list) and len(entry) == 2
-            for entry in cost_record.data
-        )
+        assert all(isinstance(v, (int, float)) for v in cost_record.data)
 
     @pytest.mark.django_db
     def test_transform_and_load_chunk_invalid_data(self, sample_foreign_keys):
@@ -164,6 +164,7 @@ class TestLoadIndicativeCost:
     @pytest.mark.django_db
     def test_transform_and_load_chunk_missing_foreign_keys(self):
         """Test handling when foreign keys are missing"""
+        DataStatus.objects.create(year_month=date(2024, 1, 1), file_type="test")
         data = pd.DataFrame(
             {
                 "year_month": ["2024-01-01"],
@@ -232,7 +233,7 @@ class TestLoadIndicativeCost:
                 IndicativeCost.objects.create(
                     vmp=vmp,
                     organisation=org,
-                    data=[[f"2024-{count+1:02d}-01", "15.50"]],
+                    data=[15.50],
                 )
                 count += 1
 
@@ -252,7 +253,7 @@ class TestLoadIndicativeCost:
                 "year_month": ["2024-01-01", "2024-02-01"],
                 "vmp_code": ["12345", "12345"],
                 "ods_code": ["ORG1", "ORG1"],
-                "indicative_cost": [15.505, np.float64(25.999)],
+                "indicative_cost": [15.50, np.float64(25.99)],
             }
         )
 
@@ -261,9 +262,8 @@ class TestLoadIndicativeCost:
         assert result["created"] == 1  # Should be grouped into one record
 
         cost_record = IndicativeCost.objects.first()
-   
-        for entry in cost_record.data:
-            cost_str = entry[1]
-            assert isinstance(cost_str, str)
-            cost_float = float(cost_str)
-            assert cost_float in [15.5, 26.0]
+        assert all(isinstance(v, (int, float)) for v in cost_record.data)
+        # Dense: index 0 = 2024-01-01, index 1 = 2024-02-01
+        assert cost_record.data[0] == pytest.approx(15.50)
+        assert cost_record.data[1] == pytest.approx(25.99)
+

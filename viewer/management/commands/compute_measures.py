@@ -1,8 +1,6 @@
 import math
 import time
-from datetime import datetime, date
-from dateutil.relativedelta import relativedelta
-from django.db.models import F, Min, Max
+from django.db.models import F
 from django.db.models import Case, When, IntegerField, CharField
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -26,6 +24,7 @@ from viewer.views.measures import (
     invalidate_measures_list_chart_cache,
     invalidate_measure_item_cache,
 )
+from viewer.utils import get_ddd_unit_map
 
 
 class Command(BaseCommand):
@@ -53,24 +52,19 @@ class Command(BaseCommand):
 
         delete_existing_precomputed_data(measure)
 
-        date_range = DataStatus.objects.aggregate(
-            earliest=Min('year_month'),
-            latest=Max('year_month')
+        all_months = list(
+            DataStatus.objects.order_by('year_month').values_list('year_month', flat=True)
         )
-        
-        if not date_range['earliest'] or not date_range['latest']:
+
+        if not all_months:
             self.stdout.write(
                 self.style.ERROR('No data status records found - cannot determine date range')
             )
             return
-            
-        all_months = []
-        current_date = date_range['earliest']
-        while current_date <= date_range['latest']:
-            all_months.append(current_date)
-            current_date += relativedelta(months=1)
-            
-        self.stdout.write(f"Processing data for {len(all_months)} months from {date_range['earliest']} to {date_range['latest']}")
+
+        self.stdout.write(
+            f"Processing data for {len(all_months)} months from {all_months[0]} to {all_months[-1]}"
+        )
 
         model_mapping = {
             'scmd': SCMDQuantity,
@@ -115,42 +109,23 @@ class Command(BaseCommand):
         measure_orgs = subset.values_list('normalised_org_id', flat=True).distinct()
 
         measurevmps = MeasureVMP.objects.filter(measure=measure)
-
-        def get_consistent_unit(queryset):
-            """
-            Get the consistent unit from a queryset's data arrays.
-            Raises ValueError if units are inconsistent.
-            """
-            first_unit = None
-            for record in queryset:
-                for entry in record.data or []:
-                    if len(entry) >= 3 and entry[2]:
-                        if first_unit is None:
-                            first_unit = entry[2]
-                        elif entry[2] != first_unit:
-                            raise ValueError(f"Inconsistent units found: {first_unit} vs {entry[2]}")
-            return first_unit
+        ddd_unit_map = get_ddd_unit_map(measure.vmps.values_list('id', flat=True))
 
         for measurevmp in measurevmps:
             vmp_records = subset.filter(vmp=measurevmp.vmp)
             
-            try:
-                if measure.quantity_type == 'indicative_cost':
-                    unit = 'Indicative cost (£)'
-                    measurevmp.unit = unit
-                    measurevmp.save()
-                else:
-                    unit = get_consistent_unit(vmp_records)
-                    if unit:
-                        measurevmp.unit = unit
-                        measurevmp.save()
-                    else:
-                        self.stdout.write(
-                            self.style.WARNING(f'No unit found for VMP: {measurevmp.vmp.name}')
-                        )
-            except ValueError as e:
+            if measure.quantity_type == 'indicative_cost':
+                unit = 'Indicative cost (£)'
+            elif measure.quantity_type == 'ddd':
+                unit = ddd_unit_map.get(measurevmp.vmp_id, 'DDD')
+            else:
+                unit = vmp_records.values_list('quantity_unit__unit', flat=True).first()
+            if unit:
+                measurevmp.unit = unit
+                measurevmp.save()
+            elif measure.quantity_type not in ('indicative_cost', 'ddd'):
                 self.stdout.write(
-                    self.style.ERROR(f'Error setting unit for VMP {measurevmp.vmp.name}: {str(e)}')
+                    self.style.WARNING(f'No unit found for VMP: {measurevmp.vmp.name}')
                 )
 
         numerator_vmps = measurevmps.filter(
@@ -199,34 +174,17 @@ class Command(BaseCommand):
             .iterator(chunk_size=1000)
         )
 
-        for record in numerator_data:
-            org_id = record['normalised_org_id']
-            for entry in record['data'] or []:
-                if len(entry) >= 2 and entry[1]:
-                    month = entry[0]
-                    if isinstance(month, str):
-                        try:
-                            month = datetime.strptime(month, '%Y-%m-%d').date()
-                        except ValueError:
-                            continue
-
-                    if month in all_months:
-                        org_monthly_data[org_id][month]['numerator'] += float(entry[1])
-        
-        if is_ratio_measure and denominator_data:
-            for record in denominator_data:
+        def add_data_to_org_monthly(records_iter, key):
+            for record in records_iter:
                 org_id = record['normalised_org_id']
-                for entry in record['data'] or []:
-                    if len(entry) >= 2 and entry[1]:
-                        month = entry[0]
-                        if isinstance(month, str):
-                            try:
-                                month = datetime.strptime(month, '%Y-%m-%d').date()
-                            except ValueError:
-                                continue
+                data = record.get('data') or []
+                for i, month in enumerate(all_months):
+                    if i < len(data):
+                        org_monthly_data[org_id][month][key] += float(data[i] or 0)
 
-                        if month in all_months:
-                            org_monthly_data[org_id][month]['denominator'] += float(entry[1])
+        add_data_to_org_monthly(numerator_data, 'numerator')
+        if is_ratio_measure and denominator_data:
+            add_data_to_org_monthly(denominator_data, 'denominator')
 
         precomputed_measures = []
         for org_id, monthly_data in org_monthly_data.items():

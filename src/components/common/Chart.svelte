@@ -90,7 +90,8 @@
         exportData.selectedTrusts,
         exportData.percentilesData,
         null, // filename
-        exportData.predecessorMap
+        exportData.predecessorMap,
+        exportData.months || []
       );
 
       if (typeof window !== 'undefined' && window.plausible) {

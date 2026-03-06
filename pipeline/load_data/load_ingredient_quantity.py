@@ -11,12 +11,14 @@ from pipeline.utils.utils import (
     setup_django_environment,
     get_bigquery_client,
     execute_bigquery_query,
+    get_quantity_months,
+    sparse_to_dense,
 )
 
 
 setup_django_environment()
 
-from viewer.models import IngredientQuantity, Ingredient, VMP, Organisation, CalculationLogic
+from viewer.models import IngredientQuantity, Ingredient, VMP, Organisation, CalculationLogic, IngredientQuantityUnit
 
 
 @task
@@ -182,6 +184,16 @@ def clear_existing_ingredient_data() -> Tuple[int, int]:
             ).delete()[0]
             total_deleted += deleted_count
 
+    while True:
+        with transaction.atomic():
+            batch_ids = list(
+                IngredientQuantityUnit.objects.values_list("id", flat=True)[:chunk_size]
+            )
+            if not batch_ids:
+                break
+
+            IngredientQuantityUnit.objects.filter(id__in=batch_ids).delete()
+
     logger.info(f"Deleted {total_deleted:,} existing ingredient quantity records")
     logger.info(f"Deleted {total_logic_deleted:,} existing ingredient calculation logic records")
     return total_deleted, total_logic_deleted
@@ -312,12 +324,19 @@ def transform_and_load_ingredient_quantity_chunk(
         "%Y-%m-%d"
     )
 
+    months = get_quantity_months()
+    if not months:
+        raise ValueError(
+            f"Chunk {chunk_num}/{total_chunks}: DataStatus has no months - cannot build dense arrays"
+        )
+
     df_valid = df_valid.copy()
     df_valid['ingredients'] = df_valid['ingredients'].apply(
         lambda x: x.tolist() if hasattr(x, 'tolist') else (x if isinstance(x, list) else [])
     )
 
-    ingredient_data = {}
+    ingredient_sparse_data = {}
+    units_by_ingredient_vmp = {}
 
     logger.info(f"Chunk {chunk_num}/{total_chunks}: Processing ingredient data...")
 
@@ -341,20 +360,21 @@ def transform_and_load_ingredient_quantity_chunk(
                     continue
 
                 key = (ingredient_code, vmp_code, ods_code)
+                unit_key = (ingredient_code, vmp_code)
+                if unit_key not in units_by_ingredient_vmp:
+                    units_by_ingredient_vmp[unit_key] = ingredient_basis_unit
 
-                if key not in ingredient_data:
-                    ingredient_data[key] = []
-
-                ingredient_data[key].append(
-                    [
-                        year_month,
-                        str(float(ingredient_quantity_basis)),
-                        ingredient_basis_unit,
-                    ]
-                )
+                if key not in ingredient_sparse_data:
+                    ingredient_sparse_data[key] = []
+                ingredient_sparse_data[key].append([year_month, float(ingredient_quantity_basis)])
         except Exception as e:
             logger.error(f"Error processing row: {str(e)}")
             continue
+
+    ingredient_data = {
+        key: sparse_to_dense(sparse_values, months, accumulate=True)
+        for key, sparse_values in ingredient_sparse_data.items()
+    }
 
     logger.info(
         f"Chunk {chunk_num}/{total_chunks}: Created {len(ingredient_data):,} ingredient-VMP-organisation combinations"
@@ -366,19 +386,29 @@ def transform_and_load_ingredient_quantity_chunk(
 
     iq_objects = []
     skipped_due_to_missing_fk = 0
+    iq_unit_cache = {}
 
-    for (ingredient_code, vmp_code, ods_code), data_array in ingredient_data.items():
+    for (ingredient_code, vmp_code, ods_code), dense_array in ingredient_data.items():
         if (
             ingredient_code in ingredients
             and vmp_code in vmps
             and ods_code in organisations
         ):
+            ingredient_id = ingredients[ingredient_code]
+            vmp_id = vmps[vmp_code]
+            unit = units_by_ingredient_vmp[(ingredient_code, vmp_code)]
+            cache_key = (ingredient_id, vmp_id)
+            if cache_key not in iq_unit_cache:
+                iq_unit_cache[cache_key], _ = IngredientQuantityUnit.objects.get_or_create(
+                    ingredient_id=ingredient_id, vmp_id=vmp_id, defaults={"unit": unit}
+                )
             iq_objects.append(
                 IngredientQuantity(
-                    ingredient_id=ingredients[ingredient_code],
-                    vmp_id=vmps[vmp_code],
+                    ingredient_id=ingredient_id,
+                    vmp_id=vmp_id,
                     organisation_id=organisations[ods_code],
-                    data=data_array,
+                    quantity_unit_id=iq_unit_cache[cache_key].id,
+                    data=dense_array,
                 )
             )
         else:

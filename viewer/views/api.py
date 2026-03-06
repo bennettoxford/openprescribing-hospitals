@@ -23,6 +23,8 @@ from ..utils import (
     safe_float,
     tokenize,
     coverage_score,
+    get_quantity_months,
+    get_ddd_unit_map,
 )
 
 MAX_PRODUCT_CANDIDATES = 1000
@@ -503,93 +505,77 @@ def _populate_scmd_quantity_info(vmp_ids, vmp_info):
     """Populate SCMD quantity information"""
     scmd_quantities = SCMDQuantity.objects.filter(
         vmp_id__in=vmp_ids,
-        data__0__0__isnull=False
-    ).values('vmp_id', 'data').distinct('vmp_id')
+        data__0__isnull=False
+    ).values('vmp_id', 'data', 'quantity_unit__unit').distinct('vmp_id')
     
     for scmd in scmd_quantities:
         vmp_id = scmd['vmp_id']
         if vmp_id not in vmp_info or not scmd['data']:
             continue
-            
-        has_valid_data = any(
-            entry and len(entry) >= 2 and entry[1] is not None 
-            for entry in scmd['data']
-        )
+
+        has_valid_data = any(v != 0 for v in scmd['data']) if scmd['data'] else False
         
         if has_valid_data:
             vmp_info[vmp_id]['has_scmd_quantity'] = True
-            
-            units_set = set()
-            for entry in scmd['data']:
-                if entry and len(entry) >= 3 and entry[2]:
-                    units_set.add(entry[2])
-            vmp_info[vmp_id]['scmd_units'] = sorted(list(units_set))
+            unit = scmd.get('quantity_unit__unit')
+            if unit:
+                vmp_info[vmp_id]['scmd_units'] = sorted(list({unit}))
 
 
 def _populate_dose_quantity_info(vmp_ids, vmp_info):
     """Populate Dose quantity information"""
     dose_quantities = Dose.objects.filter(
         vmp_id__in=vmp_ids,
-        data__0__0__isnull=False
-    ).values('vmp_id', 'data').distinct('vmp_id')
+        data__0__isnull=False
+    ).values('vmp_id', 'data', 'quantity_unit__unit').distinct('vmp_id')
     
     for dose in dose_quantities:
         vmp_id = dose['vmp_id']
         if vmp_id not in vmp_info:
             continue
-            
-        vmp_info[vmp_id]['has_dose_quantity'] = True
-        
-        if dose['data']:
-            units_set = set()
-            for entry in dose['data']:
-                if entry and len(entry) >= 3 and entry[2]:
-                    units_set.add(entry[2])
-            vmp_info[vmp_id]['dose_units'] = sorted(list(units_set))
+        has_valid_data = any(v != 0 for v in dose['data']) if dose.get('data') else False
+        if has_valid_data:
+            vmp_info[vmp_id]['has_dose_quantity'] = True
+            unit = dose.get('quantity_unit__unit')
+            if unit:
+                vmp_info[vmp_id]['dose_units'] = sorted(list({unit}))
 
 
 def _populate_ingredient_quantity_info(vmp_ids, vmp_info):
     """Populate Ingredient quantity information"""
     ingredient_quantities = IngredientQuantity.objects.filter(
         vmp_id__in=vmp_ids,
-        data__0__0__isnull=False
-    ).values('vmp_id', 'data').distinct('vmp_id')
+        data__0__isnull=False
+    ).values('vmp_id', 'data', 'quantity_unit__unit').distinct('vmp_id')
     
     for ingredient_qty in ingredient_quantities:
         vmp_id = ingredient_qty['vmp_id']
         if vmp_id not in vmp_info:
             continue
-            
-        vmp_info[vmp_id]['has_ingredient_quantity'] = True
-        
-        if ingredient_qty['data']:
-            units_set = set()
-            for entry in ingredient_qty['data']:
-                if entry and len(entry) >= 3 and entry[2]:
-                    units_set.add(entry[2])
-            vmp_info[vmp_id]['ingredient_quantity_units'] = sorted(list(units_set))
+        has_valid_data = any(v != 0 for v in ingredient_qty['data']) if ingredient_qty.get('data') else False
+        if has_valid_data:
+            vmp_info[vmp_id]['has_ingredient_quantity'] = True
+            unit = ingredient_qty.get('quantity_unit__unit')
+            if unit:
+                vmp_info[vmp_id]['ingredient_quantity_units'] = sorted(list({unit}))
 
 
 def _populate_ddd_quantity_info(vmp_ids, vmp_info):
-    """Populate DDD quantity information"""
+    """Populate DDD quantity information. Unit is always DDD (details from DDD model)."""
+    ddd_unit_map = get_ddd_unit_map(vmp_ids)
     ddd_quantities = DDDQuantity.objects.filter(
         vmp_id__in=vmp_ids,
-        data__0__0__isnull=False
+        data__0__isnull=False
     ).values('vmp_id', 'data').distinct('vmp_id')
     
     for ddd_qty in ddd_quantities:
         vmp_id = ddd_qty['vmp_id']
         if vmp_id not in vmp_info:
             continue
-            
-        vmp_info[vmp_id]['has_ddd_quantity'] = True
-        
-        if ddd_qty['data']:
-            units_set = set()
-            for entry in ddd_qty['data']:
-                if entry and len(entry) >= 3 and entry[2]:
-                    units_set.add(entry[2])
-            vmp_info[vmp_id]['ddd_units'] = sorted(list(units_set))
+        has_valid_data = any(v != 0 for v in ddd_qty['data']) if ddd_qty.get('data') else False
+        if has_valid_data:
+            vmp_info[vmp_id]['has_ddd_quantity'] = True
+            vmp_info[vmp_id]['ddd_units'] = [ddd_unit_map.get(vmp_id, "DDD")]
 
 
 @csrf_protect
@@ -665,6 +651,7 @@ def get_quantity_data(request):
         }.get(quantity_type)
 
         if quantity_model:
+            ddd_unit_map = get_ddd_unit_map(vmp_ids) if quantity_model is DDDQuantity else {}
             quantity_queryset = quantity_model.objects.filter(
                 vmp_id__in=vmp_ids
             )
@@ -672,18 +659,22 @@ def get_quantity_data(request):
                 quantity_queryset = quantity_queryset.filter(
                     organisation__ods_name__in=ods_names
                 )
-            quantity_queryset = quantity_queryset.select_related(
+            select_related_fields = [
                 'vmp',
                 'vmp__vtm',
                 'organisation',
                 'organisation__region',
-                'organisation__icb'
-            )
+                'organisation__icb',
+            ]
+            if quantity_model is not DDDQuantity:
+                select_related_fields.append('quantity_unit')
+            quantity_queryset = quantity_queryset.select_related(*select_related_fields)
             quantity_data = list(quantity_queryset)
             for item in quantity_data:
                 base_metadata = base_vmp_metadata.get(item.vmp_id)
                 ingredient_names = base_metadata['ingredient_names'] if base_metadata else [ing.name for ing in item.vmp.ingredients.all()]
                 ingredient_codes = base_metadata['ingredient_codes'] if base_metadata else [ing.code for ing in item.vmp.ingredients.all()]
+                raw_data = item.data or []
                 response_item = {
                     'vmp__code': base_metadata['vmp__code'] if base_metadata else item.vmp.code,
                     'vmp__name': base_metadata['vmp__name'] if base_metadata else item.vmp.name,
@@ -694,11 +685,13 @@ def get_quantity_data(request):
                     'organisation__ods_name': item.organisation.ods_name,
                     'organisation__region': item.organisation.region.name if item.organisation.region else None,
                     'organisation__icb': item.organisation.icb.name if item.organisation.icb else None,
-                    'data': item.data
+                    'data': raw_data,
+                    'unit': ddd_unit_map.get(item.vmp_id, "DDD") if quantity_type == "Defined Daily Dose Quantity" else item.unit
                 }
                 response_data.append(response_item)
 
-        return Response(response_data)
+        months = get_quantity_months()
+        return Response({"months": months, "items": response_data})
 
     except Exception:
         return Response({"error": "An error occurred while processing the request"}, status=500)
@@ -793,64 +786,53 @@ def get_quantity_data_batch(vmp_ids):
         }
     
     scmd_quantities = SCMDQuantity.objects.filter(
-        vmp_id__in=vmp_ids
-    ).values('vmp_id', 'data')
+        vmp_id__in=vmp_ids,
+        data__0__isnull=False
+    ).values('vmp_id', 'data', 'quantity_unit__unit')
     
     for scmd in scmd_quantities:
         vmp_id = scmd['vmp_id']
-        if scmd['data']:
-            has_valid_data = any(
-                entry and len(entry) >= 1 and entry[1] is not None 
-                for entry in scmd['data']
-            )
-            if has_valid_data:
-                quantity_data[vmp_id]['has_scmd_quantity'] = True
-                
-                units_set = set()
-                for entry in scmd['data']:
-                    if entry and len(entry) >= 3 and entry[2]:
-                        units_set.add(entry[2])
-                quantity_data[vmp_id]['scmd_units'] = sorted(list(units_set))
+        if scmd.get('data') and any(v != 0 for v in scmd['data']):
+            quantity_data[vmp_id]['has_scmd_quantity'] = True
+            unit = scmd.get('quantity_unit__unit')
+            if unit:
+                quantity_data[vmp_id]['scmd_units'] = sorted(list({unit}))
     
     dose_quantities = Dose.objects.filter(
         vmp_id__in=vmp_ids,
-        data__0__0__isnull=False
-    ).values('vmp_id', 'data')
+        data__0__isnull=False
+    ).values('vmp_id', 'data', 'quantity_unit__unit')
     
     for dose in dose_quantities:
         vmp_id = dose['vmp_id']
-        quantity_data[vmp_id]['has_dose'] = True
-        
-        if dose['data']:
-            units_set = set()
-            for entry in dose['data']:
-                if len(entry) >= 3 and entry[2]:
-                    units_set.add(entry[2])
-            quantity_data[vmp_id]['dose_units'] = sorted(list(units_set))
+        if dose.get('data') and any(v != 0 for v in dose['data']):
+            quantity_data[vmp_id]['has_dose'] = True
+            unit = dose.get('quantity_unit__unit')
+            if unit:
+                quantity_data[vmp_id]['dose_units'] = sorted(list({unit}))
     
     ingredient_quantities = IngredientQuantity.objects.filter(
         vmp_id__in=vmp_ids,
-        data__0__0__isnull=False
-    ).values('vmp_id', 'data')
+        data__0__isnull=False
+    ).values('vmp_id', 'data', 'quantity_unit__unit')
     
     for ingredient_qty in ingredient_quantities:
         vmp_id = ingredient_qty['vmp_id']
-        quantity_data[vmp_id]['has_ingredient_quantities'] = True
-        
-        if ingredient_qty['data']:
-            units_set = set()
-            for entry in ingredient_qty['data']:
-                if len(entry) >= 3 and entry[2]:
-                    units_set.add(entry[2])
-            quantity_data[vmp_id]['ingredient_units'] = sorted(list(units_set))
+        if ingredient_qty.get('data') and any(v != 0 for v in ingredient_qty['data']):
+            quantity_data[vmp_id]['has_ingredient_quantities'] = True
+            unit = ingredient_qty.get('quantity_unit__unit')
+            if unit:
+                quantity_data[vmp_id]['ingredient_units'] = sorted(list({unit}))
     
     ddd_quantities = DDDQuantity.objects.filter(
         vmp_id__in=vmp_ids,
-        data__0__0__isnull=False
-    ).values_list('vmp_id', flat=True)
+        data__0__isnull=False
+    ).values('vmp_id', 'data')
     
-    for vmp_id in ddd_quantities:
-        quantity_data[vmp_id]['has_ddd_quantity'] = True
+    for ddd_qty in ddd_quantities:
+        vmp_id = ddd_qty['vmp_id']
+        if ddd_qty.get('data') and any(v != 0 for v in ddd_qty['data']):
+            quantity_data[vmp_id]['has_ddd_quantity'] = True
     
     return quantity_data
 

@@ -274,16 +274,48 @@ class Organisation(models.Model):
         return list(self.predecessors.all())
 
 
+class VMPQuantityUnit(models.Model):
+    """Unit per VMP for SCMD and Dose"""
+    QUANTITY_TYPES = [('scmd', 'SCMD'), ('dose', 'Dose')]
+    quantity_type = models.CharField(max_length=20, choices=QUANTITY_TYPES)
+    vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name="quantity_units")
+    unit = models.CharField(max_length=255)
+
+    class Meta:
+        unique_together = ('quantity_type', 'vmp')
+        indexes = [models.Index(fields=["quantity_type", "vmp"])]
+
+    def __str__(self):
+        return f"{self.vmp.name} ({self.get_quantity_type_display()}): {self.unit}"
+
+
+class IngredientQuantityUnit(models.Model):
+    """Unit per ingredient-VMP for IngredientQuantity"""
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name="quantity_units")
+    vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name="ingredient_quantity_units")
+    unit = models.CharField(max_length=255)
+
+    class Meta:
+        unique_together = ('ingredient', 'vmp')
+        indexes = [models.Index(fields=["ingredient", "vmp"])]
+
+    def __str__(self):
+        return f"{self.ingredient.name} - {self.vmp.name}: {self.unit}"
+
+
 class SCMDQuantity(models.Model):
     vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name="scmd_quantities")
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name="scmd_quantities")
+    quantity_unit = models.ForeignKey(
+        VMPQuantityUnit,
+        on_delete=models.PROTECT,
+        related_name="scmd_quantities",
+        limit_choices_to={"quantity_type": "scmd"},
+    )
     data = ArrayField(
-        ArrayField(
-            models.CharField(max_length=255, null=True),
-            size=3,  # [year_month, quantity, unit]
-        ),
+        models.FloatField(),
         null=True,
-        help_text="Array of [year_month, quantity, unit] entries"
+        help_text="Dense array [qty0, qty1, ...] aligned to DataStatus months (0 = no data)"
     )
     
     class Meta:
@@ -292,19 +324,13 @@ class SCMDQuantity(models.Model):
             models.Index(fields=["vmp", "organisation"]),
         ]
 
+    @property
+    def unit(self):
+        return self.quantity_unit.unit
+
     def __str__(self):
         return f"{self.vmp.name} - {self.organisation.ods_name}"
 
-    def get_quantity_for_month(self, year_month):
-        """Get quantity and unit for a specific month"""
-        date_str = year_month.strftime('%Y-%m-%d')
-        for entry in self.data:
-            if entry[0] == date_str:
-                return {
-                    'quantity': float(entry[1]) if entry[1] else None,
-                    'unit': entry[2]
-                }
-        return None
 
 class Dose(models.Model):
     vmp = models.ForeignKey(
@@ -314,14 +340,21 @@ class Dose(models.Model):
     organisation = models.ForeignKey(
         Organisation, on_delete=models.CASCADE, related_name="doses"
     )
-    data = ArrayField(
-        ArrayField(
-            models.CharField(max_length=255, null=True),
-            size=3,  # [year_month, quantity, unit]
-        ),
-        null=True,
-        help_text="Array of [year_month, quantity, unit] entries"
+    quantity_unit = models.ForeignKey(
+        VMPQuantityUnit,
+        on_delete=models.PROTECT,
+        related_name="doses",
+        limit_choices_to={"quantity_type": "dose"},
     )
+    data = ArrayField(
+        models.FloatField(),
+        null=True,
+        help_text="Dense array [qty0, qty1, ...] aligned to DataStatus months (0 = no data)"
+    )
+
+    @property
+    def unit(self):
+        return self.quantity_unit.unit
 
     def __str__(self):
         return f"{self.vmp.name} - {self.organisation.ods_name}"
@@ -332,16 +365,6 @@ class Dose(models.Model):
             models.Index(fields=["vmp", "organisation"]),
         ]
 
-    def get_quantity_for_month(self, year_month):
-        """Get quantity and unit for a specific month"""
-        date_str = year_month.strftime('%Y-%m-%d')
-        for entry in self.data:
-            if entry[0] == date_str:
-                return {
-                    'quantity': float(entry[1]) if entry[1] else None,
-                    'unit': entry[2]
-                }
-        return None
 
 class IngredientQuantity(models.Model):
     ingredient = models.ForeignKey(
@@ -355,14 +378,20 @@ class IngredientQuantity(models.Model):
         Organisation,
         on_delete=models.CASCADE,
         related_name="ingredient_quantities")
-    data = ArrayField(
-        ArrayField(
-            models.CharField(max_length=255, null=True),
-            size=3,  # [year_month, quantity, unit]
-        ),
-        null=True,
-        help_text="Array of [year_month, quantity, unit] entries"
+    quantity_unit = models.ForeignKey(
+        IngredientQuantityUnit,
+        on_delete=models.PROTECT,
+        related_name="ingredient_quantities",
     )
+    data = ArrayField(
+        models.FloatField(),
+        null=True,
+        help_text="Dense array [qty0, qty1, ...] aligned to DataStatus months (0 = no data)"
+    )
+
+    @property
+    def unit(self):
+        return self.quantity_unit.unit
 
     def __str__(self):
         return (
@@ -376,17 +405,6 @@ class IngredientQuantity(models.Model):
             models.Index(fields=["vmp", "organisation", "ingredient"]),
         ]
 
-    def get_quantity_for_month(self, year_month):
-        """Get quantity and unit for a specific month"""
-        date_str = year_month.strftime('%Y-%m-%d')
-        for entry in self.data:
-            if entry[0] == date_str:
-                return {
-                    'quantity': float(entry[1]) if entry[1] else None,
-                    'unit': entry[2]
-                }
-        return None
-
 class DDDQuantity(models.Model):
     vmp = models.ForeignKey(
         VMP, on_delete=models.CASCADE, related_name="ddd_quantities"
@@ -396,12 +414,9 @@ class DDDQuantity(models.Model):
         on_delete=models.CASCADE,
         related_name="ddd_quantities")
     data = ArrayField(
-        ArrayField(
-            models.CharField(max_length=255, null=True),
-            size=3,  # [year_month, quantity, unit]
-        ),
+        models.FloatField(),
         null=True,
-        help_text="Array of [year_month, quantity, unit] entries"
+        help_text="Dense array [qty0, qty1, ...] aligned to DataStatus months (0 = no data)"
     )
 
     def __str__(self):
@@ -415,30 +430,16 @@ class DDDQuantity(models.Model):
             models.Index(fields=["vmp", "organisation"]),
         ]
 
-    def get_quantity_for_month(self, year_month):
-        """Get quantity and unit for a specific month"""
-        date_str = year_month.strftime('%Y-%m-%d')
-        for entry in self.data:
-            if entry[0] == date_str:
-                return {
-                    'quantity': float(entry[1]) if entry[1] else None,
-                    'unit': entry[2]
-                }
-        return None
-
 
 class IndicativeCost(models.Model):
     vmp = models.ForeignKey(VMP, on_delete=models.CASCADE, related_name="indicative_costs")
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name="indicative_costs")
     data = ArrayField(
-        ArrayField(
-            models.CharField(max_length=255, null=True),
-            size=2,  # [year_month, quantity]
-        ),
+        models.FloatField(),
         null=True,
-        help_text="Array of [year_month, quantity] entries"
+        help_text="Dense array [qty0, qty1, ...] aligned to DataStatus months (0 = no data)"
     )
-    
+
     class Meta:
         unique_together = ('vmp', 'organisation')
         indexes = [
@@ -448,15 +449,6 @@ class IndicativeCost(models.Model):
     def __str__(self):
         return f"{self.vmp.name} - {self.organisation.ods_name}"
 
-    def get_quantity_for_month(self, year_month):
-        """Get quantity and unit for a specific month"""
-        date_str = year_month.strftime('%Y-%m-%d')
-        for entry in self.data:
-            if entry[0] == date_str:
-                return {
-                    'quantity': float(entry[1]) if entry[1] else None
-                }
-        return None
     
 class MeasureTag(models.Model):
     name = models.CharField(max_length=255)

@@ -9,7 +9,6 @@ from pipeline.setup.bq_tables import (
     ORGANISATION_TABLE_SPEC,
     UNITS_CONVERSION_TABLE_SPEC,
     SCMD_PROCESSED_TABLE_SPEC,
-    VMP_UNIT_STANDARDISATION_TABLE_SPEC,
     DMD_FULL_TABLE_SPEC,
     DMD_HISTORY_TABLE_SPEC,
 )
@@ -75,24 +74,17 @@ def validate_scmd_data():
             GROUP BY 1, 2, 3
         """,
         "multiple_units": f"""
-            WITH vmp_units AS (
-                SELECT 
-                    vmp_code,
-                    vmp_name,
-                    COUNT(DISTINCT normalised_uom_id) as unit_count,
-                    STRING_AGG(DISTINCT uom_id) as unit_ids,
-                    STRING_AGG(DISTINCT normalised_uom_id) as normalised_unit_ids,
-                    STRING_AGG(DISTINCT CONCAT(uom_name, ' (', uom_id, ' → ', normalised_uom_id, ')'), ', ') as unit_details
-                FROM `{SCMD_PROCESSED_TABLE_SPEC.full_table_id}`
-                GROUP BY vmp_code, vmp_name
-                HAVING COUNT(DISTINCT normalised_uom_id) > 1
-            )
-            SELECT *
-            FROM vmp_units vu
-            LEFT JOIN `{VMP_UNIT_STANDARDISATION_TABLE_SPEC.full_table_id}` us
-                ON vu.vmp_code = us.vmp_code
-            WHERE us.vmp_code IS NULL
-            ORDER BY vu.unit_count DESC, vu.vmp_code
+            SELECT
+                vmp_code,
+                vmp_name,
+                COUNT(DISTINCT normalised_uom_id) as unit_count,
+                STRING_AGG(DISTINCT uom_id) as unit_ids,
+                STRING_AGG(DISTINCT normalised_uom_id) as normalised_unit_ids,
+                STRING_AGG(DISTINCT CONCAT(uom_name, ' (', uom_id, ' → ', normalised_uom_id, ')'), ', ') as unit_details
+            FROM `{SCMD_PROCESSED_TABLE_SPEC.full_table_id}`
+            GROUP BY vmp_code, vmp_name
+            HAVING COUNT(DISTINCT normalised_uom_id) > 1
+            ORDER BY unit_count DESC, vmp_code
         """,
         "temporal_consistency": f"""
             WITH vmp_units AS (
@@ -156,9 +148,10 @@ def validate_scmd_data():
         raise ValueError("Invalid VMP mappings found")
 
     if validation_results["multiple_units"]:
-        logger.warning(f"Found {len(validation_results['multiple_units'])} VMPs with multiple units")
+        logger.error(f"Found {len(validation_results['multiple_units'])} VMPs with multiple units")
         for row in validation_results["multiple_units"][:5]:
-            logger.warning(f"- {row.vmp_code} ({row.vmp_name}): {row.unit_details}")
+            logger.error(f"- {row.vmp_code} ({row.vmp_name}): {row.unit_details}")
+        raise ValueError("VMPs with multiple units found - each VMP must be reported in a single unit across all trusts and dates")
 
     if validation_results["temporal_consistency"]:
         logger.warning(f"Found {len(validation_results['temporal_consistency'])} temporal unit changes")

@@ -1,6 +1,6 @@
 import pytest
 import pandas as pd
-import numpy as np
+from datetime import date
 from unittest.mock import patch, MagicMock
 from pipeline.load_data.load_dose_data import (
     get_dose_calculation_logic,
@@ -10,9 +10,9 @@ from pipeline.load_data.load_dose_data import (
     cache_foreign_keys,
     transform_and_load_chunk,
     load_dose_logic,
-    ensure_proper_types,
 )
-from viewer.models import Dose, SCMDQuantity, VMP, Organisation, CalculationLogic, Region, ICB
+from pipeline.utils.utils import sparse_to_dense
+from viewer.models import Dose, SCMDQuantity, VMP, Organisation, CalculationLogic, Region, ICB, DataStatus, VMPQuantityUnit
 
 
 @pytest.fixture
@@ -23,9 +23,9 @@ def sample_dose_data():
             "vmp_code": ["12345", "67890", "12345"],
             "ods_code": ["ORG1", "ORG1", "ORG2"],
             "dose_quantity": [1.0, 2.0, 3.0],
-            "dose_unit": ["pre-filled disposable injection", "capsules", "spoonful"],
+            "dose_unit": ["capsules", "pre-filled disposable injection", "capsules"],
             "scmd_quantity": [10.0, 2.0, 15.0],
-            "scmd_basis_unit_name": ["ml", "capsules", "ml"],
+            "scmd_basis_unit_name": ["capsules", "ml", "capsules"],
         }
     )
 
@@ -40,6 +40,8 @@ def sample_dose_logic_dict():
 
 @pytest.fixture
 def sample_foreign_keys(db):
+    DataStatus.objects.create(year_month=date(2024, 1, 1), file_type="test")
+    DataStatus.objects.create(year_month=date(2024, 2, 1), file_type="test")
     vmps = [
         VMP.objects.create(code="12345", name="Test Drug 1"),
         VMP.objects.create(code="67890", name="Test Drug 2"),
@@ -64,19 +66,11 @@ def sample_foreign_keys(db):
 
 
 class TestLoadDoseData:
-    def test_ensure_proper_types(self):
-        test_data = [
-            [pd.Timestamp("2024-01-01"), np.float64(1.5), "pre-filled disposable injection"],
-            ["2024-02-01", "2.0", "capsules"],
-            [pd.Timestamp("2024-03-01"), 3, "spoonful"],
-        ]
-
-        result = ensure_proper_types(test_data)
-
-        for entry in result:
-            assert isinstance(entry[0], str)
-            assert isinstance(entry[1], float)
-            assert isinstance(entry[2], str)
+    def test_sparse_to_dense(self):
+        months = ["2024-01-01", "2024-02-01", "2024-03-01"]
+        sparse = [["2024-01-01", 1.5], ["2024-03-01", 3.0]]
+        result = sparse_to_dense(sparse, months)
+        assert result == [1.5, 0.0, 3.0]
 
     @patch("pipeline.load_data.load_dose_data.get_bigquery_client")
     def test_get_dose_calculation_logic(self, mock_client):
@@ -142,6 +136,8 @@ class TestLoadDoseData:
     @pytest.mark.django_db
     def test_clear_existing_dose_data(self):
         with patch("pipeline.load_data.load_dose_data.task", lambda x: x):
+            
+            DataStatus.objects.create(year_month=date(2024, 1, 1), file_type="test")
             vmp = VMP.objects.create(code="12345", name="Test Drug")
             region = Region.objects.create(code="REG1", name="Test Region")
             icb = ICB.objects.create(code="ICB1", name="Test ICB", region=region)
@@ -149,9 +145,11 @@ class TestLoadDoseData:
                 ods_code="ORG1", ods_name="Test Org", region=region, icb=icb
             )
 
-            Dose.objects.create(vmp=vmp, organisation=org, data=[["2024-01-01", 1.5, "mg"]])
+            dose_unit = VMPQuantityUnit.objects.create(quantity_type="dose", vmp=vmp, unit="mg")
+            scmd_unit = VMPQuantityUnit.objects.create(quantity_type="scmd", vmp=vmp, unit="tablets")
+            Dose.objects.create(vmp=vmp, organisation=org, quantity_unit=dose_unit, data=[1.5])
             SCMDQuantity.objects.create(
-                vmp=vmp, organisation=org, data=[["2024-01-01", 10.0, "tablets"]]
+                vmp=vmp, organisation=org, quantity_unit=scmd_unit, data=[10.0]
             )
             CalculationLogic.objects.create(
                 vmp=vmp, logic_type="dose", logic="Test logic", ingredient=None
@@ -164,6 +162,7 @@ class TestLoadDoseData:
             assert logic_deleted == 1
             assert Dose.objects.count() == 0
             assert SCMDQuantity.objects.count() == 0
+            assert VMPQuantityUnit.objects.count() == 0
             assert CalculationLogic.objects.filter(logic_type="dose").count() == 0
 
     @pytest.mark.django_db
@@ -255,22 +254,16 @@ class TestLoadDoseData:
             doses = Dose.objects.all()
             scmd = SCMDQuantity.objects.all()
 
-            # We expect 2 unique VMP/org combinations from sample data:
-            # VMP 12345 with ORG1, VMP 12345 with ORG2, VMP 67890 with ORG1
             assert doses.count() == 3
             assert scmd.count() == 3
 
             dose = doses.first()
             assert isinstance(dose.data, list)
             assert len(dose.data) > 0
-            assert all(isinstance(entry, list) and len(entry) == 3 for entry in dose.data)
+            assert all(isinstance(v, (int, float)) for v in dose.data)
 
-            all_dose_data = []
-            for dose in doses:
-                all_dose_data.extend(dose.data)
-            
-            dose_units = [entry[2] for entry in all_dose_data]
-            expected_units = ["pre-filled disposable injection", "capsules", "spoonful"]
+            dose_units = [dose.unit for dose in doses if dose.quantity_unit]
+            expected_units = ["capsules", "pre-filled disposable injection"]
             for unit in dose_units:
                 assert unit in expected_units
 
@@ -317,3 +310,4 @@ class TestLoadDoseData:
             assert result["skipped"] == 0
             assert result["logic_created"] == 0
             assert result["logic_conflicts"] == 0
+

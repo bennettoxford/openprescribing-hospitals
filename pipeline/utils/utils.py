@@ -180,6 +180,36 @@ def fetch_table_data_from_bq(table_spec, use_bqstorage=False) -> pd.DataFrame:
     logger.info(f"Found {len(df)} {table_spec.table_id}")
     return df
 
+
+def get_quantity_months():
+    """Get sorted list of month date strings from DataStatus for dense array alignment."""
+    from viewer.models import DataStatus
+
+    dates = list(
+        DataStatus.objects.order_by("year_month").values_list("year_month", flat=True)
+    )
+    return [d.strftime("%Y-%m-%d") for d in dates]
+
+
+def sparse_to_dense(sparse_array, months, accumulate=False):
+    """Convert [[date, qty], ...] to [qty0, qty1, ...] aligned to months."""
+    month_to_idx = {m: i for i, m in enumerate(months)}
+    dense = [0.0] * len(months)
+    for entry in sparse_array:
+        if entry and len(entry) >= 2:
+            date_str = str(entry[0])
+            if date_str in month_to_idx:
+                try:
+                    value = float(entry[1]) if entry[1] else 0.0
+                except (TypeError, ValueError):
+                    continue
+                idx = month_to_idx[date_str]
+                if accumulate:
+                    dense[idx] += value
+                else:
+                    dense[idx] = value
+    return dense
+
 def execute_bigquery_query(query: str, timeout=600) -> list:
     """Execute a BigQuery query and return all results"""
     logger = get_run_logger()

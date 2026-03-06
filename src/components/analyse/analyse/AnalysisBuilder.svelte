@@ -476,7 +476,9 @@
             }
 
             const data = await response.json();
-  
+
+            const payload = { months: data.months ?? [], items: data.items ?? [] };
+
             analyseOptions.runAnalysis({
                 selectedVMPs,
                 searchType,
@@ -498,10 +500,10 @@
                 updateOptions.excludedVmps = urlState.excludedVmps;
             }
 
-            updateResults(data, updateOptions);
+            updateResults(payload, updateOptions);
 
             dispatch('analysisComplete', { 
-                data: Array.isArray(data) ? data : [data],
+                data: payload,
                 searchType,
                 selectedOrganisations: $organisationSearchStore.selectedItems
             });

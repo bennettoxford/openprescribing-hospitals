@@ -12,6 +12,9 @@ def update_org_submission_cache():
     print("Fetching months and organizations...")
     unique_months = list(DataStatus.objects.dates('year_month', 'month').order_by('year_month'))
     month_strings = {m.strftime('%Y-%m-%d') for m in unique_months}
+    months_for_dense = list(
+        DataStatus.objects.order_by('year_month').values_list('year_month', flat=True)
+    )
     
     organisations = Organisation.objects.select_related('successor').prefetch_related('predecessors').all()
     
@@ -35,21 +38,18 @@ def update_org_submission_cache():
         vmp_id = scmd_record['vmp_id']
         data_array = scmd_record['data'] or []
         
-        for data_entry in data_array:
-            if len(data_entry) >= 2 and data_entry[0] and data_entry[1]:
-                month_str = data_entry[0]
-                
-                if month_str not in month_strings:
-                    continue
-                    
-                try:
-                    quantity = float(data_entry[1])
-                    if quantity > 0:
-                        for ancestor_org in org_hierarchy[org_code]:
-                            org_month_vmps[ancestor_org][month_str].add(vmp_id)
-                        
-                except (ValueError, TypeError):
-                    continue
+        for i, data_entry in enumerate(data_array):
+            if i >= len(months_for_dense):
+                break
+            month_str = months_for_dense[i].strftime('%Y-%m-%d')
+            if month_str not in month_strings:
+                continue
+            if not isinstance(data_entry, (int, float)):
+                continue
+            quantity = float(data_entry)
+            if quantity > 0:
+                for ancestor_org in org_hierarchy[org_code]:
+                    org_month_vmps[ancestor_org][month_str].add(vmp_id)
 
     print("Creating cache objects...")
     for org in tqdm(organisations, desc="Processing organizations"):

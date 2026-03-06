@@ -72,14 +72,12 @@ class DoseAdmin(admin.ModelAdmin):
 
     def get_latest_quantity(self, obj):
         if obj.data and len(obj.data) > 0:
-            return obj.data[-1][1]
+            return obj.data[-1]
         return None
     get_latest_quantity.short_description = 'Latest Quantity'
 
     def get_latest_unit(self, obj):
-        if obj.data and len(obj.data) > 0:
-            return obj.data[-1][2]
-        return None
+        return obj.unit
     get_latest_unit.short_description = 'Latest Unit'
 
 
@@ -91,14 +89,12 @@ class IngredientQuantityAdmin(admin.ModelAdmin):
 
     def get_latest_quantity(self, obj):
         if obj.data and len(obj.data) > 0:
-            return obj.data[-1][1]
+            return obj.data[-1]  # Dense: last value
         return None
     get_latest_quantity.short_description = 'Latest Quantity'
 
     def get_latest_unit(self, obj):
-        if obj.data and len(obj.data) > 0:
-            return obj.data[-1][2]
-        return None
+        return obj.unit
     get_latest_unit.short_description = 'Latest Unit'
 
 

@@ -1,5 +1,6 @@
 import pytest
 import pandas as pd
+from datetime import date
 from unittest.mock import patch, MagicMock
 from pipeline.load_data.load_ddd_quantity import (
     get_ddd_calculation_logic,
@@ -18,6 +19,7 @@ from viewer.models import (
     CalculationLogic,
     Region,
     ICB,
+    DataStatus,
 )
 
 
@@ -45,6 +47,8 @@ def sample_ddd_logic_dict():
 
 @pytest.fixture
 def sample_foreign_keys(db):
+    DataStatus.objects.create(year_month=date(2024, 1, 1), file_type="test")
+    DataStatus.objects.create(year_month=date(2024, 2, 1), file_type="test")
     vmps = [
         VMP.objects.create(code="12345", name="Test Drug 1"),
         VMP.objects.create(code="67890", name="Test Drug 2"),
@@ -157,9 +161,9 @@ class TestLoadDDDQuantity:
             )
 
             DDDQuantity.objects.create(
-                vmp=vmp, 
-                organisation=org, 
-                data=[["2024-01-01", "1.5", "DDD (1.0 mg)"]]
+                vmp=vmp,
+                organisation=org,
+                data=[1.5],
             )
             CalculationLogic.objects.create(
                 vmp=vmp, logic_type="ddd", logic="Test DDD logic", ingredient=None
@@ -271,8 +275,8 @@ class TestLoadDDDQuantity:
             assert isinstance(ddd_quantity.data, list)
             assert len(ddd_quantity.data) > 0
             assert all(
-                isinstance(entry, list) and len(entry) == 3
-                for entry in ddd_quantity.data
+                isinstance(v, (int, float))
+                for v in ddd_quantity.data
             )
 
     @pytest.mark.django_db
@@ -293,6 +297,10 @@ class TestLoadDDDQuantity:
         self, sample_ddd_data
     ):
         with patch("pipeline.load_data.load_ddd_quantity.task", lambda x: x):
+            
+
+            DataStatus.objects.create(year_month=date(2024, 1, 1), file_type="test")
+            DataStatus.objects.create(year_month=date(2024, 2, 1), file_type="test")
             empty_cache = {"vmps": {}, "organisations": {}}
             
             result = transform_and_load_ddd_quantity_chunk(
@@ -321,3 +329,4 @@ class TestLoadDDDQuantity:
             assert result["created"] == 1
             assert result["skipped"] == 2 
             assert DDDQuantity.objects.count() == 1
+

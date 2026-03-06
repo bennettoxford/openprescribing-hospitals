@@ -1,6 +1,7 @@
 import pytest
 import pandas as pd
 import numpy as np
+from datetime import date
 from unittest.mock import patch, MagicMock
 from pipeline.load_data.load_ingredient_quantity import (
     get_ingredient_calculation_logic,
@@ -11,7 +12,7 @@ from pipeline.load_data.load_ingredient_quantity import (
     transform_and_load_ingredient_quantity_chunk,
     load_ingredient_logic_for_combinations,
 )
-from viewer.models import IngredientQuantity, Ingredient, VMP, Organisation, CalculationLogic, Region, ICB
+from viewer.models import IngredientQuantity, Ingredient, VMP, Organisation, CalculationLogic, Region, ICB, DataStatus, IngredientQuantityUnit
 
 
 @pytest.fixture
@@ -64,6 +65,8 @@ def sample_ingredient_logic_dict():
 
 @pytest.fixture
 def sample_foreign_keys(db):
+    DataStatus.objects.create(year_month=date(2024, 1, 1), file_type="test")
+    DataStatus.objects.create(year_month=date(2024, 2, 1), file_type="test")
     ingredients = [
         Ingredient.objects.create(code="ING1", name="Test Ingredient 1"),
         Ingredient.objects.create(code="ING2", name="Test Ingredient 2"),
@@ -160,11 +163,13 @@ class TestLoadIngredientQuantity:
                 ods_code="ORG1", ods_name="Test Org", region=region, icb=icb
             )
 
+            iq_unit = IngredientQuantityUnit.objects.create(ingredient=ingredient, vmp=vmp, unit="mg")
             IngredientQuantity.objects.create(
                 ingredient=ingredient,
                 vmp=vmp,
                 organisation=org,
-                data=[["2024-01-01", "100.0", "mg"]],
+                quantity_unit=iq_unit,
+                data=[100.0],
             )
             CalculationLogic.objects.create(
                 vmp=vmp, 
@@ -178,6 +183,7 @@ class TestLoadIngredientQuantity:
             assert deleted_count == 1
             assert logic_deleted_count == 1
             assert IngredientQuantity.objects.count() == 0
+            assert IngredientQuantityUnit.objects.count() == 0
             assert CalculationLogic.objects.filter(logic_type="ingredient").count() == 0
 
     @patch("pipeline.load_data.load_ingredient_quantity.get_bigquery_client")
@@ -289,7 +295,7 @@ class TestLoadIngredientQuantity:
             iq = IngredientQuantity.objects.first()
             assert isinstance(iq.data, list)
             assert len(iq.data) > 0
-            assert all(isinstance(entry, list) and len(entry) == 3 for entry in iq.data)
+            assert all(isinstance(v, (int, float)) for v in iq.data)
 
     @pytest.mark.django_db
     def test_transform_and_load_ingredient_quantity_chunk_invalid_data(self, sample_foreign_keys):
