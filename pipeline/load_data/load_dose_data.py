@@ -6,11 +6,16 @@ from prefect import get_run_logger, task, flow
 from django.db import transaction
 from typing import Dict, List, Tuple
 from pipeline.setup.bq_tables import DOSE_TABLE_SPEC, DOSE_CALCULATION_LOGIC_TABLE_SPEC
-from pipeline.utils.utils import setup_django_environment, get_bigquery_client
+from pipeline.utils.utils import (
+    setup_django_environment,
+    get_bigquery_client,
+    get_quantity_months,
+    sparse_to_dense,
+)
 
 
 setup_django_environment()
-from viewer.models import Dose, SCMDQuantity, VMP, Organisation, CalculationLogic
+from viewer.models import Dose, SCMDQuantity, VMP, Organisation, CalculationLogic, VMPQuantityUnit
 
 
 def fetch_bigquery_data(query: str, client) -> pd.DataFrame:
@@ -19,24 +24,6 @@ def fetch_bigquery_data(query: str, client) -> pd.DataFrame:
     query_job = client.query(query, job_config=job_config)
     df = query_job.to_dataframe(create_bqstorage_client=True)
     return df.copy()
-
-
-def ensure_proper_types(data_list):
-    """Ensure each entry in the data array has the proper types"""
-    for i, entry in enumerate(data_list):
-        date_val = entry[0]
-        if not isinstance(date_val, str):
-            data_list[i][0] = str(date_val)
-
-        qty_val = entry[1]
-        if not isinstance(qty_val, float):
-            data_list[i][1] = float(qty_val)
-
-        unit_val = entry[2]
-        if not isinstance(unit_val, str):
-            data_list[i][2] = str(unit_val)
-
-    return data_list
 
 
 @task
@@ -162,6 +149,14 @@ def clear_existing_dose_data() -> Tuple[int, int, int]:
             deleted_count = SCMDQuantity.objects.filter(id__in=batch_ids).delete()[0]
             total_scmd_deleted += deleted_count
 
+    while True:
+        with transaction.atomic():
+            batch_ids = list(VMPQuantityUnit.objects.values_list("id", flat=True)[:chunk_size])
+            if not batch_ids:
+                break
+
+            VMPQuantityUnit.objects.filter(id__in=batch_ids).delete()
+
     logger.info(f"Deleted {total_dose_deleted:,} existing dose records")
     logger.info(f"Deleted {total_scmd_deleted:,} existing SCMD quantity records")
     logger.info(f"Deleted {total_logic_deleted:,} existing dose calculation logic records")
@@ -276,39 +271,31 @@ def transform_and_load_chunk(
     )
 
     logger.info(f"Chunk {chunk_num}/{total_chunks}: Grouping data...")
+
+    months = get_quantity_months()
+    if not months:
+        raise ValueError(
+            f"Chunk {chunk_num}/{total_chunks}: DataStatus has no months - cannot build dense arrays"
+        )
+
     dose_data = {}
     scmd_data = {}
-
     for (vmp_code, ods_code), group in df_valid.groupby(["vmp_code", "ods_code"]):
         dose_group = group[
             (group["dose_quantity"].notna()) & (group["dose_unit"].notna())
         ]
         if len(dose_group) > 0:
-            dose_array = []
-            for row in dose_group.itertuples(index=False):
-                dose_array.append(
-                    [
-                        row.year_month,
-                        float(row.dose_quantity),
-                        str(row.dose_unit),
-                    ]
-                )
-            dose_data[(vmp_code, ods_code)] = ensure_proper_types(dose_array)
+            dose_unit = str(dose_group.iloc[0].dose_unit)
+            sparse = [[row.year_month, float(row.dose_quantity)] for row in dose_group.itertuples(index=False)]
+            dose_data[(vmp_code, ods_code)] = (sparse_to_dense(sparse, months), dose_unit)
 
         scmd_group = group[
             (group["scmd_quantity"].notna()) & (group["scmd_basis_unit_name"].notna())
         ]
         if len(scmd_group) > 0:
-            scmd_array = []
-            for row in scmd_group.itertuples(index=False):
-                scmd_array.append(
-                    [
-                        row.year_month,
-                        float(row.scmd_quantity),
-                        str(row.scmd_basis_unit_name),
-                    ]
-                )
-            scmd_data[(vmp_code, ods_code)] = ensure_proper_types(scmd_array)
+            scmd_unit = str(scmd_group.iloc[0].scmd_basis_unit_name)
+            sparse = [[row.year_month, float(row.scmd_quantity)] for row in scmd_group.itertuples(index=False)]
+            scmd_data[(vmp_code, ods_code)] = (sparse_to_dense(sparse, months), scmd_unit)
 
     logger.info(
         f"Chunk {chunk_num}/{total_chunks}: Created {len(dose_data):,} dose combinations and {len(scmd_data):,} SCMD combinations"
@@ -319,13 +306,21 @@ def transform_and_load_chunk(
 
     dose_objects = []
     dose_skipped = 0
+    dose_unit_cache = {}
 
-    for (vmp_code, ods_code), data_array in dose_data.items():
+    for (vmp_code, ods_code), (data_array, unit) in dose_data.items():
         if vmp_code in vmps and ods_code in organisations:
+            vmp_id = vmps[vmp_code]
+            cache_key = (vmp_id, unit)
+            if cache_key not in dose_unit_cache:
+                dose_unit_cache[cache_key], _ = VMPQuantityUnit.objects.get_or_create(
+                    quantity_type="dose", vmp_id=vmp_id, defaults={"unit": unit}
+                )
             dose_objects.append(
                 Dose(
-                    vmp_id=vmps[vmp_code],
+                    vmp_id=vmp_id,
                     organisation_id=organisations[ods_code],
+                    quantity_unit_id=dose_unit_cache[cache_key].id,
                     data=data_array,
                 )
             )
@@ -334,13 +329,21 @@ def transform_and_load_chunk(
 
     scmd_objects = []
     scmd_skipped = 0
+    scmd_unit_cache = {}
 
-    for (vmp_code, ods_code), data_array in scmd_data.items():
+    for (vmp_code, ods_code), (data_array, unit) in scmd_data.items():
         if vmp_code in vmps and ods_code in organisations:
+            vmp_id = vmps[vmp_code]
+            cache_key = (vmp_id, unit)
+            if cache_key not in scmd_unit_cache:
+                scmd_unit_cache[cache_key], _ = VMPQuantityUnit.objects.get_or_create(
+                    quantity_type="scmd", vmp_id=vmp_id, defaults={"unit": unit}
+                )
             scmd_objects.append(
                 SCMDQuantity(
-                    vmp_id=vmps[vmp_code],
+                    vmp_id=vmp_id,
                     organisation_id=organisations[ods_code],
+                    quantity_unit_id=scmd_unit_cache[cache_key].id,
                     data=data_array,
                 )
             )

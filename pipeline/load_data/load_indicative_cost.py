@@ -5,7 +5,12 @@ from prefect import get_run_logger, task, flow
 from django.db import transaction
 from typing import Dict, List
 from pipeline.setup.bq_tables import SCMD_PROCESSED_TABLE_SPEC
-from pipeline.utils.utils import setup_django_environment, get_bigquery_client
+from pipeline.utils.utils import (
+    setup_django_environment,
+    get_bigquery_client,
+    get_quantity_months,
+    sparse_to_dense,
+)
 from google.cloud import bigquery
 
 
@@ -154,13 +159,22 @@ def transform_and_load_chunk(
     df_valid["year_month"] = pd.to_datetime(df_valid["year_month"]).dt.strftime(
         "%Y-%m-%d"
     )
-    df_valid["cost_str"] = df_valid["indicative_cost"].round(2).astype(str)
+
+    months = get_quantity_months()
+    if not months:
+        raise ValueError(
+            f"Chunk {chunk_num}/{total_chunks}: DataStatus has no months - cannot build dense arrays"
+        )
 
     logger.info(f"Chunk {chunk_num}/{total_chunks}: Grouping data...")
     grouped_data = {}
     for (vmp_code, ods_code), group in df_valid.groupby(["vmp_code", "ods_code"]):
-        data_array = list(zip(group["year_month"].tolist(), group["cost_str"].tolist()))
-        grouped_data[(vmp_code, ods_code)] = data_array
+        sparse = [
+            [row.year_month, float(row.indicative_cost)]
+            for row in group.itertuples(index=False)
+        ]
+        dense = sparse_to_dense(sparse, months)
+        grouped_data[(vmp_code, ods_code)] = dense
 
     logger.info(
         f"Chunk {chunk_num}/{total_chunks}: Created {len(grouped_data):,} VMP-Organisation combinations"

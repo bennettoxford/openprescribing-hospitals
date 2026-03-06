@@ -6,7 +6,12 @@ from prefect import get_run_logger, task, flow
 from django.db import transaction
 from typing import Dict, List, Tuple
 from pipeline.setup.bq_tables import DDD_QUANTITY_TABLE_SPEC, DDD_CALCULATION_LOGIC_TABLE_SPEC
-from pipeline.utils.utils import setup_django_environment, get_bigquery_client
+from pipeline.utils.utils import (
+    setup_django_environment,
+    get_bigquery_client,
+    get_quantity_months,
+    sparse_to_dense,
+)
 
 
 setup_django_environment()
@@ -260,16 +265,19 @@ def transform_and_load_ddd_quantity_chunk(
 
     df_valid["year_month"] = pd.to_datetime(df_valid["year_month"]).dt.strftime("%Y-%m-%d")
 
+    months = get_quantity_months()
+    if not months:
+        raise ValueError(
+            f"Chunk {chunk_num}/{total_chunks}: DataStatus has no months - cannot build arrays"
+        )
+
     grouped_data = {}
     for (vmp_code, ods_code), group in df_valid.groupby(["vmp_code", "ods_code"]):
-        data_array = []
-        for row in group.itertuples(index=False):
-            ddd_unit_desc = f"DDD ({row.ddd_value} {row.ddd_unit})" if pd.notna(row.ddd_value) and pd.notna(row.ddd_unit) else "DDD"
-            data_array.append([
-                row.year_month,
-                str(float(row.ddd_quantity)),
-                ddd_unit_desc
-            ])
+        sparse = [
+            [row.year_month, float(row.ddd_quantity)]
+            for row in group.itertuples(index=False)
+        ]
+        dense = sparse_to_dense(sparse, months)
 
         if (vmp_code in foreign_key_cache["vmps"] and 
             ods_code in foreign_key_cache["organisations"]):
@@ -277,7 +285,7 @@ def transform_and_load_ddd_quantity_chunk(
                 foreign_key_cache["vmps"][vmp_code],
                 foreign_key_cache["organisations"][ods_code],
             )
-            grouped_data[key] = data_array
+            grouped_data[key] = dense
 
     logger.info(
         f"Chunk {chunk_num}/{total_chunks}: Prepared {len(grouped_data)} VMP-organisation combinations"
