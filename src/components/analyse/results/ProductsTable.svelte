@@ -153,8 +153,8 @@
             const filteredData = originalData.filter(item => {
                 const isSelectedVMP = selectedVMPs.some(vmp => vmp.vmp === item.vmp__name);
                 
-                const hasValidData = item.data && item.data.length > 0 && 
-                    item.data.some(([, quantity, unit]) => quantity && !isNaN(parseFloat(quantity)) && unit !== 'nan');
+                const hasValidData = item.data && item.data.length > 0 &&
+                    item.data.some(v => v > 0 && !isNaN(parseFloat(v)));
                 return isSelectedVMP && hasValidData;
             });
 

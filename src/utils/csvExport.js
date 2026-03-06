@@ -44,12 +44,13 @@ export function convertPercentilesToCSV(percentilesData) {
 }
 
 /**
- * Normalise data by aggregating predecessor trusts into their successors
+ * Normalise data by aggregating predecessor trusts into their successors.
  * @param {Array} data - The raw analysis data
  * @param {Map} predecessorMap - Map of successor -> predecessors
+ * @param {Array} months - Months array
  * @returns {Array} Normalised data with predecessors aggregated into successors
  */
-function normalisePredecessors(data, predecessorMap) {
+function normalisePredecessors(data, predecessorMap, months = []) {
     if (!predecessorMap || predecessorMap.size === 0) {
         return data; // No predecessors to normalise
     }
@@ -88,49 +89,22 @@ function normalisePredecessors(data, predecessorMap) {
         const normalisedKey = `${normalisedOrgCode}_${item.vmp__code}`;
 
         if (normalisedData.has(normalisedKey)) {
-  
             const existingItem = normalisedData.get(normalisedKey);
-
-            const existingDataMap = new Map();
-            if (existingItem.data && Array.isArray(existingItem.data)) {
-                existingItem.data.forEach(([date, quantity, unit]) => {
-                    if (date && (quantity !== null && quantity !== undefined)) {
-                        existingDataMap.set(date, { quantity: parseFloat(quantity) || 0, unit: unit || '' });
-                    }
-                });
-            }
-
-            if (item.data && Array.isArray(item.data)) {
-                item.data.forEach(([date, quantity, unit]) => {
-                    if (date && (quantity !== null && quantity !== undefined)) {
-                        const parsedQuantity = parseFloat(quantity) || 0;
-                        if (existingDataMap.has(date)) {
-                            existingDataMap.get(date).quantity += parsedQuantity;
-                        } else {
-                            existingDataMap.set(date, { quantity: parsedQuantity, unit: unit || '' });
-                        }
-                    }
-                });
-            }
-
-            existingItem.data = Array.from(existingDataMap.entries())
-                .sort(([a], [b]) => a.localeCompare(b))
-                .map(([date, { quantity, unit }]) => [date, quantity, unit]);
-
+            const merged = [...(existingItem.data || [])];
+            (item.data || []).forEach((qty, i) => {
+                if (i < months.length) {
+                    merged[i] = (parseFloat(merged[i]) || 0) + (parseFloat(qty) || 0);
+                }
+            });
+            existingItem.data = merged;
         } else {
-            const normalisedItem = {
+            normalisedData.set(normalisedKey, {
                 ...item,
                 organisation__ods_name: normalisedOrgName,
                 organisation__ods_code: normalisedOrgCode,
                 organisation__region: normalisedRegion,
                 organisation__icb: normalisedIcb,
-            };
-
-            if (normalisedItem.data && Array.isArray(normalisedItem.data)) {
-                normalisedItem.data.sort(([a], [b]) => a.localeCompare(b));
-            }
-
-            normalisedData.set(normalisedKey, normalisedItem);
+            });
         }
     });
 
@@ -143,15 +117,16 @@ function normalisePredecessors(data, predecessorMap) {
  * @param {Array} excludedVmps - List of excluded VMP codes
  * @param {Array} selectedTrusts - List of selected trust names
  * @param {Map} predecessorMap - Map of successor -> predecessors for normalisation
+ * @param {Array} months - Months array
  * @returns {string} CSV formatted data
  */
-export function convertToCSV(data, excludedVmps = [], selectedTrusts = null, predecessorMap = null) {
+export function convertToCSV(data, excludedVmps = [], selectedTrusts = null, predecessorMap = null, months = []) {
     if (!data || !Array.isArray(data) || data.length === 0) {
         return '';
     }
 
     // First normalise the data to aggregate predecessors into successors
-    const normalisedData = normalisePredecessors(data, predecessorMap);
+    const normalisedData = normalisePredecessors(data, predecessorMap, months);
 
     // Filter data based on excluded VMPs and selected trusts
     const filteredData = normalisedData.filter(item => {
@@ -200,30 +175,24 @@ export function convertToCSV(data, excludedVmps = [], selectedTrusts = null, pre
         const region = item.organisation__region || '';
         const icb = item.organisation__icb || '';
         const ingredients = Array.isArray(item.ingredient_names) ? item.ingredient_names.join('; ') : '';
+        const unit = item.unit || '';
 
-        if (item.data && Array.isArray(item.data)) {
-            item.data.forEach(dataPoint => {
-                if (dataPoint && dataPoint.length >= 2) {
-                    const date = dataPoint[0] || '';
-                    const value = dataPoint[1] !== null && dataPoint[1] !== undefined ? dataPoint[1] : '';
-                    const unit = dataPoint[2] || '';
-
-                    const escapedRow = [
-                        date,
-                        vmpCode,
-                        `"${vmpName.replace(/"/g, '""')}"`,
-                        `"${vtmName.replace(/"/g, '""')}"`,
-                        trustCode,
-                        `"${trustName.replace(/"/g, '""')}"`,
-                        `"${region.replace(/"/g, '""')}"`,
-                        `"${icb.replace(/"/g, '""')}"`,
-                        value,
-                        unit,
-                        `"${ingredients.replace(/"/g, '""')}"`
-                    ];
-
-                    rows.push(escapedRow.join(','));
-                }
+        if (item.data && Array.isArray(item.data) && months.length > 0) {
+            months.forEach((date, i) => {
+                const value = i < item.data.length && item.data[i] != null ? item.data[i] : '';
+                rows.push([
+                    date,
+                    vmpCode,
+                    `"${(vmpName || '').replace(/"/g, '""')}"`,
+                    `"${(vtmName || '').replace(/"/g, '""')}"`,
+                    trustCode,
+                    `"${(trustName || '').replace(/"/g, '""')}"`,
+                    `"${(region || '').replace(/"/g, '""')}"`,
+                    `"${(icb || '').replace(/"/g, '""')}"`,
+                    value,
+                    unit,
+                    `"${(ingredients || '').replace(/"/g, '""')}"`
+                ].join(','));
             });
         }
     });
@@ -284,9 +253,10 @@ export function downloadCompressedCSV(csvContent, percentilesCsvContent = null, 
  * @param {Array} percentilesData - The percentiles data
  * @param {string} filename - Optional filename for the download
  * @param {Map} predecessorMap - Map of successor -> predecessors for normalisation
+ * @param {Array} months - Months array
  */
-export function exportAnalysisDataToCSV(data, excludedVmps = [], selectedTrusts = null, percentilesData = [], filename = null, predecessorMap = null) {
-    const csvContent = convertToCSV(data, excludedVmps, selectedTrusts, predecessorMap);
+export function exportAnalysisDataToCSV(data, excludedVmps = [], selectedTrusts = null, percentilesData = [], filename = null, predecessorMap = null, months = []) {
+    const csvContent = convertToCSV(data, excludedVmps, selectedTrusts, predecessorMap, months);
     const percentilesCsvContent = convertPercentilesToCSV(percentilesData);
 
     if (!csvContent) {

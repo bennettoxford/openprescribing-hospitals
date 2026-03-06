@@ -68,6 +68,11 @@
 
     $: excludedVmps = Array.isArray($resultsStore.excludedVmps) ? $resultsStore.excludedVmps : [];
 
+    function hasValidData(item) {
+        if (!item?.data || !Array.isArray(item.data)) return false;
+        return item.data.some(v => v > 0 && !isNaN(parseFloat(v)));
+    }
+
     $: if (analysisData) {
         handleUpdateData(analysisData);
     }
@@ -93,20 +98,12 @@
             
             // If no trusts are selected, check if there's any data available for percentiles
             if (selectedOrgNames.size === 0) {
-                return selectedData.some(item => 
-                    Array.isArray(item.data) && 
-                    item.data.length > 0 &&
-                    item.data.some(([_, value]) => value && !isNaN(parseFloat(value)))
-                );
+                return selectedData.some(item => hasValidData(item));
             }
             
             // If trusts are selected, check if selected trusts have data
             return selectedData.filter(item => selectedOrgNames.has(item.organisation__ods_name))
-                .some(item => 
-                    Array.isArray(item.data) && 
-                    item.data.length > 0 &&
-                    item.data.some(([_, value]) => value && !isNaN(parseFloat(value)))
-                );
+                .some(item => hasValidData(item));
         }
 
         const tableData = processTableDataByMode(
@@ -118,7 +115,8 @@
             $analyseOptions.selectedOrganisations || [],
             $organisationSearchStore.items || [],
             $organisationSearchStore.predecessorMap || new Map(),
-            new Set()
+            new Set(),
+            $resultsStore.analysisMonths || []
         );
         
         return tableData && tableData.length > 0 && tableData.some(entry => entry.total > 0);
@@ -177,10 +175,12 @@
 
 
     function processChartData(data) {
+        const months = $resultsStore.analysisMonths || [];
         const processor = new ChartDataProcessor(
             data,
             $resultsStore.aggregatedData,
             {
+                months,
                 selectedOrganisations: $analyseOptions.selectedOrganisations,
                 predecessorMap: $organisationSearchStore.predecessorMap,
                 showPercentiles: $resultsStore.showPercentiles !== false
@@ -196,7 +196,8 @@
             const percentilesResult = calculatePercentiles(
                 percentilesData, 
                 $organisationSearchStore.predecessorMap,
-                $organisationSearchStore.items
+                $organisationSearchStore.items,
+                $resultsStore.analysisMonths || []
             );
             
             const trustCount = getTrustCount(percentilesResult);
@@ -280,7 +281,8 @@
     }
 
     function handleUpdateData(data) {
-        selectedData = Array.isArray(data.data) ? data.data : [];
+        const payload = data.data;
+        selectedData = Array.isArray(payload?.items) ? payload.items : [];
         
         try {
             const vmpGroups = selectedData.reduce((acc, item) => {
@@ -295,12 +297,8 @@
                         searchType: data.searchType || $analyseOptions.searchType
                     };
                 }
-                if (item.data) {
-                    item.data.forEach(dataPoint => {
-                        if (dataPoint[2]) {
-                            acc[key].units.add(dataPoint[2]);
-                        }
-                    });
+                if (item.unit) {
+                    acc[key].units.add(item.unit);
                 }
                 return acc;
             }, {});
@@ -728,7 +726,8 @@
                                         exportData={{
                                             data: $resultsStore.filteredData && $resultsStore.filteredData.length > 0
                                                 ? $resultsStore.filteredData
-                                                : analysisData,
+                                                : $resultsStore.analysisData,
+                                            months: $resultsStore.analysisMonths || [],
                                             excludedVmps: $resultsStore.excludedVmps || [],
                                             selectedTrusts: $analyseOptions.selectedOrganisations || null,
                                             percentilesData: $resultsStore.percentiles || [],

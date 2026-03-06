@@ -28,9 +28,8 @@
 
     $: {
         if (data?.length > 0) {
-            const allDates = data.flatMap(item => 
-                item.data.map(([date]) => new Date(date))
-            ).sort((a, b) => b - a);
+            const months = $resultsStore.analysisMonths || [];
+            const allDates = months.map(m => new Date(m)).sort((a, b) => b - a);
 
             if (allDates.length > 0) {
                 const latest = allDates[0];
@@ -64,7 +63,8 @@
         $analyseOptions.selectedOrganisations || [],
         $organisationSearchStore.items || [],
         $organisationSearchStore.predecessorMap || new Map(),
-        expandedTrusts
+        expandedTrusts,
+        $resultsStore.analysisMonths || []
     );
 
     $: titleText = selectedMode === 'national' 
