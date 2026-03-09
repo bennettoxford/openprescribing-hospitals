@@ -210,7 +210,7 @@ function createOrganisationSearchStore() {
             if (!currentStore.orgCancerAlliances || !caName) return [];
             const result = [];
             currentStore.orgCancerAlliances.forEach((ca, orgName) => {
-                if (ca === caName) result.push(orgName);
+                if (ca === caName && currentStore.organisations?.has(orgName)) result.push(orgName);
             });
             return result;
         },
