@@ -681,8 +681,14 @@
         } else {
             visibleICBs.set(new Set());
             visibleRegions.set(new Set());
-            visibleTrusts.set(new Set());
-            organisationSearchStore.updateSelection([]);
+            const availableTrusts = getAvailableTrusts();
+            if (percentilesDisabled) {
+                visibleTrusts.set(new Set(availableTrusts));
+                organisationSearchStore.updateSelection(availableTrusts);
+            } else {
+                visibleTrusts.set(new Set());
+                organisationSearchStore.updateSelection([]);
+            }
         }
 
         if ($filteredData) {
@@ -899,7 +905,7 @@
                         source={organisationSearchStore}
                         filterResetKey={$selectedMode}
                         overlayMode={true}
-                        filterAutoSelectsAll={false}
+                        filterAutoSelectsAll={percentilesDisabled}
                         on:selectionChange={handleSelectionChange}
                         on:clearAll={handleClearAll}
                         disabled={$selectedMode === 'national'}

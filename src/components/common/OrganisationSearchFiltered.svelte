@@ -344,8 +344,11 @@
         clearAllFilters();
     }
     function applyFilterAndSelection(itemList, setAvailableItemsFn) {
-        if (typeof setAvailableItemsFn === 'function') setAvailableItemsFn(itemList);
         const currentSelected = Array.from(get(source).selectedItems || []);
+        if (filterAutoSelectsAll && itemList.length === 0 && currentSelected.length > 0) {
+            return;
+        }
+        if (typeof setAvailableItemsFn === 'function') setAvailableItemsFn(itemList);
         const itemSet = new Set(itemList);
         const newSelection = filterAutoSelectsAll
             ? itemList
