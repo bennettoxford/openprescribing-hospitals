@@ -733,6 +733,31 @@
                                             selectedTrusts: $analyseOptions.selectedOrganisations || null,
                                             percentilesData: $resultsStore.percentiles || [],
                                             predecessorMap: $organisationSearchStore.predecessorMap || new Map(),
+                                            allOrganisations: (() => {
+                                                const selectedOrgNames = $analyseOptions.selectedOrganisations;
+                                                const allNames = (selectedOrgNames && selectedOrgNames.length > 0)
+                                                    ? selectedOrgNames
+                                                    : ($organisationSearchStore.items || []);
+                                                const orgCodes = $organisationSearchStore.orgCodes || new Map();
+                                                const orgRegions = $organisationSearchStore.orgRegions || new Map();
+                                                const orgIcbs = $organisationSearchStore.orgIcbs || new Map();
+                                                const organisations = $organisationSearchStore.organisations || new Map();
+                                                return allNames.map(name => {
+                                                    const org = organisations.get(name);
+                                                    const predNames = org?.predecessors || [];
+                                                    const succNames = org?.successors || [];
+                                                    const predecessorCodes = predNames.map(n => orgCodes.get?.(n)).filter(Boolean).join(',');
+                                                    const successorCodes = succNames.map(n => orgCodes.get?.(n)).filter(Boolean).join(',');
+                                                    return {
+                                                        name,
+                                                        code: orgCodes.get?.(name) ?? null,
+                                                        region: orgRegions.get?.(name) ?? null,
+                                                        icb: orgIcbs.get?.(name) ?? null,
+                                                        predecessors: predecessorCodes,
+                                                        successors: successorCodes
+                                                    };
+                                                });
+                                            })(),
                                         }}
                                     />
                                 </div>

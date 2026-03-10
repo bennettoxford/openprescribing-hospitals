@@ -91,7 +91,8 @@
         exportData.percentilesData,
         null, // filename
         exportData.predecessorMap,
-        exportData.months || []
+        exportData.months || [],
+        exportData.allOrganisations || null
       );
 
       if (typeof window !== 'undefined' && window.plausible) {
