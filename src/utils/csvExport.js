@@ -130,7 +130,7 @@ export function convertToCSV(data, excludedVmps = [], selectedTrusts = null, pre
 
     // Filter data based on excluded VMPs and selected trusts
     const filteredData = normalisedData.filter(item => {
- 
+
         if (excludedVmps && excludedVmps.length > 0) {
             if (excludedVmps.includes(String(item.vmp__code))) {
                 return false;
@@ -201,12 +201,76 @@ export function convertToCSV(data, excludedVmps = [], selectedTrusts = null, pre
 }
 
 /**
+ * Convert trust totals to CSV format - lists all trusts with total issuing quantity over the period
+ * @param {Array} data - The normalised analysis data
+ * @param {Array} allOrganisations - List of {name, code, region, icb, predecessors?, successors?} for all trusts to include
+ * @param {Array} excludedVmps - List of excluded VMP codes
+ * @param {Map} predecessorMap - Map of successor -> predecessors for normalisation
+ * @param {Array} months - Months array
+ * @returns {string} CSV formatted trust summary
+ */
+export function convertTrustsSummaryToCSV(data, allOrganisations = [], excludedVmps = [], predecessorMap = null, months = []) {
+    if (!allOrganisations || allOrganisations.length === 0) {
+        return '';
+    }
+
+    const normalisedData = predecessorMap && predecessorMap.size > 0
+        ? normalisePredecessors(data || [], predecessorMap, months || [])
+        : (data || []);
+
+    const totalsByTrust = new Map();
+
+    (normalisedData || []).forEach(item => {
+        if (excludedVmps && excludedVmps.length > 0 && excludedVmps.includes(String(item.vmp__code))) {
+            return;
+        }
+        const orgName = item.organisation__ods_name;
+        if (!orgName) return;
+
+        const values = item.data && Array.isArray(item.data) ? item.data : [];
+        const total = values.reduce((sum, v) => sum + (parseFloat(v) || 0), 0);
+
+        if (!totalsByTrust.has(orgName)) {
+            totalsByTrust.set(orgName, { total: 0, units: new Set() });
+        }
+        const entry = totalsByTrust.get(orgName);
+        entry.total += total;
+        if (item.unit) entry.units.add(item.unit);
+    });
+
+    const headers = ['Trust Code', 'Trust Name', 'Region', 'ICB', 'Predecessors', 'Successors', 'Total Quantity', 'Unit'];
+    const rows = [headers.join(',')];
+
+    allOrganisations.forEach(org => {
+        const entry = totalsByTrust.get(org.name);
+        const total = entry ? entry.total : 0;
+        const unitSet = entry?.units || new Set();
+        const unit = unitSet.size === 0 ? '' : unitSet.size === 1 ? [...unitSet][0] : 'multiple';
+        const predecessors = org.predecessors ?? '';
+        const successors = org.successors ?? '';
+        rows.push([
+            org.code || '',
+            `"${(org.name || '').replace(/"/g, '""')}"`,
+            `"${(org.region || '').replace(/"/g, '""')}"`,
+            `"${(org.icb || '').replace(/"/g, '""')}"`,
+            `"${(predecessors || '').replace(/"/g, '""')}"`,
+            `"${(successors || '').replace(/"/g, '""')}"`,
+            total,
+            `"${(unit || '').replace(/"/g, '""')}"`
+        ].join(','));
+    });
+
+    return rows.join('\n');
+}
+
+/**
  * Download data as compressed CSV file(s)
  * @param {string} csvContent - The main CSV content to download
  * @param {string} percentilesCsvContent - The percentiles CSV content (optional)
  * @param {string} filename - The filename for the download (optional)
+ * @param {string} trustsSummaryCsvContent - Trust summary CSV (optional)
  */
-export function downloadCompressedCSV(csvContent, percentilesCsvContent = null, filename = null) {
+export function downloadCompressedCSV(csvContent, percentilesCsvContent = null, filename = null, trustsSummaryCsvContent = null) {
     if (!csvContent) {
         throw new Error('No CSV content to download');
     }
@@ -221,6 +285,10 @@ export function downloadCompressedCSV(csvContent, percentilesCsvContent = null, 
 
     if (percentilesCsvContent && percentilesCsvContent.trim()) {
         zip.file(`${finalFilename}_percentiles.csv`, percentilesCsvContent);
+    }
+
+    if (trustsSummaryCsvContent && trustsSummaryCsvContent.trim()) {
+        zip.file(`${finalFilename}_trusts_summary.csv`, trustsSummaryCsvContent);
     }
 
     zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
@@ -254,14 +322,16 @@ export function downloadCompressedCSV(csvContent, percentilesCsvContent = null, 
  * @param {string} filename - Optional filename for the download
  * @param {Map} predecessorMap - Map of successor -> predecessors for normalisation
  * @param {Array} months - Months array
+ * @param {Array} allOrganisations - Optional list of {name, code, region, icb} for trusts to include in the summary file
  */
-export function exportAnalysisDataToCSV(data, excludedVmps = [], selectedTrusts = null, percentilesData = [], filename = null, predecessorMap = null, months = []) {
+export function exportAnalysisDataToCSV(data, excludedVmps = [], selectedTrusts = null, percentilesData = [], filename = null, predecessorMap = null, months = [], allOrganisations = null) {
     const csvContent = convertToCSV(data, excludedVmps, selectedTrusts, predecessorMap, months);
     const percentilesCsvContent = convertPercentilesToCSV(percentilesData);
+    const trustsSummaryCsvContent = convertTrustsSummaryToCSV(data, allOrganisations || [], excludedVmps, predecessorMap, months);
 
     if (!csvContent) {
         throw new Error('No data available for export');
     }
 
-    downloadCompressedCSV(csvContent, percentilesCsvContent, filename);
+    downloadCompressedCSV(csvContent, percentilesCsvContent, filename, trustsSummaryCsvContent);
 }
