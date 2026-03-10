@@ -69,9 +69,23 @@ export class ChartDataProcessor {
     processOrganisationMode() {
         const orgData = {};
         const selectedOrganisations = this.options.selectedOrganisations || [];
-        const dataToUse = selectedOrganisations.length > 0 ? 
-            this.rawData.filter(item => selectedOrganisations.includes(item.organisation__ods_name)) : 
+        const dataToUse = selectedOrganisations.length > 0 ?
+            this.rawData.filter(item => selectedOrganisations.includes(item.organisation__ods_name)) :
             [];
+
+        // When trusts are selected, ensure all selected trusts appear in orgData
+        // so they show in the chart legend
+        if (selectedOrganisations.length > 0) {
+            selectedOrganisations.forEach(org => {
+                if (org && !orgData[org]) {
+                    orgData[org] = {
+                        name: org,
+                        data: new Array(this.allDates.length).fill(0),
+                        isPredecessor: false
+                    };
+                }
+            });
+        }
 
         dataToUse.forEach(item => {
             const org = item.organisation__ods_name || 'Unknown';
@@ -88,7 +102,8 @@ export class ChartDataProcessor {
 
         this.handlePredecessors(orgData);
 
-        const chartResult = this.createDatasets(orgData, 'trust');
+        const includeEmptyTrusts = selectedOrganisations.length > 0;
+        const chartResult = this.createDatasets(orgData, 'trust', false, includeEmptyTrusts);
 
         if (this.options.showPercentiles && this.rawData && this.rawData.length > 0) {
             chartResult.needsPercentiles = true;
@@ -385,9 +400,13 @@ export class ChartDataProcessor {
         }
     }
 
-    createDatasets(data, type, useCustomColor = false) {
+    createDatasets(data, type, useCustomColor = false, includeEmptySeries = false) {
         const datasets = Object.entries(data)
-            .filter(([_, { data }]) => data && data.some(v => v > 0))
+            .filter(([_, { data }]) => {
+                if (!data) return false;
+                if (includeEmptySeries) return true;
+                return data.some(v => v > 0);
+            })
             .map(([key, { name, data, color, isPredecessor }], index) => {
                 if (isPredecessor) return null;
                 
