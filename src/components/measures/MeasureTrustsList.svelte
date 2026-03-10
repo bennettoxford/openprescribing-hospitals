@@ -8,7 +8,6 @@
         measureHasDenominators: { type: 'String', reflect: true, attribute: 'measure-has-denominators' },
         measureQuantityType: { type: 'String', reflect: true },
         measureLowerIsBetter: { type: 'String', reflect: true },
-        selectedSort: { type: 'String', reflect: true },
     },
     shadow: 'none'
 }} />
@@ -28,10 +27,6 @@
     export let measureHasDenominators = 'false';
     export let measureQuantityType = '';
     export let measureLowerIsBetter = '';
-    export let selectedSort = 'name';
-
-    let sortType = selectedSort || 'name';
-    $: if (selectedSort) sortType = selectedSort;
     let parsedOrgData = {};
     let parsedPercentileData = [];
     let parsedRegionsHierarchy = [];
@@ -253,15 +248,6 @@
                 {:else}
                     <div class="text-sm text-gray-600">Loading organisations...</div>
                 {/if}
-            </div>
-            <div class="flex flex-col lg:flex-row gap-4">
-                <select
-                    bind:value={sortType}
-                    class="dropdown-select dropdown-arrow w-full min-w-0 lg:w-[12rem] text-sm p-2 border border-gray-300 rounded-md bg-white h-[38px] lg:truncate"
-                    aria-label="Sort list"
-                >
-                    <option value="name">Sort: Alphabetical</option>
-                </select>
             </div>
         </div>
 
