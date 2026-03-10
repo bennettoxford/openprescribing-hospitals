@@ -366,6 +366,7 @@
                 maxItems={1}
                 hideSelectAll={true}
                 showTitle={true}
+                showFilters={false}
                 filterAutoSelectsAll={false}
                 disabled={$mode === 'national'}
                 on:selectionChange={handleSelectionChange}

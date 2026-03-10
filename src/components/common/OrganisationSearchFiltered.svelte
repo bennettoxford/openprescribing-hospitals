@@ -19,6 +19,7 @@
 
     export let filterAutoSelectsAll = true;
     export let filterResetKey = undefined;
+    export let showFilters = true;
 
     $: placeholderText = disabled ? 
         'Selection disabled' :
@@ -420,7 +421,7 @@
     }
     $: filterBadgeCount = selectedTrustTypes.size + selectedRegions.size + selectedICBs.size + selectedCancerAlliances.size;
     $: hasFilterSelection = selectedTrustTypes.size > 0 || selectedRegions.size > 0 || selectedICBs.size > 0 || selectedCancerAlliances.size > 0;
-    $: hasFilters = $source.filterType === 'trust' && (trustTypes.length > 0 || regionsHierarchy.length > 0 || cancerAlliances.length > 0);
+    $: hasFilters = showFilters && $source.filterType === 'trust' && (trustTypes.length > 0 || regionsHierarchy.length > 0 || cancerAlliances.length > 0);
     $: selectedAvailableCount = selectedItems.filter((item) => isItemAvailable(item)).length;
     $: totalAvailable = Array.from($source.availableItems || []).length;
     $: allSelected = totalAvailable > 0 && selectedAvailableCount >= totalAvailable;
