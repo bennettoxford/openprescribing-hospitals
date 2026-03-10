@@ -440,7 +440,7 @@
                 <ModeSelector
                     options={modeOptions}
                     initialMode={$mode}
-                    label="View Mode"
+                    label="View by"
                     onChange={handleModeChange}
                     variant="dropdown"
                 />

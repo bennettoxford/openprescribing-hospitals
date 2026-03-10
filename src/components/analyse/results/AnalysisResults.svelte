@@ -578,7 +578,7 @@
                                 <ModeSelector 
                                     options={viewModes}
                                     initialMode={selectDefaultMode(viewModes, $analyseOptions.selectedOrganisations?.length > 0)}
-                                    label="View Mode"
+                                    label="View by"
                                     variant="pill"
                                 />
 
