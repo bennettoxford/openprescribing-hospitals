@@ -19,7 +19,6 @@
     import LazyLoad from '../common/LazyLoad.svelte';
     import OrganisationSearchFiltered from '../common/OrganisationSearchFiltered.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore.js';
-    import { deriveSortMetricsFromChartData } from '../../utils/measuresSortUtils.js';
     import { flattenOrganisationsWithMetadata } from '../../utils/regionIcbFilterUtils.js';
 
     export let orgData = '{}';
@@ -216,40 +215,7 @@
         );
     })();
 
-    $: lowerIsBetter =
-        measureLowerIsBetter === 'true'
-            ? true
-            : measureLowerIsBetter === 'false'
-              ? false
-              : null;
-
-    $: trustMeasuresForSort = searchableOrgs.map((name) => ({
-        slug: name,
-        lower_is_better: lowerIsBetter,
-    }));
-
-    $: sortMetricsByTrust = deriveSortMetricsFromChartData(
-        chartDataByTrust,
-        trustMeasuresForSort
-    );
-
-    function applyTrustSort(trustList, sort) {
-        if (sort === 'potential_improvement' || sort === 'most_improved') {
-            const key = sort === 'potential_improvement' ? 'potential_improvement' : 'most_improved';
-            return [...trustList].sort((a, b) => {
-                const va = sortMetricsByTrust[a]?.[key];
-                const vb = sortMetricsByTrust[b]?.[key];
-                const nameA = (a || '').toLowerCase();
-                const nameB = (b || '').toLowerCase();
-                const noA = va == null;
-                const noB = vb == null;
-                if (noA && noB) return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
-                if (noA) return 1;
-                if (noB) return -1;
-                const diff = (vb ?? 0) - (va ?? 0);
-                return diff !== 0 ? diff : nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
-            });
-        }
+    function applyTrustSort(trustList) {
         return [...trustList].sort((a, b) =>
             (a || '').localeCompare(b || '', undefined, { sensitivity: 'base' })
         );
@@ -263,7 +229,7 @@
                 selectedItems.includes(name) &&
                 chartDataByTrust[name]
         );
-        return applyTrustSort(filtered, sortType);
+        return applyTrustSort(filtered);
     })();
 
     function trustDetailUrl(trustName) {
@@ -295,21 +261,9 @@
                     aria-label="Sort list"
                 >
                     <option value="name">Sort: Alphabetical</option>
-                    <option value="potential_improvement">Sort: Potential for improvement</option>
-                    <option value="most_improved">Sort: Most improved</option>
                 </select>
             </div>
         </div>
-
-        {#if sortType === 'potential_improvement' || sortType === 'most_improved'}
-            <div class="text-sm text-gray-600 pt-2 border-t border-gray-100">
-                {#if sortType === 'potential_improvement'}
-                    Sorting by potential for improvement (over the last 12 months). <a href="/faq/#how-is-potential-for-improvement-and-most-improved-determined" target="_blank" rel="noopener noreferrer" class="text-oxford-600 hover:text-oxford-800 underline">See the FAQs for more detail on how this is calculated</a>.
-                {:else}
-                    Sorting by most improved (over the last 12 months). <a href="/faq/#how-is-potential-for-improvement-and-most-improved-determined" target="_blank" rel="noopener noreferrer" class="text-oxford-600 hover:text-oxford-800 underline">See the FAQs for more detail on how this is calculated</a>.
-                {/if}
-            </div>
-        {/if}
 
         <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 pt-2 border-t border-gray-100">
             <span class="font-medium text-gray-700 mr-1">Key:</span>

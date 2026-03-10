@@ -52,33 +52,15 @@
         { value: 'trust', label: 'NHS Trust' },
     ];
 
-    const baseSortOptions = [
+    const sortOptions = [
         { value: 'name', label: 'Sort: Alphabetical' },
         { value: 'newest', label: 'Sort: Newest first' },
     ];
-    const trustSortOptions = [
-        { value: 'potential_improvement', label: 'Sort: Potential for improvement' },
-        { value: 'most_improved', label: 'Sort: Most improved' },
-    ];
-    const TRUST_ONLY_SORT_VALUES = ['potential_improvement', 'most_improved'];
     $: selectedItems = $organisationSearchStore?.selectedItems || [];
     $: singleTrustCode = $mode === 'trust' && selectedItems.length === 1
         ? findPrimaryTrustCode(selectedItems)
         : null;
     $: effectiveTrustCode = $selectedCodeStore || singleTrustCode || '';
-    // Show all sorts; trust-only sorts are disabled when not in trust mode or no trust selected
-    $: trustSortsEnabled = $mode === 'trust' && !!effectiveTrustCode;
-    $: disabledSortTooltip = $mode === 'trust'
-        ? 'Select a trust to use this sort'
-        : 'Only available in NHS Trust mode';
-    $: sortOptions = [
-        ...baseSortOptions.map(opt => ({ ...opt, disabled: false, title: '' })),
-        ...trustSortOptions.map(opt => ({
-            ...opt,
-            disabled: !trustSortsEnabled,
-            title: trustSortsEnabled ? '' : disabledSortTooltip,
-        })),
-    ];
 
     function findPrimaryTrustCode(items) {
         const predecessorMap = parsedOrgData.predecessor_map || {};
@@ -105,16 +87,6 @@
         if (newSort === $sort) return;
         setSort(newSort);
         syncUrl();
-        if (TRUST_ONLY_SORT_VALUES.includes(newSort) && $mode === 'trust' && $selectedCodeStore) {
-            fetchTrustOverlayAndMerge($selectedCodeStore);
-        } else if (!TRUST_ONLY_SORT_VALUES.includes(newSort)) {
-            if (!($mode === 'trust' && $selectedCodeStore)) {
-                const regionNameForChart = $mode === 'region' && $selectedCodeStore
-                    ? (parsedRegionData.find(r => r.code === $selectedCodeStore)?.name || null)
-                    : null;
-                deriveChartDataFromPrefetch($mode, regionNameForChart);
-            }
-        }
     }
 
     function toggleTag(slug) {
@@ -260,9 +232,6 @@
     function handleModeChange(newMode) {
         if (isInitialLoad) return;
 
-        if (newMode !== 'trust' && TRUST_ONLY_SORT_VALUES.includes($sort)) {
-            setSort('name');
-        }
         setMode(newMode);
         setSelectedCode('');
         modeSelectorStore.setSelectedMode(newMode);
@@ -277,7 +246,6 @@
         const selectedItems = event.detail?.selectedItems || [];
 
         if (selectedItems.length === 0) {
-            if (TRUST_ONLY_SORT_VALUES.includes($sort)) setSort('name');
             setSelectedCode('');
             syncUrl();
             deriveChartDataFromPrefetch($mode);
@@ -414,7 +382,7 @@
                     value={$sort}
                 >
                     {#each sortOptions as option}
-                        <option value={option.value} disabled={option.disabled} title={option.title}>{option.label}</option>
+                        <option value={option.value}>{option.label}</option>
                     {/each}
                 </select>
             </div>
@@ -478,16 +446,6 @@
             </div>
         </div>
     </div>
-
-    {#if $mode === 'trust' && ($sort === 'potential_improvement' || $sort === 'most_improved')}
-        <div class="text-sm text-gray-600 pt-2 border-t border-gray-100">
-            {#if $sort === 'potential_improvement'}
-                Sorting by potential for improvement (over the last 12 months). <a href="/faq/#how-is-potential-for-improvement-and-most-improved-determined" target="_blank" rel="noopener noreferrer" class="text-oxford-600 hover:text-oxford-800 underline">See the FAQs for more detail on how this is calculated</a>.
-            {:else}
-                Sorting by most improved (over the last 12 months). <a href="/faq/#how-is-potential-for-improvement-and-most-improved-determined" target="_blank" rel="noopener noreferrer" class="text-oxford-600 hover:text-oxford-800 underline">See the FAQs for more detail on how this is calculated</a>.
-            {/if}
-        </div>
-    {/if}
 
     {#if $mode === 'region'}
         <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 pt-2 border-t border-gray-100">

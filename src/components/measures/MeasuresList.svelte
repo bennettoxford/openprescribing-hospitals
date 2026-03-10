@@ -27,7 +27,6 @@
     selectedTags, sort, mode, selectedCode,
     chartData as chartDataStore
   } from '../../stores/measuresListStore.js';
-  import { deriveSortMetricsFromChartData } from '../../utils/measuresSortUtils.js';
 
   export let measures = '[]';
   export let previewMeasures = '[]';
@@ -60,17 +59,13 @@
   }
 
   $: allMeasures = [...parsedMeasures, ...parsedPreviewMeasures, ...parsedInDevelopmentMeasures];
-  $: effectiveSortMetrics = $mode === 'trust' && chartDataStoreVal && Object.keys(chartDataStoreVal).length > 0
-    ? deriveSortMetricsFromChartData(chartDataStoreVal, allMeasures)
-    : {};
-
   $: filteredPublished = filterByTags(parsedMeasures, selectedTagsVal);
   $: filteredPreview = filterByTags(parsedPreviewMeasures, selectedTagsVal);
   $: filteredInDevelopment = filterByTags(parsedInDevelopmentMeasures, selectedTagsVal);
 
-  $: sortedPublished = applySort(filteredPublished, sortVal, effectiveSortMetrics);
-  $: sortedPreview = applySort(filteredPreview, sortVal, effectiveSortMetrics);
-  $: sortedInDevelopment = applySort(filteredInDevelopment, sortVal, effectiveSortMetrics);
+  $: sortedPublished = applySort(filteredPublished, sortVal);
+  $: sortedPreview = applySort(filteredPreview, sortVal);
+  $: sortedInDevelopment = applySort(filteredInDevelopment, sortVal);
 
   $: hasFiltersWithNoResults = selectedTagsVal.length > 0 &&
     sortedPublished.length === 0 && sortedPreview.length === 0 && sortedInDevelopment.length === 0 &&
@@ -84,34 +79,8 @@
     });
   }
 
-  const TRUST_SORT_POTENTIAL_IMPROVEMENT = 'potential_improvement';
-  const TRUST_SORT_MOST_IMPROVED = 'most_improved';
-
-  function applySort(measureList, sort, sortMetrics) {
-    if (sort === TRUST_SORT_POTENTIAL_IMPROVEMENT || sort === TRUST_SORT_MOST_IMPROVED) {
-      return sortByTrustMetrics(measureList, sort, sortMetrics);
-    }
+  function applySort(measureList, sort) {
     return sortMeasures(measureList, sort);
-  }
-
-  function sortByTrustMetrics(measureList, sort, sortMetrics) {
-    if (!sortMetrics || typeof sortMetrics !== 'object') return sortMeasures(measureList, 'name');
-    const key = sort === TRUST_SORT_POTENTIAL_IMPROVEMENT ? 'potential_improvement' : 'most_improved';
-    return [...measureList].sort((a, b) => {
-      const ma = sortMetrics[a.slug]?.[key];
-      const mb = sortMetrics[b.slug]?.[key];
-      const nameA = (a.short_name || a.name || '').toLowerCase();
-      const nameB = (b.short_name || b.name || '').toLowerCase();
-      const noMetricA = ma == null;
-      const noMetricB = mb == null;
-      if (noMetricA && noMetricB) return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
-      if (noMetricA) return 1;
-      if (noMetricB) return -1;
-      const valA = ma ?? 0;
-      const valB = mb ?? 0;
-      if (valA !== valB) return valB - valA;
-      return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
-    });
   }
 
   function sortMeasures(measureList, sort) {
