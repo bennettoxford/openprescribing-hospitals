@@ -1,6 +1,6 @@
 <script>
   import MeasureMiniChart from './MeasureMiniChart.svelte';
-  import { mode, detailLinkQuery } from '../../stores/measuresListStore.js';
+  import { mode, selectedCode, chartData, detailLinkQuery } from '../../stores/measuresListStore.js';
 
   export let measure;
   export let section = 'published';
@@ -10,8 +10,13 @@
   export let linkClasses = 'bg-oxford-50 text-oxford-600 hover:bg-oxford-100';
   export let linkText = 'View measure details';
   export let isAuthenticated = false;
-  export let trustIncludedInMeasure = true;
   export let trustSelected = false;
+
+  $: trustOverlayActive = $mode === 'trust' && !!$selectedCode;
+  $: measureChartData = $chartData[measure.slug];
+  $: trustIncludedInMeasure = !trustOverlayActive || !measureChartData || !('trustData' in measureChartData)
+    ? true
+    : Array.isArray(measureChartData.trustData) && measureChartData.trustData.length > 0;
 
   $: detailHref = measure.detail_base_url + measure.slug + '/' + (
     ($mode === 'trust' && showAllTrustsButton && !trustIncludedInMeasure)
