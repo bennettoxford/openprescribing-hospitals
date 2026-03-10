@@ -16,6 +16,7 @@
     export let maxItems = null;
     export let hideSelectAll = false;
     export let showTitle = true;
+    export let subtitle = '';
 
     export let filterAutoSelectsAll = true;
     export let filterResetKey = undefined;
@@ -430,12 +431,15 @@
 <div class="dropdown relative w-full min-w-0 h-full flex flex-col" bind:this={dropdownRef}>
     <div class="flex flex-col min-w-0 {(isOpen && overlayMode) || filterDropdownOpen ? 'z-[1000] overflow-visible' : 'overflow-hidden'}">
         <div class="flex flex-col gap-0 min-w-0">
-            <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-0 sm:gap-2 min-h-6 mb-2">
+            <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-0 sm:gap-2 min-h-6 {subtitle ? 'mb-0' : 'mb-1'}">
                 {#if showTitle}
                     <span class="text-sm font-semibold shrink-0 {disabled ? 'text-gray-400' : 'text-gray-800'}">
                         Select {$source.filterType === 'icb' ? 'ICB' : $source.filterType === 'region' ? 'Region' : 'NHS Trust'}
                         {#if maxItems}<span class="text-xs font-normal text-gray-500">(max {maxItems})</span>{/if}
                     </span>
+                {/if}
+                {#if subtitle}
+                    <p class="text-sm text-gray-500 w-full mt-0.5 mb-0">{subtitle}</p>
                 {/if}
                 <div class="flex flex-wrap items-center gap-2 ml-auto min-w-0">
             {#if hasFilters}
@@ -474,7 +478,7 @@
                 </div>
             </div>
 
-            <div class="relative {hasFilters ? 'mt-2' : ''} min-w-0 {hasFilters && filterDropdownOpen && !overlayMode ? 'min-h-[min(70vh,400px)]' : ''}">
+            <div class="relative {hasFilters ? (subtitle ? 'mt-1' : 'mt-2') : ''} min-w-0 {hasFilters && filterDropdownOpen && !overlayMode ? 'min-h-[min(70vh,400px)]' : ''}">
                 {#if hasFilters && filterDropdownOpen}
                 <div class="absolute top-0 left-0 right-0 {overlayMode ? 'z-[1000]' : 'z-10'} w-full min-w-[200px] max-w-full sm:min-w-[240px] max-h-[min(70vh,400px)] flex flex-col rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden" role="listbox">
                 <div class="flex-1 overflow-y-auto py-2">

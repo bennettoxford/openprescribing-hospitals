@@ -53,8 +53,8 @@
     ];
 
     const sortOptions = [
-        { value: 'name', label: 'Sort: Alphabetical' },
-        { value: 'newest', label: 'Sort: Newest first' },
+        { value: 'name', label: 'Alphabetical' },
+        { value: 'newest', label: 'Newest first' },
     ];
     $: selectedItems = $organisationSearchStore?.selectedItems || [];
     $: singleTrustCode = $mode === 'trust' && selectedItems.length === 1
@@ -343,41 +343,23 @@
     });
 </script>
 
-<div class="flex flex-col gap-2">
-    <div class="flex justify-end">
-        <button
-            on:click={handleShare}
-            class="measures-list-share-btn flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-oxford-600 bg-white border border-oxford-200 rounded-md hover:bg-oxford-50 hover:border-oxford-300 transition-colors duration-200 h-[38px]"
-            title="Copy link to share this measures list with current selection"
-        >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.935-2.186 2.25 2.25 0 00-3.935-2.186z" />
-            </svg>
-            Share
-        </button>
-    </div>
+<div class="flex flex-col gap-4">
+    <div class="measures-list-controls-right flex flex-col sm:flex-row sm:flex-wrap sm:items-end sm:justify-start gap-4 rounded-lg border border-gray-200 bg-white p-4">
+            <div class="w-full sm:w-fit sm:min-w-[130px]">
+                <ModeSelector
+                    options={modeOptions}
+                    initialMode={$mode}
+                    label="View by"
+                    onChange={handleModeChange}
+                    variant="dropdown"
+                />
+            </div>
 
-    <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-4 xl:gap-12">
-        <div class="order-last xl:order-none w-full xl:max-w-[520px] xl:shrink-0 relative z-30">
-            <OrganisationSearchFiltered
-                source={organisationSearchStore}
-                filterResetKey={$mode}
-                overlayMode={true}
-                maxItems={1}
-                hideSelectAll={true}
-                showTitle={true}
-                showFilters={false}
-                filterAutoSelectsAll={false}
-                disabled={$mode === 'national'}
-                on:selectionChange={handleSelectionChange}
-            />
-        </div>
-
-        <div class="measures-list-controls-right order-first xl:order-none flex flex-col xl:flex-row items-stretch xl:items-end gap-4 w-full xl:w-auto">
-            <div class="flex flex-col gap-2 w-full xl:w-auto xl:min-w-0 order-2 xl:order-1">
+            <div class="w-full sm:w-fit sm:min-w-[130px]">
+                <label for="sort-select" class="block text-sm font-medium text-gray-700 mb-1">Sort</label>
                 <select
                     id="sort-select"
-                    class="measures-list-sort-select dropdown-select dropdown-arrow w-full min-w-0 xl:w-[12rem] text-sm p-2 border border-gray-300 rounded-md bg-white h-[38px] xl:truncate"
+                    class="measures-list-sort-select dropdown-select dropdown-arrow w-full text-sm p-2 border border-gray-300 rounded-md bg-white h-[38px]"
                     aria-label="Sort list"
                     on:change={handleSortChange}
                     value={$sort}
@@ -389,10 +371,11 @@
             </div>
 
             {#if parsedTags.length > 0}
-            <div class="relative w-full xl:w-auto xl:min-w-0 order-3 xl:order-2" bind:this={tagDropdownEl}>
+            <div class="relative w-full sm:w-fit sm:min-w-0" bind:this={tagDropdownEl}>
+                <span class="block text-sm font-medium text-gray-700 mb-1">Filter by tag</span>
                 <button
                     type="button"
-                    class="measures-list-tag-select dropdown-arrow w-full min-w-0 xl:w-auto xl:min-w-[10.5rem] text-sm p-2 border border-gray-300 rounded-md bg-white h-[38px] text-left"
+                    class="measures-list-tag-select dropdown-arrow w-full text-sm p-2 border border-gray-300 rounded-md bg-white h-[38px] text-left"
                     aria-label="Filter by tag"
                     aria-expanded={tagDropdownOpen}
                     aria-haspopup="true"
@@ -400,12 +383,12 @@
                 >
                     <span class="truncate">
                         {$selectedTagsStore.length === 0
-                            ? 'Filter by tag'
+                            ? 'All'
                             : `${$selectedTagsStore.length} tag${$selectedTagsStore.length === 1 ? '' : 's'} selected`}
                     </span>
                 </button>
                 {#if tagDropdownOpen}
-                <div class="absolute left-0 right-0 xl:right-auto xl:min-w-[200px] mt-1 py-2 bg-white border border-gray-200 rounded-md shadow-lg z-40 max-h-64 overflow-y-auto"
+                <div class="absolute left-0 right-0 min-w-[200px] mt-1 py-2 bg-white border border-gray-200 rounded-md shadow-lg z-40 max-h-64 overflow-y-auto"
                      role="group" aria-label="Tag filters">
                     {#if $selectedTagsStore.length > 0}
                         <button
@@ -436,50 +419,72 @@
             </div>
             {/if}
 
-            <div class="flex flex-col gap-2 w-full xl:w-auto xl:min-w-0 order-first xl:order-last">
-                <ModeSelector
-                    options={modeOptions}
-                    initialMode={$mode}
-                    label="View by"
-                    onChange={handleModeChange}
-                    variant="dropdown"
-                />
+            <div class="w-full flex justify-end order-first sm:order-none sm:w-auto sm:ml-auto -mb-2 sm:mb-0">
+                <button
+                    on:click={handleShare}
+                    class="measures-list-share-btn flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-oxford-600 bg-white border border-oxford-200 rounded-md hover:bg-oxford-50 hover:border-oxford-300 transition-colors duration-200 h-[38px]"
+                    title="Copy link to share this measures list with current selection"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.935-2.186 2.25 2.25 0 00-3.935-2.186z" />
+                    </svg>
+                    Share
+                </button>
             </div>
-        </div>
-    </div>
 
-    {#if $mode === 'region'}
-        <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 pt-2 border-t border-gray-100">
-            <span class="font-medium text-gray-700 mr-1">Key:</span>
-            {#each LEGEND_REGIONS as name}
-                <span class="inline-flex items-center gap-1.5">
-                    <span class="inline-block w-4 h-0.5 rounded" style="background-color: {regionColors[name]};"></span>
-                    {name}
-                </span>
-            {/each}
+        <div class="w-full basis-full pt-4 border-t border-gray-200 mt-2">
+            <OrganisationSearchFiltered
+                source={organisationSearchStore}
+                filterResetKey={$mode}
+                overlayMode={true}
+                maxItems={1}
+                hideSelectAll={true}
+                showTitle={true}
+                showFilters={false}
+                filterAutoSelectsAll={false}
+                disabled={$mode === 'national'}
+                subtitle={$mode === 'trust'
+                    ? 'Type your trust name below, then select it to see it highlighted across all measures.'
+                    : $mode === 'region'
+                    ? 'Type your region name below, then select it to see it highlighted across all measures.'
+                    : 'Switch to NHS Trust or Region to compare individual organisations.'}
+                on:selectionChange={handleSelectionChange}
+            />
         </div>
-    {:else if $mode === 'trust'}
-        <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 pt-2 border-t border-gray-100">
-            <span class="font-medium text-gray-700 mr-1">Key:</span>
-            <span class="inline-flex items-center gap-1.5">Median <span class="inline-block w-4 h-0.5 rounded" style="background-color: #DC3220;"></span></span>
-            <span class="inline-flex items-center gap-1.5 flex-wrap">
-                <span class="text-gray-600 mr-0.5">Percentiles:</span>
-                {#each [{ lo: 5, hi: 95, opacity: 0.1 }, { lo: 15, hi: 85, opacity: 0.2 }, { lo: 25, hi: 75, opacity: 0.4 }, { lo: 35, hi: 65, opacity: 0.6 }, { lo: 45, hi: 55, opacity: 0.8 }] as band}
-                    <span class="inline-flex items-center gap-1 text-xs">
-                        <span
-                            class="inline-block w-3 h-3 rounded-sm shrink-0 border border-gray-200"
-                            style="background-color: rgba(0,90,181,{band.opacity});"
-                            title="{band.lo}th–{band.hi}th"
-                        ></span>
-                        <span class="text-gray-600 whitespace-nowrap">{band.lo}th–{band.hi}th</span>
+
+        {#if $mode === 'region'}
+            <div class="w-full basis-full flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 pt-2 border-t border-gray-200 mt-2">
+                <span class="font-medium text-gray-700 mr-1">Key:</span>
+                {#each LEGEND_REGIONS as name}
+                    <span class="inline-flex items-center gap-1.5">
+                        <span class="inline-block w-4 h-0.5 rounded" style="background-color: {regionColors[name]};"></span>
+                        {name}
                     </span>
                 {/each}
-            </span>
-            {#if $organisationSearchStore.selectedItems?.length > 0}
-                <span class="inline-flex items-center gap-1.5"><span class="inline-block w-4 h-0.5 rounded" style="background-color: #D97706;"></span> {$organisationSearchStore.selectedItems[0]}</span>
-            {/if}
+            </div>
+        {:else if $mode === 'trust'}
+            <div class="w-full basis-full flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 pt-2 border-t border-gray-200 mt-2">
+                <span class="font-medium text-gray-700 mr-1">Key:</span>
+                <span class="inline-flex items-center gap-1.5">Median <span class="inline-block w-4 h-0.5 rounded" style="background-color: #DC3220;"></span></span>
+                <span class="inline-flex items-center gap-1.5 flex-wrap">
+                    <span class="text-gray-600 mr-0.5">Percentiles:</span>
+                    {#each [{ lo: 5, hi: 95, opacity: 0.1 }, { lo: 15, hi: 85, opacity: 0.2 }, { lo: 25, hi: 75, opacity: 0.4 }, { lo: 35, hi: 65, opacity: 0.6 }, { lo: 45, hi: 55, opacity: 0.8 }] as band}
+                        <span class="inline-flex items-center gap-1 text-xs">
+                            <span
+                                class="inline-block w-3 h-3 rounded-sm shrink-0 border border-gray-200"
+                                style="background-color: rgba(0,90,181,{band.opacity});"
+                                title="{band.lo}th–{band.hi}th"
+                            ></span>
+                            <span class="text-gray-600 whitespace-nowrap">{band.lo}th–{band.hi}th</span>
+                        </span>
+                    {/each}
+                </span>
+                {#if $organisationSearchStore.selectedItems?.length > 0}
+                    <span class="inline-flex items-center gap-1.5"><span class="inline-block w-4 h-0.5 rounded" style="background-color: #D97706;"></span> {$organisationSearchStore.selectedItems[0]}</span>
+                {/if}
+            </div>
+        {/if}
         </div>
-    {/if}
 </div>
 
 <div class="fixed bottom-4 right-4 bg-oxford-50 text-oxford-800 px-4 py-2 rounded-lg shadow-lg border border-oxford-100 transform transition-all duration-300 z-50"

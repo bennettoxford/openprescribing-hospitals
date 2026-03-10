@@ -30,11 +30,11 @@
 </script>
 
 {#if variant === 'dropdown'}
-  <div>
+  <div class="min-w-0 w-full">
     <label for="mode-select" class="block text-sm font-medium text-gray-700 mb-1">{label}</label>
     <select 
       id="mode-select" 
-      class="dropdown-select dropdown-arrow text-sm p-2 border border-gray-300 rounded-md bg-white w-full min-w-0 xl:w-auto xl:min-w-[120px]" 
+      class="dropdown-select dropdown-arrow text-sm p-2 border border-gray-300 rounded-md bg-white w-full min-w-0" 
       on:change={handleChange}
       value={$modeSelectorStore.selectedMode}
     >
