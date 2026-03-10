@@ -966,11 +966,11 @@
                 </div>
             </div>
         {/if}
-            <div>
+            <div class="w-full sm:w-fit sm:min-w-[130px]">
                 <ModeSelector 
                     options={modeOptions}
                     initialMode={defaultviewmode}
-                    label="Select Mode"
+                    label="View by"
                     onChange={handleModeChange}
                     variant="dropdown"
                 />

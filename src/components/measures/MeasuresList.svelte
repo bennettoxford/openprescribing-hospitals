@@ -24,10 +24,8 @@
   import MeasureCard from './MeasureCard.svelte';
   import LazyLoad from '../common/LazyLoad.svelte';
   import {
-    selectedTags, sort, mode, selectedCode,
-    chartData as chartDataStore
+    selectedTags, sort, mode, selectedCode
   } from '../../stores/measuresListStore.js';
-  import { deriveSortMetricsFromChartData } from '../../utils/measuresSortUtils.js';
 
   export let measures = '[]';
   export let previewMeasures = '[]';
@@ -50,27 +48,16 @@
 
   $: selectedTagsVal = $selectedTags;
   $: sortVal = $sort;
-  $: chartDataStoreVal = $chartDataStore;
   $: trustOverlayActive = $mode === 'trust' && !!$selectedCode;
 
-  function trustIncludedInMeasure(slug) {
-    if (!trustOverlayActive || !chartDataStoreVal) return true;
-    const trustData = chartDataStoreVal[slug]?.trustData;
-    return Array.isArray(trustData) && trustData.length > 0;
-  }
-
   $: allMeasures = [...parsedMeasures, ...parsedPreviewMeasures, ...parsedInDevelopmentMeasures];
-  $: effectiveSortMetrics = $mode === 'trust' && chartDataStoreVal && Object.keys(chartDataStoreVal).length > 0
-    ? deriveSortMetricsFromChartData(chartDataStoreVal, allMeasures)
-    : {};
-
   $: filteredPublished = filterByTags(parsedMeasures, selectedTagsVal);
   $: filteredPreview = filterByTags(parsedPreviewMeasures, selectedTagsVal);
   $: filteredInDevelopment = filterByTags(parsedInDevelopmentMeasures, selectedTagsVal);
 
-  $: sortedPublished = applySort(filteredPublished, sortVal, effectiveSortMetrics);
-  $: sortedPreview = applySort(filteredPreview, sortVal, effectiveSortMetrics);
-  $: sortedInDevelopment = applySort(filteredInDevelopment, sortVal, effectiveSortMetrics);
+  $: sortedPublished = applySort(filteredPublished, sortVal);
+  $: sortedPreview = applySort(filteredPreview, sortVal);
+  $: sortedInDevelopment = applySort(filteredInDevelopment, sortVal);
 
   $: hasFiltersWithNoResults = selectedTagsVal.length > 0 &&
     sortedPublished.length === 0 && sortedPreview.length === 0 && sortedInDevelopment.length === 0 &&
@@ -84,34 +71,8 @@
     });
   }
 
-  const TRUST_SORT_POTENTIAL_IMPROVEMENT = 'potential_improvement';
-  const TRUST_SORT_MOST_IMPROVED = 'most_improved';
-
-  function applySort(measureList, sort, sortMetrics) {
-    if (sort === TRUST_SORT_POTENTIAL_IMPROVEMENT || sort === TRUST_SORT_MOST_IMPROVED) {
-      return sortByTrustMetrics(measureList, sort, sortMetrics);
-    }
+  function applySort(measureList, sort) {
     return sortMeasures(measureList, sort);
-  }
-
-  function sortByTrustMetrics(measureList, sort, sortMetrics) {
-    if (!sortMetrics || typeof sortMetrics !== 'object') return sortMeasures(measureList, 'name');
-    const key = sort === TRUST_SORT_POTENTIAL_IMPROVEMENT ? 'potential_improvement' : 'most_improved';
-    return [...measureList].sort((a, b) => {
-      const ma = sortMetrics[a.slug]?.[key];
-      const mb = sortMetrics[b.slug]?.[key];
-      const nameA = (a.short_name || a.name || '').toLowerCase();
-      const nameB = (b.short_name || b.name || '').toLowerCase();
-      const noMetricA = ma == null;
-      const noMetricB = mb == null;
-      if (noMetricA && noMetricB) return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
-      if (noMetricA) return 1;
-      if (noMetricB) return -1;
-      const valA = ma ?? 0;
-      const valB = mb ?? 0;
-      if (valA !== valB) return valB - valA;
-      return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
-    });
   }
 
   function sortMeasures(measureList, sort) {
@@ -159,7 +120,6 @@
           linkClasses="bg-oxford-50 text-oxford-600 hover:bg-oxford-100"
           linkText="View measure details"
           isAuthenticated={userAuthenticated === 'true'}
-          trustIncludedInMeasure={trustIncludedInMeasure(measure.slug)}
           trustSelected={trustOverlayActive}
           {measureTrustsBasePath}
         />
@@ -196,7 +156,6 @@
             linkClasses="bg-blue-50 text-blue-600 hover:bg-blue-100"
             linkText="View preview"
             isAuthenticated={userAuthenticated === 'true'}
-            trustIncludedInMeasure={trustIncludedInMeasure(measure.slug)}
             trustSelected={trustOverlayActive}
             {measureTrustsBasePath}
           />
@@ -238,7 +197,6 @@
             linkClasses="bg-amber-50 text-amber-600 hover:bg-amber-100"
             linkText="View in development"
             isAuthenticated={userAuthenticated === 'true'}
-            trustIncludedInMeasure={trustIncludedInMeasure(measure.slug)}
             trustSelected={trustOverlayActive}
             {measureTrustsBasePath}
           />

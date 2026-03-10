@@ -8,7 +8,6 @@
         measureHasDenominators: { type: 'String', reflect: true, attribute: 'measure-has-denominators' },
         measureQuantityType: { type: 'String', reflect: true },
         measureLowerIsBetter: { type: 'String', reflect: true },
-        selectedSort: { type: 'String', reflect: true },
     },
     shadow: 'none'
 }} />
@@ -19,7 +18,6 @@
     import LazyLoad from '../common/LazyLoad.svelte';
     import OrganisationSearchFiltered from '../common/OrganisationSearchFiltered.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore.js';
-    import { deriveSortMetricsFromChartData } from '../../utils/measuresSortUtils.js';
     import { flattenOrganisationsWithMetadata } from '../../utils/regionIcbFilterUtils.js';
 
     export let orgData = '{}';
@@ -29,10 +27,6 @@
     export let measureHasDenominators = 'false';
     export let measureQuantityType = '';
     export let measureLowerIsBetter = '';
-    export let selectedSort = 'name';
-
-    let sortType = selectedSort || 'name';
-    $: if (selectedSort) sortType = selectedSort;
     let parsedOrgData = {};
     let parsedPercentileData = [];
     let parsedRegionsHierarchy = [];
@@ -216,40 +210,7 @@
         );
     })();
 
-    $: lowerIsBetter =
-        measureLowerIsBetter === 'true'
-            ? true
-            : measureLowerIsBetter === 'false'
-              ? false
-              : null;
-
-    $: trustMeasuresForSort = searchableOrgs.map((name) => ({
-        slug: name,
-        lower_is_better: lowerIsBetter,
-    }));
-
-    $: sortMetricsByTrust = deriveSortMetricsFromChartData(
-        chartDataByTrust,
-        trustMeasuresForSort
-    );
-
-    function applyTrustSort(trustList, sort) {
-        if (sort === 'potential_improvement' || sort === 'most_improved') {
-            const key = sort === 'potential_improvement' ? 'potential_improvement' : 'most_improved';
-            return [...trustList].sort((a, b) => {
-                const va = sortMetricsByTrust[a]?.[key];
-                const vb = sortMetricsByTrust[b]?.[key];
-                const nameA = (a || '').toLowerCase();
-                const nameB = (b || '').toLowerCase();
-                const noA = va == null;
-                const noB = vb == null;
-                if (noA && noB) return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
-                if (noA) return 1;
-                if (noB) return -1;
-                const diff = (vb ?? 0) - (va ?? 0);
-                return diff !== 0 ? diff : nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
-            });
-        }
+    function applyTrustSort(trustList) {
         return [...trustList].sort((a, b) =>
             (a || '').localeCompare(b || '', undefined, { sensitivity: 'base' })
         );
@@ -263,7 +224,7 @@
                 selectedItems.includes(name) &&
                 chartDataByTrust[name]
         );
-        return applyTrustSort(filtered, sortType);
+        return applyTrustSort(filtered);
     })();
 
     function trustDetailUrl(trustName) {
@@ -276,60 +237,41 @@
 
 <div id="measure-trusts-list-top" class="flex flex-col w-full">
     <div class="w-full mb-6">
-        <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 lg:gap-12">
-            <div class="w-full lg:max-w-[600px] relative z-50">
+        <div class="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white p-4">
+            <div class="w-full basis-full">
                 {#if searchableOrgs.length > 0}
                     <OrganisationSearchFiltered
                         source={organisationSearchStore}
                         overlayMode={true}
+                        showTitle={true}
+                        subtitle="Each chart below shows this measure individual trusts against national percentiles. Filter and select trusts below to restrict the charts to specific trusts."
                         on:selectionChange={handleSearchSelect}
                     />
                 {:else}
                     <div class="text-sm text-gray-600">Loading organisations...</div>
                 {/if}
             </div>
-            <div class="flex flex-col lg:flex-row gap-4">
-                <select
-                    bind:value={sortType}
-                    class="dropdown-select dropdown-arrow w-full min-w-0 lg:w-[12rem] text-sm p-2 border border-gray-300 rounded-md bg-white h-[38px] lg:truncate"
-                    aria-label="Sort list"
-                >
-                    <option value="name">Sort: Alphabetical</option>
-                    <option value="potential_improvement">Sort: Potential for improvement</option>
-                    <option value="most_improved">Sort: Most improved</option>
-                </select>
-            </div>
-        </div>
 
-        {#if sortType === 'potential_improvement' || sortType === 'most_improved'}
-            <div class="text-sm text-gray-600 pt-2 border-t border-gray-100">
-                {#if sortType === 'potential_improvement'}
-                    Sorting by potential for improvement (over the last 12 months). <a href="/faq/#how-is-potential-for-improvement-and-most-improved-determined" target="_blank" rel="noopener noreferrer" class="text-oxford-600 hover:text-oxford-800 underline">See the FAQs for more detail on how this is calculated</a>.
-                {:else}
-                    Sorting by most improved (over the last 12 months). <a href="/faq/#how-is-potential-for-improvement-and-most-improved-determined" target="_blank" rel="noopener noreferrer" class="text-oxford-600 hover:text-oxford-800 underline">See the FAQs for more detail on how this is calculated</a>.
+            <div class="w-full basis-full flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 pt-2 border-t border-gray-200 mt-2">
+                <span class="font-medium text-gray-700 mr-1">Key:</span>
+                {#if searchableOrgs.length >= 30}
+                    <span class="inline-flex items-center gap-1.5">Median <span class="inline-block w-4 h-0.5 rounded" style="background-color: #DC3220;"></span></span>
+                    <span class="inline-flex items-center gap-1.5 flex-wrap">
+                        <span class="text-gray-600 mr-0.5">Percentiles:</span>
+                        {#each [{ lo: 5, hi: 95, opacity: 0.1 }, { lo: 15, hi: 85, opacity: 0.2 }, { lo: 25, hi: 75, opacity: 0.4 }, { lo: 35, hi: 65, opacity: 0.6 }, { lo: 45, hi: 55, opacity: 0.8 }] as band}
+                            <span class="inline-flex items-center gap-1 text-xs">
+                                <span
+                                    class="inline-block w-3 h-3 rounded-sm shrink-0 border border-gray-200"
+                                    style="background-color: rgba(0,90,181,{band.opacity});"
+                                    title="{band.lo}th–{band.hi}th"
+                                ></span>
+                                <span class="text-gray-600 whitespace-nowrap">{band.lo}th–{band.hi}th</span>
+                            </span>
+                        {/each}
+                    </span>
                 {/if}
+                <span class="inline-flex items-center gap-1.5"><span class="inline-block w-4 h-0.5 rounded" style="background-color: #D97706;"></span> Trust</span>
             </div>
-        {/if}
-
-        <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 pt-2 border-t border-gray-100">
-            <span class="font-medium text-gray-700 mr-1">Key:</span>
-            {#if searchableOrgs.length >= 30}
-                <span class="inline-flex items-center gap-1.5">Median <span class="inline-block w-4 h-0.5 rounded" style="background-color: #DC3220;"></span></span>
-                <span class="inline-flex items-center gap-1.5 flex-wrap">
-                    <span class="text-gray-600 mr-0.5">Percentiles:</span>
-                    {#each [{ lo: 5, hi: 95, opacity: 0.1 }, { lo: 15, hi: 85, opacity: 0.2 }, { lo: 25, hi: 75, opacity: 0.4 }, { lo: 35, hi: 65, opacity: 0.6 }, { lo: 45, hi: 55, opacity: 0.8 }] as band}
-                        <span class="inline-flex items-center gap-1 text-xs">
-                            <span
-                                class="inline-block w-3 h-3 rounded-sm shrink-0 border border-gray-200"
-                                style="background-color: rgba(0,90,181,{band.opacity});"
-                                title="{band.lo}th–{band.hi}th"
-                            ></span>
-                            <span class="text-gray-600 whitespace-nowrap">{band.lo}th–{band.hi}th</span>
-                        </span>
-                    {/each}
-                </span>
-            {/if}
-            <span class="inline-flex items-center gap-1.5"><span class="inline-block w-4 h-0.5 rounded" style="background-color: #D97706;"></span> Trust</span>
         </div>
     </div>
 
