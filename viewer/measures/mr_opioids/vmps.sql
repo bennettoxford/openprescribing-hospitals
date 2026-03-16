@@ -1,7 +1,6 @@
 WITH measure_vmps AS (
     SELECT DISTINCT
         vmp.id,
-        vmp.name,
         CASE 
             WHEN 
                 vmp.code IN (
@@ -15,28 +14,17 @@ WITH measure_vmps AS (
             THEN 'numerator'
             ELSE 'denominator'
         END as vmp_type
-    FROM scmd_dmd_views.viewer_vmp vmp
-    LEFT JOIN scmd_dmd_views.viewer_vtm vtm ON vtm.id = vmp.vtm_id
-    LEFT JOIN scmd_dmd_views.viewer_vmp_atcs vmp_atcs ON vmp_atcs.vmp_id = vmp.id
-    LEFT JOIN scmd_dmd_views.viewer_atc atc ON atc.id = vmp_atcs.atc_id
-    LEFT JOIN scmd_dmd_views.viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
-    LEFT JOIN scmd_dmd_views.viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
-
+    FROM viewer_vmp vmp
 )
 SELECT DISTINCT
     vmp.id as vmp_id,
-    mv.name,
     mv.vmp_type
-FROM scmd_dmd_views.viewer_vmp vmp
+FROM viewer_vmp vmp
 LEFT JOIN measure_vmps mv ON mv.id = vmp.id
-LEFT JOIN scmd_dmd_views.viewer_vtm vtm ON vtm.id = vmp.vtm_id
-LEFT JOIN scmd_dmd_views.viewer_vmp_atcs vmp_atcs ON vmp_atcs.vmp_id = vmp.id
-LEFT JOIN scmd_dmd_views.viewer_atc atc ON atc.id = vmp_atcs.atc_id
-LEFT JOIN scmd_dmd_views.viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
-LEFT JOIN scmd_dmd_views.viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
+LEFT JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
+LEFT JOIN viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
+LEFT JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
 WHERE
-    atc.code LIKE 'N02A%'
-    AND
     ofr.name LIKE '%.oral'
     AND
     vtm.id IN (
