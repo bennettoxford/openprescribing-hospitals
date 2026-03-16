@@ -1,0 +1,23 @@
+name: Morphine oral solution # Full name of the measure/indicator
+short_name: Morphine oral solution # Abbreviated name or acronym
+description: Percentage of oral morphine issued as oral solution # Brief 1-2 sentence description of what this measure identifies
+why_it_matters: |  
+    A [national patient safety investigation](https://www.hssib.org.uk/patient-safety-investigations/unintentional-overdose-of-morphine-sulfate-oral-solution/investigation-report/) has highlighted risks associated with morphine oral solution, including dosing errors and accidental overconsumption. It has been implicated in a number of [drug-related deaths in the NHS](https://www.england.nhs.uk/south/wp-content/uploads/sites/6/2016/08/cd-newsletter.pdf), including cases of unintentional overdose.  
+
+    Particular concerns include the risk of patients 'swigging' morphine oral solution directly from the bottle rather than measuring individual doses, and the supply of large quantities over extended periods. Oral morphine solution 10mg/5ml is a Schedule 5 Controlled Drug with fewer controls than other morphine formulations, which are Schedule 2. This may increase the likelihood of larger volumes being supplied and continued without the safeguards applied to other opioid formulations.
+    
+    Morphine oral solution also contains high quantities of alcohol and sugar. For example, in addition to 600mg of morphine sulfate, branded [Oramorph](https://mhraproducts4853.blob.core.windows.net/docs/ded38835b171a612e33c82e0103d5482cd76d1a3) contains around 90g of sugar and 24g of ethanol, equivalent to three units of alcohol, in each 300ml bottle. These factors should be considered alongside the opioid content when assessing clinical risk. You can read more about the rationale behind this measure, and the wider considerations surrounding the use of oral liquid morphine, [in our guest blog](https://www.bennett.ox.ac.uk/blog/2026/02/oral-morphine-liquid-new-openprescribing-measures/).
+
+how_is_it_calculated: |
+    We divide the combined number of [unit doses](https://hospitals.openprescribing.net/faq/#what-is-unit-dose-quantity) of oral morphine oral solution by the total number of unit doses of all immediate-release morphine products and then multiply that by 100 to obtain a percentage each month. 
+
+tags:
+    # List relevant categories (e.g. Safety, Prescribing, Monitoring)
+    - Safety
+quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
+lower_is_better: true # true, false, or null when no value judgement
+authored_by: Chris Wood # Name of original author
+checked_by: TBC # Name of clinical/technical reviewer
+date_reviewed: 2026-03-16 # Date of last review (YYYY-MM-DD)
+next_review: 2027-03-16 # Date of next scheduled review (YYYY-MM-DD)
+status: in_development # in_development, preview, published
