@@ -27,7 +27,7 @@ LEFT JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
 WHERE
     ofr.name LIKE '%.oral'
     AND
-    vtm.id IN (
+    vtm.vtm IN (
         '773372004', -- VTM code for morphine
         '777027001' -- VTM code for oxycodone
     )
