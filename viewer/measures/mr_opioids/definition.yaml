@@ -2,7 +2,7 @@ name: Prolonged-release opioids # Full name of the measure/indicator
 short_name: Prolonged-release opioids # Abbreviated name or acronym
 description: Percentage of oral oxycodone and morphine prolonged-release 5mg and 10mg of all oral oxycodone and morphine # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |  
-    The MHRA has issued a safety alert advising healthcare professionals that prolonged-release opioids should not be used to treat acute pain after surgery. Following a safety review, the indication for post-operative pain has been removed from the licences of prolonged-release morphine and oxycodone.
+    The MHRA has [issued a safety alert](https://www.gov.uk/drug-safety-update/prolonged-release-opioids-removal-of-indication-for-relief-of-post-operative-pain) advising healthcare professionals that prolonged-release opioids should not be used to treat acute pain after surgery. Following a safety review, the indication for post-operative pain has been removed from the licences of prolonged-release morphine and oxycodone.
 
     Post-operative pain is usually short-lived and should only require short-term pain management, best treated with immediate-release opioids. Evidence shows that using prolonged-release opioids after surgery increases the risk of continued opioid use beyond 90 days and the risk of opioid-induced ventilatory impairment.
 
