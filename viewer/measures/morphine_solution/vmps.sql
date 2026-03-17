@@ -9,6 +9,7 @@ WITH measure_vmps AS (
             ELSE 'denominator'
         END as vmp_type
     FROM viewer_vmp vmp
+    LEFT JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
 )
 SELECT DISTINCT
     vmp.id as vmp_id,
