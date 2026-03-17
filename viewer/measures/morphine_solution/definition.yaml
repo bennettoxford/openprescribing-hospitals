@@ -1,6 +1,6 @@
 name: Morphine oral solution # Full name of the measure/indicator
 short_name: Morphine oral solution # Abbreviated name or acronym
-description: Percentage of oral morphine issued as oral solution # Brief 1-2 sentence description of what this measure identifies
+description: Percentage of immediate release oral morphine issued as oral solution # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |  
     A [national patient safety investigation](https://www.hssib.org.uk/patient-safety-investigations/unintentional-overdose-of-morphine-sulfate-oral-solution/investigation-report/) has highlighted risks associated with morphine oral solution, including dosing errors and accidental overconsumption. It has been implicated in a number of [drug-related deaths in the NHS](https://www.england.nhs.uk/south/wp-content/uploads/sites/6/2016/08/cd-newsletter.pdf), including cases of unintentional overdose.  
 
