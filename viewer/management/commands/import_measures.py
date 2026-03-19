@@ -66,6 +66,7 @@ class Command(BaseCommand):
                     'name': data['name'],
                     'short_name': data['short_name'],
                     'description': data['description'],
+                    'short_description': data.get('short_description'),
                     'why_it_matters': data['why_it_matters'],
                     'how_is_it_calculated': data['how_is_it_calculated'],
                     'quantity_type': data.get('quantity_type', 'dose'),
@@ -200,6 +201,7 @@ def validate_measure_yaml(data):
             error='default_view_mode must be one of: trust, icb, region, national'
         ),
         Optional('lower_is_better'): Or(bool, None, error='lower_is_better must be true, false, or null'),
+        Optional('short_description'): And(str, error='short_description must be a string'),
         Optional('annotations'): And(
             list,
             lambda annotations: all(isinstance(a, dict) for a in annotations),
