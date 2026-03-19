@@ -22,8 +22,6 @@
     let last12MonthsRange = '';
     let latestDateFromData = null;
     let dateRange = '';
-    let expandedTrusts = new Set();
-
     $: selectedMode = $modeSelectorStore.selectedMode || searchType;
 
     $: {
@@ -62,8 +60,6 @@
         latestDateFromData,
         $analyseOptions.selectedOrganisations || [],
         $organisationSearchStore.items || [],
-        $organisationSearchStore.predecessorMap || new Map(),
-        expandedTrusts,
         $resultsStore.analysisMonths || [],
         $organisationSearchStore.regionsHierarchy || []
     );
@@ -91,14 +87,6 @@
         dateRange: dateRange
     });
 
-    function toggleTrustExpansion(trustName) {
-        if (expandedTrusts.has(trustName)) {
-            expandedTrusts.delete(trustName);
-        } else {
-            expandedTrusts.add(trustName);
-        }
-        expandedTrusts = new Set(expandedTrusts);
-    }
 </script>
 
 <div class="p-4">
@@ -224,34 +212,10 @@
                             </tr>
                         {:else if quantityType === 'DDD'}
                             <tr class="border-b border-gray-200 hover:bg-gray-100 
-                                {group.isSubtotal ? (group.section === 'selected' ? 'bg-green-50 font-semibold' : 'bg-blue-50 font-semibold') : ''} 
-                                {group.isPredecessor ? 'bg-gray-50' : ''}">
+                                {group.isSubtotal ? (group.section === 'selected' ? 'bg-green-50 font-semibold' : 'bg-blue-50 font-semibold') : ''}">
                                 {#if selectedMode !== 'national'}
-                                    <td class="py-3 px-6 text-left {group.isPredecessor ? 'pl-16' : ''}">
-                                        <div class="flex items-center">
-                                            {#if group.hasPredecessors}
-                                                <button 
-                                                    class="mr-2 text-gray-600 hover:text-gray-900 flex items-center"
-                                                    on:click={() => toggleTrustExpansion(group.key)}
-                                                >
-                                                    <svg 
-                                                        class="w-4 h-4 transform transition-transform {group.isExpanded ? 'rotate-90' : ''}" 
-                                                        fill="none" 
-                                                        stroke="currentColor" 
-                                                        viewBox="0 0 24 24"
-                                                    >
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                                    </svg>
-                                                </button>
-                                            {/if}
-                                            {#if group.isPredecessor}
-                                                <span class="text-gray-500 mr-2">↳</span>
-                                            {/if}
-                                            <span>{group.key}</span>
-                                            {#if group.isPredecessor}
-                                                <span class="text-xs text-gray-500 ml-2">(predecessor)</span>
-                                            {/if}
-                                        </div>
+                                    <td class="py-3 px-6 text-left">
+                                        <span>{group.key}</span>
                                     </td>
                                 {/if}
                                 {#if selectedMode !== 'unit'}
@@ -266,34 +230,10 @@
                         {:else if nonZeroUnits.length <= 1}
                             {@const displayUnit = (nonZeroUnits[0] ?? group.units[0])?.unit || '-'}
                             <tr class="border-b border-gray-200 hover:bg-gray-100 
-                                {group.isSubtotal ? (group.section === 'selected' ? 'bg-green-50 font-semibold' : 'bg-blue-50 font-semibold') : ''} 
-                                {group.isPredecessor ? 'bg-gray-50' : ''}">
+                                {group.isSubtotal ? (group.section === 'selected' ? 'bg-green-50 font-semibold' : 'bg-blue-50 font-semibold') : ''}">
                                 {#if selectedMode !== 'national'}
-                                    <td class="py-3 px-6 text-left {group.isPredecessor ? 'pl-16' : ''}">
-                                        <div class="flex items-center">
-                                            {#if group.hasPredecessors}
-                                                <button 
-                                                    class="mr-2 text-gray-600 hover:text-gray-900 flex items-center"
-                                                    on:click={() => toggleTrustExpansion(group.key)}
-                                                >
-                                                    <svg 
-                                                        class="w-4 h-4 transform transition-transform {group.isExpanded ? 'rotate-90' : ''}" 
-                                                        fill="none" 
-                                                        stroke="currentColor" 
-                                                        viewBox="0 0 24 24"
-                                                    >
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                                    </svg>
-                                                </button>
-                                            {/if}
-                                            {#if group.isPredecessor}
-                                                <span class="text-gray-500 mr-2">↳</span>
-                                            {/if}
-                                            <span>{group.key}</span>
-                                            {#if group.isPredecessor}
-                                                <span class="text-xs text-gray-500 ml-2">(predecessor)</span>
-                                            {/if}
-                                        </div>
+                                    <td class="py-3 px-6 text-left">
+                                        <span>{group.key}</span>
                                     </td>
                                 {/if}
                                 {#if selectedMode !== 'unit'}
@@ -307,35 +247,10 @@
                             </tr>
                         {:else}
                             <tr class="border-b border-gray-200 hover:bg-gray-100 font-bold 
-                                {group.isSubtotal ? (group.section === 'selected' ? 'bg-green-50 font-semibold' : 'bg-blue-50 font-semibold') : ''} 
-                                {group.isPredecessor ? 'bg-gray-50' : ''}">
+                                {group.isSubtotal ? (group.section === 'selected' ? 'bg-green-50 font-semibold' : 'bg-blue-50 font-semibold') : ''}">
                                 {#if selectedMode !== 'national'}
-                                    <td class="py-3 px-6 text-left {group.isPredecessor ? 'pl-16' : ''}" 
-                                        rowspan={nonZeroUnits.length + 1}>
-                                        <div class="flex items-center">
-                                            {#if group.hasPredecessors}
-                                                <button 
-                                                    class="mr-2 text-gray-600 hover:text-gray-900 flex items-center"
-                                                    on:click={() => toggleTrustExpansion(group.key)}
-                                                >
-                                                    <svg 
-                                                        class="w-4 h-4 transform transition-transform {group.isExpanded ? 'rotate-90' : ''}" 
-                                                        fill="none" 
-                                                        stroke="currentColor" 
-                                                        viewBox="0 0 24 24"
-                                                    >
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                                    </svg>
-                                                </button>
-                                            {/if}
-                                            {#if group.isPredecessor}
-                                                <span class="text-gray-500 mr-2">↳</span>
-                                            {/if}
-                                            <span>{group.key}</span>
-                                            {#if group.isPredecessor}
-                                                <span class="text-xs text-gray-500 ml-2">(predecessor)</span>
-                                            {/if}
-                                        </div>
+                                    <td class="py-3 px-6 text-left" rowspan={nonZeroUnits.length + 1}>
+                                        <span>{group.key}</span>
                                     </td>
                                 {/if}
                                 {#if selectedMode !== 'unit'}

@@ -15,6 +15,7 @@
     import { resultsStore, updateResults } from '../../../stores/resultsStore';
     import { modeSelectorStore } from '../../../stores/modeSelectorStore';
     import { normaliseMode } from '../../../utils/analyseUtils.js';
+    import { buildAnalysisRequestPayload } from '../../../utils/analyseUtils.js';
     import {
         getCookie,
         getUrlParams,
@@ -329,7 +330,6 @@
                     organisationSearchStore.setOrganisationData({
                         orgs: parsedData.orgs || {},
                         org_codes: parsedData.org_codes || {},
-                        predecessor_map: parsedData.predecessorMap || parsedData.predecessor_map || {},
                         trust_types: parsedData.trust_types || {},
                         org_regions: parsedData.org_regions || {},
                         org_icbs: parsedData.org_icbs || {},
@@ -463,11 +463,12 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrftoken
                 },
-                body: JSON.stringify({
-                    names: resolvedProducts,
-                    search_type: searchType,
-                    quantity_type: $analyseOptions.quantityType
-                })
+                body: JSON.stringify(
+                    buildAnalysisRequestPayload({
+                        selectedProducts: resolvedProducts,
+                        quantityType: $analyseOptions.quantityType,
+                    })
+                )
             });
 
             if (!response.ok) {
@@ -489,7 +490,6 @@
                 searchType,
                 quantityType: $analyseOptions.quantityType,
                 selectedOrganisations: $organisationSearchStore.selectedItems,
-                predecessorMap: $organisationSearchStore.predecessorMap
             };
 
             if (urlState.showPercentiles !== null) {
