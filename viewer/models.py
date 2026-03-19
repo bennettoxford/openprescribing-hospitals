@@ -484,6 +484,7 @@ class Measure(models.Model):
         ('in_development', 'In Development'),
         ('preview', 'Preview'),
         ('published', 'Published'),
+        ('archived', 'Archived'),
     ]
     
     QUANTITY_TYPES = [
@@ -529,6 +530,8 @@ class Measure(models.Model):
     date_reviewed = models.DateField(null=True)
     next_review = models.DateField(null=True)
     first_published = models.DateField(null=True)
+    archive_date = models.DateField(null=True, blank=True)
+    archive_description = models.TextField(null=True, blank=True)
     default_view_mode = models.CharField(
         max_length=20, 
         choices=VIEW_MODE_CHOICES, 
