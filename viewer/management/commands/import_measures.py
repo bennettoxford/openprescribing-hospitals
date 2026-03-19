@@ -76,6 +76,8 @@ class Command(BaseCommand):
                     'next_review': data.get('next_review', None),
                     'first_published': data.get('first_published', None),
                     'status': data.get('status', 'in_development'),
+                    'archive_date': data.get('archive_date', None),
+                    'archive_description': data.get('archive_description', None),
                     'default_view_mode': data.get('default_view_mode', 'trust'),
                     'lower_is_better': data.get('lower_is_better', None),
                 }
@@ -193,8 +195,14 @@ def validate_measure_yaml(data):
         Optional('status'): And(
             str,
             lambda status: status in [choice[0] for choice in Measure.STATUS_CHOICES],
-            error='status must be one of: in_development, preview, published'
+            error='status must be one of: in_development, preview, published, archived'
         ),
+        Optional('archive_date'): And(
+            Or(str, date),
+            validate_date_format,
+            error='archive_date must be in format YYYY-MM-DD or a valid date object'
+        ),
+        Optional('archive_description'): And(str),
         Optional('default_view_mode'): And(
             str,
             lambda mode: mode in [choice[0] for choice in Measure.VIEW_MODE_CHOICES],
@@ -210,6 +218,12 @@ def validate_measure_yaml(data):
     })
     
     schema.validate(data)
+
+    if data.get('status') == 'archived':
+        if not data.get('archive_date'):
+            raise SchemaError('archive_date is required when status is archived')
+        if not data.get('archive_description') or not str(data.get('archive_description')).strip():
+            raise SchemaError('archive_description is required when status is archived')
     
     date_validation = validate_review_dates(data)
     if date_validation is not True:

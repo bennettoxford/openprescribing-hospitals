@@ -348,6 +348,7 @@ def _serialize_measures(measures, detail_url_name, prefetched):
         has_chart_data = bool(nat.get(measure.slug) or reg.get(measure.slug) or trust.get(measure.slug))
         serialized.append({
             'slug': measure.slug,
+            'status': measure.status,
             'short_name': (measure.short_name or measure.name) or '',
             'description': (measure.short_description or measure.description or ''),
             'lower_is_better': measure.lower_is_better,
@@ -390,15 +391,20 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
                 in_development_measures = Measure.objects.filter(status='in_development').annotate(
                     has_denominators=Exists(denom_exists)
                 ).prefetch_related('tags').order_by('name')
+                archived_measures = []
                 measures = list(preview_measures) + list(in_development_measures)
             else:
                 measures = Measure.objects.filter(status='published').annotate(
+                    has_denominators=Exists(denom_exists)
+                ).prefetch_related('tags').order_by('name')
+                archived_measures = Measure.objects.filter(status='archived').annotate(
                     has_denominators=Exists(denom_exists)
                 ).prefetch_related('tags').order_by('name')
                 preview_measures = []
                 in_development_measures = []
         else:
             sort = 'name'
+            archived_measures = []
             if preview_mode:
                 preview_measures = Measure.objects.filter(status='preview').prefetch_related('tags').order_by('name')
                 in_development_measures = []
@@ -416,16 +422,17 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
                 ).distinct().order_by('name')
             )
         else:
-            # Only show tags used by published measures
+            # Only show tags used by published and archived measures
             measure_tags = list(
-                MeasureTag.objects.filter(measures__status='published')
-                .distinct().order_by('name')
+                MeasureTag.objects.filter(
+                    measures__status__in=['published', 'archived']
+                ).distinct().order_by('name')
             )
         tags_param = (self.request.GET.get('tags') or '').strip() if is_authenticated else ''
         selected_tag = ','.join(s.strip() for s in tags_param.split(',') if s.strip()) if tags_param else ''
 
         markdowner = Markdown()
-        for measure in measures:
+        for measure in list(measures) + list(archived_measures):
             measure.why_it_matters = markdowner.convert(measure.why_it_matters)
             if is_authenticated:
                 measure.tag_slugs = ','.join(slugify(t.name) for t in measure.tags.all())
@@ -454,10 +461,11 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
                 "region_data_json": json.dumps(region_list, cls=DjangoJSONEncoder),
             })
 
-            if not measures:
+            measures_for_charts = list(measures) + list(archived_measures)
+            if not measures_for_charts:
                 prefetched = {'national': {}, 'region': {}, 'trust_percentiles': {}, 'modes_by_slug': {}}
             else:
-                slugs_part = ",".join(sorted(m.slug for m in measures))
+                slugs_part = ",".join(sorted(m.slug for m in measures_for_charts))
                 slugs_hash = hashlib.sha256(slugs_part.encode()).hexdigest()[:16]
                 cache_version = cache.get(MEASURES_LIST_CHART_CACHE_VERSION_KEY, 0)
                 cache_key = "measures_list_chart_data:{}:{}:{}".format(
@@ -469,10 +477,10 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
                 if cached_chart is not None:
                     national_data, region_data, trust_percentiles_data = cached_chart
                 else:
-                    bulk_all_regions, bulk_national = get_bulk_regions_and_national_series_for_measures(measures)
-                    bulk_percentiles = get_bulk_percentiles_for_measures(measures)
+                    bulk_all_regions, bulk_national = get_bulk_regions_and_national_series_for_measures(measures_for_charts)
+                    bulk_percentiles = get_bulk_percentiles_for_measures(measures_for_charts)
                     trust_counts = dict(
-                        PrecomputedMeasure.objects.filter(measure_id__in=[m.id for m in measures])
+                        PrecomputedMeasure.objects.filter(measure_id__in=[m.id for m in measures_for_charts])
                         .values('measure_id')
                         .annotate(count=Count('organisation_id', distinct=True))
                         .values_list('measure_id', 'count')
@@ -480,12 +488,12 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
                     national_data = {}
                     region_data = {}
                     trust_percentiles_data = {}
-                    measures_with_few_trusts = [m for m in measures if trust_counts.get(m.id, 0) < 30]
+                    measures_with_few_trusts = [m for m in measures_for_charts if trust_counts.get(m.id, 0) < 30]
                     bulk_trust_series_per_org = (
                         get_bulk_trust_series_for_measures(measures_with_few_trusts, per_org=True)
                         if measures_with_few_trusts else {}
                     )
-                    for measure in measures:
+                    for measure in measures_for_charts:
                         national_data[measure.slug] = build_national_chart_data(measure, bulk_national)
                         region_data[measure.slug] = build_region_chart_data(measure, bulk_all_regions)
                         chart_data = build_trust_chart_data(measure, bulk_percentiles)
@@ -506,7 +514,7 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
                         (national_data, region_data, trust_percentiles_data),
                         timeout=MEASURES_LIST_CHART_CACHE_TIMEOUT,
                     )
-                modes_by_slug = {m.slug: selected_mode for m in measures}
+                modes_by_slug = {m.slug: selected_mode for m in measures_for_charts}
                 prefetched = {
                     'national': national_data,
                     'region': region_data,
@@ -522,12 +530,16 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
                 context["in_development_measures_json"] = _serialize_measures(
                     in_development_measures, 'viewer:measure_preview_item', prefetched
                 )
+                context["archived_measures_json"] = "[]"
             else:
                 context["measures_json"] = _serialize_measures(
                     measures, 'viewer:measure_item', prefetched
                 )
                 context["preview_measures_json"] = "[]"
                 context["in_development_measures_json"] = "[]"
+                context["archived_measures_json"] = _serialize_measures(
+                    archived_measures, 'viewer:measure_item', prefetched
+                )
 
         context["measures"] = measures if not preview_mode else []
         context["preview_measures"] = preview_measures
@@ -610,6 +622,8 @@ class BaseMeasureItemView(TemplateView):
             "measure_name": measure.name,
             "measure_name_short": measure.short_name,
             "status": measure.status,
+            "archive_date": measure.archive_date,
+            "archive_description": measure.archive_description,
             "why_it_matters": markdowner.convert(measure.why_it_matters),
             "how_is_it_calculated": (
                 markdowner.convert(measure.how_is_it_calculated)
@@ -824,9 +838,11 @@ class MeasureItemView(MaintenanceModeMixin, BaseMeasureItemView):
             slug = kwargs.get("slug")
             measure = self.get_measure(slug)
             
-            if measure.status != 'published':
+            if measure.status not in ('published', 'archived'):
                 return redirect('viewer:measures_list')
-            
+            if measure.status == 'archived' and not request.user.is_authenticated:
+                return redirect('viewer:measures_list')
+
             return super().dispatch(request, *args, **kwargs)
             
         except Exception:

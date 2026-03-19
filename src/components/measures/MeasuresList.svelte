@@ -4,6 +4,7 @@
     measures: { type: 'String', reflect: true },
     previewMeasures: { type: 'String', reflect: true },
     inDevelopmentMeasures: { type: 'String', reflect: true },
+    archivedMeasures: { type: 'String', reflect: true },
     chartData: { type: 'String', reflect: true },
     previewMode: { type: 'String', reflect: true },
     userAuthenticated: { type: 'String', reflect: true },
@@ -24,12 +25,13 @@
   import MeasureCard from './MeasureCard.svelte';
   import LazyLoad from '../common/LazyLoad.svelte';
   import {
-    selectedTags, sort, mode, selectedCode
+    selectedTags, sort, mode, selectedCode, showArchived
   } from '../../stores/measuresListStore.js';
 
   export let measures = '[]';
   export let previewMeasures = '[]';
   export let inDevelopmentMeasures = '[]';
+  export let archivedMeasures = '[]';
   export let chartData = '{}';
   export let previewMode = 'false';
   export let userAuthenticated = 'false';
@@ -45,13 +47,19 @@
   $: parsedMeasures = (() => { try { return JSON.parse(measures || '[]'); } catch (e) { return []; } })();
   $: parsedPreviewMeasures = (() => { try { return JSON.parse(previewMeasures || '[]'); } catch (e) { return []; } })();
   $: parsedInDevelopmentMeasures = (() => { try { return JSON.parse(inDevelopmentMeasures || '[]'); } catch (e) { return []; } })();
+  $: parsedArchivedMeasures = (() => { try { return JSON.parse(archivedMeasures || '[]'); } catch (e) { return []; } })();
 
   $: selectedTagsVal = $selectedTags;
   $: sortVal = $sort;
   $: trustOverlayActive = $mode === 'trust' && !!$selectedCode;
 
   $: allMeasures = [...parsedMeasures, ...parsedPreviewMeasures, ...parsedInDevelopmentMeasures];
-  $: filteredPublished = filterByTags(parsedMeasures, selectedTagsVal);
+  $: publishedWithArchived = $showArchived === 'only'
+    ? parsedArchivedMeasures
+    : $showArchived === 'include'
+      ? [...parsedMeasures, ...parsedArchivedMeasures]
+      : parsedMeasures;
+  $: filteredPublished = filterByTags(publishedWithArchived, selectedTagsVal);
   $: filteredPreview = filterByTags(parsedPreviewMeasures, selectedTagsVal);
   $: filteredInDevelopment = filterByTags(parsedInDevelopmentMeasures, selectedTagsVal);
 
@@ -61,7 +69,7 @@
 
   $: hasFiltersWithNoResults = selectedTagsVal.length > 0 &&
     sortedPublished.length === 0 && sortedPreview.length === 0 && sortedInDevelopment.length === 0 &&
-    (parsedMeasures.length > 0 || parsedPreviewMeasures.length > 0 || parsedInDevelopmentMeasures.length > 0);
+    (parsedMeasures.length > 0 || parsedPreviewMeasures.length > 0 || parsedInDevelopmentMeasures.length > 0 || parsedArchivedMeasures.length > 0);
 
   function filterByTags(measureList, tags) {
     if (!tags || !tags.length) return measureList;
@@ -100,6 +108,7 @@
       selectedSort={initialSort}
       tagsData={tagsData}
       selectedTags={initialTags}
+      archivedCount={parsedArchivedMeasures.length}
     />
   </div>
 {/if}
@@ -110,15 +119,20 @@
     <p class="text-sm text-gray-500 mt-1">Try clearing some tags to see more measures.</p>
   </div>
 {:else}
-{#if parsedMeasures.length > 0 && previewMode !== 'true'}
+{#if (parsedMeasures.length > 0 || ($showArchived !== 'off' && parsedArchivedMeasures.length > 0)) && previewMode !== 'true'}
   <LazyLoad>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" data-measures-section="published">
       {#each sortedPublished as measure (measure.slug)}
         <MeasureCard
-          measure={measure}
-          section="published"
-          linkClasses="bg-oxford-50 text-oxford-600 hover:bg-oxford-100"
-          linkText="View measure details"
+          {measure}
+          {...measure.status === 'archived' && {
+            cardHeaderClass: 'bg-gray-50 py-2 px-4 border-b border-gray-200',
+            statusBadge: 'Archived',
+            statusBadgeClass: 'bg-gray-200 text-gray-700',
+            linkClasses: 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+            linkText: 'View archived measure',
+            cardClass: 'bg-gray-50',
+          }}
           isAuthenticated={userAuthenticated === 'true'}
           trustSelected={trustOverlayActive}
           {measureTrustsBasePath}
@@ -149,7 +163,6 @@
         {#each sortedPreview as measure (measure.slug)}
           <MeasureCard
             measure={measure}
-            section="preview"
             cardHeaderClass="bg-blue-50 py-2 px-4 border-b border-gray-100"
             statusBadge="Preview"
             statusBadgeClass="bg-blue-100 text-blue-800"
@@ -190,7 +203,6 @@
         {#each sortedInDevelopment as measure (measure.slug)}
           <MeasureCard
             measure={measure}
-            section="in_development"
             cardHeaderClass="bg-amber-50 py-2 px-4 border-b border-gray-100"
             statusBadge="🚧 In development"
             statusBadgeClass="bg-amber-100 text-amber-800"
