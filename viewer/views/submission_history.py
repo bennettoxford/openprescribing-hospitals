@@ -155,7 +155,6 @@ class SubmissionHistoryView(MaintenanceModeMixin, TemplateView):
         context['org_data_json'] = mark_safe(json.dumps({
             'organisations': restructured_data,
             'org_codes': shared_org_data['org_codes'],
-            'predecessor_map': shared_org_data['predecessor_map'],
             'trust_types': trust_types,
             'org_regions': shared_org_data.get('org_regions', {}),
             'org_icbs': shared_org_data.get('org_icbs', {}),
