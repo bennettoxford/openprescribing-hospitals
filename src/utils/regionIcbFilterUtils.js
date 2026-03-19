@@ -1,30 +1,24 @@
 /**
- * Flattens nested organisations to array of { name, region, icb, data, available }.
- * @param {Array<{name: string, region?: string, icb?: string, data?: Array, available?: boolean, predecessors?: Array}>} orgs
+ * Flattens organisations to array of { name, region, icb, data, available }.
+ * @param {Array<{name: string, region?: string, icb?: string, data?: Array, available?: boolean}>} orgs
  * @returns {Array<{name: string, region?: string, icb?: string, data: Array, available?: boolean}>}
  */
 export function flattenOrganisationsWithMetadata(orgs) {
-    const result = [];
-    function collect(org) {
-        result.push({
-            name: org.name,
-            region: org.region ?? null,
-            icb: org.icb ?? null,
-            data: org.data || [],
-            available: org.available ?? true,
-        });
-        if (org.predecessors) {
-            org.predecessors.forEach((pred) => collect(pred));
-        }
-    }
-    (orgs || []).forEach((org) => collect(org));
-    return result;
+    return (orgs || []).map((org) => {
+        const o = typeof org === 'object' && org?.name ? org : { name: org };
+        return {
+            name: o.name,
+            region: o.region ?? null,
+            icb: o.icb ?? null,
+            data: o.data || [],
+            available: o.available ?? true,
+        };
+    });
 }
 
 /**
- * Flattens nested organisations to flat data format: { name: { available, data } }.
- * available is true only when org has data for the measure (consistent with MeasureTrustsList).
- * @param {Array<{name: string, data: Array, available?: boolean, predecessors?: Array}>} orgs - Nested org objects
+ * Flattens organisations to flat data format: { name: { available, data } }.
+ * @param {Array<{name: string, data: Array, available?: boolean}>} orgs
  * @returns {Object<string, {available: boolean, data: Array}>}
  */
 export function flattenOrganisationsToData(orgs) {
@@ -34,23 +28,6 @@ export function flattenOrganisationsToData(orgs) {
             return [o.name, { available: hasData, data: o.data || [] }];
         })
     );
-}
-
-/**
- * Flattens nested organisations (with predecessors) to a list of org names for search.
- * @param {Array<{name: string, predecessors?: Array}>} orgs - Nested org objects
- * @returns {Array<string>} Unique org names
- */
-export function prepareOrganisationsForSearch(orgs) {
-    let allOrgs = [];
-    function collectOrgs(org) {
-        allOrgs.push(org.name);
-        if (org.predecessors) {
-            org.predecessors.forEach((pred) => collectOrgs(pred));
-        }
-    }
-    (orgs || []).forEach((org) => collectOrgs(org));
-    return [...new Set(allOrgs)];
 }
 
 /**
