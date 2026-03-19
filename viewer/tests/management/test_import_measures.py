@@ -225,4 +225,69 @@ status: in_development
     def test_command_invalid_folder_name(self, capsys):
         call_command('import_measures', 'Invalid Folder Name')
         captured = capsys.readouterr()
-        assert "Invalid folder name" in captured.out 
+        assert "Invalid folder name" in captured.out
+
+    def test_validate_measure_yaml_archived_requires_date_and_description(self, valid_measure_data):
+        valid_measure_data['status'] = 'archived'
+        valid_measure_data['archive_date'] = '2025-03-10'
+        valid_measure_data['archive_description'] = 'Superseded by new guidance'
+        validate_measure_yaml(valid_measure_data)
+
+    def test_validate_measure_yaml_archived_missing_date_fails(self, valid_measure_data):
+        valid_measure_data['status'] = 'archived'
+        valid_measure_data['archive_description'] = 'Reason for archiving'
+        with pytest.raises(SchemaError, match='archive_date'):
+            validate_measure_yaml(valid_measure_data)
+
+    def test_validate_measure_yaml_archived_missing_description_fails(self, valid_measure_data):
+        valid_measure_data['status'] = 'archived'
+        valid_measure_data['archive_date'] = '2025-03-10'
+        with pytest.raises(SchemaError, match='archive_description'):
+            validate_measure_yaml(valid_measure_data)
+
+    def test_validate_measure_yaml_archived_empty_description_fails(self, valid_measure_data):
+        valid_measure_data['status'] = 'archived'
+        valid_measure_data['archive_date'] = '2025-03-10'
+        valid_measure_data['archive_description'] = '   '
+        with pytest.raises(SchemaError, match='archive_description'):
+            validate_measure_yaml(valid_measure_data)
+
+    @pytest.mark.django_db
+    def test_command_creates_archived_measure(self, tmp_path, measure_tags):
+        measures_dir = tmp_path / 'measures'
+        measures_dir.mkdir()
+
+        test_measure_dir = measures_dir / 'archived-measure'
+        test_measure_dir.mkdir()
+
+        today = datetime.now().date()
+        next_review = (today + timedelta(days=180)).strftime('%Y-%m-%d')
+
+        yaml_content = f"""
+name: Archived Test Measure
+short_name: archived-measure
+description: Test archived measure
+why_it_matters: Test why it matters
+how_is_it_calculated: Test calculation method
+tags: ['test-tag-1']
+quantity_type: dose
+authored_by: Test Author
+checked_by: Test Checker
+date_reviewed: '{today}'
+next_review: '{next_review}'
+status: archived
+archive_date: 2025-03-10
+archive_description: |
+    This measure was archived because the underlying guidance has been superseded.
+"""
+        (test_measure_dir / 'definition.yaml').write_text(yaml_content)
+        (test_measure_dir / 'vmps.sql').write_text('')
+
+        with patch('viewer.management.commands.import_measures.Path') as mock_path:
+            mock_path.return_value.parent.parent.parent = tmp_path
+            call_command('import_measures', 'archived-measure')
+
+        measure = Measure.objects.get(slug='archived-measure')
+        assert measure.status == 'archived'
+        assert measure.archive_date == date(2025, 3, 10)
+        assert 'superseded' in measure.archive_description
