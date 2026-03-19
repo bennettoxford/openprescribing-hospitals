@@ -5,8 +5,6 @@ function createOrganisationSearchStore() {
         organisations: new Map(), // name -> { code, available }
         selectedItems: [],
         filterType: 'trust',
-        selectedRegion: 'all',
-        selectedICB: 'all',
         items: [],
         availableItems: new Set(),
         orgCodes: new Map(),
@@ -135,18 +133,6 @@ function createOrganisationSearchStore() {
             return types.sort((a, b) => a.localeCompare(b));
         },
 
-        getOrgsByTrustType(trustType) {
-            const currentStore = get(this);
-            if (!currentStore.trustTypes || !trustType) return [];
-            const result = [];
-            currentStore.trustTypes.forEach((type, orgName) => {
-                if (type === trustType && currentStore.availableItems.has(orgName)) {
-                    result.push(orgName);
-                }
-            });
-            return result;
-        },
-
         /** Returns orgs by trust type from the full items set */
         getOrgsByTrustTypeGlobal(trustType) {
             const currentStore = get(this);
@@ -262,14 +248,6 @@ function createOrganisationSearchStore() {
                 });
             }
             return Array.from(result);
-        },
-
-        setRegion: (region) => {
-            update(store => ({ ...store, selectedRegion: region, selectedICB: 'all' }));
-        },
-        
-        setICB: (icb) => {
-            update(store => ({ ...store, selectedICB: icb }));
         }
     };
 }
