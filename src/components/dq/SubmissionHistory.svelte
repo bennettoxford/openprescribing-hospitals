@@ -4,42 +4,31 @@
     props: {
         orgdata: { type: 'String' },
         latestDates: { type: 'String' },
-        regions: { type: 'String' },
-        userAuthenticated: { type: 'String' }
+        regions: { type: 'String' }
     }
   }} />
 
 <script>
     import { onMount } from 'svelte';
-    import OrganisationSearch from '../common/OrganisationSearch.svelte';
     import LazyLoad from '../common/LazyLoad.svelte';
     import OrganisationSearchFiltered from '../common/OrganisationSearchFiltered.svelte';
-    import RegionIcbFilter from '../common/RegionIcbFilter.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore';
-    import {
-        getOrgsFromRegionIcbFilter,
-        updateRegionSelection,
-        updateIcbSelection,
-    } from '../../utils/regionIcbFilterUtils.js';
+    import { prepareOrganisationsForSearch } from '../../utils/regionIcbFilterUtils.js';
     import OrgSubmissionChart from './OrgSubmissionChart.svelte';
 
     export let orgData = '{}';
     export let latestDates = '{}';
     export let regions = '[]';
-    export let userAuthenticated = 'false';
 
     let parsedOrgData = [];
     let parsedLatestDates = {};
     let parsedRegions = [];
-    let parsedRegionsHierarchy = [];
     let months = [];
     let error = null;
     let sortType = 'missing_latest';
     let filteredOrganisations = [];
     let searchableOrgs = [];
     let showScrollButton = false;
-    let selectedRegions = new Set();
-    let selectedICBs = new Set();
 
     function unescapeUnicode(str) {
         return str.replace(/\\u([a-fA-F0-9]{4})/g, function(match, grp) {
@@ -89,57 +78,12 @@
         }
     }
 
-    function getAvailableItemsFromFilters() {
-        return getOrgsFromRegionIcbFilter(
-            parsedOrgData,
-            (org) => org.region,
-            (org) => org.icb,
-            (org) => org.name,
-            selectedRegions,
-            selectedICBs,
-            searchableOrgs
-        );
-    }
-
-    function handleRegionClick(region) {
-        const { selectedRegions: nextRegions, selectedICBs: nextICBs } = updateRegionSelection(
-            region,
-            selectedRegions,
-            selectedICBs
-        );
-        selectedRegions = nextRegions;
-        selectedICBs = nextICBs;
-        const available = getAvailableItemsFromFilters();
-        organisationSearchStore.setAvailableItems(available);
-        organisationSearchStore.updateSelection(available);
-    }
-
-    function handleIcbClick(region, icb) {
-        const updated = updateIcbSelection(region, icb, selectedRegions, selectedICBs);
-        if (!updated) return;
-        selectedRegions = updated.selectedRegions;
-        selectedICBs = updated.selectedICBs;
-        const available = getAvailableItemsFromFilters();
-        organisationSearchStore.setAvailableItems(available);
-        organisationSearchStore.updateSelection(available);
-    }
-
-    function handleFilterClear() {
-        if (selectedRegions.size > 0 || selectedICBs.size > 0) {
-            selectedRegions = new Set();
-            selectedICBs = new Set();
-            organisationSearchStore.setAvailableItems(searchableOrgs);
-            organisationSearchStore.updateSelection(searchableOrgs);
-        }
-    }
-
     onMount(() => {
         try {
             const unescapedData = unescapeUnicode(orgData);
             const parsedData = JSON.parse(unescapedData);
 
             parsedOrgData = parsedData.organisations;
-            parsedRegionsHierarchy = parsedData.regions_hierarchy || [];
             parsedLatestDates = JSON.parse(unescapeUnicode(latestDates));
             parsedRegions = JSON.parse(unescapeUnicode(regions));
             
@@ -184,27 +128,18 @@
    
     $: {
         if (parsedOrgData.length > 0) {
-            const hasRegionFilters = selectedRegions.size > 0 || selectedICBs.size > 0;
-            const hasSearchFilters = $organisationSearchStore.selectedItems.length > 0;
-            
+            const selectedItems = $organisationSearchStore.selectedItems || [];
+            const hasSearchFilters = selectedItems.length > 0;
+
             if (!hasSearchFilters) {
                 filteredOrganisations = [];
             } else {
-                let orgs = parsedOrgData;
-                if (userAuthenticated !== 'true' && (hasRegionFilters || hasSearchFilters)) {
-                    orgs = orgs.filter(org => {
-                        const passesRegionFilter = !hasRegionFilters ||
-                            selectedRegions.has(org.region) ||
-                            selectedICBs.has(org.icb);
-                        const passesSearchFilter = !hasSearchFilters ||
-                            $organisationSearchStore.selectedItems.includes(org.name);
-                        return passesRegionFilter && passesSearchFilter;
-                    });
-                } else if (userAuthenticated === 'true') {
-                    orgs = orgs.filter(org =>
-                        $organisationSearchStore.selectedItems.includes(org.name)
-                    );
-                }
+                const orgs = parsedOrgData.filter(org =>
+                    selectedItems.includes(org.name) ||
+                    org.predecessors?.some(pred =>
+                        selectedItems.includes(pred.name)
+                    )
+                );
 
                 filteredOrganisations = [...orgs].sort((a, b) => {
                     switch (sortType) {
@@ -243,32 +178,14 @@
 
 <div class="flex flex-col w-full">
     <div class="w-full">
-        {#if userAuthenticated !== 'true' && parsedRegionsHierarchy.length > 0}
-            <RegionIcbFilter
-                regionsHierarchy={parsedRegionsHierarchy}
-                selectedRegions={selectedRegions}
-                selectedICBs={selectedICBs}
-                onRegionClick={handleRegionClick}
-                onIcbClick={handleIcbClick}
-                onClear={handleFilterClear}
-            />
-        {/if}
         <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 lg:gap-12 mb-4">
             <div class="w-full lg:max-w-[600px] relative z-50">
                 {#if searchableOrgs.length > 0}
-                    {#if userAuthenticated === 'true'}
-                        <OrganisationSearchFiltered 
-                            source={organisationSearchStore}
-                            overlayMode={true}
-                            on:selectionChange={handleSearchSelect}
-                        />
-                    {:else}
-                        <OrganisationSearch 
-                            source={organisationSearchStore}
-                            overlayMode={true}
-                            on:selectionChange={handleSearchSelect}
-                        />
-                    {/if}
+                    <OrganisationSearchFiltered 
+                        source={organisationSearchStore}
+                        overlayMode={true}
+                        on:selectionChange={handleSearchSelect}
+                    />
                 {:else}
                     <div class="text-sm text-gray-600">Loading organisations...</div>
                 {/if}
