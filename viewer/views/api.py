@@ -1,4 +1,5 @@
 import re
+
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.db.models import Q, OuterRef, Exists
@@ -26,6 +27,11 @@ from ..utils import (
     get_quantity_months,
     get_ddd_unit_map,
 )
+from .measures import (
+    normalise_trust_code,
+    get_bulk_trust_series_for_measures,
+)
+
 
 MAX_PRODUCT_CANDIDATES = 1000
 MAX_INGREDIENT_CANDIDATES = 200
@@ -54,10 +60,6 @@ def _product_searchable_tokens(vmp):
     text = " ".join(p for p in parts if p)
     return list(dict.fromkeys(tokenize(text)))
 
-from .measures import (
-    expand_trust_codes,
-    get_bulk_trust_series_for_measures,
-)
 
 
 @api_view(["GET"])
@@ -1307,11 +1309,11 @@ def get_measures_chart_data(request):
             .order_by('name')
         )
 
-        trust_codes = expand_trust_codes(trust_code)
-        if not trust_codes:
+        effective_code = normalise_trust_code(trust_code)
+        if not effective_code:
             return JsonResponse({'trust_overlay': {m.slug: {'trustData': []}} for m in measures})
 
-        overlay_by_measure = get_bulk_trust_series_for_measures(measures, trust_codes)
+        overlay_by_measure = get_bulk_trust_series_for_measures(measures, [effective_code])
 
         trust_overlay = {}
         for m in measures:

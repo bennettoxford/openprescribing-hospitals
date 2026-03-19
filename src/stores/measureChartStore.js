@@ -1,6 +1,5 @@
 import { writable, derived, get } from 'svelte/store';
 import { regionColors, TRUST_OVERLAY_COLOR } from '../utils/chartConfig.js';
-import { organisationSearchStore } from '../stores/organisationSearchStore';
 
 export const orgdata = writable([]);
 export const regiondata = writable([]);
@@ -124,12 +123,6 @@ export const filteredData = derived(
           { range: [5, 95], opacity: 0.1 }
         ];
 
-        const visibleNonPredecessors = Array.from($visibleTrusts).filter(trust => {
-            const isPredecessor = Array.from(get(organisationSearchStore).predecessorMap.entries())
-                .some(([successor, predecessors]) => predecessors.includes(trust));
-            return !isPredecessor;
-        });
-
         datasets = [
           {
             label: 'Median (50th percentile)',
@@ -156,7 +149,7 @@ export const filteredData = derived(
             isRange: true,
             hidden: !$showPercentiles
           })),
-          ...visibleNonPredecessors.map((org, index) => {
+          ...Array.from($visibleTrusts).map((org, index) => {
             const orgDataPoints = $orgdata[org]?.data?.reduce((acc, d) => {
               acc[d.month] = d;
               return acc;
@@ -180,11 +173,11 @@ export const filteredData = derived(
           })
         ].filter(Boolean);
 
-        const visibleNonPredecessorsSet = new Set(visibleNonPredecessors);
+        const visibleTrustsSet = new Set($visibleTrusts);
 
         datasets = datasets.map(dataset => ({
             ...dataset,
-            hidden: !getDatasetVisibility(dataset, $selectedMode, visibleNonPredecessorsSet, $showPercentiles)
+            hidden: !getDatasetVisibility(dataset, $selectedMode, visibleTrustsSet, $showPercentiles)
         }));
         break;
       case 'national':

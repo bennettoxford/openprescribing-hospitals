@@ -59,9 +59,8 @@ def get_organisation_data():
 
     Returns:
         dict with keys:
-            orgs: ODS code -> organisation name (e.g. "RGT01" -> "Royal General Trust")
-            org_codes: organisation name -> ODS code (reverse of orgs)
-            predecessor_map: successor name -> list of predecessor names (for merged orgs)
+            orgs: ODS code -> organisation name (successors only, predecessors merged)
+            org_codes: organisation name -> ODS code (successors only)
             trust_types: organisation name -> trust type (e.g. "Acute", "Mental Health")
             org_regions: organisation name -> NHS region name
             org_icbs: organisation name -> ICB name
@@ -79,7 +78,6 @@ def get_organisation_data():
 
     org_names = {}
     org_codes = {}
-    predecessor_map = {}
     trust_types = {}
     org_regions = {}
     org_icbs = {}
@@ -88,6 +86,9 @@ def get_organisation_data():
     for org in orgs:
         name = org['ods_name']
         code = org['ods_code']
+
+        if org['successor__ods_name']:
+            continue
 
         org_names[code] = name
         org_codes[name] = code
@@ -99,20 +100,6 @@ def get_organisation_data():
             org_icbs[name] = org['icb__name']
         if org.get('cancer_alliance__name'):
             org_cancer_alliances[name] = org['cancer_alliance__name']
-
-        if org['successor__ods_name']:
-            successor_name = org['successor__ods_name']
-            if successor_name not in predecessor_map:
-                predecessor_map[successor_name] = []
-            predecessor_map[successor_name].append(name)
-
-    # Propagate cancer alliance from successor to predecessors
-    for successor_name, predecessors in predecessor_map.items():
-        ca = org_cancer_alliances.get(successor_name)
-        if ca:
-            for pred in predecessors:
-                if pred not in org_cancer_alliances:
-                    org_cancer_alliances[pred] = ca
 
     regions_hierarchy = []
     for region in Region.objects.prefetch_related('icbs').order_by('name'):
@@ -134,7 +121,6 @@ def get_organisation_data():
     return {
         'orgs': org_names,
         'org_codes': org_codes,
-        'predecessor_map': predecessor_map,
         'trust_types': trust_types,
         'org_regions': org_regions,
         'org_icbs': org_icbs,

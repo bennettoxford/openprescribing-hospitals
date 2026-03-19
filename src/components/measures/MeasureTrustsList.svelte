@@ -115,14 +115,9 @@
 
     $: parsedOrganisations = parsedOrgData?.organisations || [];
     $: orgsWithData = flattenOrganisationsWithMetadata(parsedOrganisations);
-    $: allPredecessors = new Set(
-        Object.values(parsedOrgData?.predecessor_map || {}).flat()
-    );
     $: hasTrustData = (o) => (o.data?.length ?? 0) > 0 && o.available !== false;
     $: searchableOrgs = [...new Set(
-        orgsWithData
-            .filter((o) => !allPredecessors.has(o.name) && hasTrustData(o))
-            .map((o) => o.name)
+        orgsWithData.filter(hasTrustData).map((o) => o.name)
     )];
 
     $: allOrgsForSearch = [...new Set(orgsWithData.map((o) => o.name))];
@@ -148,13 +143,12 @@
 
     $: if (searchableOrgs.length > 0 && Object.keys(parsedOrgData).length > 0 && !hasInitializedStore) {
         hasInitializedStore = true;
-        const orgs = Object.fromEntries(
+        const orgs = parsedOrgData.orgs || Object.fromEntries(
             allOrgsForSearch.map((name) => [parsedOrgData.org_codes?.[name] || name, name])
         );
         organisationSearchStore.setOrganisationData({
             orgs,
             org_codes: parsedOrgData.org_codes || {},
-            predecessor_map: parsedOrgData.predecessor_map || {},
             trust_types: parsedOrgData.trust_types || {},
             org_regions: parsedOrgData.org_regions || {},
             org_icbs: parsedOrgData.org_icbs || {},

@@ -63,9 +63,7 @@
     $: effectiveTrustCode = $selectedCodeStore || singleTrustCode || '';
 
     function findPrimaryTrustCode(items) {
-        const predecessorMap = parsedOrgData.predecessor_map || {};
-        const allPredecessors = new Set(Object.values(predecessorMap).flat());
-        const primaryName = items.find(name => !allPredecessors.has(name));
+        const primaryName = items[0];
         return primaryName ? (parsedOrgData.org_codes || {})[primaryName] : null;
     }
 
@@ -113,7 +111,6 @@
             organisationSearchStore.setOrganisationData({
                 orgs: parsedOrgData.orgs || {},
                 org_codes: parsedOrgData.org_codes || {},
-                predecessor_map: parsedOrgData.predecessor_map || {},
                 trust_types: parsedOrgData.trust_types || {},
                 org_regions: parsedOrgData.org_regions || {},
                 org_icbs: parsedOrgData.org_icbs || {},
@@ -122,7 +119,9 @@
                 cancer_alliances: parsedOrgData.cancer_alliances || [],
             });
             organisationSearchStore.setFilterType('trust');
-            organisationSearchStore.setAvailableItems(Object.values(parsedOrgData.orgs || []));
+            organisationSearchStore.setAvailableItems(
+                Object.values(parsedOrgData.orgs || {})
+            );
         } else if (mode === 'region') {
             const regionOrgs = {};
             const regionCodes = {};
@@ -131,7 +130,7 @@
                 regionCodes[r.name] = r.code;
             });
             organisationSearchStore.setOrganisationData({
-                orgs: regionOrgs, org_codes: regionCodes, predecessor_map: {}
+                orgs: regionOrgs, org_codes: regionCodes
             });
             organisationSearchStore.setFilterType('region');
             organisationSearchStore.setAvailableItems(parsedRegionData.map(r => r.name));
@@ -324,7 +323,7 @@
             if (initialCode && initialMode !== 'national') {
                 if (initialMode === 'trust') {
                     const name = parsedOrgData.orgs?.[initialCode];
-                    if (name) organisationSearchStore.updateSelection(organisationSearchStore.getRelatedOrgs(name));
+                    if (name) organisationSearchStore.updateSelection([name]);
                 } else if (initialMode === 'region' && initialRegionName) {
                     organisationSearchStore.updateSelection([initialRegionName]);
                 }
