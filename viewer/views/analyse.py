@@ -16,7 +16,6 @@ class AnalyseView(MaintenanceModeMixin, TemplateView):
         context['org_data'] = json.dumps({
             'orgs': org_data['orgs'],
             'org_codes': org_data['org_codes'],
-            'predecessorMap': org_data['predecessor_map'],
             'trust_types': org_data.get('trust_types', {}),
             'org_regions': org_data.get('org_regions', {}),
             'org_icbs': org_data.get('org_icbs', {}),

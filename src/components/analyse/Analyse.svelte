@@ -89,7 +89,6 @@
             organisationSearchStore.setOrganisationData({
                 orgs: parsedData.orgs || {},
                 org_codes: parsedData.org_codes || {},
-                predecessor_map: parsedData.predecessorMap || {},
                 trust_types: parsedData.trust_types || {},
                 org_regions: parsedData.org_regions || {},
                 org_icbs: parsedData.org_icbs || {},

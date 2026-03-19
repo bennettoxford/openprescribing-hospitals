@@ -90,7 +90,6 @@
         exportData.selectedTrusts,
         exportData.percentilesData,
         null, // filename
-        exportData.predecessorMap,
         exportData.months || [],
         exportData.allOrganisations || null
       );

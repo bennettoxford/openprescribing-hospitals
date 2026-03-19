@@ -42,8 +42,7 @@ export function updateResults(data, options = {}) {
     const { productData, organisationData, aggregatedData } = processAnalysisData(
         months,
         items,
-        options.selectedOrganisations || [],
-        options.predecessorMap || new Map()
+        options.selectedOrganisations || []
     );
 
     const selectedOrganisations = options.selectedOrganisations || [];

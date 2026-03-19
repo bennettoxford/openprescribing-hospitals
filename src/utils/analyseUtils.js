@@ -2,6 +2,16 @@ import { chartConfig } from './chartConfig.js';
 import { normaliseDDDUnit } from './utils';
 import pluralize from 'pluralize';
 
+export function buildAnalysisRequestPayload({
+    selectedProducts = [],
+    quantityType = null,
+}) {
+    return {
+        names: selectedProducts,
+        quantity_type: quantityType,
+    };
+}
+
 export class ChartDataProcessor {
     constructor(data, aggregatedData, options = {}) {
         this.rawData = data;
@@ -80,8 +90,7 @@ export class ChartDataProcessor {
                 if (org && !orgData[org]) {
                     orgData[org] = {
                         name: org,
-                        data: new Array(this.allDates.length).fill(0),
-                        isPredecessor: false
+                        data: new Array(this.allDates.length).fill(0)
                     };
                 }
             });
@@ -92,15 +101,12 @@ export class ChartDataProcessor {
             if (!orgData[org]) {
                 orgData[org] = {
                     name: org,
-                    data: new Array(this.allDates.length).fill(0),
-                    isPredecessor: false
+                    data: new Array(this.allDates.length).fill(0)
                 };
             }
             
             this.aggregateItemData(item, orgData[org].data);
         });
-
-        this.handlePredecessors(orgData);
 
         const includeEmptyTrusts = selectedOrganisations.length > 0;
         const chartResult = this.createDatasets(orgData, 'trust', false, includeEmptyTrusts);
@@ -382,24 +388,6 @@ export class ChartDataProcessor {
         }
     }
 
-    handlePredecessors(orgData) {
-        if (this.options.predecessorMap) {
-            for (const [org, orgInfo] of Object.entries(orgData)) {
-                for (const [successor, predecessors] of this.options.predecessorMap.entries()) {
-                    if (predecessors.includes(org)) {
-                        orgData[org].isPredecessor = true;
-            
-                        if (orgData[successor]) {
-                            orgData[successor].data = orgData[successor].data.map(
-                                (value, index) => value + (orgData[org].data[index] || 0)
-                            );
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     createDatasets(data, type, useCustomColor = false, includeEmptySeries = false) {
         const datasets = Object.entries(data)
             .filter(([_, { data }]) => {
@@ -407,9 +395,7 @@ export class ChartDataProcessor {
                 if (includeEmptySeries) return true;
                 return data.some(v => v > 0);
             })
-            .map(([key, { name, data, color, isPredecessor }], index) => {
-                if (isPredecessor) return null;
-                
+            .map(([key, { name, data, color }], index) => {
                 return {
                     label: name || key,
                     data: data,
@@ -421,7 +407,6 @@ export class ChartDataProcessor {
             .filter(Boolean);
 
         const maxValue = Math.max(...Object.values(data)
-            .filter(item => !item.isPredecessor)
             .flatMap(item => item.data || [])
             .filter(v => v !== null && !isNaN(v)));
 
@@ -476,11 +461,9 @@ export class ViewModeCalculator {
             ?.filter(item => {
                 const orgName = item.organisation__ods_name;
                 const isSelected = selectedOrgNames.has(orgName);
-                const isPredecessor = Array.from(this.organisationSearchStore.predecessorMap.values())
-                    .some(predecessors => predecessors.includes(orgName));
                 const hasData = item.data && Array.isArray(item.data) &&
                     item.data.some(v => v > 0 && !isNaN(parseFloat(v)));
-                return isSelected && !isPredecessor && hasData;
+                return isSelected && hasData;
             }) || [];
 
         return selectedOrganisationsWithData.length >= 1;
@@ -512,21 +495,7 @@ export class ViewModeCalculator {
 
         if (this.resultsStore.analysisData) {
             const mappedICBs = new Set(
-                this.resultsStore.analysisData.map(item => {
-                    const orgName = item.organisation__ods_name;
-                    let targetICB = item.organisation__icb;
-                    
-                    for (const [successor, predecessors] of this.organisationSearchStore.predecessorMap.entries()) {
-                        if (predecessors.includes(orgName)) {
-                            const successorData = this.resultsStore.analysisData.find(d => d.organisation__ods_name === successor);
-                            if (successorData) {
-                                targetICB = successorData.organisation__icb;
-                            }
-                            break;
-                        }
-                    }
-                    return targetICB;
-                }).filter(Boolean)
+                this.resultsStore.analysisData.map(item => item.organisation__icb).filter(Boolean)
             );
 
             if (mappedICBs.size > 1 && !modes.some(m => m.value === 'icb')) {
@@ -587,7 +556,7 @@ export function selectDefaultMode(availableModes, hasSelectedOrganisations = fal
     return availableModes[0]?.value || 'trust';
 }
 
-export function processAnalysisData(months, items, selectedOrganisations = [], predecessorMap = new Map()) {
+export function processAnalysisData(months, items, selectedOrganisations = []) {
     if (!Array.isArray(items)) {
         console.error('Invalid data format:', items);
         return {
@@ -638,21 +607,8 @@ export function processAnalysisData(months, items, selectedOrganisations = [], p
         const productKey = item.vmp__code;
         const timeSeriesData = denseToTimeSeries(item);
 
-        // Determine target region and ICB for aggregation
-        const orgName = item.organisation__ods_name;
-        let targetRegion = item.organisation__region;
-        let targetICB = item.organisation__icb;
-
-        for (const [successor, predecessors] of predecessorMap.entries()) {
-            if (predecessors.includes(orgName)) {
-                const successorData = items.find(d => d.organisation__ods_name === successor);
-                if (successorData) {
-                    targetRegion = successorData.organisation__region;
-                    targetICB = successorData.organisation__icb;
-                }
-                break;
-            }
-        }
+        const targetRegion = item.organisation__region;
+        const targetICB = item.organisation__icb;
 
         if (targetRegion) {
             aggregateByCategory(results.aggregatedData.regions, targetRegion, productKey, timeSeriesData);
@@ -786,7 +742,7 @@ function getDefaultUnitsForZeroTotals(data) {
     return arr.length ? arr.map(unit => ({ unit, quantity: 0 })) : null;
 }
 
-export function processTableDataByMode(data, mode, period, aggregatedData, latestDate, selectedOrganisations = [], allOrganisations = [], predecessorMap = new Map(), expandedTrusts = new Set(), months = [], regionsHierarchy = []) {
+export function processTableDataByMode(data, mode, period, aggregatedData, latestDate, selectedOrganisations = [], allOrganisations = [], months = [], regionsHierarchy = []) {
     if (!data?.length && !aggregatedData) return [];
 
     const defaultUnits = getDefaultUnitsForZeroTotals(data);
@@ -799,7 +755,7 @@ export function processTableDataByMode(data, mode, period, aggregatedData, lates
     }
 
     if (mode === 'trust') {
-        return processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, predecessorMap, expandedTrusts, months, defaultUnits);
+        return processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, months, defaultUnits);
     }
 
     return processRawDataMode(data, mode, period, latestDate, selectedOrganisations, months);
@@ -810,7 +766,7 @@ function filterItemDataByPeriod(item, period, latestDate, months) {
     return { ...item };
 }
 
-function processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, predecessorMap, expandedTrusts, months = [], defaultUnits = null) {
+function processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, months = [], defaultUnits = null) {
 
     const filteredData = data ? data.map(item => filterItemDataByPeriod(item, period, latestDate, months)) : [];
 
@@ -820,70 +776,29 @@ function processOrganisationModeWithAggregation(data, period, latestDate, select
     const selectedTotals = { total: 0, units: {} };
     const otherTotals = { total: 0, units: {} };
 
-    const predecessorToSuccessor = new Map();
-    for (const [successor, predecessors] of predecessorMap.entries()) {
-        predecessors.forEach(pred => {
-            predecessorToSuccessor.set(pred, successor);
-        });
-    }
-
-    const allPredecessors = new Set(Array.from(predecessorMap.values()).flat());
-
-    const mainOrganisations = allOrganisations.filter(org => !allPredecessors.has(org));
-
-    mainOrganisations.forEach(orgName => {
+    allOrganisations.forEach(orgName => {
         const isSelected = selectedSet.has(orgName);
         const targetGroup = isSelected ? selectedTrusts : otherTrusts;
-        
-        targetGroup[orgName] = { 
-            total: 0, 
-            units: {},
-            predecessors: {}
-        };
-
-        const predecessors = predecessorMap.get(orgName) || [];
-        predecessors.forEach(predName => {
-            targetGroup[orgName].predecessors[predName] = {
-                total: 0,
-                units: {}
-            };
-        });
+        targetGroup[orgName] = { total: 0, units: {} };
     });
 
     filteredData.forEach(item => {
         const orgName = item.organisation__ods_name || 'Unknown Organisation';
-
-        let targetOrgName = orgName;
-        let isPredecessor = false;
-        
-        if (predecessorToSuccessor.has(orgName)) {
-            targetOrgName = predecessorToSuccessor.get(orgName);
-            isPredecessor = true;
-        }
-
-        const isSelected = selectedSet.has(targetOrgName);
+        const isSelected = selectedSet.has(orgName);
         const targetGroup = isSelected ? selectedTrusts : otherTrusts;
         const targetTotals = isSelected ? selectedTotals : otherTotals;
 
-        if (targetGroup[targetOrgName] !== undefined) {
+        if (targetGroup[orgName] !== undefined) {
             item.data?.forEach((value, i) => {
                 if (i >= months.length || !shouldIncludeDate(months[i], period, latestDate)) return;
                 const parsedQuantity = parseFloat(value) || 0;
                 const normalisedUnit = normaliseDDDUnit(item.unit || '');
-                
-                if (isPredecessor) {
-                    targetGroup[targetOrgName].predecessors[orgName].total += parsedQuantity;
-                    if (!targetGroup[targetOrgName].predecessors[orgName].units[normalisedUnit]) {
-                        targetGroup[targetOrgName].predecessors[orgName].units[normalisedUnit] = 0;
-                    }
-                    targetGroup[targetOrgName].predecessors[orgName].units[normalisedUnit] += parsedQuantity;
+
+                targetGroup[orgName].total += parsedQuantity;
+                if (!targetGroup[orgName].units[normalisedUnit]) {
+                    targetGroup[orgName].units[normalisedUnit] = 0;
                 }
-                
-                targetGroup[targetOrgName].total += parsedQuantity;
-                if (!targetGroup[targetOrgName].units[normalisedUnit]) {
-                    targetGroup[targetOrgName].units[normalisedUnit] = 0;
-                }
-                targetGroup[targetOrgName].units[normalisedUnit] += parsedQuantity;
+                targetGroup[orgName].units[normalisedUnit] += parsedQuantity;
 
                 targetTotals.total += parsedQuantity;
                 if (!targetTotals.units[normalisedUnit]) {
@@ -897,11 +812,7 @@ function processOrganisationModeWithAggregation(data, period, latestDate, select
     const results = [];
 
     function countTotalOrgs(trustsGroup) {
-        let count = Object.keys(trustsGroup).length;
-        Object.values(trustsGroup).forEach(trust => {
-            count += Object.keys(trust.predecessors || {}).length;
-        });
-        return count;
+        return Object.keys(trustsGroup).length;
     }
 
     const toUnitsArray = (unitsObj, fallback) => {
@@ -928,48 +839,20 @@ function processOrganisationModeWithAggregation(data, period, latestDate, select
         Object.entries(selectedTrusts)
             .sort(([, a], [, b]) => b.total - a.total)
             .forEach(([trustName, trustData]) => {
-                const hasPredecessors = Object.keys(trustData.predecessors).length > 0;
-                const isExpanded = expandedTrusts.has(trustName);
-                
                 let units = Object.entries(trustData.units);
                 if (units.length === 0 && defaultUnits?.length) {
                     units = defaultUnits.map(({ unit, quantity }) => [unit, quantity]);
                 } else if (units.length === 0) {
                     units = [['--', 0]];
                 }
-                
                 results.push({
                     key: trustName,
                     total: trustData.total,
                     units: units
                         .sort(([, a], [, b]) => b - a)
                         .map(([unit, quantity]) => ({ unit, quantity })),
-                    isIndividual: true,
-                    hasPredecessors,
-                    isExpanded
+                    isIndividual: true
                 });
-
-                if (hasPredecessors && isExpanded) {
-                    Object.entries(trustData.predecessors)
-                        .sort(([, a], [, b]) => b.total - a.total)
-                        .forEach(([predName, predData]) => {
-                            let predUnits = Object.entries(predData.units);
-                            if (predUnits.length === 0 && defaultUnits?.length) {
-                                predUnits = defaultUnits.map(({ unit, quantity }) => [unit, quantity]);
-                            } else if (predUnits.length === 0) {
-                                predUnits = [['--', 0]];
-                            }
-                            
-                            results.push({
-                                key: predName,
-                                total: predData.total,
-                                units: predUnits
-                                    .sort(([, a], [, b]) => b - a)
-                                    .map(([unit, quantity]) => ({ unit, quantity })),
-                                isPredecessor: true
-                            });
-                        });
-                }
             });
     }
 
@@ -989,48 +872,20 @@ function processOrganisationModeWithAggregation(data, period, latestDate, select
         Object.entries(otherTrusts)
             .sort(([, a], [, b]) => b.total - a.total)
             .forEach(([trustName, trustData]) => {
-                const hasPredecessors = Object.keys(trustData.predecessors).length > 0;
-                const isExpanded = expandedTrusts.has(trustName);
-                
                 let units = Object.entries(trustData.units);
                 if (units.length === 0 && defaultUnits?.length) {
                     units = defaultUnits.map(({ unit, quantity }) => [unit, quantity]);
                 } else if (units.length === 0) {
                     units = [['--', 0]];
                 }
-                
                 results.push({
                     key: trustName,
                     total: trustData.total,
                     units: units
                         .sort(([, a], [, b]) => b - a)
                         .map(([unit, quantity]) => ({ unit, quantity })),
-                    isIndividual: true,
-                    hasPredecessors,
-                    isExpanded
+                    isIndividual: true
                 });
-
-                if (hasPredecessors && isExpanded) {
-                    Object.entries(trustData.predecessors)
-                        .sort(([, a], [, b]) => b.total - a.total)
-                        .forEach(([predName, predData]) => {
-                            let predUnits = Object.entries(predData.units);
-                            if (predUnits.length === 0 && defaultUnits?.length) {
-                                predUnits = defaultUnits.map(({ unit, quantity }) => [unit, quantity]);
-                            } else if (predUnits.length === 0) {
-                                predUnits = [['--', 0]];
-                            }
-                            
-                            results.push({
-                                key: predName,
-                                total: predData.total,
-                                units: predUnits
-                                    .sort(([, a], [, b]) => b - a)
-                                    .map(([unit, quantity]) => ({ unit, quantity })),
-                                isPredecessor: true
-                            });
-                        });
-                }
             });
     }
 
@@ -1360,7 +1215,7 @@ export function getTableExplainerText(mode, options = {}) {
     return `This table shows the total quantities of the selected products issued ${periodText}.`;
 }
 
-export function calculatePercentiles(data, predecessorMap = new Map(), allTrusts = [], months = []) {
+export function calculatePercentiles(data, allTrusts = [], months = []) {
     if (!Array.isArray(data) || data.length === 0) {
         return { percentiles: [], trustCount: 0, excludedTrusts: [] };
     }
@@ -1421,32 +1276,18 @@ export function calculatePercentiles(data, predecessorMap = new Map(), allTrusts
     });
 
     if (Array.isArray(allTrusts) && allTrusts.length > 0) {
-        const allPredecessorNames = new Set();
-        if (predecessorMap instanceof Map) {
-            for (const predecessors of predecessorMap.values()) {
-                if (Array.isArray(predecessors)) {
-                    predecessors.forEach(pred => allPredecessorNames.add(pred));
-                }
-            }
-        }
-
         allTrusts.forEach(trustName => {
             if (!seenOrgNames.has(trustName)) {
-                const isPredecessor = allPredecessorNames.has(trustName);
                 excludedTrusts.push({
                     name: trustName,
                     code: 'Unknown',
-                    reason: isPredecessor 
-                        ? 'Predecessor trust (merged into successor)' 
-                        : 'Not in analysis data (no matching products or quantity type)'
+                    reason: 'Not in analysis data (no matching products or quantity type)'
                 });
             }
         });
     }
 
     const includedOrgs = Object.keys(orgTotalUsage);
-    
-    const trustCount = includedOrgs.length;
 
     if (includedOrgs.length === 0) {
         return { 
@@ -1483,37 +1324,8 @@ export function calculatePercentiles(data, predecessorMap = new Map(), allTrusts
         }
     });
 
-
-    if (predecessorMap instanceof Map) {
-        const orgNameToId = {};
-        Object.entries(orgNames).forEach(([orgId, orgName]) => {
-            orgNameToId[orgName] = orgId;
-        });
-
-
-        for (const [successorName, predecessorNames] of predecessorMap.entries()) {
-            const successorId = orgNameToId[successorName];
-            
-            if (successorId && orgMonthlyValues[successorId]) {
-
-                predecessorNames.forEach(predecessorName => {
-                    const predecessorId = orgNameToId[predecessorName];
-                    
-                    if (predecessorId && orgMonthlyValues[predecessorId]) {
-
-                        sortedMonths.forEach(month => {
-                            orgMonthlyValues[successorId][month] += orgMonthlyValues[predecessorId][month];
-                        });
-                        
-                        // Remove predecessor from ranking (but keep in trust count)
-                        delete orgMonthlyValues[predecessorId];
-                    }
-                });
-            }
-        }
-    }
-
     const orgsForRanking = Object.keys(orgMonthlyValues);
+    const trustCount = orgsForRanking.length;
 
     const percentilesData = [];
     

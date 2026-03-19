@@ -1,4 +1,5 @@
 import re
+
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.db.models import Q, OuterRef, Exists
@@ -26,6 +27,11 @@ from ..utils import (
     get_quantity_months,
     get_ddd_unit_map,
 )
+from .measures import (
+    normalise_trust_code,
+    get_bulk_trust_series_for_measures,
+)
+
 
 MAX_PRODUCT_CANDIDATES = 1000
 MAX_INGREDIENT_CANDIDATES = 200
@@ -54,10 +60,6 @@ def _product_searchable_tokens(vmp):
     text = " ".join(p for p in parts if p)
     return list(dict.fromkeys(tokenize(text)))
 
-from .measures import (
-    expand_trust_codes,
-    get_bulk_trust_series_for_measures,
-)
 
 
 @api_view(["GET"])
@@ -657,7 +659,8 @@ def get_quantity_data(request):
             )
             if ods_names:
                 quantity_queryset = quantity_queryset.filter(
-                    organisation__ods_name__in=ods_names
+                    Q(organisation__ods_name__in=ods_names)
+                    | Q(organisation__successor__ods_name__in=ods_names)
                 )
             select_related_fields = [
                 'vmp',
@@ -665,28 +668,51 @@ def get_quantity_data(request):
                 'organisation',
                 'organisation__region',
                 'organisation__icb',
+                'organisation__successor',
             ]
             if quantity_model is not DDDQuantity:
                 select_related_fields.append('quantity_unit')
             quantity_queryset = quantity_queryset.select_related(*select_related_fields)
             quantity_data = list(quantity_queryset)
+
+            grouped = {}
             for item in quantity_data:
-                base_metadata = base_vmp_metadata.get(item.vmp_id)
+                org = item.organisation
+                effective_org = org.successor if org.successor_id else org
+                key = (item.vmp_id, effective_org.id)
+                if key not in grouped:
+                    grouped[key] = {
+                        'item': item,
+                        'effective_org': effective_org,
+                        'data': list(item.data or []),
+                    }
+                else:
+                    existing = grouped[key]['data']
+                    new_data = item.data or []
+                    for i in range(max(len(existing), len(new_data))):
+                        while len(existing) <= i:
+                            existing.append(0)
+                        add_val = float(new_data[i] or 0) if i < len(new_data) else 0
+                        existing[i] = existing[i] + add_val
+
+            for (vmp_id, _), group in grouped.items():
+                item = group['item']
+                effective_org = group['effective_org']
+                base_metadata = base_vmp_metadata.get(vmp_id)
                 ingredient_names = base_metadata['ingredient_names'] if base_metadata else [ing.name for ing in item.vmp.ingredients.all()]
                 ingredient_codes = base_metadata['ingredient_codes'] if base_metadata else [ing.code for ing in item.vmp.ingredients.all()]
-                raw_data = item.data or []
                 response_item = {
                     'vmp__code': base_metadata['vmp__code'] if base_metadata else item.vmp.code,
                     'vmp__name': base_metadata['vmp__name'] if base_metadata else item.vmp.name,
                     'vmp__vtm__name': base_metadata['vmp__vtm__name'] if base_metadata else (item.vmp.vtm.name if item.vmp.vtm else None),
                     'ingredient_names': ingredient_names,
                     'ingredient_codes': ingredient_codes,
-                    'organisation__ods_code': item.organisation.ods_code,
-                    'organisation__ods_name': item.organisation.ods_name,
-                    'organisation__region': item.organisation.region.name if item.organisation.region else None,
-                    'organisation__icb': item.organisation.icb.name if item.organisation.icb else None,
-                    'data': raw_data,
-                    'unit': ddd_unit_map.get(item.vmp_id, "DDD") if quantity_type == "Defined Daily Dose Quantity" else item.unit
+                    'organisation__ods_code': effective_org.ods_code,
+                    'organisation__ods_name': effective_org.ods_name,
+                    'organisation__region': effective_org.region.name if effective_org.region else None,
+                    'organisation__icb': effective_org.icb.name if effective_org.icb else None,
+                    'data': group['data'],
+                    'unit': ddd_unit_map.get(vmp_id, "DDD") if quantity_type == "Defined Daily Dose Quantity" else item.unit,
                 }
                 response_data.append(response_item)
 
@@ -1307,11 +1333,11 @@ def get_measures_chart_data(request):
             .order_by('name')
         )
 
-        trust_codes = expand_trust_codes(trust_code)
-        if not trust_codes:
+        effective_code = normalise_trust_code(trust_code)
+        if not effective_code:
             return JsonResponse({'trust_overlay': {m.slug: {'trustData': []}} for m in measures})
 
-        overlay_by_measure = get_bulk_trust_series_for_measures(measures, trust_codes)
+        overlay_by_measure = get_bulk_trust_series_for_measures(measures, [effective_code])
 
         trust_overlay = {}
         for m in measures:

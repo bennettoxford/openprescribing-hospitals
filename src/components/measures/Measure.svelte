@@ -341,7 +341,6 @@
         if ($selectedMode === 'icb') {
             organisationSearchStore.setOrganisationData({
                 orgs: Object.fromEntries(icbs.map(name => [name, name])),
-                predecessor_map: {},
                 regions_hierarchy: parsedOrgData.regions_hierarchy || []
             });
             organisationSearchStore.setFilterType('icb');
@@ -349,7 +348,6 @@
             organisationSearchStore.setOrganisationData({
                 orgs: Object.fromEntries(trusts.map(name => [parsedOrgData.org_codes?.[name] || name, name])),
                 org_codes: parsedOrgData.org_codes || {},
-                predecessor_map: parsedOrgData.predecessor_map || {},
                 trust_types: parsedOrgData.trust_types || {},
                 org_regions: parsedOrgData.org_regions || {},
                 org_icbs: parsedOrgData.org_icbs || {},
@@ -360,8 +358,7 @@
             organisationSearchStore.setFilterType('trust');
         } else if ($selectedMode === 'region') {
             organisationSearchStore.setOrganisationData({
-                orgs: Object.fromEntries(regions.map(name => [name, name])),
-                predecessor_map: {}
+                orgs: Object.fromEntries(regions.map(name => [name, name]))
             });
             organisationSearchStore.setFilterType('region');
         }
@@ -424,9 +421,8 @@
         const shouldDisablePercentiles = availableTrusts.length < 30;
         
         organisationSearchStore.setOrganisationData({
-            orgs: Object.fromEntries(trusts.map(name => [parsedOrgData.org_codes?.[name] || name, name])),
+            orgs: parsedOrgData.orgs || Object.fromEntries(trusts.map(name => [parsedOrgData.org_codes?.[name] || name, name])),
             org_codes: parsedOrgData.org_codes || {},
-            predecessor_map: parsedOrgData.predecessor_map || {},
             trust_types: parsedOrgData.trust_types || {},
             org_regions: parsedOrgData.org_regions || {},
             org_icbs: parsedOrgData.org_icbs || {},
@@ -561,7 +557,6 @@
             if (currentMode === 'icb') {
                 organisationSearchStore.setOrganisationData({
                     orgs: Object.fromEntries(icbs.map(name => [name, name])),
-                    predecessor_map: {},
                     regions_hierarchy: parsedOrgData.regions_hierarchy || []
                 });
                 organisationSearchStore.setFilterType('icb');
@@ -578,8 +573,7 @@
                 measureChartStore.setData(updatedData);
             } else if (currentMode === 'region') {
                 organisationSearchStore.setOrganisationData({
-                    orgs: Object.fromEntries(regions.map(name => [name, name])),
-                    predecessor_map: {}
+                    orgs: Object.fromEntries(regions.map(name => [name, name]))
                 });
                 organisationSearchStore.setFilterType('region');
                 organisationSearchStore.setAvailableItems(regions);
@@ -597,7 +591,6 @@
                 organisationSearchStore.setOrganisationData({
                     orgs: Object.fromEntries(trusts.map(name => [parsedOrgData.org_codes?.[name] || name, name])),
                     org_codes: parsedOrgData.org_codes || {},
-                    predecessor_map: parsedOrgData.predecessor_map || {},
                     trust_types: parsedOrgData.trust_types || {},
                     org_regions: parsedOrgData.org_regions || {},
                     org_icbs: parsedOrgData.org_icbs || {},
@@ -781,15 +774,13 @@
         if ($selectedMode === 'icb') {
             organisationSearchStore.setOrganisationData({
                 orgs: Object.fromEntries(icbs.map(name => [name, name])),
-                predecessor_map: {},
                 regions_hierarchy: parsedOrgData.regions_hierarchy || []
             });
             organisationSearchStore.setFilterType('icb');
             organisationSearchStore.setAvailableItems(icbs);
         } else if ($selectedMode === 'region') {
             organisationSearchStore.setOrganisationData({
-                orgs: Object.fromEntries(regions.map(name => [name, name])),
-                predecessor_map: {}
+                orgs: Object.fromEntries(regions.map(name => [name, name]))
             });
             organisationSearchStore.setFilterType('region');
             organisationSearchStore.setAvailableItems(regions);
@@ -797,7 +788,6 @@
             organisationSearchStore.setOrganisationData({
                 orgs: Object.fromEntries(trusts.map(name => [parsedOrgData.org_codes?.[name] || name, name])),
                 org_codes: parsedOrgData.org_codes || {},
-                predecessor_map: parsedOrgData.predecessor_map || {},
                 trust_types: parsedOrgData.trust_types || {},
                 org_regions: parsedOrgData.org_regions || {},
                 org_icbs: parsedOrgData.org_icbs || {},

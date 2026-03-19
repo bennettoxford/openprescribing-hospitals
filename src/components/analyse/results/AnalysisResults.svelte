@@ -114,8 +114,6 @@
             null,
             $analyseOptions.selectedOrganisations || [],
             $organisationSearchStore.items || [],
-            $organisationSearchStore.predecessorMap || new Map(),
-            new Set(),
             $resultsStore.analysisMonths || [],
             $organisationSearchStore.regionsHierarchy || []
         );
@@ -183,7 +181,6 @@
             {
                 months,
                 selectedOrganisations: $analyseOptions.selectedOrganisations,
-                predecessorMap: $organisationSearchStore.predecessorMap,
                 showPercentiles: $resultsStore.showPercentiles !== false
             }
         );
@@ -196,7 +193,6 @@
         if ($modeSelectorStore.selectedMode === 'trust' && needsPercentiles && $resultsStore.showPercentiles) {
             const percentilesResult = calculatePercentiles(
                 percentilesData, 
-                $organisationSearchStore.predecessorMap,
                 $organisationSearchStore.items,
                 $resultsStore.analysisMonths || []
             );
@@ -732,7 +728,6 @@
                                             excludedVmps: $resultsStore.excludedVmps || [],
                                             selectedTrusts: $analyseOptions.selectedOrganisations || null,
                                             percentilesData: $resultsStore.percentiles || [],
-                                            predecessorMap: $organisationSearchStore.predecessorMap || new Map(),
                                             allOrganisations: (() => {
                                                 const selectedOrgNames = $analyseOptions.selectedOrganisations;
                                                 const allNames = (selectedOrgNames && selectedOrgNames.length > 0)
@@ -741,20 +736,12 @@
                                                 const orgCodes = $organisationSearchStore.orgCodes || new Map();
                                                 const orgRegions = $organisationSearchStore.orgRegions || new Map();
                                                 const orgIcbs = $organisationSearchStore.orgIcbs || new Map();
-                                                const organisations = $organisationSearchStore.organisations || new Map();
                                                 return allNames.map(name => {
-                                                    const org = organisations.get(name);
-                                                    const predNames = org?.predecessors || [];
-                                                    const succNames = org?.successors || [];
-                                                    const predecessorCodes = predNames.map(n => orgCodes.get?.(n)).filter(Boolean).join(',');
-                                                    const successorCodes = succNames.map(n => orgCodes.get?.(n)).filter(Boolean).join(',');
                                                     return {
                                                         name,
                                                         code: orgCodes.get?.(name) ?? null,
                                                         region: orgRegions.get?.(name) ?? null,
-                                                        icb: orgIcbs.get?.(name) ?? null,
-                                                        predecessors: predecessorCodes,
-                                                        successors: successorCodes
+                                                        icb: orgIcbs.get?.(name) ?? null
                                                     };
                                                 });
                                             })(),

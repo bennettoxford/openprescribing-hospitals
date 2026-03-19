@@ -18,7 +18,6 @@
     import { organisationSearchStore } from '../../stores/organisationSearchStore';
     import {
         getOrgsFromRegionIcbFilter,
-        prepareOrganisationsForSearch,
         updateRegionSelection,
         updateIcbSelection,
     } from '../../utils/regionIcbFilterUtils.js';
@@ -158,12 +157,11 @@
             months = Array.from(allMonths).sort();
             
             if (parsedOrgData.length > 0) {
-                searchableOrgs = prepareOrganisationsForSearch(parsedOrgData);
+                searchableOrgs = parsedOrgData.map((o) => o.name);
                 
                 organisationSearchStore.setOrganisationData({
                     orgs: Object.fromEntries(searchableOrgs.map(name => [name, name])),
                     org_codes: parsedData.org_codes || {},
-                    predecessor_map: parsedData.predecessor_map || buildPredecessorMap(parsedOrgData),
                     trust_types: parsedData.trust_types || {},
                     org_regions: parsedData.org_regions || {},
                     org_icbs: parsedData.org_icbs || {},
@@ -199,18 +197,12 @@
                             selectedRegions.has(org.region) ||
                             selectedICBs.has(org.icb);
                         const passesSearchFilter = !hasSearchFilters ||
-                            $organisationSearchStore.selectedItems.includes(org.name) ||
-                            org.predecessors?.some(pred =>
-                                $organisationSearchStore.selectedItems.includes(pred.name)
-                            );
+                            $organisationSearchStore.selectedItems.includes(org.name);
                         return passesRegionFilter && passesSearchFilter;
                     });
                 } else if (userAuthenticated === 'true') {
                     orgs = orgs.filter(org =>
-                        $organisationSearchStore.selectedItems.includes(org.name) ||
-                        org.predecessors?.some(pred =>
-                            $organisationSearchStore.selectedItems.includes(pred.name)
-                        )
+                        $organisationSearchStore.selectedItems.includes(org.name)
                     );
                 }
 
@@ -247,15 +239,6 @@
         }
     }
 
-    function buildPredecessorMap(orgData) {
-        const predecessorMap = new Map();
-        orgData.forEach(org => {
-            if (org.predecessors && org.predecessors.length > 0) {
-                predecessorMap.set(org.name, org.predecessors.map(p => p.name));
-            }
-        });
-        return predecessorMap;
-    }
 </script>
 
 <div class="flex flex-col w-full">

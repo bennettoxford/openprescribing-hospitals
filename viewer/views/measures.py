@@ -67,20 +67,19 @@ def get_bulk_percentiles_for_measures(measures):
     return grouped_data
 
 
-def expand_trust_codes(trust_code):
+def normalise_trust_code(trust_code):
     """
-    Expand a trust ODS code to include all predecessor codes.
-    Returns a list of ODS codes to query.
+    Normalise a trust ODS code to its effective successor code.
+    Returns the ODS code or None if not found.
     """
     if not trust_code:
-        return []
-
+        return None
     try:
-        org = Organisation.objects.get(ods_code=trust_code)
-        all_codes = [org.ods_code] + org.get_all_predecessor_codes()
-        return all_codes
+        org = Organisation.objects.select_related('successor').get(ods_code=trust_code)
+        effective_org = org.successor if org.successor_id else org
+        return effective_org.ods_code
     except Organisation.DoesNotExist:
-        return []
+        return None
 
 
 def _compute_measure_value_from_rows(measure, rows):
@@ -100,8 +99,8 @@ def get_bulk_trust_series_for_measures(measures, trust_codes=None, per_org=False
     """
     Fetch trust series for measures.
 
-    - trust_codes provided, per_org=False: aggregated series for selected trust(s)
-      (merges predecessors). Returns { measure_id: { month: value } }.
+    - trust_codes provided, per_org=False: aggregated series for selected trust(s). 
+    Returns { measure_id: { month: value } }.
     - trust_codes=None, per_org=True: per-org series for all trusts.
       Returns { measure_id: { org_name: [[date_iso, value], ...] } }.
     """
@@ -247,8 +246,7 @@ def build_measure_org_data(org_measures, shared_org_data, include_region_icb=Fal
         ).values('ods_code', 'ods_name').order_by('ods_name')
 
     flat_data = {}
-    predecessor_map = shared_org_data['predecessor_map']
-    org_codes = shared_org_data['org_codes']
+    shared_org_codes = shared_org_data.get('org_codes', {})
     regions_with_icbs = defaultdict(lambda: {'icbs': set(), 'region_code': None}) if include_region_icb else None
 
     for org in current_orgs:
@@ -267,18 +265,6 @@ def build_measure_org_data(org_measures, shared_org_data, include_region_icb=Fal
                 regions_with_icbs[region]['icbs'].add((icb, icb_code or ''))
         flat_data[org_name] = entry
 
-    for successor, predecessors in predecessor_map.items():
-        if successor in flat_data:
-            pred_entry = {
-                'available': flat_data[successor]['available'],
-                'data': [],
-            }
-            if include_region_icb:
-                pred_entry['region'] = flat_data[successor].get('region')
-                pred_entry['icb'] = flat_data[successor].get('icb')
-            for predecessor in predecessors:
-                flat_data[predecessor] = dict(pred_entry)
-
     for row in org_measures.values(
         'organisation__ods_code', 'organisation__ods_name',
         'month', 'quantity', 'numerator', 'denominator',
@@ -292,25 +278,11 @@ def build_measure_org_data(org_measures, shared_org_data, include_region_icb=Fal
                 'denominator': row['denominator'],
             })
 
-    for successor, predecessors in predecessor_map.items():
-        if successor in flat_data and flat_data[successor]['data']:
-            succ_data = flat_data[successor]['data']
-            for predecessor in predecessors:
-                if predecessor in flat_data:
-                    flat_data[predecessor]['data'] = list(succ_data)
-
     orgs_with_data = {
         name for name, info in flat_data.items()
         if info.get('available') and info.get('data')
     }
-    all_predecessors = set()
-    for preds in predecessor_map.values():
-        all_predecessors.update(preds)
-
-    current_org_names = [
-        name for name in flat_data
-        if name in predecessor_map or name not in all_predecessors
-    ]
+    current_org_names = list(flat_data.keys())
     current_org_names.sort(key=lambda n: n.lower())
 
     processed = set()
@@ -320,20 +292,14 @@ def build_measure_org_data(org_measures, shared_org_data, include_region_icb=Fal
             return None
         processed.add(org_name)
         entry = flat_data[org_name]
-        org_entry = {
+        return {
             'name': org_name,
-            'ods_code': org_codes.get(org_name),
+            'ods_code': shared_org_codes.get(org_name),
             'data': entry.get('data', []),
             'region': entry.get('region'),
             'icb': entry.get('icb'),
             'available': entry.get('available', False),
-            'predecessors': [],
         }
-        for pred in predecessor_map.get(org_name, []):
-            pred_entry = build_org_entry(pred)
-            if pred_entry:
-                org_entry['predecessors'].append(pred_entry)
-        return org_entry
 
     organisations = []
     for org_name in current_org_names:
@@ -342,10 +308,13 @@ def build_measure_org_data(org_measures, shared_org_data, include_region_icb=Fal
             if org_entry:
                 organisations.append(org_entry)
 
+    orgs = {shared_org_codes.get(n, n): n for n in current_org_names}
+    org_codes = {n: shared_org_codes.get(n, n) for n in current_org_names}
+
     result = {
         'organisations': organisations,
+        'orgs': orgs,
         'org_codes': org_codes,
-        'predecessor_map': predecessor_map,
         'available_count': len(orgs_with_data),
     }
     if include_region_icb and regions_with_icbs:
@@ -463,7 +432,10 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
             measure.is_new = _is_measure_new(measure)
 
         if is_authenticated:
-            selected_code = {'trust': selected_trust_code, 'region': selected_region}.get(selected_mode, '')
+            selected_code = {
+                'trust': (normalise_trust_code(selected_trust_code) or ''),
+                'region': selected_region,
+            }.get(selected_mode, '')
             org_data = get_organisation_data()
             region_list = get_region_list()
             context.update({
@@ -684,7 +656,8 @@ class BaseMeasureItemView(TemplateView):
         return context, False
 
     def get_org_data(self, org_measures):
-        total_orgs = Organisation.objects.count()
+        # Exclude predecessors from total (they are merged into successors)
+        total_orgs = Organisation.objects.filter(successor__isnull=True).count()
         shared_org_data = get_organisation_data()
         org_data = build_measure_org_data(org_measures, shared_org_data, include_region_icb=False)
         org_data_for_json = {k: v for k, v in org_data.items() if k != 'available_count'}

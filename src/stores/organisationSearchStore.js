@@ -2,14 +2,13 @@ import { writable, get } from 'svelte/store';
 
 function createOrganisationSearchStore() {
     const { subscribe, set, update } = writable({
-        organisations: new Map(), // name -> { code, available, predecessors, successors }
+        organisations: new Map(), // name -> { code, available }
         selectedItems: [],
         filterType: 'trust',
         selectedRegion: 'all',
         selectedICB: 'all',
         items: [],
         availableItems: new Set(),
-        predecessorMap: new Map(),
         orgCodes: new Map(),
         trustTypes: new Map(),
         orgRegions: new Map(),
@@ -29,7 +28,6 @@ function createOrganisationSearchStore() {
 
                 const orgNames = Object.values(orgData.orgs || {});
                 const orgCodes = orgData.org_codes || {};
-                const predecessorMap = orgData.predecessor_map || orgData.predecessorMap || {};
                 const trustTypesRaw = orgData.trust_types || {};
                 const trustTypes = new Map(Object.entries(trustTypesRaw));
                 const orgRegionsRaw = orgData.org_regions || {};
@@ -45,46 +43,17 @@ function createOrganisationSearchStore() {
                     organisations.set(name, {
                         name: name,
                         code: orgCodes[name] || null,
-                        available: true,
-                        predecessors: predecessorMap[name] || [],
-                        successors: []
+                        available: true
                     });
                 });
-                
-                Object.entries(predecessorMap).forEach(([successor, predecessors]) => {
-                    if (organisations.has(successor)) {
-                        organisations.get(successor).predecessors = predecessors;
-                    }
-                    
-                    predecessors.forEach(pred => {
-                        if (!organisations.has(pred)) {
-                            organisations.set(pred, {
-                                name: pred,
-                                code: orgCodes[pred] || null,
-                                available: true,
-                                predecessors: [],
-                                successors: [successor]
-                            });
-                        } else {
-                            const existing = organisations.get(pred);
-                            if (!existing.successors.includes(successor)) {
-                                existing.successors.push(successor);
-                            }
-                        }
-                    });
-                });
-                
-                const items = Array.from(organisations.keys());
-                const availableItems = new Set(Array.from(organisations.entries())
-                    .filter(([name, org]) => org.available)
-                    .map(([name]) => name));
-                const computedPredecessorMap = new Map();
+
+                const items = Array.from(orgNames);
+                const availableItems = new Set(
+                    items.filter((name) => organisations.get(name)?.available)
+                );
                 const computedOrgCodes = new Map();
                 
                 organisations.forEach((org, name) => {
-                    if (org.predecessors.length > 0) {
-                        computedPredecessorMap.set(name, org.predecessors);
-                    }
                     if (org.code) {
                         computedOrgCodes.set(name, org.code);
                     }
@@ -95,7 +64,6 @@ function createOrganisationSearchStore() {
                     organisations,
                     items,
                     availableItems,
-                    predecessorMap: computedPredecessorMap,
                     orgCodes: computedOrgCodes,
                     trustTypes,
                     orgRegions,
@@ -140,8 +108,7 @@ function createOrganisationSearchStore() {
         
         isAvailable(item) {
             const currentStore = get(this);
-            const org = currentStore.organisations.get(item);
-            return org ? org.available : false;
+            return currentStore.availableItems?.has(item) ?? false;
         },
         
         getOrgCode(orgName) {
@@ -210,20 +177,18 @@ function createOrganisationSearchStore() {
             if (!currentStore.orgCancerAlliances || !caName) return [];
             const result = [];
             currentStore.orgCancerAlliances.forEach((ca, orgName) => {
-                if (ca === caName && currentStore.organisations?.has(orgName)) result.push(orgName);
+                if (ca === caName && currentStore.items?.includes(orgName)) result.push(orgName);
             });
             return result;
         },
 
         getOrgsWithNoCancerAlliance() {
             const currentStore = get(this);
-            if (!currentStore.organisations) return [];
-            const result = [];
-            currentStore.organisations.forEach((_, orgName) => {
+            if (!currentStore.items) return [];
+            return currentStore.items.filter((orgName) => {
                 const ca = currentStore.orgCancerAlliances?.get(orgName);
-                if (!ca || ca === '') result.push(orgName);
+                return !ca || ca === '';
             });
-            return result;
         },
 
         getOrgsByCancerAlliances(selectedCancerAlliances) {
@@ -243,25 +208,17 @@ function createOrganisationSearchStore() {
         getOrgsByRegion(regionName) {
             const currentStore = get(this);
             if (!currentStore.orgRegions || !regionName) return [];
-            const result = [];
-            currentStore.organisations.forEach((org, name) => {
-                if (currentStore.orgRegions.get(name) === regionName) {
-                    result.push(name);
-                }
-            });
-            return result;
+            return (currentStore.items || []).filter(
+                (name) => currentStore.orgRegions.get(name) === regionName
+            );
         },
 
         getOrgsByICB(icbName) {
             const currentStore = get(this);
             if (!currentStore.orgIcbs || !icbName) return [];
-            const result = [];
-            currentStore.organisations.forEach((org, name) => {
-                if (currentStore.orgIcbs.get(name) === icbName) {
-                    result.push(name);
-                }
-            });
-            return result;
+            return (currentStore.items || []).filter(
+                (name) => currentStore.orgIcbs.get(name) === icbName
+            );
         },
 
         getOrgsByRegionsOrICBs(selectedRegions, selectedICBs) {
@@ -293,27 +250,6 @@ function createOrganisationSearchStore() {
             return Array.from(result);
         },
 
-        getRelatedOrgs(orgName) {
-            const store = get(this);
-            const related = new Set([orgName]);
-            const org = store.organisations.get(orgName);
-            
-            if (org) {
-                org.predecessors.forEach(pred => related.add(pred));
-                
-                org.successors.forEach(succ => related.add(succ));
-                
-                org.successors.forEach(succ => {
-                    const succOrg = store.organisations.get(succ);
-                    if (succOrg) {
-                        succOrg.predecessors.forEach(pred => related.add(pred));
-                    }
-                });
-            }
-            
-            return Array.from(related);
-        },
-        
         setRegion: (region) => {
             update(store => ({ ...store, selectedRegion: region, selectedICB: 'all' }));
         },
