@@ -54,7 +54,7 @@
         const unselectable = [];
         
         function countTotal(items) {
-            return items.reduce((count, item) => count + 1 + (item.predecessors?.length || 0), 0);
+            return items.length;
         }
         
         filteredItems.forEach(item => {
@@ -139,29 +139,20 @@
         return matched.length / searchTokens.length;
     }
 
-    $: hierarchicalItems = items.filter(item => {
-        return !Array.from($source.predecessorMap.values()).flat().includes(item);
-    }).map(item => ({
-        name: item,
-        predecessors: $source.predecessorMap.get(item) || []
-    }));
+    $: flatItems = items.map((item) => ({ name: item }));
 
     $: filteredItems = (() => {
-        if (!searchTerm.trim()) return hierarchicalItems;
+        if (!searchTerm.trim()) return flatItems;
 
         const searchTokens = tokenize(searchTerm);
-        if (searchTokens.length === 0) return hierarchicalItems;
+        if (searchTokens.length === 0) return flatItems;
 
-        const itemsWithScore = hierarchicalItems.map(item => {
+        const itemsWithScore = flatItems.map(item => {
             const strippedName = stripTrustSuffix(item.name);
             const parts = [
                 strippedName,
                 getInitials(strippedName),
-                source.getOrgCode?.(item.name),
-                ...(item.predecessors || []).flatMap((p) => {
-                    const strippedP = stripTrustSuffix(p);
-                    return [strippedP, getInitials(strippedP), source.getOrgCode?.(p)];
-                })
+                source.getOrgCode?.(item.name)
             ].filter(Boolean);
             const orgSearchableText = parts.join(' ');
             const orgTokens = [...new Set(tokenize(orgSearchableText))];
@@ -206,13 +197,12 @@
             return;
         }
 
-        const relatedOrgs = source.getRelatedOrgs(item);
         let newSelectedItems;
 
         if (selectedItems.includes(item)) {
-            newSelectedItems = selectedItems.filter(i => !relatedOrgs.includes(i));
+            newSelectedItems = selectedItems.filter((i) => i !== item);
         } else {
-            newSelectedItems = [...new Set([...selectedItems, ...relatedOrgs])];
+            newSelectedItems = [...selectedItems, item];
         }
         
         source.updateSelection(newSelectedItems);
@@ -365,8 +355,8 @@
                         <span class="font-medium">
                             {(() => {
                                 const selectedCount = selectedItems.filter(item => isItemAvailable(item)).length;
-                                const totalAvailable = Array.from($source.availableItems).length;
-                                return `${selectedCount}/${totalAvailable}`;
+                                const totalInDropdown = groupedItems.selectedCount + groupedItems.unselectedCount + groupedItems.unselectableCount;
+                                return `${selectedCount}/${totalInDropdown}`;
                             })()}
                         </span>
                         <span>{counterText}</span>
@@ -421,28 +411,6 @@
                                         </div>
                                         <span class="ml-auto text-sm font-medium">Selected</span>
                                     </div>
-                                    
-                                    {#if item.predecessors.length > 0}
-                                        {#each item.predecessors as predecessor}
-                                            <div 
-                                                role="button"
-                                                tabindex="0"
-                                                class="mt-1 pl-6 transition duration-150 ease-in-out relative text-sm
-                                                      {!isItemAvailable(predecessor) ? 'text-gray-400 cursor-not-allowed' : ''}
-                                                      {isItemSelected(predecessor) ? 'text-oxford-500' : ''}"
-                                                on:click|stopPropagation={() => toggleItem(predecessor)}
-                                                on:keypress|stopPropagation={(e) => e.key === 'Enter' && toggleItem(predecessor)}
-                                            >
-                                                <div class="flex items-center justify-between">
-                                                    <div class="flex items-center">
-                                                        <span class="mr-2">↳</span>
-                                                        <span>{source.getDisplayName(predecessor)}</span>
-                                                        <span class="mx-2 text-xs">(predecessor)</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        {/each}
-                                    {/if}
                                 </div>
                             {/each}
                         {/if}
@@ -487,29 +455,6 @@
                                             <span class="text-xs text-gray-500">Max limit reached</span>
                                         {/if}
                                     </div>
-
-                                    {#if item.predecessors.length > 0}
-                                        {#each item.predecessors as predecessor}
-                                            <div 
-                                                role="button"
-                                                tabindex="0"
-                                                class="mt-1 pl-6 transition duration-150 ease-in-out relative text-sm
-                                                      {!isItemAvailable(predecessor) || limitReached ? 'text-gray-400 cursor-not-allowed' : ''}
-                                                      {isItemSelected(predecessor) ? 'text-oxford-500' : ''}"
-                                                on:click|stopPropagation={() => toggleItem(predecessor)}
-                                                on:keypress|stopPropagation={(e) => e.key === 'Enter' && toggleItem(predecessor)}
-                                                title={limitReached ? `Maximum of ${maxItems} NHS Trusts can be selected` : ''}
-                                            >
-                                                <div class="flex items-center justify-between">
-                                                    <div class="flex items-center">
-                                                        <span class="mr-2">↳</span>
-                                                        <span>{source.getDisplayName(predecessor)}</span>
-                                                        <span class="mx-2 text-xs">(predecessor)</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        {/each}
-                                    {/if}
                                 </div>
                             {/each}
                         {/if}
@@ -543,20 +488,6 @@
                                             <span>{source.getDisplayName(item.name)}</span>
                                         </div>
                                     </div>
-       
-                                    {#if item.predecessors.length > 0}
-                                        {#each item.predecessors as predecessor}
-                                            <div class="mt-1 pl-6 transition duration-150 ease-in-out relative text-sm text-gray-400 cursor-not-allowed">
-                                                <div class="flex items-center justify-between">
-                                                    <div class="flex items-center">
-                                                        <span class="mr-2">↳</span>
-                                                        <span>{source.getDisplayName(predecessor)}</span>
-                                                        <span class="mx-2 text-xs">(predecessor)</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        {/each}
-                                    {/if}
                                 </div>
                             {/each}
                         {/if}

@@ -66,7 +66,7 @@
         const unselectable = [];
         
         function countTotal(items) {
-            return items.reduce((count, item) => count + 1 + (item.predecessors?.length || 0), 0);
+            return items.length;
         }
         
         filteredItems.forEach(item => {
@@ -152,29 +152,20 @@
         return matched.length / searchTokens.length;
     }
 
-    $: hierarchicalItems = items.filter(item => {
-        return !Array.from($source.predecessorMap.values()).flat().includes(item);
-    }).map(item => ({
-        name: item,
-        predecessors: $source.predecessorMap.get(item) || []
-    }));
+    $: flatItems = items.map((item) => ({ name: item }));
 
     $: filteredItems = (() => {
-        if (!searchTerm.trim()) return hierarchicalItems;
+        if (!searchTerm.trim()) return flatItems;
 
         const searchTokens = tokenize(searchTerm);
-        if (searchTokens.length === 0) return hierarchicalItems;
+        if (searchTokens.length === 0) return flatItems;
 
-        const itemsWithScore = hierarchicalItems.map(item => {
+        const itemsWithScore = flatItems.map(item => {
             const strippedName = stripTrustSuffix(item.name);
             const parts = [
                 strippedName,
                 getInitials(strippedName),
-                source.getOrgCode?.(item.name),
-                ...(item.predecessors || []).flatMap((p) => {
-                    const strippedP = stripTrustSuffix(p);
-                    return [strippedP, getInitials(strippedP), source.getOrgCode?.(p)];
-                })
+                source.getOrgCode?.(item.name)
             ].filter(Boolean);
             const orgSearchableText = parts.join(' ');
             const orgTokens = [...new Set(tokenize(orgSearchableText))];
@@ -219,13 +210,12 @@
             return;
         }
 
-        const relatedOrgs = source.getRelatedOrgs(item);
         let newSelectedItems;
 
         if (selectedItems.includes(item)) {
-            newSelectedItems = selectedItems.filter(i => !relatedOrgs.includes(i));
+            newSelectedItems = selectedItems.filter((i) => i !== item);
         } else {
-            newSelectedItems = [...new Set([...selectedItems, ...relatedOrgs])];
+            newSelectedItems = [...selectedItems, item];
         }
         
         source.updateSelection(newSelectedItems);
@@ -425,6 +415,7 @@
     $: hasFilters = showFilters && $source.filterType === 'trust' && (trustTypes.length > 0 || regionsHierarchy.length > 0 || cancerAlliances.length > 0);
     $: selectedAvailableCount = selectedItems.filter((item) => isItemAvailable(item)).length;
     $: totalAvailable = Array.from($source.availableItems || []).length;
+    $: totalForDisplay = groupedItems.selectedCount + groupedItems.unselectedCount + groupedItems.unselectableCount;
     $: allSelected = totalAvailable > 0 && selectedAvailableCount >= totalAvailable;
 </script>
 
@@ -580,7 +571,7 @@
                     </div>
                     <div class="flex items-center justify-center min-w-[3.5rem] sm:min-w-[4.5rem] py-1.5 px-1.5 sm:px-2 border-l border-gray-200 text-center shrink-0 {hasSelection ? 'bg-oxford-50' : 'bg-gray-50'}">
                         <div class="flex flex-col items-center leading-tight min-w-0">
-                            <span class="text-[10px] sm:text-xs font-semibold truncate max-w-full {hasSelection ? 'text-oxford-700' : 'text-gray-600'}">{selectedAvailableCount}/{totalAvailable}</span>
+                            <span class="text-[10px] sm:text-xs font-semibold truncate max-w-full {hasSelection ? 'text-oxford-700' : 'text-gray-600'}">{selectedAvailableCount}/{totalForDisplay}</span>
                             <span class="text-[9px] sm:text-[10px] text-gray-500">{counterText}</span>
                         </div>
                     </div>
@@ -632,13 +623,6 @@
                                         </div>
                                         <span class="shrink-0 font-medium">Selected</span>
                                     </div>
-                                    {#if item.predecessors.length > 0}
-                                        {#each item.predecessors as predecessor}
-                                            <div role="button" tabindex="0" class="mt-1 pl-6 transition duration-150 ease-in-out relative min-w-0 {!isItemAvailable(predecessor) ? 'text-gray-400 cursor-not-allowed' : ''} {isItemSelected(predecessor) ? 'text-oxford-500' : ''}" on:click|stopPropagation={() => toggleItem(predecessor)} on:keypress|stopPropagation={(e) => e.key === 'Enter' && toggleItem(predecessor)}>
-                                                <div class="flex items-start gap-1.5 min-w-0"><span class="shrink-0 mt-0.5">↳</span><div class="min-w-0 flex-1 overflow-hidden flex items-center gap-1.5"><span class="truncate" title={source.getDisplayName(predecessor)}>{source.getDisplayName(predecessor)}</span><span class="text-gray-400 shrink-0">(predecessor)</span></div></div>
-                                            </div>
-                                        {/each}
-                                    {/if}
                                 </div>
                             {/each}
                         {/if}
@@ -680,13 +664,6 @@
                                         </div>
                                         {#if limitReached}<span class="shrink-0 text-gray-500">Max limit reached</span>{/if}
                                     </div>
-                                    {#if item.predecessors.length > 0}
-                                        {#each item.predecessors as predecessor}
-                                            <div role="button" tabindex="0" class="mt-1 pl-6 transition duration-150 ease-in-out relative min-w-0 {!isItemAvailable(predecessor) || limitReached ? 'text-gray-400 cursor-not-allowed' : ''} {isItemSelected(predecessor) ? 'text-oxford-500' : ''}" on:click|stopPropagation={() => toggleItem(predecessor)} on:keypress|stopPropagation={(e) => e.key === 'Enter' && toggleItem(predecessor)} title={limitReached ? `Maximum of ${maxItems} NHS Trusts can be selected` : ''}>
-                                                <div class="flex items-start gap-1.5 min-w-0"><span class="shrink-0 mt-0.5">↳</span><div class="min-w-0 flex-1 overflow-hidden flex items-center gap-1.5"><span class="truncate" title={source.getDisplayName(predecessor)}>{source.getDisplayName(predecessor)}</span><span class="text-gray-400 shrink-0">(predecessor)</span></div></div>
-                                            </div>
-                                        {/each}
-                                    {/if}
                                 </div>
                             {/each}
                         {/if}
@@ -715,13 +692,6 @@
                             {#each groupedItems.unselectable as item}
                                 <div class="p-2 transition duration-150 ease-in-out relative text-gray-400 cursor-not-allowed min-w-0">
                                     <div class="min-w-0"><div class="truncate" title={source.getDisplayName(item.name)}>{source.getDisplayName(item.name)}</div></div>
-                                    {#if item.predecessors.length > 0}
-                                        {#each item.predecessors as predecessor}
-                                            <div class="mt-1 pl-6 transition duration-150 ease-in-out relative text-gray-400 cursor-not-allowed min-w-0">
-                                                <div class="flex items-start gap-1.5 min-w-0"><span class="shrink-0 mt-0.5">↳</span><div class="min-w-0 flex-1 overflow-hidden flex items-center gap-1.5"><span class="truncate" title={source.getDisplayName(predecessor)}>{source.getDisplayName(predecessor)}</span><span class="text-xs text-gray-400 shrink-0">(predecessor)</span></div></div>
-                                            </div>
-                                        {/each}
-                                    {/if}
                                 </div>
                             {/each}
                         {/if}
