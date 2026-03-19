@@ -147,6 +147,20 @@ function createOrganisationSearchStore() {
             return result;
         },
 
+        /** Returns orgs by trust type from the full items set */
+        getOrgsByTrustTypeGlobal(trustType) {
+            const currentStore = get(this);
+            if (!currentStore.trustTypes || !trustType) return [];
+            const itemsSet = new Set(currentStore.items || []);
+            const result = [];
+            currentStore.trustTypes.forEach((type, orgName) => {
+                if (type === trustType && itemsSet.has(orgName)) {
+                    result.push(orgName);
+                }
+            });
+            return result;
+        },
+
         getRegionsHierarchy() {
             const currentStore = get(this);
             return currentStore.regionsHierarchy || [];

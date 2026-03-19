@@ -57,7 +57,7 @@ The trust type for each trust submitting data to the SCMD is taken from the [Est
 * Community
 * Ambulance
 
-You can see the trust type for each NHS Trust on the [Submission History page](https://hospitals.openprescribing.net/submission-history/), where it is shown above each organisation's chart when available.
+You can filter NHS Trusts by trust type when searching on the [Submission History page](https://hospitals.openprescribing.net/submission-history/).
 
 ### Where do Cancer Alliance boundaries come from?
 
