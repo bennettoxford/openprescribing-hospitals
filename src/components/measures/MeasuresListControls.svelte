@@ -426,7 +426,19 @@
 
             {#if archivedCount > 0}
             <div class="w-full lg:w-fit lg:min-w-[160px]">
-                <label for="archived-select" class="block text-sm font-medium text-gray-700 mb-1">Show archived</label>
+                <span class="flex items-center gap-1 mb-1">
+                    <label for="archived-select" class="text-sm font-medium text-gray-700">Archived</label>
+                    <div class="relative inline-block group">
+                        <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
+                            <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div class="absolute z-10 scale-0 transition-all duration-100 origin-top-left lg:origin-top transform group-hover:scale-100 w-[250px] left-0 lg:-translate-x-1/2 lg:left-1/2 top-5 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 p-4">
+                            <p class="text-sm text-gray-500">Archived measures are no longer recommended for use. Find out more <a href="/faq/#what-are-archived-measures" class="underline font-semibold" target="_blank">in the FAQs</a>.</p>
+                        </div>
+                    </div>
+                </span>
                 <select
                     id="archived-select"
                     class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-oxford-500 h-[38px]"

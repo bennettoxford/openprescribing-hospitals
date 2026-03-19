@@ -55,6 +55,12 @@ To hide annotations on a measure chart:
 
 To show annotations again, repeat the same steps and select **"Show annotations"**.
 
+### What are archived measures?
+
+Archived measures are measures that are no longer recommended for use due to changes in the guidance, evidence or national priorities underpinning them. Each archived measure includes a description of why it was archived.
+
+Archived measures are hidden by default, but can be viewing using the **Archived** dropdown in the measures list.
+
 ### Can I see patterns in a single measure for each trust individually?
 
 From the measures list, when you have **NHS Trust** selected in **View by**, each measure card shows a **View measure for all trusts** link. This opens a page that shows the pattern for each trust against percentiles calculated across all other trusts included in that measure.
