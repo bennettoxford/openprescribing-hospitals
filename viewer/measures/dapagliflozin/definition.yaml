@@ -1,5 +1,6 @@
 name: Proportion of sodium-glucose co-transporter 2 (SGLT-2) inhibitors not prescribed as dapagliflozin tablets
 short_name: SGLT-2 inhibitors
+short_description: The proportion of sodium-glucose co-transporter 2 (SGLT-2) inhibitors (excluding combination products) not prescribed as dapagliflozin tablets.
 description: |
   The proportion of sodium-glucose co-transporter 2 (SGLT-2) inhibitors (excluding combination products) not prescribed as dapagliflozin 
   tablets. Combination products are excluded as they do not have specified [Defined Daily Doses (DDDs)](/faq/#what-is-a-defined-daily-dose-ddd)
