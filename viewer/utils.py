@@ -101,11 +101,20 @@ def get_organisation_data():
         if org.get('cancer_alliance__name'):
             org_cancer_alliances[name] = org['cancer_alliance__name']
 
+    # ICBs that have at least one successor
+    icb_ids_with_successor_orgs = set(
+        Organisation.objects.filter(
+            successor__isnull=True,
+            icb__isnull=False,
+        ).values_list('icb_id', flat=True).distinct()
+    )
+
     regions_hierarchy = []
     for region in Region.objects.prefetch_related('icbs').order_by('name'):
         icbs = [
             {'name': icb.name, 'code': icb.code}
             for icb in region.icbs.all().order_by('name')
+            if icb.id in icb_ids_with_successor_orgs
         ]
         regions_hierarchy.append({
             'region': region.name,

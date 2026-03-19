@@ -3,8 +3,7 @@
     shadow: 'none',
     props: {
         orgdata: { type: 'String' },
-        latestDates: { type: 'String' },
-        regions: { type: 'String' }
+        latestDates: { type: 'String' }
     }
   }} />
 
@@ -13,16 +12,13 @@
     import LazyLoad from '../common/LazyLoad.svelte';
     import OrganisationSearchFiltered from '../common/OrganisationSearchFiltered.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore';
-    import { prepareOrganisationsForSearch } from '../../utils/regionIcbFilterUtils.js';
     import OrgSubmissionChart from './OrgSubmissionChart.svelte';
 
     export let orgData = '{}';
     export let latestDates = '{}';
-    export let regions = '[]';
 
     let parsedOrgData = [];
     let parsedLatestDates = {};
-    let parsedRegions = [];
     let months = [];
     let error = null;
     let sortType = 'missing_latest';
@@ -85,7 +81,6 @@
 
             parsedOrgData = parsedData.organisations;
             parsedLatestDates = JSON.parse(unescapeUnicode(latestDates));
-            parsedRegions = JSON.parse(unescapeUnicode(regions));
             
             const allMonths = new Set();
             function collectMonths(org) {
