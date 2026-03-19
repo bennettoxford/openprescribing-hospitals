@@ -504,6 +504,11 @@ class Measure(models.Model):
     short_name = models.CharField(max_length=255, null=True)
     slug = models.SlugField(unique=True)
     description = models.TextField(null=True)
+    short_description = models.TextField(
+        null=True,
+        blank=True,
+        help_text="Optional brief description for list view; falls back to description if absent",
+    )
     why_it_matters = models.TextField()
     how_is_it_calculated = models.TextField(null=True)
     tags = models.ManyToManyField(MeasureTag, related_name="measures")

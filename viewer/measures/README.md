@@ -14,6 +14,7 @@ Each measure requires a `definition.yaml` file with the following structure:
 name: full name # Full name of the measure/indicator
 short_name: short name # Abbreviated name or acronym
 description: Description # Brief 1-2 sentence description of what this measure identifies
+short_description: Brief summary # Optional; used in list view when present, otherwise description is used
 why_it_matters: |
     Why it matters
 how_is_it_calculated: >

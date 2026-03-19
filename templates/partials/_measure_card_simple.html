@@ -21,7 +21,7 @@
                 {% endif %}
             </div>
             <div class="p-4 text-gray-600 flex-grow">
-                <div class="prose prose-sm max-w-none line-clamp-3">{{ measure.description|safe }}</div>
+                <div class="prose prose-sm max-w-none line-clamp-3">{{ measure.short_description|default:measure.description|safe }}</div>
             </div>
             {% if measure.tags.all %}
             <div class="px-6 pb-4">

@@ -380,7 +380,7 @@ def _serialize_measures(measures, detail_url_name, prefetched):
         serialized.append({
             'slug': measure.slug,
             'short_name': (measure.short_name or measure.name) or '',
-            'description': (measure.description or ''),
+            'description': (measure.short_description or measure.description or ''),
             'lower_is_better': measure.lower_is_better,
             'tags': [
                 {'name': t.name, 'slug': slugify(t.name), 'colour': t.colour or '#6b7280', 'description': t.description or ''}
