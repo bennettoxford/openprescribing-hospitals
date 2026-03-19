@@ -8,7 +8,8 @@
         selectedCode: { type: 'String', reflect: true },
         selectedSort: { type: 'String', reflect: true },
         tagsData: { type: 'String', reflect: true },
-        selectedTags: { type: 'String', reflect: true }
+        selectedTags: { type: 'String', reflect: true },
+        archivedCount: { type: 'Number', reflect: true }
     },
     shadow: 'none'
 }} />
@@ -21,7 +22,7 @@
     import { modeSelectorStore } from '../../stores/modeSelectorStore.js';
     import {
         mode, selectedCode as selectedCodeStore, sort, selectedTags as selectedTagsStore,
-        setMode, setSelectedCode, setSort, setSelectedTags,
+        showArchived, setMode, setSelectedCode, setSort, setSelectedTags, setShowArchived,
         setChartData, setLoadingCharts
     } from '../../stores/measuresListStore.js';
     import { regionColors } from '../../utils/chartConfig.js';
@@ -36,6 +37,7 @@
     export let selectedSort = 'name';
     export let tagsData = '[]';
     export let selectedTags = '';
+    export let archivedCount = 0;
 
     let parsedOrgData = {};
     let parsedRegionData = [];
@@ -79,7 +81,8 @@
         if ($mode === 'region' && $selectedCodeStore) params.region = $selectedCodeStore;
         if ($sort) params.sort = $sort;
         if ($selectedTagsStore.length > 0) params.tags = formatArrayParam($selectedTagsStore);
-        setUrlParams(params, ['mode', 'trust', 'region', 'sort', 'tags']);
+        if ($showArchived !== 'off') params.show_archived = $showArchived;
+        setUrlParams(params, ['mode', 'trust', 'region', 'sort', 'tags', 'show_archived']);
     }
 
     function handleSortChange(event) {
@@ -297,6 +300,7 @@
             const urlRegion = params.get('region') || '';
             const urlSort = params.get('sort') || selectedSort || 'name';
             const urlTags = (params.get('tags') || selectedTags || '').split(',').map(s => s.trim()).filter(Boolean);
+            const urlShowArchived = params.get('show_archived') || 'off';
 
             const rawMode = urlMode || selectedMode || 'trust';
             const initialMode = ['national', 'region', 'trust'].includes(rawMode) ? rawMode : 'trust';
@@ -311,6 +315,7 @@
             setSelectedCode(initialCode);
             setSort(urlSort);
             setSelectedTags(urlTags);
+            setShowArchived(urlShowArchived);
 
             modeSelectorStore.setSelectedMode(initialMode);
             updateOrganisationStore(initialMode);
@@ -344,8 +349,8 @@
 </script>
 
 <div class="flex flex-col gap-4">
-    <div class="measures-list-controls-right flex flex-col sm:flex-row sm:flex-wrap sm:items-end sm:justify-start gap-4 rounded-lg border border-gray-200 bg-white p-4">
-            <div class="w-full sm:w-fit sm:min-w-[130px]">
+    <div class="measures-list-controls-right flex flex-col lg:flex-row lg:flex-wrap lg:items-end lg:justify-start gap-4 rounded-lg border border-gray-200 bg-white p-4">
+            <div class="w-full lg:w-fit lg:min-w-[130px]">
                 <ModeSelector
                     options={modeOptions}
                     initialMode={$mode}
@@ -355,7 +360,7 @@
                 />
             </div>
 
-            <div class="w-full sm:w-fit sm:min-w-[130px]">
+            <div class="w-full lg:w-fit lg:min-w-[130px]">
                 <label for="sort-select" class="block text-sm font-medium text-gray-700 mb-1">Sort</label>
                 <select
                     id="sort-select"
@@ -371,7 +376,7 @@
             </div>
 
             {#if parsedTags.length > 0}
-            <div class="relative w-full sm:w-fit sm:min-w-0" bind:this={tagDropdownEl}>
+            <div class="relative w-full lg:w-fit lg:min-w-0" bind:this={tagDropdownEl}>
                 <span class="block text-sm font-medium text-gray-700 mb-1">Filter by tag</span>
                 <button
                     type="button"
@@ -419,7 +424,23 @@
             </div>
             {/if}
 
-            <div class="w-full flex justify-end order-first sm:order-none sm:w-auto sm:ml-auto -mb-2 sm:mb-0">
+            {#if archivedCount > 0}
+            <div class="w-full lg:w-fit lg:min-w-[160px]">
+                <label for="archived-select" class="block text-sm font-medium text-gray-700 mb-1">Show archived</label>
+                <select
+                    id="archived-select"
+                    class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-oxford-500 h-[38px]"
+                    value={$showArchived}
+                    on:change={(e) => { setShowArchived(e.target.value); syncUrl(); }}
+                >
+                    <option value="off">Hide archived</option>
+                    <option value="include">Show archived</option>
+                    <option value="only">Show archived only</option>
+                </select>
+            </div>
+            {/if}
+
+            <div class="w-full flex justify-end order-first lg:order-none lg:w-auto lg:ml-auto -mb-2 lg:mb-0">
                 <button
                     on:click={handleShare}
                     class="measures-list-share-btn flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-oxford-600 bg-white border border-oxford-200 rounded-md hover:bg-oxford-50 hover:border-oxford-300 transition-colors duration-200 h-[38px]"

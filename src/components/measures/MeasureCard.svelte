@@ -3,12 +3,12 @@
   import { mode, selectedCode, chartData, detailLinkQuery } from '../../stores/measuresListStore.js';
 
   export let measure;
-  export let section = 'published';
   export let cardHeaderClass = 'py-2 px-4 border-b border-gray-100';
   export let statusBadge = '';
   export let statusBadgeClass = '';
   export let linkClasses = 'bg-oxford-50 text-oxford-600 hover:bg-oxford-100';
   export let linkText = 'View measure details';
+  export let cardClass = '';
   export let isAuthenticated = false;
   export let trustSelected = false;
 
@@ -30,7 +30,7 @@
 
 <div class="flex flex-col h-full measure-card" data-measure-slug={measure.slug} data-tag-slugs={measure.tag_slugs}>
   <div class="relative h-full">
-    <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col h-full border border-gray-100">
+    <div class="rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col h-full border border-gray-100 {cardClass || 'bg-white'}">
       {#if measure.is_new}
         <div class="absolute -top-3 -right-3 z-10">
           <span class="inline-flex items-center justify-center text-4xl" aria-label="New measure">🆕</span>
@@ -38,7 +38,7 @@
       {/if}
       <div class="{cardHeaderClass} flex items-center rounded-t-xl relative h-[5rem]">
         {#if statusBadge}
-          <div class="absolute top-0 left-0 right-0 flex items-center justify-center py-1 text-xs font-medium {statusBadgeClass}">
+          <div class="absolute top-0 left-0 right-0 flex items-center justify-center py-1 text-xs font-medium rounded-t-xl {statusBadgeClass}">
             {statusBadge}
           </div>
           <h3 class="text-xl font-semibold text-gray-900 line-clamp-2 leading-tight w-full mt-6">
