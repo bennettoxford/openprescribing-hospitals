@@ -1,14 +1,14 @@
-name: Proportion of sodium-glucose co-transporter 2 (SGLT-2) inhibitors not prescribed as dapagliflozin tablets
+name: Proportion of sodium-glucose co-transporter 2 (SGLT-2) inhibitors not issued as dapagliflozin tablets
 short_name: SGLT-2 inhibitors
-short_description: The proportion of sodium-glucose co-transporter 2 (SGLT-2) inhibitors (excluding combination products) not prescribed as dapagliflozin tablets.
+short_description: The proportion of sodium-glucose co-transporter 2 (SGLT-2) inhibitors (excluding combination products) not issued as dapagliflozin tablets.
 description: |
-  The proportion of sodium-glucose co-transporter 2 (SGLT-2) inhibitors (excluding combination products) not prescribed as dapagliflozin 
+  The proportion of sodium-glucose co-transporter 2 (SGLT-2) inhibitors (excluding combination products) not issued as dapagliflozin 
   tablets. Combination products are excluded as they do not have specified [Defined Daily Doses (DDDs)](/faq/#what-is-a-defined-daily-dose-ddd)
   and the quantity of SGLT-2 inhibitors issued as combinations is low.
 
   There is a similar measure on [OpenPrescribing](https://openprescribing.net/measure/dapagliflozin/) for primary care, which reports the use of generic dapagliflozin. In OpenPrescribing Hospitals, [branded and generic products cannot be distinguished](https://www.bennett.ox.ac.uk/blog/2025/07/you-asked-can-we-monitor-the-usage-of-biosimilars-in-secondary-care-using-openprescribing-hospitals/). For this reason, we report dapagliflozin use as a proportion of all SGLT-2 inhibitor use.    
 why_it_matters: |
-    Dapagliflozin is a sodium-glucose co-transporter 2 (SGLT-2) inhibitor commonly prescribed in type 2 diabetes, the 
+    Dapagliflozin is a sodium-glucose co-transporter 2 (SGLT-2) inhibitor commonly issued in type 2 diabetes, the 
     treatment of chronic heart failure, and chronic kidney disease.
 
     Dapagliflozin lost its patent in August 2025. From September 2025 the NHS tariff price is likely to fall, as it will
@@ -21,7 +21,7 @@ why_it_matters: |
     and later for [chronic kidney disease in July 2025](https://www.nice.org.uk/guidance/ta1075). 
     Empagliflozin was also [licensed for the treatment of chronic heart failure with reduced ejection fraction](https://www.nice.org.uk/guidance/ta773) in March 2022 and for 
     [chronic kidney disease in December 2023](https://www.nice.org.uk/guidance/ta942).
-    Increasing use of dapagliflozin (and therefore reduction in the proportion of SGLT-2 inhibitors not prescribed as dapagliflozin) is the likely reason for the pattern seen in this measure prior
+    Increasing use of dapagliflozin (and therefore reduction in the proportion of SGLT-2 inhibitors not issued as dapagliflozin) is the likely reason for the pattern seen in this measure prior
     to September 2025.
 how_is_it_calculated: >
     We identify all SGLT-2 inhibitor products using Virtual Therapeutic Moieties (VTM) codes. The quantity of each product issued as DDDs is calculated. We then divide the
