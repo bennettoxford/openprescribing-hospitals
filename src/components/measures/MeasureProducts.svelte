@@ -55,6 +55,9 @@
     $: numeratorCount = parsedNumeratorItems.length;
     $: denominatorCount = parsedItems.length + parsedNumeratorItems.length;
     $: hasDenominators = parsedItems.length > 0;
+    $: noDddCount = sortedItems.filter(
+        (item) => item.unit === 'No DDD' || item.unit === 'DDD'
+    ).length;
 
 </script>
 
@@ -67,8 +70,11 @@
         {#if hasDenominators}
             <p class="text-sm text-gray-600 mb-2">
                 <span class="block mt-1">
-                    There are <span class="font-semibold">{denominatorCount} products</span> included in the denominator for this measure, 
+                    There are <span class="font-semibold">{denominatorCount} products</span> included in the denominator for this measure,
                     of which <span class="font-semibold">{numeratorCount}</span> are included in the numerator.
+                    {#if noDddCount > 0}
+                        There {noDddCount === 1 ? 'is' : 'are'} <span class="font-semibold">{noDddCount}</span> {noDddCount === 1 ? 'product' : 'products'} with no DDD available, for which the data is excluded from this measure.
+                    {/if}
                 </span>
             </p>
             
@@ -94,6 +100,9 @@
             <p class="text-sm text-gray-600 mb-4">
                 <span class="block mt-1">
                     There are <span class="font-semibold">{numeratorCount} products</span> included in this measure.
+                    {#if noDddCount > 0}
+                        There {noDddCount === 1 ? 'is' : 'are'} <span class="font-semibold">{noDddCount}</span> {noDddCount === 1 ? 'product' : 'products'} with no DDD available.
+                    {/if}
                 </span>
             </p>
         {/if}

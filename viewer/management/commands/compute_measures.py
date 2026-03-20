@@ -117,7 +117,7 @@ class Command(BaseCommand):
             if measure.quantity_type == 'indicative_cost':
                 unit = 'Indicative cost (£)'
             elif measure.quantity_type == 'ddd':
-                unit = ddd_unit_map.get(measurevmp.vmp_id, 'DDD')
+                unit = ddd_unit_map.get(measurevmp.vmp_id, 'No DDD')
             else:
                 unit = vmp_records.values_list('quantity_unit__unit', flat=True).first()
             if unit:
