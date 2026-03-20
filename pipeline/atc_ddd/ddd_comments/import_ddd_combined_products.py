@@ -91,7 +91,7 @@ DOSAGE_FORM_MAPPING = {
     },
     'mixt': {
         'form': '*',
-        'route': '*',
+        'route': 'oral',
     },
     'granules, single dose sachets': {
         'form': 'granules',
