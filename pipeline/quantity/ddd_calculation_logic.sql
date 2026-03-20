@@ -48,7 +48,7 @@ vmp_enriched AS (
         route_map.who_route AS who_route_code
       )
     ) AS routes,
-    ARRAY_AGG(DISTINCT route_map.who_route IGNORE NULLS) AS who_route_codes,
+    ANY_VALUE(vmp.who_route_codes_for_ddd) AS who_route_codes_for_ddd,
     ARRAY_AGG(
       STRUCT(
         ddd.ddd,
@@ -101,21 +101,21 @@ ddd_analysis AS (
     v.scmd_basis_uom_name,
     v.atcs,
     v.who_ddds,
-    v.who_route_codes,
+    v.who_route_codes_for_ddd,
     v.routes,
     v.ingredients_info,
     -- Check if any ATC codes
     (SELECT COUNT(1) FROM UNNEST(v.atcs) WHERE atc_code IS NOT NULL) > 0 AS has_atc_codes,
     -- Check if any WHO DDDs with non-NULL values
     (SELECT COUNT(1) FROM UNNEST(v.who_ddds) WHERE ddd IS NOT NULL) > 0 AS has_ddds,
-    -- Check if any mapped WHO routes
-    (SELECT COUNT(1) FROM UNNEST(v.routes) WHERE who_route_code IS NOT NULL) > 0 AS has_who_routes,
-    -- Find DDDs that match the WHO route codes
+    -- Check if any WHO routes for DDD
+    ARRAY_LENGTH(COALESCE(v.who_route_codes_for_ddd, [])) > 0 AS has_who_routes,
+    -- Find DDDs that match the WHO route codes used for DDD
     ARRAY(
       SELECT AS STRUCT ddd.*
       FROM UNNEST(v.who_ddds) AS ddd
       WHERE ddd.ddd IS NOT NULL 
-        AND ddd.ddd_route_code IN (SELECT code FROM UNNEST(v.who_route_codes) AS code)
+        AND ddd.ddd_route_code IN (SELECT code FROM UNNEST(COALESCE(v.who_route_codes_for_ddd, [])) AS code)
     ) AS matching_route_ddds,
     -- Check if all matching DDDs have the same value
     (
@@ -124,7 +124,7 @@ ddd_analysis AS (
         SELECT AS STRUCT ddd.*
         FROM UNNEST(v.who_ddds) AS ddd
         WHERE ddd.ddd IS NOT NULL
-          AND ddd.ddd_route_code IN (SELECT code FROM UNNEST(v.who_route_codes) AS code)
+          AND ddd.ddd_route_code IN (SELECT code FROM UNNEST(COALESCE(v.who_route_codes_for_ddd, [])) AS code)
       )) AS ddd
     ) = 1 AS all_matching_ddds_same
   FROM vmp_enriched v
@@ -321,6 +321,7 @@ SELECT
   v.scmd_basis_uom_name,
   v.atcs,
   v.routes,
+  COALESCE(v.who_route_codes_for_ddd, []) AS who_route_codes_for_ddd,
   v.who_ddds,
   v.ingredients_info,
   dcs.selected_ddd_comment,

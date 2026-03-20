@@ -70,15 +70,11 @@ expressed_as_with_basis AS (
   WHERE eawd.expressed_ingredient_in_vmp = TRUE
 ),
 
--- Get WHO route codes for matching
+-- WHO route codes for DDD
 route_analysis AS (
   SELECT
     eawb.*,
-    ARRAY(
-      SELECT DISTINCT route.who_route_code
-      FROM UNNEST(eawb.routes) AS route
-      WHERE route.who_route_code IS NOT NULL
-    ) AS who_route_codes
+    COALESCE(eawb.who_route_codes_for_ddd, []) AS who_route_codes
   FROM expressed_as_with_basis eawb
 ),
 

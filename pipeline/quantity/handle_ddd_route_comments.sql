@@ -117,6 +117,7 @@ SELECT
   cr.scmd_basis_uom_name,
   cr.atcs,
   cr.routes,
+  cr.who_route_codes_for_ddd,
   cr.who_ddds,
   cr.ingredients_info,
   -- Erythromycin suspension.oral: append rationale for using standard DDD
