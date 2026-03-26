@@ -27,6 +27,36 @@ from viewer.models import (
     OrgSubmissionCache
 )
 
+ULTIMATE_SUCCESSOR_OVERRIDES: Dict[str, str] = {
+    "RW6": "RM3", # Pennine Acute Hospitals NHS Trust -> Northern Care Alliance NHS Foundation Trust
+}
+
+def resolve_ultimate_successors(
+    ultimate_successors: Dict[str, List[str]],
+    overrides: Dict[str, str],
+) -> Dict[str, str]:
+    """
+    For each org with ultimate successors, resolve to a single code.
+    """
+    out = {}
+    for org_code, ultimate_successors in ultimate_successors.items():
+        if not ultimate_successors:
+            continue
+        if len(ultimate_successors) == 1:
+            out[org_code] = ultimate_successors[0]
+            continue
+        if org_code not in overrides:
+            raise ValueError(
+                f"Organisation {org_code} has multiple ultimate successors"
+            )
+        chosen = overrides[org_code]
+        if chosen not in ultimate_successors:
+            raise ValueError(
+                f"{org_code} override {chosen} not in ultimate successors"
+            )
+        out[org_code] = chosen
+    return out
+
 
 @task()
 def extract_organisations() -> List[Dict]:
@@ -73,10 +103,10 @@ def transform_organisations(data: List[Dict]) -> List[Dict]:
     logger = get_run_logger()
     logger.info("Transforming organisation data")
 
-    successor_map = {}
-    for row in data:
-        if row.get("ultimate_successors") and len(row["ultimate_successors"]) > 0:
-            successor_map[row["ods_code"]] = row["ultimate_successors"][-1]
+    ultimate_by_org = {
+        row["ods_code"]: list(row.get("ultimate_successors") or []) for row in data
+    }
+    successor_map = resolve_ultimate_successors(ultimate_by_org, ULTIMATE_SUCCESSOR_OVERRIDES)
 
     transformed_data = []
     for row in data:
