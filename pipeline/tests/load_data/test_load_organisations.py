@@ -2,6 +2,7 @@ import pytest
 
 from unittest.mock import patch
 from pipeline.load_data.load_organisations import (
+    resolve_ultimate_successors,
     extract_organisations,
     transform_organisations,
     create_trust_types,
@@ -202,3 +203,31 @@ class TestLoadOrganisations:
         )  # ABC123's successor should be DEF456
         assert orgs_list[1].successor is None  # DEF456 should have no successor
         assert orgs_list[2].successor is None  # GHI789 should have no successor
+
+
+class TestResolveUltimateSuccessors:
+    def test_multiple_ultimate_without_override(self):
+        with pytest.raises(ValueError, match="multiple ultimate successors"):
+            resolve_ultimate_successors({"TR1": ["A", "B"]}, overrides={})
+
+    def test_multiple_ultimate_with_valid_override(self):
+        out = resolve_ultimate_successors(
+            {"TR1": ["A", "B"]},
+            overrides={"TR1": "B"},
+        )
+        assert out == {"TR1": "B"}
+
+    def test_override_wrong_choice_not_in_resolved_fails(self):
+        with pytest.raises(ValueError, match="not in ultimate successors"):
+            resolve_ultimate_successors(
+                {"TR1": ["A", "B"]},
+                overrides={"TR1": "Z"},
+            )
+
+    def test_single_ultimate_unchanged_without_override(self):
+        out = resolve_ultimate_successors(
+            {"TR1": ["A"]},
+            overrides={},
+        )
+        assert out == {"TR1": "A"}
+
