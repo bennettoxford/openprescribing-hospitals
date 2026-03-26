@@ -4,6 +4,13 @@ from google.cloud import bigquery
 from prefect import flow, get_run_logger
 
 from pipeline.setup.bq_tables import VMP_MANUAL_WHO_ROUTE_TABLE_SPEC
+from pipeline.setup.config import (
+    ADM_ROUTE_MAPPING_TABLE_ID,
+    DATASET_ID,
+    DMD_TABLE_ID,
+    PROJECT_ID,
+    SCMD_PROCESSED_TABLE_ID,
+)
 from pipeline.utils.utils import get_bigquery_client
 
 # Curated WHO route for DDD when dm+d maps a VMP to multiple WHO administration routes.
@@ -70,6 +77,66 @@ VMP_MANUAL_WHO_ROUTE_MAPPINGS = [
 ]
 
 
+def _validate_vmps_in_scmd(client, logger):
+    """Check every manual entry's vmp_code appears in the SCMD processed data."""
+    query = f"""
+    SELECT m.vmp_code, m.vmp_name
+    FROM `{PROJECT_ID}.{DATASET_ID}.{VMP_MANUAL_WHO_ROUTE_TABLE_SPEC.table_id}` m
+    LEFT JOIN (
+      SELECT DISTINCT vmp_code
+      FROM `{PROJECT_ID}.{DATASET_ID}.{SCMD_PROCESSED_TABLE_ID}`
+    ) scmd
+      ON m.vmp_code = scmd.vmp_code
+    WHERE scmd.vmp_code IS NULL
+    """
+    rows = list(client.query(query).result())
+    if rows:
+        details = "\n".join(
+            f"  {r.vmp_code} ({r.vmp_name})" for r in rows
+        )
+        raise ValueError(
+            f"{len(rows)} manual WHO route VMP(s) not found in SCMD data:\n{details}"
+        )
+    logger.info("All manual WHO route VMP codes validated against SCMD data")
+
+
+def _validate_routes_exist(client, logger):
+    """Check every manual entry's who_route_code is within the set of routes mapped from ontformroute."""
+    query = f"""
+    WITH manual_with_available_routes AS (
+      SELECT
+        m.vmp_code,
+        m.vmp_name,
+        m.who_route_code,
+        ARRAY_AGG(DISTINCT route_map.who_route IGNORE NULLS) AS available_who_routes
+      FROM `{PROJECT_ID}.{DATASET_ID}.{VMP_MANUAL_WHO_ROUTE_TABLE_SPEC.table_id}` m
+      LEFT JOIN `{PROJECT_ID}.{DATASET_ID}.{DMD_TABLE_ID}` dmd
+        ON m.vmp_code = dmd.vmp_code
+      LEFT JOIN UNNEST(dmd.ontformroutes) AS route
+      LEFT JOIN `{PROJECT_ID}.{DATASET_ID}.{ADM_ROUTE_MAPPING_TABLE_ID}` route_map
+        ON route.ontformroute_descr = route_map.dmd_ontformroute
+      GROUP BY m.vmp_code, m.vmp_name, m.who_route_code
+    )
+    SELECT vmp_code, vmp_name, who_route_code, available_who_routes
+    FROM manual_with_available_routes
+    WHERE who_route_code NOT IN (
+      SELECT code FROM UNNEST(available_who_routes) AS code
+    )
+    """
+    rows = list(client.query(query).result())
+    if rows:
+        details = "\n".join(
+            f"  {r.vmp_code} ({r.vmp_name}): manual={r.who_route_code}, "
+            f"available={list(r.available_who_routes or [])}"
+            for r in rows
+        )
+        raise ValueError(
+            f"{len(rows)} manual WHO route(s) not found in ontformroute-derived "
+            f"routes:\n{details}"
+        )
+    logger.info("All manual WHO route codes validated against ontformroute mappings")
+
+
 @flow(name="Import VMP manual WHO route mappings")
 def import_vmp_manual_who_route():
     """Load manual VMP → WHO route rows for DDD disambiguation into BigQuery."""
@@ -106,6 +173,8 @@ def import_vmp_manual_who_route():
         f"Successfully loaded {len(records)} records to {VMP_MANUAL_WHO_ROUTE_TABLE_SPEC.full_table_id}"
     )
 
+    _validate_vmps_in_scmd(client, logger)
+    _validate_routes_exist(client, logger)
 
 if __name__ == "__main__":
     import_vmp_manual_who_route()
