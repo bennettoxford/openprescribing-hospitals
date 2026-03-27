@@ -1,12 +1,18 @@
 MERGE `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DDD_CALCULATION_LOGIC_TABLE_ID }}` AS target
 USING (
   WITH
+  -- Only apply combined-product DDDs for subset of checked ATC codes
+  logic_for_apply AS (
+    SELECT *
+    FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DDD_COMBINED_PRODUCTS_LOGIC_TABLE_ID }}`
+    WHERE atc_code = 'J01EE01'
+  ),
   -- Aggregate distinct full reason strings per vmp_code, joined with ' OR ' when reasons differ across matched combos
   why_not_agg AS (
     SELECT
       vmp_code,
       ARRAY_TO_STRING(ARRAY_AGG(DISTINCT TRIM(why_ddd_not_chosen) ORDER BY TRIM(why_ddd_not_chosen)), ' OR ') AS why_not_agg
-    FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DDD_COMBINED_PRODUCTS_LOGIC_TABLE_ID }}`
+    FROM logic_for_apply
     WHERE why_ddd_not_chosen IS NOT NULL AND TRIM(why_ddd_not_chosen) != ''
     GROUP BY vmp_code
   ),
@@ -15,14 +21,14 @@ USING (
       dcl.vmp_code,
       MAX(CASE WHEN dcl.why_ddd_not_chosen IS NULL THEN 1 ELSE 0 END) AS has_chosen_ddd,
       ANY_VALUE(wnd.why_not_agg) AS why_not_agg
-    FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DDD_COMBINED_PRODUCTS_LOGIC_TABLE_ID }}` AS dcl
+    FROM logic_for_apply AS dcl
     LEFT JOIN why_not_agg wnd ON dcl.vmp_code = wnd.vmp_code
     GROUP BY dcl.vmp_code
   ),
   -- Among passing rows (why_ddd_not_chosen IS NULL), prefer exact match (strength_ratio = 1) over proportional
   passing AS (
     SELECT vmp_code, chosen_ddd_value, chosen_ddd_unit, strength_ratio
-    FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DDD_COMBINED_PRODUCTS_LOGIC_TABLE_ID }}`
+    FROM logic_for_apply
     WHERE why_ddd_not_chosen IS NULL
   ),
   with_has_exact AS (
