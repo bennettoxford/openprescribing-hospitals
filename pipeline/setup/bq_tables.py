@@ -17,6 +17,7 @@ from pipeline.setup.config import (
     DMD_FULL_TABLE_ID,
     DMD_SUPP_TABLE_ID,
     VMP_ATC_MANUAL_TABLE_ID,
+    VMP_MANUAL_WHO_ROUTE_TABLE_ID,
     WHO_ATC_TABLE_ID,
     WHO_DDD_TABLE_ID,
     ADM_ROUTE_MAPPING_TABLE_ID,
@@ -613,6 +614,24 @@ VMP_ATC_MANUAL_TABLE_SPEC = TableSpec(
     ],
 )
 
+VMP_MANUAL_WHO_ROUTE_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=VMP_MANUAL_WHO_ROUTE_TABLE_ID,
+    description="Manual WHO route of administration for DDD matching when a VMP maps to multiple WHO routes",
+    schema=[
+        bigquery.SchemaField(
+            "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
+        ),
+        bigquery.SchemaField(
+            "vmp_name", "STRING", mode="NULLABLE", description="VMP name for identification"
+        ),
+        bigquery.SchemaField(
+            "who_route_code", "STRING", mode="REQUIRED", description="WHO administration route code (e.g. P, O)"
+        ),
+    ],
+)
+
 WHO_ATC_TABLE_SPEC = TableSpec(
     project_id=PROJECT_ID,
     dataset_id=DATASET_ID,
@@ -985,6 +1004,12 @@ VMP_TABLE_SPEC = TableSpec(
                     "route_name", "STRING", mode="REQUIRED", description="Route name"
                 ),
             ],
+        ),
+        bigquery.SchemaField(
+            "who_route_codes_for_ddd",
+            "STRING",
+            mode="REPEATED",
+            description="WHO route codes used for DDD matching",
         ),
         bigquery.SchemaField(
             "atcs",
@@ -1591,6 +1616,12 @@ DDD_CALCULATION_LOGIC_TABLE_SPEC = TableSpec(
                     "who_route_code", "STRING", mode="REQUIRED", description="WHO route code"
                 ),
             ],
+        ),
+        bigquery.SchemaField(
+            "who_route_codes_for_ddd",
+            "STRING",
+            mode="REPEATED",
+            description="WHO route codes used for DDD matching",
         ),
         bigquery.SchemaField(
             "who_ddds",
