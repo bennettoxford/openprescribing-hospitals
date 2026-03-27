@@ -58,6 +58,22 @@ vmp_ddd_overrides AS (
   LEFT JOIN vmp_ingredient_details vid ON cr.vmp_code = vid.vmp_code
   WHERE cr.can_calculate_ddd = FALSE
     AND vmp_ddd.vmp_code IS NOT NULL
+),
+
+override_route AS (
+  SELECT
+    cr.vmp_code,
+    ANY_VALUE(ddd.adm_code) AS override_route_code
+  FROM current_results cr
+  INNER JOIN vmp_ddd_overrides vdo ON cr.vmp_code = vdo.vmp_code
+  CROSS JOIN UNNEST(cr.atcs) AS atc
+  INNER JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ WHO_DDD_TABLE_ID }}` ddd
+    ON atc.atc_code = ddd.atc_code
+    AND ddd.ddd = vdo.override_ddd_value
+    AND ddd.ddd_unit = vdo.override_ddd_unit
+  CROSS JOIN UNNEST(cr.routes) AS r
+  WHERE r.who_route_code = ddd.adm_code
+  GROUP BY cr.vmp_code
 )
 
 -- Apply overrides to the final results
@@ -107,7 +123,7 @@ SELECT
     ELSE NULL
   END AS selected_ddd_basis_unit,
   CASE
-    WHEN vdo.vmp_code IS NOT NULL THEN NULL
+    WHEN vdo.vmp_code IS NOT NULL AND (vdo.override_has_compatible_scmd_units OR (NOT vdo.override_has_compatible_scmd_units AND vdo.override_has_single_ingredient AND vdo.override_has_compatible_ingredient_units)) THEN orr.override_route_code
     WHEN cr.can_calculate_ddd THEN cr.selected_ddd_route_code
     ELSE NULL
   END AS selected_ddd_route_code,
@@ -148,4 +164,5 @@ SELECT
   cr.override_comments
 FROM current_results cr
 LEFT JOIN vmp_ddd_overrides vdo ON cr.vmp_code = vdo.vmp_code
+LEFT JOIN override_route orr ON cr.vmp_code = orr.vmp_code
 LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_TABLE_ID }}` vmp ON cr.vmp_code = vmp.vmp_code
