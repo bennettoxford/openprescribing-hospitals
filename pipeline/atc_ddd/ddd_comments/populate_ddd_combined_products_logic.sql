@@ -59,9 +59,8 @@ with_conversion AS (
     ) AS active_ingredients_per_unit
   FROM base_candidates bc
 ),
--- Explode to one row per converted active_ingredient and match to VMP ingredient by name + basis quantity.
--- For tablet-style (no denominator): allow proportional match (VMP strength = k * WHO strength) and output strength_ratio.
-exploded AS (
+-- One row per WHO ingredient - VMP ingredient pair
+name_matched AS (
   SELECT
     wc.vmp_code,
     wc.atc_code,
@@ -71,16 +70,52 @@ exploded AS (
     wc.ddd_ud_value,
     wc.ddd_converted_value,
     wc.ddd_converted_unit,
+    wc.ddd_converted_basis_unit,
+    ai.ingredient AS who_ingredient,
+    ing.ingredient_name AS vmp_ingredient,
+    ai.numerator_quantity * COALESCE(uc_ai.conversion_factor, 1.0) AS who_strength_basis,
+    ing.strnt_nmrtr_basis_val AS vmp_strength_basis,
     ARRAY_LENGTH(wc.active_ingredients_per_unit) AS n_active_ingredients,
     ARRAY_LENGTH(wc.ingredients) AS n_vmp_ingredients,
-    SAFE_DIVIDE(ing.strnt_nmrtr_basis_val, ai.numerator_quantity * COALESCE(uc_ai.conversion_factor, 1.0)) AS strength_ratio
+    SAFE_DIVIDE(ing.strnt_nmrtr_basis_val, ai.numerator_quantity * COALESCE(uc_ai.conversion_factor, 1.0)) AS strength_ratio,
+    ing.ingredient_name IS NOT NULL AND NOT (
+      ing.strnt_nmrtr_basis_uom = uc_ai.basis
+      AND (
+        -- Tablet-style (no denominator): allow proportional match (same ratio for all ingredients, enforced in ingredient_matched).
+        (ai.denominator_quantity IS NULL AND ai.denominator_unit IS NULL AND ing.strnt_dnmtr_basis_val IS NULL AND ing.strnt_dnmtr_basis_uom IS NULL
+          AND SAFE_DIVIDE(ing.strnt_nmrtr_basis_val, ai.numerator_quantity * COALESCE(uc_ai.conversion_factor, 1.0)) > 0)
+        OR (
+          -- WHO has denominator: exact match on numerator and denominator.
+          ing.strnt_nmrtr_basis_val = ai.numerator_quantity * COALESCE(uc_ai.conversion_factor, 1.0)
+          AND ai.denominator_quantity IS NOT NULL AND ai.denominator_unit IS NOT NULL
+          AND ing.strnt_dnmtr_basis_val = ai.denominator_quantity * COALESCE(uc_ai_denom.conversion_factor, 1.0)
+          AND ing.strnt_dnmtr_basis_uom = uc_ai_denom.basis
+        )
+        OR (
+          -- WHO no denominator, VMP per 1 [DDD unit] (e.g. per ml): exact strength match.
+          ai.denominator_quantity IS NULL AND ai.denominator_unit IS NULL
+          AND wc.ddd_converted_basis_unit IS NOT NULL
+          AND ing.strnt_dnmtr_basis_val = 1.0
+          AND ing.strnt_dnmtr_basis_uom = wc.ddd_converted_basis_unit
+          AND ing.strnt_nmrtr_basis_val = ai.numerator_quantity * COALESCE(uc_ai.conversion_factor, 1.0)
+        )
+        OR (
+          -- WHO no denominator, VMP per 1 [DDD unit]: proportional match.
+          ai.denominator_quantity IS NULL AND ai.denominator_unit IS NULL
+          AND wc.ddd_converted_basis_unit IS NOT NULL
+          AND ing.strnt_dnmtr_basis_val = 1.0
+          AND ing.strnt_dnmtr_basis_uom = wc.ddd_converted_basis_unit
+          AND SAFE_DIVIDE(ing.strnt_nmrtr_basis_val, ai.numerator_quantity * COALESCE(uc_ai.conversion_factor, 1.0)) > 0
+        )
+      )
+    ) AS strength_mismatch
   FROM with_conversion wc
   CROSS JOIN UNNEST(wc.active_ingredients_per_unit) AS ai
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` AS uc_ai
     ON uc_ai.unit = ai.numerator_unit
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` AS uc_ai_denom
     ON uc_ai_denom.unit = ai.denominator_unit
-  INNER JOIN UNNEST(wc.ingredients) AS ing
+  LEFT JOIN UNNEST(wc.ingredients) AS ing
     ON (
       LOWER(TRIM(ing.ingredient_name)) = LOWER(TRIM(ai.ingredient))
       OR STARTS_WITH(LOWER(TRIM(ing.ingredient_name)), LOWER(TRIM(ai.ingredient)))
@@ -88,35 +123,14 @@ exploded AS (
           AND (LOWER(TRIM(ing.basis_of_strength_name)) = LOWER(TRIM(ai.ingredient))
                OR STARTS_WITH(LOWER(TRIM(ing.basis_of_strength_name)), LOWER(TRIM(ai.ingredient)))))
     )
-    AND ing.strnt_nmrtr_basis_uom = uc_ai.basis
-    AND (
-      -- Tablet-style (no denominator): allow proportional match (same ratio for all ingredients, enforced in ingredient_matched).
-      (ai.denominator_quantity IS NULL AND ai.denominator_unit IS NULL AND ing.strnt_dnmtr_basis_val IS NULL AND ing.strnt_dnmtr_basis_uom IS NULL
-        AND SAFE_DIVIDE(ing.strnt_nmrtr_basis_val, ai.numerator_quantity * COALESCE(uc_ai.conversion_factor, 1.0)) > 0)
-      OR (
-        -- WHO has denominator: exact match on numerator and denominator.
-        ing.strnt_nmrtr_basis_val = ai.numerator_quantity * COALESCE(uc_ai.conversion_factor, 1.0)
-        AND ai.denominator_quantity IS NOT NULL AND ai.denominator_unit IS NOT NULL
-        AND ing.strnt_dnmtr_basis_val = ai.denominator_quantity * COALESCE(uc_ai_denom.conversion_factor, 1.0)
-        AND ing.strnt_dnmtr_basis_uom = uc_ai_denom.basis
-      )
-      OR (
-        -- WHO no denominator, VMP per 1 [DDD unit] (e.g. per ml): exact strength match.
-        ai.denominator_quantity IS NULL AND ai.denominator_unit IS NULL
-        AND wc.ddd_converted_basis_unit IS NOT NULL
-        AND ing.strnt_dnmtr_basis_val = 1.0
-        AND ing.strnt_dnmtr_basis_uom = wc.ddd_converted_basis_unit
-        AND ing.strnt_nmrtr_basis_val = ai.numerator_quantity * COALESCE(uc_ai.conversion_factor, 1.0)
-      )
-      OR (
-        -- WHO no denominator, VMP per 1 [DDD unit]: proportional match.
-        ai.denominator_quantity IS NULL AND ai.denominator_unit IS NULL
-        AND wc.ddd_converted_basis_unit IS NOT NULL
-        AND ing.strnt_dnmtr_basis_val = 1.0
-        AND ing.strnt_dnmtr_basis_uom = wc.ddd_converted_basis_unit
-        AND SAFE_DIVIDE(ing.strnt_nmrtr_basis_val, ai.numerator_quantity * COALESCE(uc_ai.conversion_factor, 1.0)) > 0
-      )
-    )
+),
+-- Filter to rows where name AND strength both matched
+exploded AS (
+  SELECT * FROM name_matched
+  WHERE vmp_ingredient IS NOT NULL
+    AND NOT strength_mismatch
+    AND strength_ratio IS NOT NULL
+    AND strength_ratio > 0
 ),
 -- Keep only (vmp_code, atc_code, wdc row) where every ingredient matched and (for proportional match) same strength_ratio for all.
 -- Round strength_ratio to 6 decimal places for comparison to avoid float precision issues.
@@ -154,11 +168,57 @@ ingredient_matched AS (
     AND n_active_ingredients = n_vmp_ingredients
     AND distinct_ratio_count = 1
 ),
+match_details AS (
+  SELECT
+    vmp_code,
+    atc_code,
+    form,
+    route,
+    brand_name,
+    ddd_ud_value,
+    ddd_converted_value,
+    ddd_converted_unit,
+    COUNT(DISTINCT ROUND(strength_ratio, 6)) AS distinct_ratio_count,
+    -- WHO ingredients with no name match in VMP
+    STRING_AGG(DISTINCT CASE WHEN vmp_ingredient IS NULL THEN who_ingredient END, ', '
+               ORDER BY CASE WHEN vmp_ingredient IS NULL THEN who_ingredient END)
+      AS who_ingredients_no_name_match,
+    -- WHO ingredients whose name matched but strength/unit did not
+    STRING_AGG(DISTINCT CASE WHEN strength_mismatch
+                 THEN CONCAT(who_ingredient,
+                             ' (WHO: ', CAST(ROUND(who_strength_basis, 4) AS STRING),
+                             ', VMP: ', CAST(ROUND(vmp_strength_basis, 4) AS STRING), ')')
+               END, ', '
+               ORDER BY CASE WHEN strength_mismatch
+                 THEN CONCAT(who_ingredient,
+                             ' (WHO: ', CAST(ROUND(who_strength_basis, 4) AS STRING),
+                             ', VMP: ', CAST(ROUND(vmp_strength_basis, 4) AS STRING), ')')
+               END)
+      AS who_ingredients_strength_mismatch,
+    -- Full strength details for inconsistent-ratio case (all fully-matched ingredients)
+    STRING_AGG(
+      CASE WHEN NOT strength_mismatch AND vmp_ingredient IS NOT NULL
+        THEN CONCAT(who_ingredient,
+                    ' (WHO: ', CAST(ROUND(who_strength_basis, 4) AS STRING),
+                    ', VMP: ', CAST(ROUND(vmp_strength_basis, 4) AS STRING),
+                    ', ratio: ', CAST(ROUND(strength_ratio, 6) AS STRING), ')')
+      END,
+      '; '
+      ORDER BY CASE WHEN NOT strength_mismatch AND vmp_ingredient IS NOT NULL
+        THEN who_ingredient END
+    ) AS strength_details
+  FROM name_matched
+  GROUP BY vmp_code, atc_code, form, route, brand_name, ddd_ud_value, ddd_converted_value, ddd_converted_unit
+),
 base AS (
   SELECT
     wc.*,
     im.vmp_code IS NOT NULL AS ingredient_match,
-    im.strength_ratio AS strength_ratio
+    im.strength_ratio AS strength_ratio,
+    md.who_ingredients_no_name_match,
+    md.who_ingredients_strength_mismatch,
+    md.distinct_ratio_count > 1 AS has_inconsistent_ratios,
+    md.strength_details
   FROM with_conversion wc
   LEFT JOIN ingredient_matched im
     ON wc.vmp_code = im.vmp_code
@@ -169,6 +229,15 @@ base AS (
     AND COALESCE(CAST(wc.ddd_ud_value AS STRING), '') = COALESCE(CAST(im.ddd_ud_value AS STRING), '')
     AND COALESCE(CAST(wc.ddd_converted_value AS STRING), '') = COALESCE(CAST(im.ddd_converted_value AS STRING), '')
     AND COALESCE(wc.ddd_converted_unit, '') = COALESCE(im.ddd_converted_unit, '')
+  LEFT JOIN match_details md
+    ON wc.vmp_code = md.vmp_code
+    AND wc.atc_code = md.atc_code
+    AND COALESCE(wc.form, '') = COALESCE(md.form, '')
+    AND COALESCE(wc.route, '') = COALESCE(md.route, '')
+    AND COALESCE(wc.brand_name, '') = COALESCE(md.brand_name, '')
+    AND COALESCE(CAST(wc.ddd_ud_value AS STRING), '') = COALESCE(CAST(md.ddd_ud_value AS STRING), '')
+    AND COALESCE(CAST(wc.ddd_converted_value AS STRING), '') = COALESCE(CAST(md.ddd_converted_value AS STRING), '')
+    AND COALESCE(wc.ddd_converted_unit, '') = COALESCE(md.ddd_converted_unit, '')
 ),
 reasons AS (
   SELECT
@@ -176,8 +245,19 @@ reasons AS (
     CASE WHEN ARRAY_LENGTH(base.ingredients) <= 1
       THEN 'Less than 2 ingredients for this product in the dm+d' ELSE NULL END AS reason_single_ingredient,
     CASE
+      WHEN base.ingredient_match = FALSE AND base.who_ingredients_no_name_match IS NOT NULL
+      THEN CONCAT('WHO ingredients not matched by name in VMP: ', base.who_ingredients_no_name_match)
+      WHEN base.ingredient_match = FALSE AND base.who_ingredients_strength_mismatch IS NOT NULL
+      THEN CONCAT('WHO ingredients matched by name but strength differs: ', base.who_ingredients_strength_mismatch)
       WHEN base.ingredient_match = FALSE
-      THEN 'Combined product ingredients and/or strengths do not match VMP ingredients' ELSE NULL END AS reason_ingredient_mismatch,
+      THEN 'Combined product ingredients and/or strengths do not match VMP ingredients'
+      ELSE NULL
+    END AS reason_ingredient_mismatch,
+    CASE
+      WHEN base.has_inconsistent_ratios = TRUE AND base.strength_details IS NOT NULL
+      THEN CONCAT('Strength ratios inconsistent across ingredients: ', base.strength_details)
+      ELSE NULL
+    END AS reason_strength_mismatch,
     CASE
       WHEN NOT EXISTS (SELECT 1 FROM UNNEST(base.ont_form_routes) AS ofr WHERE LOWER(ofr.route_name) LIKE LOWER(CONCAT(COALESCE(REPLACE(TRIM(IFNULL(base.form, '*')), '*', '%'), '%'), '.', COALESCE(REPLACE(TRIM(IFNULL(base.route, '*')), '*', '%'), '%'))))
       THEN 'Form/route specified for the DDD does not match the form/route for this product from the dm+d' ELSE NULL END AS reason_form_route_mismatch,
@@ -214,17 +294,17 @@ SELECT
   scmd_basis_unit,
   strength_ratio,
   NULLIF(TRIM(ARRAY_TO_STRING(
-    (SELECT ARRAY_AGG(x) FROM UNNEST([reason_single_ingredient, reason_ingredient_mismatch, reason_form_route_mismatch, reason_ddd_unit_unknown, reason_scmd_unit_unknown, reason_basis_mismatch]) AS x WHERE x IS NOT NULL),
-    ', '
+    (SELECT ARRAY_AGG(x) FROM UNNEST([reason_single_ingredient, reason_ingredient_mismatch, reason_strength_mismatch, reason_form_route_mismatch, reason_ddd_unit_unknown, reason_scmd_unit_unknown, reason_basis_mismatch]) AS x WHERE x IS NOT NULL),
+    '; '
   )), '') AS why_ddd_not_chosen,
   CASE
-    WHEN reason_single_ingredient IS NULL AND reason_ingredient_mismatch IS NULL AND reason_form_route_mismatch IS NULL
+    WHEN reason_single_ingredient IS NULL AND reason_ingredient_mismatch IS NULL AND reason_strength_mismatch IS NULL AND reason_form_route_mismatch IS NULL
      AND reason_ddd_unit_unknown IS NULL AND reason_scmd_unit_unknown IS NULL AND reason_basis_mismatch IS NULL
     THEN (ddd_converted_value * ddd_conversion_factor) / COALESCE(strength_ratio, 1.0)
     ELSE NULL
   END AS chosen_ddd_value,
   CASE
-    WHEN reason_single_ingredient IS NULL AND reason_ingredient_mismatch IS NULL AND reason_form_route_mismatch IS NULL
+    WHEN reason_single_ingredient IS NULL AND reason_ingredient_mismatch IS NULL AND reason_strength_mismatch IS NULL AND reason_form_route_mismatch IS NULL
      AND reason_ddd_unit_unknown IS NULL AND reason_scmd_unit_unknown IS NULL AND reason_basis_mismatch IS NULL
     THEN ddd_converted_basis_unit
     ELSE NULL
