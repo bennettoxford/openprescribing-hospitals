@@ -46,7 +46,7 @@ vmp_with_atcs_and_routes AS (
         route_map.who_route AS who_route_code
       )
     ) AS routes,
-    ARRAY_AGG(DISTINCT route_map.who_route IGNORE NULLS) AS who_route_codes,
+    ANY_VALUE(vmp.who_route_codes_for_ddd) AS who_route_codes,
     ARRAY_AGG(
       STRUCT(
         atc_struct.atc_code AS atc_code,
@@ -88,23 +88,23 @@ ddd_analysis AS (
     (SELECT COUNT(1) FROM UNNEST(atcs) WHERE atc_code IS NOT NULL) > 0 AS has_atc_codes,
     -- Check if any WHO DDDs with non-NULL values
     (SELECT COUNT(1) FROM UNNEST(who_ddds) WHERE ddd IS NOT NULL) > 0 AS has_ddds,
-    -- Check if any mapped WHO routes
-    (SELECT COUNT(1) FROM UNNEST(routes) WHERE who_route_code IS NOT NULL) > 0 AS has_who_routes,
-    -- Find DDDs that match the WHO route codes
+    -- Check if any WHO routes for DDD
+    ARRAY_LENGTH(COALESCE(who_route_codes, [])) > 0 AS has_who_routes,
+    -- Find DDDs that match the WHO route codes used for DDD
     ARRAY(
       SELECT AS STRUCT ddd.*
       FROM UNNEST(who_ddds) AS ddd
       WHERE ddd.ddd IS NOT NULL
-        AND ddd.ddd_route_code IN (SELECT code FROM UNNEST(who_route_codes) AS code)
+        AND ddd.ddd_route_code IN (SELECT code FROM UNNEST(COALESCE(who_route_codes, [])) AS code)
     ) AS matching_route_ddds,
-    -- Check if all matching DDDs have the same value
+   -- Check if all matching DDDs have the same value
     (
       SELECT COUNT(DISTINCT ddd.ddd)
       FROM UNNEST(ARRAY(
         SELECT AS STRUCT ddd.*
         FROM UNNEST(who_ddds) AS ddd
         WHERE ddd.ddd IS NOT NULL
-          AND ddd.ddd_route_code IN (SELECT code FROM UNNEST(who_route_codes) AS code)
+          AND ddd.ddd_route_code IN (SELECT code FROM UNNEST(COALESCE(who_route_codes, [])) AS code)
       )) AS ddd
     ) = 1 AS all_matching_ddds_same,
 
@@ -156,7 +156,7 @@ ddd_selection AS (
           -- If comment contains "gel" and product has ontformroute starting with "gel"
           WHEN has_gel_comment_ddd AND has_gel_route THEN (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
-            FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
+            FROM UNNEST(matching_route_ddds) AS ddd
             WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bgel\b')
             LIMIT 1
           )
@@ -164,7 +164,7 @@ ddd_selection AS (
           -- If comment contains "spray" and product has ontformroute starting with "solutionspray"
           WHEN has_spray_comment_ddd AND has_spray_route THEN (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
-            FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
+            FROM UNNEST(matching_route_ddds) AS ddd
             WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bspray\b')
             LIMIT 1
           )
@@ -172,7 +172,7 @@ ddd_selection AS (
           -- If comment contains "vaginal ring" and product has ontformroute = "ring.vaginal" or "vaginaldeliverysystem"
           WHEN has_vaginal_ring_comment_ddd AND has_vaginal_ring_route THEN (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
-            FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
+            FROM UNNEST(matching_route_ddds) AS ddd
             WHERE LOWER(COALESCE(ddd.ddd_comment, '')) LIKE '%vaginal ring%'
             LIMIT 1
           )
@@ -180,7 +180,7 @@ ddd_selection AS (
           -- If comment contains "patch" and product has ontformroute containing "patch.transdermal"
           WHEN has_patch_comment_ddd AND has_patch_route THEN (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
-            FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
+            FROM UNNEST(matching_route_ddds) AS ddd
             WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bpatch\b')
             LIMIT 1
           )
@@ -188,7 +188,7 @@ ddd_selection AS (
           -- If comment is "lipid formulations" and VTM is in specific list, select that DDD
           WHEN has_lipid_formulations_comment_ddd AND vtm_code IN ('773381005', '21202811000001101', '773379008') THEN (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
-            FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
+            FROM UNNEST(matching_route_ddds) AS ddd
             WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'lipid formulations'
             LIMIT 1
           )
@@ -196,7 +196,7 @@ ddd_selection AS (
           -- If comment is "erythromycin ethylsuccinate tablets" and VMP code matches, select that DDD
           WHEN has_erythromycin_tablets_comment_ddd AND vmp_code = '41949111000001108' THEN (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
-            FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
+            FROM UNNEST(matching_route_ddds) AS ddd
             WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'erythromycin ethylsuccinate tablets'
             LIMIT 1
           )
@@ -204,7 +204,7 @@ ddd_selection AS (
           -- If comment contains "depot" (e.g. "depot", "depot inj") and VTM name contains "decanoate" and product has P route, select that DDD
           WHEN has_depot_comment_ddd AND vtm_name_contains_decanoate AND has_p_route THEN (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
-            FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
+            FROM UNNEST(matching_route_ddds) AS ddd
             WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bdepot\b')
             LIMIT 1
           )
@@ -212,7 +212,7 @@ ddd_selection AS (
           -- If comment contains "depot" and product has P route and form contains "prolonged-release", select that DDD
           WHEN has_depot_comment_ddd AND has_p_route AND has_prolonged_release_form THEN (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
-            FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
+            FROM UNNEST(matching_route_ddds) AS ddd
             WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bdepot\b')
             LIMIT 1
           )
@@ -221,7 +221,7 @@ ddd_selection AS (
           -- dm+d form lacks "prolonged-release" but product is prolonged-release depot
           WHEN vmp_code = '30806811000001103' AND has_depot_comment_ddd AND has_p_route THEN (
             SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
-            FROM UNNEST(CASE WHEN ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN matching_route_ddds ELSE who_ddds END) AS ddd
+            FROM UNNEST(matching_route_ddds) AS ddd
             WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bdepot\b')
             LIMIT 1
           )

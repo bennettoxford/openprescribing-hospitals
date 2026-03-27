@@ -6,6 +6,7 @@ from prefect import flow, get_run_logger
 from pipeline.mappings.import_adm_route_mapping import import_adm_route_mapping
 from pipeline.mappings.import_unit_conversion import import_unit_conversion
 from pipeline.mappings.import_vmp_atc_manual import import_vmp_atc_manual
+from pipeline.mappings.import_vmp_manual_who_route import import_vmp_manual_who_route
 from pipeline.mappings.import_vmp_unit_standardisation import import_vmp_unit_standardisation
 
 @flow(name="Import Mappings")
@@ -16,6 +17,7 @@ def import_mappings():
     import_adm_route_mapping()
     import_unit_conversion()
     import_vmp_atc_manual()
+    import_vmp_manual_who_route()
     import_vmp_unit_standardisation()
 
 

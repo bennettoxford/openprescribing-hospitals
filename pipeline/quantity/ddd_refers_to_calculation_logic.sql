@@ -16,11 +16,7 @@ vmps_with_refers_to_mapping AS (
     vwrt.* EXCEPT(refers_to_ingredient),
     refers.refers_to_ingredient,
     refers.dmd_ingredients,
-    ARRAY(
-      SELECT DISTINCT route.who_route_code
-      FROM UNNEST(vwrt.routes) AS route
-      WHERE route.who_route_code IS NOT NULL
-    ) AS who_route_codes
+    COALESCE(vwrt.who_route_codes_for_ddd, []) AS who_route_codes
   FROM vmps_with_refers_to vwrt
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DDD_REFERS_TO_TABLE_ID }}` refers
     ON vwrt.selected_ddd_comment = refers.ddd_comment

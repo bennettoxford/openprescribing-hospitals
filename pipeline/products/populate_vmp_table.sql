@@ -97,6 +97,32 @@ vmp_routes AS (
   GROUP BY dmd.vmp_code
 ),
 
+vmp_who_route_codes_base AS (
+  SELECT
+    dmd.vmp_code,
+    ARRAY_AGG(DISTINCT route_map.who_route IGNORE NULLS) AS base_who_route_codes
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_TABLE_ID }}` dmd,
+  UNNEST(ontformroutes) AS route
+  JOIN scmd_vmps sv ON dmd.vmp_code = sv.vmp_code
+  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ ADM_ROUTE_MAPPING_TABLE_ID }}` route_map
+    ON route.ontformroute_descr = route_map.dmd_ontformroute
+  GROUP BY dmd.vmp_code
+),
+
+vmp_who_route_codes_for_ddd AS (
+  SELECT
+    b.vmp_code,
+    CASE
+      WHEN m.who_route_code IS NOT NULL
+        AND m.who_route_code IN UNNEST(COALESCE(b.base_who_route_codes, []))
+      THEN [m.who_route_code]
+      ELSE COALESCE(b.base_who_route_codes, [])
+    END AS who_route_codes_for_ddd
+  FROM vmp_who_route_codes_base b
+  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_MANUAL_WHO_ROUTE_TABLE_ID }}` m
+    ON b.vmp_code = m.vmp_code
+),
+
 vmp_atc_from_dmd AS (
   SELECT atc.vmp_code, atc.atc_code
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_SUPP_TABLE_ID }}` atc
@@ -176,6 +202,7 @@ SELECT
   COALESCE(vss.special, FALSE) AS special,
   COALESCE(vi.ingredients, []) AS ingredients,
   COALESCE(vr.ont_form_routes, []) AS ont_form_routes,
+  COALESCE(vwr.who_route_codes_for_ddd, []) AS who_route_codes_for_ddd,
   COALESCE(va.atcs, []) AS atcs,
   COALESCE(vamp.amps, []) AS amps,
   vsu.scmd_uom_id,
@@ -186,6 +213,7 @@ FROM vmp_base vb
 LEFT JOIN vmp_bnf vbnf ON vb.vmp_code = vbnf.vmp_code
 LEFT JOIN vmp_ingredients vi ON vb.vmp_code = vi.vmp_code
 LEFT JOIN vmp_routes vr ON vb.vmp_code = vr.vmp_code
+LEFT JOIN vmp_who_route_codes_for_ddd vwr ON vb.vmp_code = vwr.vmp_code
 LEFT JOIN vmp_atc_mappings va ON vb.vmp_code = va.vmp_code
 LEFT JOIN vmp_amps vamp ON vb.vmp_code = vamp.vmp_code
 LEFT JOIN vmp_special_status vss ON vb.vmp_code = vss.vmp_code
