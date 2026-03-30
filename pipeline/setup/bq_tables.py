@@ -1972,6 +1972,7 @@ DDD_COMBINED_PRODUCTS_LOGIC_TABLE_SPEC = TableSpec(
         bigquery.SchemaField("ddd_converted_basis_unit", "STRING", mode="NULLABLE", description="Basis unit for ddd_converted_unit"),
         bigquery.SchemaField("scmd_basis_unit", "STRING", mode="NULLABLE", description="Basis unit for SCMD unit"),
         bigquery.SchemaField("strength_ratio", "FLOAT", mode="NULLABLE", description="VMP strength / WHO strength; 1.0 = exact match, other = proportional match"),
+        bigquery.SchemaField("who_route_code", "STRING", mode="NULLABLE", description="WHO administration route code resolved by intersecting VMP routes with WHO DDD routes for the ATC code"),
         bigquery.SchemaField("why_ddd_not_chosen", "STRING", mode="NULLABLE", description="Reasons why a combined DDD could not be chosen (NULL when chosen)"),
         bigquery.SchemaField("chosen_ddd_value", "FLOAT", mode="NULLABLE", description="Chosen DDD value in basis units when all checks pass"),
         bigquery.SchemaField("chosen_ddd_unit", "STRING", mode="NULLABLE", description="Chosen DDD unit (basis) when all checks pass"),
