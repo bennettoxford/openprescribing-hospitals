@@ -27,7 +27,12 @@ USING (
   ),
   -- Among passing rows (why_ddd_not_chosen IS NULL), prefer exact match (strength_ratio = 1) over proportional
   passing AS (
-    SELECT vmp_code, chosen_ddd_value, chosen_ddd_unit, strength_ratio
+    SELECT
+      vmp_code,
+      chosen_ddd_value,
+      chosen_ddd_unit,
+      strength_ratio,
+      who_route_code
     FROM logic_for_apply
     WHERE why_ddd_not_chosen IS NULL
   ),
@@ -37,7 +42,11 @@ USING (
     FROM passing
   ),
   preferred AS (
-    SELECT vmp_code, chosen_ddd_value, chosen_ddd_unit
+    SELECT
+      vmp_code,
+      chosen_ddd_value,
+      chosen_ddd_unit,
+      who_route_code
     FROM with_has_exact
     WHERE (has_exact_in_vmp = 1 AND strength_ratio = 1) OR (has_exact_in_vmp = 0)
   ),
@@ -47,6 +56,7 @@ USING (
       vmp_code,
       CASE WHEN COUNT(*) = 1 THEN ANY_VALUE(chosen_ddd_value) ELSE NULL END AS chosen_ddd_value,
       CASE WHEN COUNT(*) = 1 THEN ANY_VALUE(chosen_ddd_unit) ELSE NULL END AS chosen_ddd_unit,
+      CASE WHEN COUNT(*) = 1 THEN ANY_VALUE(who_route_code) ELSE NULL END AS who_route_code,
       COUNT(*) AS chosen_row_count
     FROM preferred
     GROUP BY vmp_code
@@ -56,6 +66,7 @@ USING (
       fa.vmp_code,
       pa.chosen_ddd_value,
       pa.chosen_ddd_unit,
+      pa.who_route_code,
       COALESCE(pa.chosen_row_count, 0) AS chosen_row_count,
       fa.has_chosen_ddd,
       fa.why_not_agg
@@ -65,17 +76,18 @@ USING (
   -- chosen_ddd_unit comes from ddd_converted_basis_unit (populate_ddd_combined_products_logic), so unit = basis.
   updates AS (
     SELECT
-      vmp_code,
-      CASE WHEN has_chosen_ddd = 1 AND chosen_row_count = 1 THEN chosen_ddd_value ELSE NULL END AS selected_ddd_value,
-      CASE WHEN has_chosen_ddd = 1 AND chosen_row_count = 1 THEN chosen_ddd_unit ELSE NULL END AS selected_ddd_unit,
-      CASE WHEN has_chosen_ddd = 1 AND chosen_row_count = 1 THEN chosen_ddd_unit ELSE NULL END AS selected_ddd_basis_unit,
-      CASE WHEN has_chosen_ddd = 1 AND chosen_row_count = 1 THEN TRUE ELSE FALSE END AS can_calculate_ddd,
+      ca.vmp_code,
+      CASE WHEN ca.has_chosen_ddd = 1 AND ca.chosen_row_count = 1 AND ca.who_route_code IS NOT NULL THEN ca.chosen_ddd_value ELSE NULL END AS selected_ddd_value,
+      CASE WHEN ca.has_chosen_ddd = 1 AND ca.chosen_row_count = 1 AND ca.who_route_code IS NOT NULL THEN ca.chosen_ddd_unit ELSE NULL END AS selected_ddd_unit,
+      CASE WHEN ca.has_chosen_ddd = 1 AND ca.chosen_row_count = 1 AND ca.who_route_code IS NOT NULL THEN ca.chosen_ddd_unit ELSE NULL END AS selected_ddd_basis_unit,
+      CASE WHEN ca.has_chosen_ddd = 1 AND ca.chosen_row_count = 1 AND ca.who_route_code IS NOT NULL THEN ca.who_route_code ELSE NULL END AS selected_ddd_route_code,
+      CASE WHEN ca.has_chosen_ddd = 1 AND ca.chosen_row_count = 1 AND ca.who_route_code IS NOT NULL THEN TRUE ELSE FALSE END AS can_calculate_ddd,
       CASE
-        WHEN chosen_row_count > 1 THEN 'Not calculated: Combination product - Multiple potential combined DDD values'
-        WHEN has_chosen_ddd = 1 THEN 'Calculated using DDD for combined product'
-        ELSE CONCAT('Not calculated: Combination product - ', COALESCE(why_not_agg, ''))
+        WHEN ca.chosen_row_count > 1 THEN 'Not calculated: Combination product - Multiple potential combined DDD values'
+        WHEN ca.has_chosen_ddd = 1 AND ca.chosen_row_count = 1 AND ca.who_route_code IS NOT NULL THEN 'Calculated using DDD for combined product'
+        ELSE CONCAT('Not calculated: Combination product - ', COALESCE(ca.why_not_agg, ''))
       END AS ddd_calculation_logic
-    FROM combined_agg
+    FROM combined_agg ca
   )
   SELECT * FROM updates
 ) AS source
@@ -86,4 +98,5 @@ WHEN MATCHED THEN
     ddd_calculation_logic = source.ddd_calculation_logic,
     selected_ddd_value = source.selected_ddd_value,
     selected_ddd_unit = source.selected_ddd_unit,
-    selected_ddd_basis_unit = source.selected_ddd_basis_unit
+    selected_ddd_basis_unit = source.selected_ddd_basis_unit,
+    selected_ddd_route_code = source.selected_ddd_route_code
