@@ -28,7 +28,17 @@ WITH base_candidates AS (
     vmp.scmd_basis_uom_name,
     uc_ddd.basis AS ddd_converted_basis_unit,
     uc_scmd.basis AS scmd_basis_unit,
-    uc_ddd.conversion_factor AS ddd_conversion_factor
+    uc_ddd.conversion_factor AS ddd_conversion_factor,
+    (
+      SELECT CASE WHEN COUNT(DISTINCT r.who_route_code) = 1 THEN MIN(r.who_route_code) ELSE NULL END
+      FROM UNNEST(vmp.ont_form_routes) AS ofr
+      INNER JOIN UNNEST(dcl.routes) AS r ON r.ontformroute_cd = ofr.route_code
+      WHERE LOWER(ofr.route_name) LIKE LOWER(CONCAT(
+        COALESCE(REPLACE(TRIM(IFNULL(wdc.form, '*')), '*', '%'), '%'),
+        '.',
+        COALESCE(REPLACE(TRIM(IFNULL(wdc.route, '*')), '*', '%'), '%')
+      ))
+    ) AS who_route_code
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DDD_CALCULATION_LOGIC_TABLE_ID }}` AS dcl
   CROSS JOIN UNNEST(dcl.atcs) AS atc
   INNER JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ WHO_DDD_COMBINED_PRODUCTS_TABLE_ID }}` AS wdc
@@ -260,7 +270,11 @@ reasons AS (
     END AS reason_strength_mismatch,
     CASE
       WHEN NOT EXISTS (SELECT 1 FROM UNNEST(base.ont_form_routes) AS ofr WHERE LOWER(ofr.route_name) LIKE LOWER(CONCAT(COALESCE(REPLACE(TRIM(IFNULL(base.form, '*')), '*', '%'), '%'), '.', COALESCE(REPLACE(TRIM(IFNULL(base.route, '*')), '*', '%'), '%'))))
-      THEN 'Form/route specified for the DDD does not match the form/route for this product from the dm+d' ELSE NULL END AS reason_form_route_mismatch,
+      THEN 'Form/route specified for the DDD does not match the form/route for this product from the dm+d'
+      WHEN base.who_route_code IS NULL
+      THEN 'Form/route specified for the DDD does not map to a unique WHO administration route for this product'
+      ELSE NULL
+    END AS reason_form_route_mismatch,
     CASE WHEN base.ddd_converted_unit IS NOT NULL AND base.ddd_converted_basis_unit IS NULL
       THEN 'Combined DDD unit not supported' ELSE NULL END AS reason_ddd_unit_unknown,
     CASE WHEN base.scmd_uom_name IS NOT NULL AND base.scmd_basis_unit IS NULL
@@ -293,6 +307,7 @@ SELECT
   ddd_converted_basis_unit,
   scmd_basis_unit,
   strength_ratio,
+  who_route_code,
   NULLIF(TRIM(ARRAY_TO_STRING(
     (SELECT ARRAY_AGG(x) FROM UNNEST([reason_single_ingredient, reason_ingredient_mismatch, reason_strength_mismatch, reason_form_route_mismatch, reason_ddd_unit_unknown, reason_scmd_unit_unknown, reason_basis_mismatch]) AS x WHERE x IS NOT NULL),
     '; '
