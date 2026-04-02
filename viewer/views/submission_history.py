@@ -159,13 +159,9 @@ class SubmissionHistoryView(MaintenanceModeMixin, TemplateView):
             'org_regions': shared_org_data.get('org_regions', {}),
             'org_icbs': shared_org_data.get('org_icbs', {}),
             'regions_hierarchy': shared_org_data.get('regions_hierarchy', []),
+            'org_cancer_alliances': shared_org_data.get('org_cancer_alliances', {}),
+            'cancer_alliances': shared_org_data.get('cancer_alliances', []),
         }
-        if self.request.user.is_authenticated:
-            org_data_payload['org_cancer_alliances'] = shared_org_data.get('org_cancer_alliances', {})
-            org_data_payload['cancer_alliances'] = shared_org_data.get('cancer_alliances', [])
-        else:
-            org_data_payload['org_cancer_alliances'] = {}
-            org_data_payload['cancer_alliances'] = []
         context['org_data_json'] = mark_safe(json.dumps(org_data_payload))
 
         if all_dates:
