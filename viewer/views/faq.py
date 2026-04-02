@@ -1,8 +1,11 @@
 from django.views.generic import TemplateView
+from django.utils.text import slugify
+from django.templatetags.static import static
 import re
 from markdown2 import Markdown
-from django.utils.text import slugify
 import os
+
+_ODS_CA_MAPPING_MARKDOWN_URL = "__STATIC_ODS_CA_MAPPING__"
 
 class FAQView(TemplateView):
     template_name = "faq.html"
@@ -39,6 +42,10 @@ class FAQView(TemplateView):
                 try:
                     with open(os.path.join(faq_dir, md_file), 'r', encoding='utf-8') as f:
                         content = f.read()
+                        content = content.replace(
+                            _ODS_CA_MAPPING_MARKDOWN_URL,
+                            static('data/ods_ca_mapping.csv'),
+                        )
                         processed_content = internal_link_preprocessor(content)
                         html_content = markdowner.convert(processed_content)
                         title = markdowner.metadata.get('title', '')

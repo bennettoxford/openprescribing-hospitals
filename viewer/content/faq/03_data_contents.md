@@ -65,7 +65,7 @@ You can filter NHS Trusts by trust type when searching on the [Submission Histor
 
 The geographic boundaries, based on cancer patient pathway flows, are published by the [Office for National Statistics (ONS)](https://geoportal.statistics.gov.uk/datasets/ons::cancer-alliances-july-2023-boundaries-en-bgc-2/about) (last updated July 2023). They roughly align with one or more whole Integrated Care Board (ICB) boundary. However, some trusts sit outside these boundaries (for example, Royal Free and UCLH in London). Additionally, not all trusts within the boundaries form part of the resepective Cancer Alliance and some trusts may partner with multiple Cancer Alliances. There is no single source of NHS Trust to Cancer Alliance mapping, but most Cancer Alliances indicate trusts they partner with on their websites ([which you can find here](https://www.england.nhs.uk/cancer/cancer-alliances-improving-care-locally/)).
 
-We have manually created a mapping of NHS Trust to Cancer Alliance for use on the platform, which is [available here](https://github.com/bennettoxford/openprescribing-hospitals/issues/707#issuecomment-3996398270).
+We have manually created a mapping of NHS Trust to Cancer Alliance for use on the platform, which you can [download as a CSV](__STATIC_ODS_CA_MAPPING__). (Background and sources for this mapping are described in [this GitHub issue](https://github.com/bennettoxford/openprescribing-hospitals/issues/707).)
 
 ### How does the organisation search work?
 
