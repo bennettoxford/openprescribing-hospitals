@@ -7,6 +7,6 @@ staticfiles
 db.sqlite3
 bq-service-account.json
 .cursorrules
-data
+/data
 ca-certificate.crt
 logs/*
