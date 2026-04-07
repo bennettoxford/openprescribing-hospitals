@@ -375,24 +375,24 @@
             </div>
 
             {#if parsedTags.length > 0}
-            <div class="relative w-full lg:w-fit lg:min-w-0" bind:this={tagDropdownEl}>
+            <div class="relative w-full lg:w-fit lg:min-w-[16rem]" bind:this={tagDropdownEl}>
                 <span class="block text-sm font-medium text-gray-700 mb-1">Filter by tag</span>
                 <button
                     type="button"
-                    class="measures-list-tag-select dropdown-arrow w-full text-sm p-2 border border-gray-300 rounded-md bg-white h-[38px] text-left"
+                    class="measures-list-tag-select dropdown-arrow flex w-full min-w-0 items-center text-sm py-2 pl-2 pr-9 border border-gray-300 rounded-md bg-white h-[38px] text-left"
                     aria-label="Filter by tag"
                     aria-expanded={tagDropdownOpen}
                     aria-haspopup="true"
                     on:click={() => (tagDropdownOpen = !tagDropdownOpen)}
                 >
-                    <span class="truncate">
+                    <span class="min-w-0 flex-1 truncate">
                         {$selectedTagsStore.length === 0
                             ? 'All'
                             : `${$selectedTagsStore.length} tag${$selectedTagsStore.length === 1 ? '' : 's'} selected`}
                     </span>
                 </button>
                 {#if tagDropdownOpen}
-                <div class="absolute left-0 right-0 min-w-[200px] mt-1 py-2 bg-white border border-gray-200 rounded-md shadow-lg z-40 max-h-64 overflow-y-auto"
+                <div class="absolute left-0 z-40 mt-1 min-w-full w-max max-w-[min(24rem,calc(100vw-1.5rem))] py-2 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto"
                      role="group" aria-label="Tag filters">
                     {#if $selectedTagsStore.length > 0}
                         <button
