@@ -2,7 +2,12 @@ name: Intravenous antibiotics # Full name of the measure/indicator
 short_name: IV antibiotics # Abbreviated name or acronym
 description: Percentage of intravenous antibiotics of all oral and intravenous antibiotics # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |
-    When treating infections in NHS hospitals, inpatients are often treated with intravenous antibiotics. Intravenous antibiotics can sometimes be used for longer than necessary. The [UK Health Security Agency (UKHSA)](https://assets.publishing.service.gov.uk/media/63da4c5de90e0773d99d59d0/Final_IV_to_Oral_Switch_Decision_Aid_based_on_NationalCriteria_UKHSA.pdf) highlight antimicrobial intravenous-to-oral switch as an important antimicrobial stewardship intervention and have produced a decision aid to support this process. They list a number of potential benefits of switching from IV to oral antibiotics where clinically appropriate:
+    When treating infections in NHS hospitals, inpatients are often treated with intravenous antibiotics. 
+    Intravenous antibiotics can sometimes be used for longer than necessary. The 
+    [UK Health Security Agency (UKHSA)](https://assets.publishing.service.gov.uk/media/63da4c5de90e0773d99d59d0/Final_IV_to_Oral_Switch_Decision_Aid_based_on_NationalCriteria_UKHSA.pdf) 
+    highlight antimicrobial intravenous-to-oral switch as an important antimicrobial stewardship intervention 
+    and have produced a decision aid to support this process. They list a number of potential benefits of 
+    switching from IV to oral antibiotics where clinically appropriate:
     
     * decreased risk of bloodstream and catheter-related infections  
     * reduced equipment costs, carbon footprint and hospital length of stay  
@@ -10,7 +15,14 @@ why_it_matters: |
     * released nursing time to care for patients  
 
 how_is_it_calculated: |
-     We use [ATC code](https://hospitals.openprescribing.net/faq/#what-is-the-anatomical-therapeutic-chemical-atc-system) [J01 'Antibacterials for systemic use'](https://atcddd.fhi.no/atc_ddd_index/?code=J01&showdescription=yes) to determine antibiotic products to include in the measure. We use dm+d route data to determine the route of administration. We divide the combined number of [defined daily doses (DDDs)](https://hospitals.openprescribing.net/faq/#what-is-a-defined-daily-dose-ddd) of intravenous antibiotics by the total number of DDDs of all oral and intravenous antibiotics and then multiply that by 100 to obtain a percentage each month. Teicoplanin and vancomycin injections are licensed for both the oral and intravenous route. We treat them as intravenous antibiotics in this measure as this represents the majority of the indications for use. A small number of relevant antibiotics do not have a DDD assigned by the WHO, these are excluded from the calculation. 
+     We use [ATC code](https://hospitals.openprescribing.net/faq/#what-is-the-anatomical-therapeutic-chemical-atc-system) 
+     [J01 'Antibacterials for systemic use'](https://atcddd.fhi.no/atc_ddd_index/?code=J01&showdescription=yes) to determine 
+     antibiotic products to include in the measure. We use dm+d route data to determine the route of administration. We divide 
+     the combined number of [Defined Daily Doses (DDDs)](https://hospitals.openprescribing.net/faq/#what-is-a-defined-daily-dose-ddd) 
+     of intravenous antibiotics by the total number of DDDs of all oral and intravenous antibiotics and then multiply that 
+     by 100 to obtain a percentage each month. Teicoplanin and vancomycin injections are licensed for both the oral and 
+     intravenous route. We treat them as intravenous antibiotics in this measure as this represents the majority of the indications 
+     for use. A small number of relevant antibiotics do not have a DDD assigned by the WHO, these are excluded from the calculation. 
 
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
