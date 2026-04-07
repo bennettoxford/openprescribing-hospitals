@@ -11,8 +11,7 @@
         denominatorvmps: { type: 'String', reflect: true },
         numeratorvmps: { type: 'String', reflect: true },
         annotations: { type: 'String', reflect: true },
-        defaultviewmode: { type: 'String', reflect: true },
-        userauthenticated: { type: 'String', reflect: true, attribute: 'user-authenticated' }
+        defaultviewmode: { type: 'String', reflect: true }
     },
     shadow: 'none'
 }} />
@@ -36,7 +35,6 @@
         filteredData,
     } from '../../stores/measureChartStore.js';
     import Chart from '../common/Chart.svelte';
-    import OrganisationSearch from '../common/OrganisationSearch.svelte';
     import OrganisationSearchFiltered from '../common/OrganisationSearchFiltered.svelte';
     import ModeSelector from '../common/ModeSelector.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore';
@@ -56,7 +54,6 @@
     export let numeratorvmps = '[]';
     export let annotations = '[]';
     export let defaultviewmode = 'trust';
-    export let userauthenticated = 'false';
 
     let trusts = [];
     let icbs = [];
@@ -890,25 +887,15 @@
     <div class="flex flex-col md:flex-row justify-between gap-4 px-4 sm:px-8">
         {#if showFilter}
             <div class="w-full md:w-7/12 relative z-10">
-                {#if userauthenticated === 'true'}
-                    <OrganisationSearchFiltered
-                        source={organisationSearchStore}
-                        filterResetKey={$selectedMode}
-                        overlayMode={true}
-                        filterAutoSelectsAll={percentilesDisabled}
-                        on:selectionChange={handleSelectionChange}
-                        on:clearAll={handleClearAll}
-                        disabled={$selectedMode === 'national'}
-                    />
-                {:else}
-                    <OrganisationSearch
-                        source={organisationSearchStore}
-                        overlayMode={true}
-                        on:selectionChange={handleSelectionChange}
-                        on:clearAll={handleClearAll}
-                        disabled={$selectedMode === 'national'}
-                    />
-                {/if}
+                <OrganisationSearchFiltered
+                    source={organisationSearchStore}
+                    filterResetKey={$selectedMode}
+                    overlayMode={true}
+                    filterAutoSelectsAll={percentilesDisabled}
+                    on:selectionChange={handleSelectionChange}
+                    on:clearAll={handleClearAll}
+                    disabled={$selectedMode === 'national'}
+                />
             </div>
         {:else}
             <div class="w-full md:w-7/12"></div>

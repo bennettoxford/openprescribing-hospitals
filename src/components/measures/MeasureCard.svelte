@@ -9,7 +9,6 @@
   export let linkClasses = 'bg-oxford-50 text-oxford-600 hover:bg-oxford-100';
   export let linkText = 'View measure details';
   export let cardClass = '';
-  export let isAuthenticated = false;
   export let trustSelected = false;
 
   $: trustOverlayActive = $mode === 'trust' && !!$selectedCode;
@@ -24,7 +23,7 @@
       : ($detailLinkQuery || '')
   );
   $: measureTrustsHref = '/measures/' + measure.slug + '/trusts/';
-  $: showAllTrustsButton = isAuthenticated && $mode === 'trust';
+  $: showAllTrustsButton = $mode === 'trust';
   $: initialChartData = '{}';
 </script>
 

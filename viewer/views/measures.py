@@ -3,12 +3,11 @@ import json
 from collections import defaultdict
 from datetime import datetime, timedelta
 from markdown2 import Markdown
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.cache import cache
 from django.views.generic import TemplateView
 from django.core.serializers.json import DjangoJSONEncoder
 from django.shortcuts import redirect
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse
 from django.utils.text import slugify
 from django.db.models import Count, Exists, OuterRef
 
@@ -376,49 +375,45 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
         is_authenticated = self.request.user.is_authenticated
         preview_mode = self.kwargs.get('preview_mode', False)
 
-        if is_authenticated:
-            selected_mode = (self.request.GET.get('mode') or 'trust').strip()
-            if selected_mode not in ('national', 'region', 'trust'):
-                selected_mode = 'trust'
-            selected_trust_code = (self.request.GET.get('trust') or '').strip() if selected_mode == 'trust' else ''
-            selected_region = (self.request.GET.get('region') or '').strip() if selected_mode == 'region' else ''
-            sort = (self.request.GET.get('sort') or 'name').strip()
-            denom_exists = MeasureVMP.objects.filter(measure=OuterRef('pk'), type='denominator')
-            if preview_mode:
-                preview_measures = Measure.objects.filter(status='preview').annotate(
-                    has_denominators=Exists(denom_exists)
-                ).prefetch_related('tags').order_by('name')
+        selected_mode = (self.request.GET.get('mode') or 'trust').strip()
+        if selected_mode not in ('national', 'region', 'trust'):
+            selected_mode = 'trust'
+        selected_trust_code = (self.request.GET.get('trust') or '').strip() if selected_mode == 'trust' else ''
+        selected_region = (self.request.GET.get('region') or '').strip() if selected_mode == 'region' else ''
+        sort = (self.request.GET.get('sort') or 'name').strip()
+        denom_exists = MeasureVMP.objects.filter(measure=OuterRef('pk'), type='denominator')
+        if preview_mode:
+            preview_measures = Measure.objects.filter(status='preview').annotate(
+                has_denominators=Exists(denom_exists)
+            ).prefetch_related('tags').order_by('name')
+            if is_authenticated:
                 in_development_measures = Measure.objects.filter(status='in_development').annotate(
                     has_denominators=Exists(denom_exists)
                 ).prefetch_related('tags').order_by('name')
-                archived_measures = []
                 measures = list(preview_measures) + list(in_development_measures)
             else:
-                measures = Measure.objects.filter(status='published').annotate(
-                    has_denominators=Exists(denom_exists)
-                ).prefetch_related('tags').order_by('name')
-                archived_measures = Measure.objects.filter(status='archived').annotate(
-                    has_denominators=Exists(denom_exists)
-                ).prefetch_related('tags').order_by('name')
-                preview_measures = []
-                in_development_measures = []
-        else:
-            sort = 'name'
-            archived_measures = []
-            if preview_mode:
-                preview_measures = Measure.objects.filter(status='preview').prefetch_related('tags').order_by('name')
                 in_development_measures = []
                 measures = list(preview_measures)
-            else:
-                measures = Measure.objects.filter(status='published').prefetch_related('tags').order_by('name')
-                preview_measures = []
-                in_development_measures = []
+            archived_measures = []
+        else:
+            measures = Measure.objects.filter(status='published').annotate(
+                has_denominators=Exists(denom_exists)
+            ).prefetch_related('tags').order_by('name')
+            archived_measures = Measure.objects.filter(status='archived').annotate(
+                has_denominators=Exists(denom_exists)
+            ).prefetch_related('tags').order_by('name')
+            preview_measures = []
+            in_development_measures = []
 
         if preview_mode:
-            # Only show tags used by preview and in_development measures
+            preview_tag_statuses = (
+                ['preview', 'in_development']
+                if is_authenticated
+                else ['preview']
+            )
             measure_tags = list(
                 MeasureTag.objects.filter(
-                    measures__status__in=['preview', 'in_development']
+                    measures__status__in=preview_tag_statuses
                 ).distinct().order_by('name')
             )
         else:
@@ -428,118 +423,116 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
                     measures__status__in=['published', 'archived']
                 ).distinct().order_by('name')
             )
-        tags_param = (self.request.GET.get('tags') or '').strip() if is_authenticated else ''
+        tags_param = (self.request.GET.get('tags') or '').strip()
         selected_tag = ','.join(s.strip() for s in tags_param.split(',') if s.strip()) if tags_param else ''
 
         markdowner = Markdown()
         for measure in list(measures) + list(archived_measures):
             measure.why_it_matters = markdowner.convert(measure.why_it_matters)
-            if is_authenticated:
-                measure.tag_slugs = ','.join(slugify(t.name) for t in measure.tags.all())
+            measure.tag_slugs = ','.join(slugify(t.name) for t in measure.tags.all())
             measure.is_new = _is_measure_new(measure)
 
-        if is_authenticated:
-            selected_code = {
-                'trust': (normalise_trust_code(selected_trust_code) or ''),
-                'region': selected_region,
-            }.get(selected_mode, '')
-            org_data = get_organisation_data()
-            region_list = get_region_list()
-            context.update({
-                "tags_json": json.dumps(
-                    [{"id": t.id, "name": t.name, "slug": slugify(t.name), "colour": t.colour or "#6b7280"}
-                     for t in measure_tags],
-                    cls=DjangoJSONEncoder,
-                ),
-                "selected_mode": selected_mode,
-                "selected_sort": sort,
-                "selected_code": selected_code,
-                "selected_tag": selected_tag,
-                "selected_trust_code": selected_trust_code,
-                "selected_trust_codes_param": selected_trust_code if selected_mode == 'trust' else "",
-                "org_data_json": json.dumps(org_data, cls=DjangoJSONEncoder),
-                "region_data_json": json.dumps(region_list, cls=DjangoJSONEncoder),
-            })
+        selected_code = {
+            'trust': (normalise_trust_code(selected_trust_code) or ''),
+            'region': selected_region,
+        }.get(selected_mode, '')
+        org_data = get_organisation_data()
+        region_list = get_region_list()
+        context.update({
+            "tags_json": json.dumps(
+                [{"id": t.id, "name": t.name, "slug": slugify(t.name), "colour": t.colour or "#6b7280"}
+                 for t in measure_tags],
+                cls=DjangoJSONEncoder,
+            ),
+            "selected_mode": selected_mode,
+            "selected_sort": sort,
+            "selected_code": selected_code,
+            "selected_tag": selected_tag,
+            "selected_trust_code": selected_trust_code,
+            "selected_trust_codes_param": selected_trust_code if selected_mode == 'trust' else "",
+            "org_data_json": json.dumps(org_data, cls=DjangoJSONEncoder),
+            "region_data_json": json.dumps(region_list, cls=DjangoJSONEncoder),
+        })
 
-            measures_for_charts = list(measures) + list(archived_measures)
-            if not measures_for_charts:
-                prefetched = {'national': {}, 'region': {}, 'trust_percentiles': {}, 'modes_by_slug': {}}
+        measures_for_charts = list(measures) + list(archived_measures)
+        if not measures_for_charts:
+            prefetched = {'national': {}, 'region': {}, 'trust_percentiles': {}, 'modes_by_slug': {}}
+        else:
+            slugs_part = ",".join(sorted(m.slug for m in measures_for_charts))
+            slugs_hash = hashlib.sha256(slugs_part.encode()).hexdigest()[:16]
+            cache_version = cache.get(MEASURES_LIST_CHART_CACHE_VERSION_KEY, 0)
+            cache_key = "measures_list_chart_data:{}:{}:{}".format(
+                "preview" if preview_mode else "published",
+                slugs_hash,
+                cache_version,
+            )
+            cached_chart = cache.get(cache_key)
+            if cached_chart is not None:
+                national_data, region_data, trust_percentiles_data = cached_chart
             else:
-                slugs_part = ",".join(sorted(m.slug for m in measures_for_charts))
-                slugs_hash = hashlib.sha256(slugs_part.encode()).hexdigest()[:16]
-                cache_version = cache.get(MEASURES_LIST_CHART_CACHE_VERSION_KEY, 0)
-                cache_key = "measures_list_chart_data:{}:{}:{}".format(
-                    "preview" if preview_mode else "published",
-                    slugs_hash,
-                    cache_version,
+                bulk_all_regions, bulk_national = get_bulk_regions_and_national_series_for_measures(measures_for_charts)
+                bulk_percentiles = get_bulk_percentiles_for_measures(measures_for_charts)
+                trust_counts = dict(
+                    PrecomputedMeasure.objects.filter(measure_id__in=[m.id for m in measures_for_charts])
+                    .values('measure_id')
+                    .annotate(count=Count('organisation_id', distinct=True))
+                    .values_list('measure_id', 'count')
                 )
-                cached_chart = cache.get(cache_key)
-                if cached_chart is not None:
-                    national_data, region_data, trust_percentiles_data = cached_chart
-                else:
-                    bulk_all_regions, bulk_national = get_bulk_regions_and_national_series_for_measures(measures_for_charts)
-                    bulk_percentiles = get_bulk_percentiles_for_measures(measures_for_charts)
-                    trust_counts = dict(
-                        PrecomputedMeasure.objects.filter(measure_id__in=[m.id for m in measures_for_charts])
-                        .values('measure_id')
-                        .annotate(count=Count('organisation_id', distinct=True))
-                        .values_list('measure_id', 'count')
-                    )
-                    national_data = {}
-                    region_data = {}
-                    trust_percentiles_data = {}
-                    measures_with_few_trusts = [m for m in measures_for_charts if trust_counts.get(m.id, 0) < 30]
-                    bulk_trust_series_per_org = (
-                        get_bulk_trust_series_for_measures(measures_with_few_trusts, per_org=True)
-                        if measures_with_few_trusts else {}
-                    )
-                    for measure in measures_for_charts:
-                        national_data[measure.slug] = build_national_chart_data(measure, bulk_national)
-                        region_data[measure.slug] = build_region_chart_data(measure, bulk_all_regions)
-                        chart_data = build_trust_chart_data(measure, bulk_percentiles)
-                        trust_count = trust_counts.get(measure.id, 0)
-                        trust_series = bulk_trust_series_per_org.get(measure.id, {}) if trust_count < 30 else {}
-                        if chart_data:
-                            chart_data['trust_count'] = trust_count
-                            if trust_series:
-                                chart_data['trustSeries'] = trust_series
-                            trust_percentiles_data[measure.slug] = chart_data
-                        elif trust_series:
-                            trust_percentiles_data[measure.slug] = {
-                                'trust_count': trust_count,
-                                'trustSeries': trust_series,
-                            }
-                    cache.set(
-                        cache_key,
-                        (national_data, region_data, trust_percentiles_data),
-                        timeout=MEASURES_LIST_CHART_CACHE_TIMEOUT,
-                    )
-                modes_by_slug = {m.slug: selected_mode for m in measures_for_charts}
-                prefetched = {
-                    'national': national_data,
-                    'region': region_data,
-                    'trust_percentiles': trust_percentiles_data,
-                    'modes_by_slug': modes_by_slug,
-                }
-            context["chart_data_json"] = json.dumps(prefetched, cls=DjangoJSONEncoder)
-            if preview_mode:
-                context["measures_json"] = "[]"
-                context["preview_measures_json"] = _serialize_measures(
-                    preview_measures, 'viewer:measure_preview_item', prefetched
+                national_data = {}
+                region_data = {}
+                trust_percentiles_data = {}
+                measures_with_few_trusts = [m for m in measures_for_charts if trust_counts.get(m.id, 0) < 30]
+                bulk_trust_series_per_org = (
+                    get_bulk_trust_series_for_measures(measures_with_few_trusts, per_org=True)
+                    if measures_with_few_trusts else {}
                 )
-                context["in_development_measures_json"] = _serialize_measures(
-                    in_development_measures, 'viewer:measure_preview_item', prefetched
+                for measure in measures_for_charts:
+                    national_data[measure.slug] = build_national_chart_data(measure, bulk_national)
+                    region_data[measure.slug] = build_region_chart_data(measure, bulk_all_regions)
+                    chart_data = build_trust_chart_data(measure, bulk_percentiles)
+                    trust_count = trust_counts.get(measure.id, 0)
+                    trust_series = bulk_trust_series_per_org.get(measure.id, {}) if trust_count < 30 else {}
+                    if chart_data:
+                        chart_data['trust_count'] = trust_count
+                        if trust_series:
+                            chart_data['trustSeries'] = trust_series
+                        trust_percentiles_data[measure.slug] = chart_data
+                    elif trust_series:
+                        trust_percentiles_data[measure.slug] = {
+                            'trust_count': trust_count,
+                            'trustSeries': trust_series,
+                        }
+                cache.set(
+                    cache_key,
+                    (national_data, region_data, trust_percentiles_data),
+                    timeout=MEASURES_LIST_CHART_CACHE_TIMEOUT,
                 )
-                context["archived_measures_json"] = "[]"
-            else:
-                context["measures_json"] = _serialize_measures(
-                    measures, 'viewer:measure_item', prefetched
-                )
-                context["preview_measures_json"] = "[]"
-                context["in_development_measures_json"] = "[]"
-                context["archived_measures_json"] = _serialize_measures(
-                    archived_measures, 'viewer:measure_item', prefetched
-                )
+            modes_by_slug = {m.slug: selected_mode for m in measures_for_charts}
+            prefetched = {
+                'national': national_data,
+                'region': region_data,
+                'trust_percentiles': trust_percentiles_data,
+                'modes_by_slug': modes_by_slug,
+            }
+        context["chart_data_json"] = json.dumps(prefetched, cls=DjangoJSONEncoder)
+        if preview_mode:
+            context["measures_json"] = "[]"
+            context["preview_measures_json"] = _serialize_measures(
+                preview_measures, 'viewer:measure_preview_item', prefetched
+            )
+            context["in_development_measures_json"] = _serialize_measures(
+                in_development_measures, 'viewer:measure_preview_item', prefetched
+            )
+            context["archived_measures_json"] = "[]"
+        else:
+            context["measures_json"] = _serialize_measures(
+                measures, 'viewer:measure_item', prefetched
+            )
+            context["preview_measures_json"] = "[]"
+            context["in_development_measures_json"] = "[]"
+            context["archived_measures_json"] = _serialize_measures(
+                archived_measures, 'viewer:measure_item', prefetched
+            )
 
         context["measures"] = measures if not preview_mode else []
         context["preview_measures"] = preview_measures
@@ -740,11 +733,20 @@ class BaseMeasureItemView(TemplateView):
         }
 
 
-class MeasureTrustsView(LoginRequiredMixin, MaintenanceModeMixin, TemplateView):
+class MeasureTrustsView(MaintenanceModeMixin, TemplateView):
     """View showing one percentile chart per trust for a given measure."""
 
     template_name = "measure_trusts.html"
-    login_url = reverse_lazy("viewer:login")
+
+    def dispatch(self, request, *args, **kwargs):
+        slug = kwargs.get("slug")
+        try:
+            measure = Measure.objects.only("status").get(slug=slug)
+        except Measure.DoesNotExist:
+            return super().dispatch(request, *args, **kwargs)
+        if measure.status == "in_development" and not request.user.is_authenticated:
+            return redirect("viewer:measures_list")
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -840,9 +842,6 @@ class MeasureItemView(MaintenanceModeMixin, BaseMeasureItemView):
             
             if measure.status not in ('published', 'archived'):
                 return redirect('viewer:measures_list')
-            if measure.status == 'archived' and not request.user.is_authenticated:
-                return redirect('viewer:measures_list')
-
             return super().dispatch(request, *args, **kwargs)
             
         except Exception:
