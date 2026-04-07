@@ -2,7 +2,11 @@ name: Access, Watch and Reserve (AWaRe) Antibiotics
 short_name: AWaRe Antibiotics
 description: Percentage of antibiotic DDDs that are classified as "Watch" or "Reserve" antibiotics according to the UK-AWaRe classification.
 why_it_matters: |
-    The UK Health Security Agency (UKHSA) has developed the [UK-AWaRe classification](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification) adapted from the [World Health Organization's (WHO) AWaRe classification](https://www.who.int/publications/i/item/WHO-MHP-HPS-EML-2023.04). The UK adapted classification takes into account antibiotic resistance profiles, antibiotic prescribing and stewardship practice in the UK. The classification groups antibiotics into four categories to support appropriate prescribing and promote effective antimicrobial stewardship: 
+    The UK Health Security Agency (UKHSA) has developed the 
+    [UK-AWaRe classification](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification) 
+    adapted from the [World Health Organization's (WHO) AWaRe classification](https://www.who.int/publications/i/item/WHO-MHP-HPS-EML-2023.04). 
+    The UK adapted classification takes into account antibiotic resistance profiles, antibiotic prescribing and stewardship practice in the UK. 
+    The classification groups antibiotics into four categories to support appropriate prescribing and promote effective antimicrobial stewardship: 
     
     > **Access**  
     > Access antibiotics are those with a narrow spectrum of activity, fewer side effects, lower costs, and importantly lower resistance potential. These are first or second choice antibiotics recommended for empiric treatment of the most common infections and should be widely available. That is to say, these antibiotics should offer the best therapeutic value while minimising the potential for resistance.
@@ -18,13 +22,19 @@ why_it_matters: |
     
     The [NHS Standard Contract](https://www.england.nhs.uk/nhs-standard-contract/) requires that providers must "use all reasonable endeavours, consistent with good practice, to minimise its Broad-Spectrum Antibiotic Usage in accordance with the requirements of the [National Action Plan for Antimicrobial Resistance](https://www.gov.uk/government/publications/uk-5-year-action-plan-for-antimicrobial-resistance-2024-to-2029)". Monitoring the use of "Watch" and "Reserve" antibiotics can help identify areas to improve prescribing, encouraging the appropriate use of "Access" antibiotics where clinically appropriate.
 how_is_it_calculated: >
-    The numerator includes all [defined daily doses (DDDs)](https://hospitals.openprescribing.net/faq/#what-is-a-defined-daily-dose-ddd) of antibiotics classified as "Watch" or "Reserve" in the [UK-AWaRe list](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification). The denominator includes all DDDs of antibiotics classified as "Access", "Watch", or "Reserve" in the [UK-AWaRe list](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification). This creates a percentage showing the proportion of higher-concern antibiotics (Watch and Reserve) relative to all classified antibiotics used. "Other" antibiotics are excluded from both the numerator and denominator as they do not fit into the Access, Watch, or Reserve categories. A small number of relevant antibiotics do not have a DDD assigned by the WHO, these are excluded from the calculation. 
+    The numerator includes all [Defined Daily Doses (DDDs)](https://hospitals.openprescribing.net/faq/#what-is-a-defined-daily-dose-ddd) of antibiotics classified as "Watch" or "Reserve" in the 
+    [UK-AWaRe list](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification). 
+    The denominator includes all DDDs of antibiotics classified as "Access", "Watch", or "Reserve" in the 
+    [UK-AWaRe list](https://www.gov.uk/government/publications/uk-aware-antibiotic-classification/uk-access-watch-reserve-and-other-classification-for-antibiotics-uk-aware-antibiotic-classification). 
+    This creates a percentage showing the proportion of higher-concern antibiotics (Watch and Reserve) relative to all classified antibiotics used. "Other" antibiotics are excluded from both the numerator 
+    and denominator as they do not fit into the Access, Watch, or Reserve categories. A small number of relevant antibiotics do not have a DDD assigned by the WHO, these are excluded from the calculation. 
 tags:
     - Antimicrobial stewardship
 quantity_type: ddd
 lower_is_better: true
 authored_by: Chris Wood
-checked_by: TBC
-date_reviewed: 2026-03-09 # Date of last review (YYYY-MM-DD)
-next_review: 2027-03-09 # Date of next scheduled review (YYYY-MM-DD)
-status: preview
+checked_by: Victoria Speed
+date_reviewed: 2026-04-01 # Date of last review (YYYY-MM-DD)
+next_review: 2027-04-01 # Date of next scheduled review (YYYY-MM-DD)
+first_published: 2026-04-01 # Date of first publication (YYYY-MM-DD)
+status: published
