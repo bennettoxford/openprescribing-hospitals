@@ -131,8 +131,19 @@
         useHTML: true,
         hideDelay: 0,
         formatter() {
-          if (!this.series?.options?.custom?.trustName) return false;
-          return `<div class="font-medium" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:600;font-size:14px">${this.series.options.custom.trustName}</div>`;
+          const style =
+            "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:600;font-size:14px";
+          if (chartMode === 'trust') {
+            const trustName = this.series?.options?.custom?.trustName;
+            if (!trustName) return false;
+            return `<div class="font-medium" style="${style}">${trustName}</div>`;
+          }
+          if (chartMode === 'region') {
+            const regionName = this.series?.options?.custom?.regionName;
+            if (!regionName) return false;
+            return `<div class="font-medium" style="${style}">${regionName}</div>`;
+          }
+          return false;
         }
       },
       plotOptions: {
@@ -185,7 +196,10 @@
       lineWidth: data.highlightRegion === name ? 4 : 2,
       opacity: data.highlightRegion && data.highlightRegion !== name ? 0.3 : 1,
       zIndex: data.highlightRegion === name ? 2 : 1,
-      enableMouseTracking: false
+      enableMouseTracking: true,
+      custom: { regionName: name },
+      states: { hover: { enabled: true, lineWidthPlus: 1 } },
+      marker: { enabled: false, states: { hover: { enabled: true, radius: 4 } } }
     }));
   }
 
