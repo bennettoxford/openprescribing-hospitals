@@ -211,13 +211,17 @@
             const allSlugs = new Set(Object.keys(trust_percentiles || {}));
             const chartBySlug = {};
             const modesBySlug = {};
+            const trustDisplayName = (parsedOrgData.orgs || {})[code] || '';
+
             for (const slug of allSlugs) {
                 const base = trust_percentiles[slug] || {};
                 const overlay = trust_overlay?.[slug];
 
                 chartBySlug[slug] = {
                     ...base,
-                    ...(overlay?.trustData ? { trustData: overlay.trustData } : {}),
+                    ...(overlay?.trustData
+                        ? { trustData: overlay.trustData, trustName: trustDisplayName }
+                        : {}),
                 };
                 modesBySlug[slug] = 'trust';
             }
