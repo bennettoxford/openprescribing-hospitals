@@ -130,7 +130,7 @@ export function convertToCSV(data, excludedVmps = [], selectedTrusts = null, mon
 /**
  * Convert trust totals to CSV format - lists all trusts with total issuing quantity over the period
  * @param {Array} data - The normalised analysis data
- * @param {Array} allOrganisations - List of {name, code, region, icb} for all trusts to include
+ * @param {Array} allOrganisations - List of {name, code, region, icb, trustType?} for all trusts to include
  * @param {Array} excludedVmps - List of excluded VMP codes
  * @param {Array} months - Months array
  * @returns {string} CSV formatted trust summary
@@ -160,7 +160,7 @@ export function convertTrustsSummaryToCSV(data, allOrganisations = [], excludedV
         if (item.unit) entry.units.add(item.unit);
     });
 
-    const headers = ['Trust Code', 'Trust Name', 'Region', 'ICB', 'Total Quantity', 'Unit'];
+    const headers = ['Trust Code', 'Trust Name', 'Region', 'ICB', 'Trust Type', 'Total Quantity', 'Unit'];
     const rows = [headers.join(',')];
 
     allOrganisations.forEach(org => {
@@ -168,11 +168,13 @@ export function convertTrustsSummaryToCSV(data, allOrganisations = [], excludedV
         const total = entry ? entry.total : 0;
         const unitSet = entry?.units || new Set();
         const unit = unitSet.size === 0 ? '' : unitSet.size === 1 ? [...unitSet][0] : 'multiple';
+        const trustType = org.trustType ?? org.trust_type ?? '';
         rows.push([
             org.code || '',
             `"${(org.name || '').replace(/"/g, '""')}"`,
             `"${(org.region || '').replace(/"/g, '""')}"`,
             `"${(org.icb || '').replace(/"/g, '""')}"`,
+            `"${(String(trustType)).replace(/"/g, '""')}"`,
             total,
             `"${(unit || '').replace(/"/g, '""')}"`
         ].join(','));
@@ -239,7 +241,7 @@ export function downloadCompressedCSV(csvContent, percentilesCsvContent = null, 
  * @param {Array} percentilesData - The percentiles data
  * @param {string} filename - Optional filename for the download
  * @param {Array} months - Months array
- * @param {Array} allOrganisations - Optional list of {name, code, region, icb} for trusts to include in the summary file
+ * @param {Array} allOrganisations - Optional list of {name, code, region, icb, trustType?} for trusts to include in the summary file
  */
 export function exportAnalysisDataToCSV(data, excludedVmps = [], selectedTrusts = null, percentilesData = [], filename = null, months = [], allOrganisations = null) {
     const csvContent = convertToCSV(data, excludedVmps, selectedTrusts, months);

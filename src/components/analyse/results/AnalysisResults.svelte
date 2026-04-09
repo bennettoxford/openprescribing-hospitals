@@ -736,12 +736,14 @@
                                                 const orgCodes = $organisationSearchStore.orgCodes || new Map();
                                                 const orgRegions = $organisationSearchStore.orgRegions || new Map();
                                                 const orgIcbs = $organisationSearchStore.orgIcbs || new Map();
+                                                const orgTrustTypes = $organisationSearchStore.trustTypes || new Map();
                                                 return allNames.map(name => {
                                                     return {
                                                         name,
                                                         code: orgCodes.get?.(name) ?? null,
                                                         region: orgRegions.get?.(name) ?? null,
-                                                        icb: orgIcbs.get?.(name) ?? null
+                                                        icb: orgIcbs.get?.(name) ?? null,
+                                                        trustType: orgTrustTypes.get?.(name) ?? null
                                                     };
                                                 });
                                             })(),
