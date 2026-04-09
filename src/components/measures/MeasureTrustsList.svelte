@@ -291,7 +291,7 @@
                         </div>
                         <div class="p-2 flex-grow min-h-0 overflow-visible" style="height: 280px;">
                             <measure-mini-chart
-                                chartdata={chartDataByTrust[trustName] ? JSON.stringify({ ...chartDataByTrust[trustName], trust_count: searchableOrgs.length }) : '{}'}
+                                chartdata={chartDataByTrust[trustName] ? JSON.stringify({ ...chartDataByTrust[trustName], trust_count: searchableOrgs.length, trustName }) : '{}'}
                                 mode="trust"
                                 ispercentage={measureHasDenominators}
                                 quantitytype={measureQuantityType}

@@ -1316,9 +1316,6 @@ def get_measures_chart_data(request):
     """
     Fetch measure data for a single trust.
     """
-    if not request.user.is_authenticated:
-        return JsonResponse({"error": "Authentication required"}, status=403)
-
     try:
         trust_code = request.GET.get('trust', '').strip()
         if not trust_code:
@@ -1326,7 +1323,13 @@ def get_measures_chart_data(request):
 
         preview = request.GET.get('preview', 'false').lower() == 'true'
         denom_exists = MeasureVMP.objects.filter(measure=OuterRef('pk'), type='denominator')
-        status_filter = {'status__in': ['preview', 'in_development']} if preview else {'status': 'published'}
+        if preview:
+            if request.user.is_authenticated:
+                status_filter = {'status__in': ['preview', 'in_development']}
+            else:
+                status_filter = {'status': 'preview'}
+        else:
+            status_filter = {'status': 'published'}
         measures = list(
             Measure.objects.filter(**status_filter)
             .annotate(has_denominators=Exists(denom_exists))

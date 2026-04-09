@@ -125,7 +125,16 @@
       credits: { enabled: false },
       legend: { enabled: false },
       exporting: { enabled: false },
-      tooltip: { enabled: false },
+      tooltip: {
+        enabled: true,
+        outside: true,
+        useHTML: true,
+        hideDelay: 0,
+        formatter() {
+          if (!this.series?.options?.custom?.trustName) return false;
+          return `<div class="font-medium" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-weight:600;font-size:14px">${this.series.options.custom.trustName}</div>`;
+        }
+      },
       plotOptions: {
         series: {
           animation: false,
@@ -219,9 +228,18 @@
       series.push({ type: 'line', data: data.percentiles[50], color: '#DC3220', lineWidth: 2, zIndex: 2 });
     }
 
-    // Selected trust overlay
     if (data.trustData) {
-      series.push({ type: 'line', data: data.trustData, color: TRUST_OVERLAY_COLOR, lineWidth: 3, zIndex: 3 });
+      series.push({
+        type: 'line',
+        data: data.trustData,
+        color: TRUST_OVERLAY_COLOR,
+        lineWidth: 3,
+        zIndex: 3,
+        enableMouseTracking: true,
+        custom: { trustName: data.trustName || '' },
+        states: { hover: { enabled: true, lineWidthPlus: 1 } },
+        marker: { enabled: false, states: { hover: { enabled: true, radius: 4 } } }
+      });
     }
 
     return series;

@@ -7,7 +7,6 @@
     archivedMeasures: { type: 'String', reflect: true },
     chartData: { type: 'String', reflect: true },
     previewMode: { type: 'String', reflect: true },
-    userAuthenticated: { type: 'String', reflect: true },
     measureTrustsBasePath: { type: 'String', reflect: true },
     orgData: { type: 'String', reflect: true },
     regionData: { type: 'String', reflect: true },
@@ -34,7 +33,6 @@
   export let archivedMeasures = '[]';
   export let chartData = '{}';
   export let previewMode = 'false';
-  export let userAuthenticated = 'false';
   export let measureTrustsBasePath = '/measures/';
   export let orgData = '{}';
   export let regionData = '[]';
@@ -97,21 +95,19 @@
   }
 </script>
 
-{#if userAuthenticated === 'true'}
-  <div class="mb-8">
-    <MeasuresListControls
-      orgData={orgData}
-      regionData={regionData}
-      chartDataJson={chartData}
-      selectedMode={initialMode}
-      selectedCode={initialCode}
-      selectedSort={initialSort}
-      tagsData={tagsData}
-      selectedTags={initialTags}
-      archivedCount={parsedArchivedMeasures.length}
-    />
-  </div>
-{/if}
+<div class="mb-8">
+  <MeasuresListControls
+    orgData={orgData}
+    regionData={regionData}
+    chartDataJson={chartData}
+    selectedMode={initialMode}
+    selectedCode={initialCode}
+    selectedSort={initialSort}
+    tagsData={tagsData}
+    selectedTags={initialTags}
+    archivedCount={parsedArchivedMeasures.length}
+  />
+</div>
 
 {#if hasFiltersWithNoResults}
   <div class="mb-8 p-6 bg-gray-50 border border-gray-200 rounded-lg text-center">
@@ -133,7 +129,6 @@
             linkText: 'View archived measure',
             cardClass: 'bg-gray-50',
           }}
-          isAuthenticated={userAuthenticated === 'true'}
           trustSelected={trustOverlayActive}
           {measureTrustsBasePath}
         />
@@ -168,7 +163,6 @@
             statusBadgeClass="bg-blue-100 text-blue-800"
             linkClasses="bg-blue-50 text-blue-600 hover:bg-blue-100"
             linkText="View preview"
-            isAuthenticated={userAuthenticated === 'true'}
             trustSelected={trustOverlayActive}
             {measureTrustsBasePath}
           />
@@ -208,7 +202,6 @@
             statusBadgeClass="bg-amber-100 text-amber-800"
             linkClasses="bg-amber-50 text-amber-600 hover:bg-amber-100"
             linkText="View in development"
-            isAuthenticated={userAuthenticated === 'true'}
             trustSelected={trustOverlayActive}
             {measureTrustsBasePath}
           />

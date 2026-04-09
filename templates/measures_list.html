@@ -3,9 +3,7 @@
 {% load django_vite %}
 
 {% block head %}
-    {% if user.is_authenticated %}
     {% vite_asset 'src/components/measures/MeasuresList.svelte' %}
-    {% endif %}
 {% endblock %}
 
 {% block title %}{% if preview_mode %}Measure Previews{% else %}Measures{% endif %}{% endblock %}
@@ -63,7 +61,6 @@
             </div>
         </div>
 
-        {% if user.is_authenticated %}
         <measures-list
             measures="{{ measures_json|default:'[]' }}"
             previewMeasures="{{ preview_measures_json|default:'[]' }}"
@@ -71,7 +68,6 @@
             archivedMeasures="{{ archived_measures_json|default:'[]' }}"
             chartData="{{ chart_data_json|default:'{}' }}"
             previewMode="{{ preview_mode|yesno:'true,false' }}"
-            userAuthenticated="true"
             measureTrustsBasePath="{{ measure_trusts_base_path|default:'/measures/' }}"
             orgData="{{ org_data_json }}"
             regionData="{{ region_data_json }}"
@@ -81,37 +77,6 @@
             initialSort="{{ selected_sort|default:'name' }}"
             initialTags="{{ selected_tag|default:'' }}"
         ></measures-list>
-        {% else %}
-        {% if not preview_mode and measures %}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {% for measure in measures %}
-                {% include "partials/_measure_card_simple.html" with detail_url_name="viewer:measure_item" link_classes="bg-oxford-50 text-oxford-600 hover:bg-oxford-100" link_text="View measure" %}
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        {% if preview_measures %}
-        <div class="mb-12">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {% for measure in preview_measures %}
-                    {% include "partials/_measure_card_simple.html" with detail_url_name="viewer:measure_preview_item" card_header_class="bg-blue-50 py-2 px-4 border-b border-gray-100" status_badge="Preview" status_badge_class="bg-blue-100 text-blue-800" link_classes="bg-blue-50 text-blue-600 hover:bg-blue-100" link_text="View preview" %}
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-
-        {% if in_development_measures %}
-        <div class="mb-12">
-            <h2 class="text-2xl font-semibold mb-6 text-gray-900">In Development</h2>
-            <p class="text-gray-600 mb-6">These measures are currently in development. Public previews are not available for these measures. You can see them because you are logged in.</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {% for measure in in_development_measures %}
-                    {% include "partials/_measure_card_simple.html" with detail_url_name="viewer:measure_preview_item" card_header_class="bg-amber-50 py-2 px-4 border-b border-gray-100" status_badge="🚧 In development" status_badge_class="bg-amber-100 text-amber-800" link_classes="bg-amber-50 text-amber-600 hover:bg-amber-100" link_text="View in development" %}
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        {% endif %}
 
     </div>
 </div>
