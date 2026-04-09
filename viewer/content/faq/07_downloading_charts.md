@@ -60,8 +60,7 @@ This file lists all NHS Trusts in scope for the analysis, with their total issui
 - **Trust Name**: The name for the NHS Trust
 - **Region**: The NHS region the trust belongs to
 - **ICB**: The Integrated Care Board (ICB) the trust belongs to
-- **Predecessors**: ODS codes of trusts that have merged into this trust (if applicable)
-- **Successors**: ODS codes of trusts this trust has merged into (if applicable)
+- **Trust Type**: The NHS trust’s [type classification](/faq/#how-are-trust-types-determined).
 - **Total Quantity**: The total quantity issued across the analysis period
 - **Unit**: The unit of measure (or "multiple" if different products use different units)
 
