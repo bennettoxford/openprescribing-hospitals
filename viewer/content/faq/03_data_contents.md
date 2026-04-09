@@ -45,7 +45,7 @@ The platform includes data from all NHS hospital trusts in England that submit d
 
 ### How are trust types determined?
 
-The trust type for each trust submitting data to the SCMD is taken from the [Estates Returns Information Collection (ERIC)](https://digital.nhs.uk/data-and-information/publications/statistical/estates-returns-information-collection). This is a data collection containing information relating to the costs of providing and maintaining NHS estates and is mandatory for all NHS trusts. Within this, every trust is assigned a single trust type. There are 9 types of trust:
+The trust type for each trust submitting data to the SCMD is taken from the [Estates Returns Information Collection (ERIC)](https://digital.nhs.uk/data-and-information/publications/statistical/estates-returns-information-collection). This is a data collection containing information relating to the costs of providing and maintaining NHS estates and is mandatory for all NHS trusts. Within this, every trust is assigned a single trust type. We explain the categories and how they are identified in more depth in our blog post,[Understanding NHS trust types](https://www.bennett.ox.ac.uk/blog/2026/04/understanding-nhs-trust-types/). There are 9 types of trust:
 
 * Acute -Teaching
 * Acute - Small
