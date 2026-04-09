@@ -10,6 +10,7 @@
   export let linkText = 'View measure details';
   export let cardClass = '';
   export let trustSelected = false;
+  export let measureTrustsBasePath = '/measures/';
 
   $: trustOverlayActive = $mode === 'trust' && !!$selectedCode;
   $: measureChartData = $chartData[measure.slug];
@@ -22,7 +23,7 @@
       ? ''
       : ($detailLinkQuery || '')
   );
-  $: measureTrustsHref = '/measures/' + measure.slug + '/trusts/';
+  $: measureTrustsHref = `${measureTrustsBasePath.replace(/\/?$/, '/')}${measure.slug}/trusts/`;
   $: showAllTrustsButton = $mode === 'trust';
   $: initialChartData = '{}';
 </script>
