@@ -19,6 +19,9 @@
     let isLoading = false;
     let lastSearchResults = [];
     let searchBoxRef;
+    let dropdownRef;
+    let searchInputRef;
+    let isOpen = false;
 
     let listContainer;
     let showScrollTop = false;
@@ -145,8 +148,7 @@
         
         dispatch('selectionChange', { items: selectedItems });
         calculateVmpCount();
-        filteredItems = [];
-        searchTerm = '';
+        isOpen = true;
     }
 
     function handleRemove(item) {
@@ -154,6 +156,14 @@
         selectedItemsData = selectedItemsData.filter(data => !(data.code === item.code && data.type === item.type));
         dispatch('selectionChange', { items: selectedItems });
         calculateVmpCount();
+    }
+
+    function deselectAll() {
+        selectedItems = [];
+        selectedItemsData = [];
+        expandedItems = new Set();
+        vmpCount = 0;
+        dispatch('selectionChange', { items: selectedItems });
     }
 
     function handleTypeChange(newType) {
@@ -202,18 +212,17 @@
     }
 
     onMount(() => {
-        setTimeout(() => {
-            listContainer = document.querySelector('.search-box .overflow-y-auto');
-            if (listContainer) {
-                listContainer.addEventListener('scroll', updateScrollButtonVisibility);
-                updateScrollButtonVisibility();
+        const handleClickOutside = (event) => {
+            const inside = dropdownRef && dropdownRef.contains(event.target);
+            const inputFocused = searchInputRef === document.activeElement;
+            if (!inside && !inputFocused && isOpen) {
+                isOpen = false;
             }
-        }, 100);
+        };
+        document.addEventListener('click', handleClickOutside);
 
         return () => {
-            if (listContainer) {
-                listContainer.removeEventListener('scroll', updateScrollButtonVisibility);
-            }
+            document.removeEventListener('click', handleClickOutside);
         };
     });
 
@@ -244,6 +253,12 @@
                      type === 'ingredient' ? "Search by ingredient name or dm+d code..." :
                      type === 'atc' ? "Search by ATC level name or ATC code..." :
                      "Search by product name or code...";
+
+    $: resultsPanelOpen =
+        isOpen &&
+        ((searchTerm && searchTerm.length < 3) ||
+            filteredItems.length > 0 ||
+            isLoading);
 </script>
 
 <div 
@@ -258,28 +273,30 @@
     </div>
 
     <div class="grid gap-4">
-        <div class="relative pointer-events-auto">
+        <div class="relative pointer-events-auto" bind:this={dropdownRef}>
             <div class="relative">
                 <input
                     type="text"
                     {placeholder}
+                    bind:this={searchInputRef}
                     bind:value={searchTerm}
                     on:input={handleInput}
                     on:focus={() => {
+                        isOpen = true;
                         if (searchTerm && lastSearchResults.length > 0) {
                             filteredItems = lastSearchResults;
                         }
                     }}
                     on:keydown={(e) => {
-                        if (e.key === 'Escape' && searchTerm) {
+                        if (e.key === 'Escape') {
                             e.preventDefault();
-                            searchTerm = '';
-                            filteredItems = [];
-                            lastSearchResults = [];
+                            if (isOpen) {
+                                isOpen = false;
+                            }
                         }
                     }}
                     class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500 pr-8 placeholder:text-sm
-                           {filteredItems.length > 0 ? 'rounded-b-none' : ''}"
+                           {resultsPanelOpen ? 'rounded-b-none' : ''}"
                 />
                 {#if isLoading}
                     <div class="absolute right-8 top-1/2 -translate-y-1/2 flex items-center z-20">
@@ -296,15 +313,26 @@
                 {/if}
             </div>
 
-            {#if searchTerm && searchTerm.length < 3}
-                <div class="bg-white border border-gray-300 rounded-b-md shadow-lg p-3">
-                    <p class="text-gray-600 text-sm">
-                        Please type at least 3 characters to start searching
-                    </p>
+            {#if isOpen && searchTerm && searchTerm.length < 3}
+                <div class="bg-white border border-gray-300 rounded-b-md shadow-lg overflow-hidden">
+                    <div class="p-3">
+                        <p class="text-gray-600 text-sm">
+                            Please type at least 3 characters to start searching
+                        </p>
+                    </div>
+                    <div class="py-2 px-3 border-t border-gray-200 flex justify-end bg-gray-50">
+                        <button
+                            type="button"
+                            on:click={() => (isOpen = false)}
+                            class="inline-flex justify-center items-center px-3 py-1.5 bg-oxford-50 text-oxford-600 rounded-md hover:bg-oxford-100 transition-colors duration-200 font-medium text-sm border border-oxford-200"
+                        >
+                            Done
+                        </button>
+                    </div>
                 </div>
-            {:else if filteredItems.length > 0 || isLoading}
-                <div class="bg-white">
-                    <ul class="border border-gray-300 rounded-none border-t-0 max-h-[50vh] overflow-y-auto divide-y divide-gray-200 bg-white {!showScrollTop ? 'rounded-b-md' : ''}"
+            {:else if isOpen && (filteredItems.length > 0 || isLoading)}
+                <div class="bg-white border border-gray-300 border-t-0 rounded-b-md shadow-lg overflow-hidden">
+                    <ul class="max-h-[50vh] overflow-y-auto divide-y divide-gray-200 bg-white"
                         bind:this={listContainer}
                         on:scroll={updateScrollButtonVisibility}>
                         {#each filteredItems as item}
@@ -468,31 +496,53 @@
                             {/if}
                         {/each}
                     </ul>
-                    {#if showScrollTop}
-                        <button
-                            on:click={() => {
-                                if (listContainer) {
-                                    listContainer.scrollTo({ top: 0 });
-                                }
-                            }}
-                            class="w-full p-2 bg-gray-100 border-t border-gray-200 flex items-center justify-center hover:bg-oxford-50 active:bg-oxford-100 cursor-pointer transition-colors duration-150 gap-2 rounded-b-md"
-                        >
-                            <span class="text-sm font-medium text-gray-700">
-                                Click to scroll to top
-                            </span>
-                            <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                            </svg>
-                        </button>
-                    {/if}
+                    <div class="py-2 px-3 border-t border-gray-200 flex items-center gap-2 bg-gray-50">
+                        <div class="w-20 shrink-0"></div>
+                        <div class="flex-grow flex justify-center min-h-[2.25rem] items-center">
+                            {#if showScrollTop}
+                                <button
+                                    type="button"
+                                    on:click={() => {
+                                        if (listContainer) {
+                                            listContainer.scrollTo({ top: 0 });
+                                        }
+                                    }}
+                                    class="inline-flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-oxford-600 transition-colors"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                                    </svg>
+                                    Scroll to top
+                                </button>
+                            {/if}
+                        </div>
+                        <div class="w-20 shrink-0 flex justify-end">
+                            <button
+                                type="button"
+                                on:click={() => (isOpen = false)}
+                                class="inline-flex justify-center items-center px-3 py-1.5 bg-oxford-50 text-oxford-600 rounded-md hover:bg-oxford-100 transition-colors duration-200 font-medium text-sm border border-oxford-200"
+                            >
+                                Done
+                            </button>
+                        </div>
+                    </div>
                 </div>
             {/if}
         </div>
         {#if selectedItems.length > 0}
             <div>
-                <h3 class="font-medium text-sm text-gray-900 mb-3">
-                    Selected items
-                </h3>
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <h3 class="font-medium text-sm text-gray-900">
+                        Selected items
+                    </h3>
+                    <button
+                        type="button"
+                        class="text-red-600 hover:text-red-800 font-medium text-xs py-1.5 px-2 sm:py-0.5 sm:px-1.5 rounded hover:bg-red-50 transition-colors shrink-0"
+                        on:click={deselectAll}
+                    >
+                        Deselect all
+                    </button>
+                </div>
                 <ul class="bg-white border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
                     {#each selectedItemsWithData as {item, data}}
                         {@const code = item.code}
