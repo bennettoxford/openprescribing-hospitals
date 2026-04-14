@@ -304,7 +304,7 @@
                 </div>
             {:else if filteredItems.length > 0 || isLoading}
                 <div class="bg-white">
-                    <ul class="border border-gray-300 rounded-none border-t-0 max-h-[20vh] overflow-y-auto divide-y divide-gray-200 bg-white {!showScrollTop ? 'rounded-b-md' : ''}"
+                    <ul class="border border-gray-300 rounded-none border-t-0 max-h-[50vh] overflow-y-auto divide-y divide-gray-200 bg-white {!showScrollTop ? 'rounded-b-md' : ''}"
                         bind:this={listContainer}
                         on:scroll={updateScrollButtonVisibility}>
                         {#each filteredItems as item}
@@ -353,10 +353,10 @@
                                     </div>
                                     
                                     {#if item.vmps && item.isExpanded}
-                                        <ul class="border-t border-gray-200">
+                                        <ul class="border-t border-gray-200 divide-y divide-gray-100">
                                             {#each item.vmps as vmp}
                                                 <li 
-                                                    class="py-1.5 px-3 pl-8 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
+                                                    class="py-1 pl-5 pr-3 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
                                                     class:bg-oxford-50={isItemSelected({code: vmp.code, type: 'vmp'}, selectedItems)}
                                                     class:opacity-50={isItemSelected(item, selectedItems)}
                                                     class:pointer-events-none={isItemSelected(item, selectedItems)}
