@@ -1,6 +1,6 @@
-name: Oral anticoagulation that is not direct oral anticoagulants # Full name of the measure/indicator
+name: Vitamin K antagonists # Full name of the measure/indicator
 short_name: Vitamin K antagonists # Abbreviated name or acronym
-description: Percentage of oral anticoagulants that are not direct oral anticoagulants. # Brief 1-2 sentence description of what this measure identifies
+description: Percentage of oral anticoagulants that are issued as vitamin K antagonists and not direct oral anticoagulants. # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |
    NICE guidelines 
    DOACs are safer than warfarin
