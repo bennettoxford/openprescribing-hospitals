@@ -19,8 +19,6 @@
     let isLoading = false;
     let lastSearchResults = [];
     let searchBoxRef;
-    let dropdownRef;
-    let searchInputRef;
     let isOpen = false;
 
     let listContainer;
@@ -34,6 +32,7 @@
     }
 
     async function handleInput() {
+        isOpen = true;
         clearTimeout(searchTimeout);
         
         if (!searchTerm || searchTerm.length < 3) {
@@ -158,6 +157,14 @@
         calculateVmpCount();
     }
 
+    function resetSearchState() {
+        clearTimeout(searchTimeout);
+        searchTerm = '';
+        filteredItems = [];
+        lastSearchResults = [];
+        isLoading = false;
+    }
+
     function deselectAll() {
         selectedItems = [];
         selectedItemsData = [];
@@ -166,10 +173,14 @@
         dispatch('selectionChange', { items: selectedItems });
     }
 
+    function doneCloseSearch() {
+        isOpen = false;
+        resetSearchState();
+    }
+
     function handleTypeChange(newType) {
         type = newType;
-        searchTerm = '';
-        filteredItems = [];
+        resetSearchState();
     }
 
     $: {
@@ -177,11 +188,10 @@
 
         if (storeSelections.length === 0 && selectedItems.length > 0) {
             selectedItems = [];
-            searchTerm = '';
             vmpCount = 0;
-            filteredItems = [];
-            lastSearchResults = [];
             selectedItemsData = [];
+            isOpen = false;
+            resetSearchState();
         } else if (storeSelections.length > 0) {
             const hasDifferences =
                 storeSelections.length !== selectedItems.length ||
@@ -213,9 +223,7 @@
 
     onMount(() => {
         const handleClickOutside = (event) => {
-            const inside = dropdownRef && dropdownRef.contains(event.target);
-            const inputFocused = searchInputRef === document.activeElement;
-            if (!inside && !inputFocused && isOpen) {
+            if (searchBoxRef && !searchBoxRef.contains(event.target) && isOpen) {
                 isOpen = false;
             }
         };
@@ -240,11 +248,16 @@
         };
     });
 
-    function toggleVTMExpand(itemCode) {
-        if (expandedItems.has(itemCode)) {
-            expandedItems.delete(itemCode);
+    function vtmKey(item) {
+        return `${item.code}:${item.type}`;
+    }
+
+    function toggleVTMExpand(item) {
+        const key = vtmKey(item);
+        if (expandedItems.has(key)) {
+            expandedItems.delete(key);
         } else {
-            expandedItems.add(itemCode);
+            expandedItems.add(key);
         }
         expandedItems = expandedItems;
     }
@@ -254,11 +267,10 @@
                      type === 'atc' ? "Search by ATC level name or ATC code..." :
                      "Search by product name or code...";
 
+    $: showSearchHint = isOpen && searchTerm && searchTerm.length < 3;
+    $: showResultList = isOpen && (filteredItems.length > 0 || isLoading);
     $: resultsPanelOpen =
-        isOpen &&
-        ((searchTerm && searchTerm.length < 3) ||
-            filteredItems.length > 0 ||
-            isLoading);
+        showSearchHint || showResultList;
 </script>
 
 <div 
@@ -267,18 +279,17 @@
 >
 
     <div class="flex space-x-2 mb-2 pointer-events-auto">
-        <button class="px-2 py-1 rounded {type === 'product' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('product')}>Product</button>
-        <button class="px-2 py-1 rounded {type === 'ingredient' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('ingredient')}>Ingredient</button>
-        <button class="px-2 py-1 rounded {type === 'atc' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('atc')}>ATC Code</button>
+        <button type="button" class="px-2 py-1 rounded {type === 'product' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('product')}>Product</button>
+        <button type="button" class="px-2 py-1 rounded {type === 'ingredient' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('ingredient')}>Ingredient</button>
+        <button type="button" class="px-2 py-1 rounded {type === 'atc' ? 'bg-oxford-500 text-white' : 'bg-gray-200'}" on:click={() => handleTypeChange('atc')}>ATC Code</button>
     </div>
 
     <div class="grid gap-4">
-        <div class="relative pointer-events-auto" bind:this={dropdownRef}>
+        <div class="relative pointer-events-auto">
             <div class="relative">
                 <input
                     type="text"
                     {placeholder}
-                    bind:this={searchInputRef}
                     bind:value={searchTerm}
                     on:input={handleInput}
                     on:focus={() => {
@@ -292,6 +303,7 @@
                             e.preventDefault();
                             if (isOpen) {
                                 isOpen = false;
+                                resetSearchState();
                             }
                         }
                     }}
@@ -305,201 +317,213 @@
                 {/if}
                 {#if searchTerm}
                     <button
+                        type="button"
                         class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center text-gray-400 hover:text-gray-600 w-5 z-20"
-                        on:click|stopPropagation={() => searchTerm = ''}
+                        on:click|stopPropagation={resetSearchState}
                     >
                         ✕
                     </button>
                 {/if}
             </div>
 
-            {#if isOpen && searchTerm && searchTerm.length < 3}
+            {#if resultsPanelOpen}
                 <div class="bg-white border border-gray-300 rounded-b-md shadow-lg overflow-hidden">
-                    <div class="p-3">
-                        <p class="text-gray-600 text-sm">
-                            Please type at least 3 characters to start searching
-                        </p>
-                    </div>
-                    <div class="py-2 px-3 border-t border-gray-200 flex justify-end bg-gray-50">
-                        <button
-                            type="button"
-                            on:click={() => (isOpen = false)}
-                            class="inline-flex justify-center items-center px-3 py-1.5 bg-oxford-50 text-oxford-600 rounded-md hover:bg-oxford-100 transition-colors duration-200 font-medium text-sm border border-oxford-200"
-                        >
-                            Done
-                        </button>
-                    </div>
-                </div>
-            {:else if isOpen && (filteredItems.length > 0 || isLoading)}
-                <div class="bg-white border border-gray-300 border-t-0 rounded-b-md shadow-lg overflow-hidden">
-                    <ul class="max-h-[50vh] overflow-y-auto divide-y divide-gray-200 bg-white"
-                        bind:this={listContainer}
-                        on:scroll={updateScrollButtonVisibility}>
-                        {#each filteredItems as item}
-                            {#if item.type === 'vtm'}
-                                <li class="group">
-                                    <div 
-                                        class="pt-2 pb-1 px-3 flex items-center justify-between relative transition-colors duration-150 ease-in-out"
-                                        class:bg-oxford-50={isItemSelected(item, selectedItems)}
-                                        class:cursor-pointer={true}
-                                        class:cursor-not-allowed={false}
-                                        class:opacity-60={false}
-                                        class:hover:bg-gray-50={true}
-                                        on:click={() => handleSelect(item)}
-                                    >
-                                        <div class="flex-1">
-                                            <div class="flex items-center gap-2">
-                                                {#if item.vmps?.length > 0}
-                                                    <button 
-                                                        class="p-0.5 hover:bg-gray-200 rounded transition-colors"
-                                                        on:click|stopPropagation={(event) => toggleExpand(item, event)}
-                                                    >
-                                                        <svg 
-                                                            class="w-3 h-3 transition-transform duration-200"
-                                                            class:rotate-90={item.isExpanded}
-                                                            fill="none" 
-                                                            stroke="currentColor" 
-                                                            viewBox="0 0 24 24"
+                    {#if showSearchHint}
+                        <div class="p-3">
+                            <p class="text-gray-600 text-sm">
+                                Please type at least 3 characters to start searching
+                            </p>
+                        </div>
+                    {:else}
+                        <ul class="max-h-[50vh] overflow-y-auto divide-y divide-gray-200 bg-white"
+                            bind:this={listContainer}
+                            on:scroll={updateScrollButtonVisibility}>
+                            {#each filteredItems as item}
+                                {#if item.type === 'vtm'}
+                                    <li class="group">
+                                        <div 
+                                            class="pt-2 pb-1 px-3 flex items-center justify-between relative transition-colors duration-150 ease-in-out cursor-pointer hover:bg-gray-50"
+                                            class:bg-oxford-50={isItemSelected(item, selectedItems)}
+                                            role="button"
+                                            tabindex="0"
+                                            on:click={() => handleSelect(item)}
+                                            on:keydown={(event) => {
+                                                if (event.key === 'Enter' || event.key === ' ') {
+                                                    event.preventDefault();
+                                                    handleSelect(item);
+                                                }
+                                            }}
+                                        >
+                                            <div class="flex-1">
+                                                <div class="flex items-center gap-2">
+                                                    {#if item.vmps?.length > 0}
+                                                        <button
+                                                            type="button"
+                                                            class="p-0.5 hover:bg-gray-200 rounded transition-colors"
+                                                            on:click|stopPropagation={(event) => toggleExpand(item, event)}
                                                         >
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                                        </svg>
-                                                    </button>
-                                                {/if}
-                                                <span class="font-medium text-sm">{item.name}</span>
-                                            </div>
-                                            <div class="flex items-center gap-2 mt-0.5">
-                                                {#if item.vmps?.length}
-                                                    <span class="text-xs text-gray-500">
-                                                        {item.vmps.length} product{item.vmps.length !== 1 ? 's' : ''}
-                                                    </span>
-                                                {/if}
-                                            </div>
-                                        </div>
-                                        {#if isItemSelected(item, selectedItems)}
-                                            <span class="text-xs font-medium text-oxford-600 ml-2">Selected (all products)</span>
-                                        {/if}
-                                    </div>
-                                    
-                                    {#if item.vmps && item.isExpanded}
-                                        <ul class="border-t border-gray-200 divide-y divide-gray-100">
-                                            {#each item.vmps as vmp}
-                                                <li 
-                                                    class="py-1 pl-5 pr-3 cursor-pointer flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
-                                                    class:bg-oxford-50={isItemSelected({code: vmp.code, type: 'vmp'}, selectedItems)}
-                                                    class:opacity-50={isItemSelected(item, selectedItems)}
-                                                    class:pointer-events-none={isItemSelected(item, selectedItems)}
-                                                    on:click={() => handleSelect(vmp)}
-                                                >
-                                                    <div>
-                                                        <span class="text-sm">{vmp.name}</span>
-                                                    </div>
-                                                    {#if isItemSelected({code: vmp.code, type: 'vmp'}, selectedItems) && !isItemSelected(item, selectedItems)}
-                                                        <span class="text-xs font-medium text-oxford-600 ml-2">Selected</span>
-                                                    {/if}
-                                                </li>
-                                            {/each}
-                                        </ul>
-                                    {/if}
-                                </li>
-                            {:else if item.type === 'atc'}
-                                <li class="group">
-                                    <div 
-                                        class="pt-2 pb-1 px-3 flex items-center justify-between relative transition-colors duration-150 ease-in-out cursor-pointer hover:bg-gray-50"
-                                        class:bg-oxford-50={isItemSelected(item, selectedItems)}
-                                        on:click={() => handleSelect(item)}
-                                    >
-                                        <div class="flex-1">
-                                            <div class="flex flex-col">
-                                                <div class="flex items-start gap-3">
-                                                    <span class="text-sm">{item.name}</span>
-                                                    
-                                                    {#if item.hierarchy_path && item.hierarchy_path.length > 1}
-                                                        <div class="flex-shrink-0">
-                                                            <button 
-                                                                class="text-xs text-gray-600 hover:text-gray-800 flex items-center gap-1"
-                                                                on:click|stopPropagation={() => {
-                                                                    item.showHierarchy = !item.showHierarchy;
-                                                                    filteredItems = [...filteredItems];
-                                                                }}
+                                                            <svg 
+                                                                class="w-3 h-3 transition-transform duration-200"
+                                                                class:rotate-90={item.isExpanded}
+                                                                fill="none" 
+                                                                stroke="currentColor" 
+                                                                viewBox="0 0 24 24"
                                                             >
-                                                                <svg 
-                                                                    class="w-3 h-3 transition-transform {item.showHierarchy ? 'rotate-90' : ''}" 
-                                                                    fill="none" 
-                                                                    stroke="currentColor" 
-                                                                    viewBox="0 0 24 24"
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                            </svg>
+                                                        </button>
+                                                    {/if}
+                                                    <span class="font-medium text-sm">{item.name}</span>
+                                                </div>
+                                                <div class="flex items-center gap-2 mt-0.5">
+                                                    {#if item.vmps?.length}
+                                                        <span class="text-xs text-gray-500">
+                                                            {item.vmps.length} product{item.vmps.length !== 1 ? 's' : ''}
+                                                        </span>
+                                                    {/if}
+                                                </div>
+                                            </div>
+                                            {#if isItemSelected(item, selectedItems)}
+                                                <span class="text-xs font-medium text-oxford-600 ml-2">Selected (all products)</span>
+                                            {/if}
+                                        </div>
+                                        
+                                        {#if item.vmps && item.isExpanded}
+                                            <ul class="border-t border-gray-200 divide-y divide-gray-100">
+                                                {#each item.vmps as vmp}
+                                                    <li>
+                                                        <button
+                                                            type="button"
+                                                            class="w-full py-1 pl-5 pr-3 flex items-center justify-between relative transition-colors duration-150 ease-in-out hover:bg-gray-50 text-left"
+                                                            class:bg-oxford-50={isItemSelected({code: vmp.code, type: 'vmp'}, selectedItems)}
+                                                            class:opacity-50={isItemSelected(item, selectedItems)}
+                                                            class:pointer-events-none={isItemSelected(item, selectedItems)}
+                                                            on:click={() => handleSelect(vmp)}
+                                                        >
+                                                            <div>
+                                                                <span class="text-sm">{vmp.name}</span>
+                                                            </div>
+                                                            {#if isItemSelected({code: vmp.code, type: 'vmp'}, selectedItems) && !isItemSelected(item, selectedItems)}
+                                                                <span class="text-xs font-medium text-oxford-600 ml-2">Selected</span>
+                                                            {/if}
+                                                        </button>
+                                                    </li>
+                                                {/each}
+                                            </ul>
+                                        {/if}
+                                    </li>
+                                {:else if item.type === 'atc'}
+                                    <li class="group">
+                                        <div 
+                                            class="pt-2 pb-1 px-3 flex items-center justify-between relative transition-colors duration-150 ease-in-out cursor-pointer hover:bg-gray-50"
+                                            class:bg-oxford-50={isItemSelected(item, selectedItems)}
+                                            role="button"
+                                            tabindex="0"
+                                            on:click={() => handleSelect(item)}
+                                            on:keydown={(event) => {
+                                                if (event.key === 'Enter' || event.key === ' ') {
+                                                    event.preventDefault();
+                                                    handleSelect(item);
+                                                }
+                                            }}
+                                        >
+                                            <div class="flex-1">
+                                                <div class="flex flex-col">
+                                                    <div class="flex items-start gap-3">
+                                                        <span class="text-sm">{item.name}</span>
+                                                        
+                                                        {#if item.hierarchy_path && item.hierarchy_path.length > 1}
+                                                            <div class="flex-shrink-0">
+                                                                <button
+                                                                    type="button"
+                                                                    class="text-xs text-gray-600 hover:text-gray-800 flex items-center gap-1"
+                                                                    on:click|stopPropagation={() => {
+                                                                        item.showHierarchy = !item.showHierarchy;
+                                                                        filteredItems = [...filteredItems];
+                                                                    }}
                                                                 >
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                                                </svg>
-                                                                Show hierarchy
-                                                            </button>
+                                                                    <svg 
+                                                                        class="w-3 h-3 transition-transform {item.showHierarchy ? 'rotate-90' : ''}" 
+                                                                        fill="none" 
+                                                                        stroke="currentColor" 
+                                                                        viewBox="0 0 24 24"
+                                                                    >
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                                                    </svg>
+                                                                    Show hierarchy
+                                                                </button>
+                                                            </div>
+                                                        {/if}
+                                                    </div>
+                                                    
+                                                    {#if item.hierarchy_path && item.hierarchy_path.length > 1 && item.showHierarchy}
+                                                        <div class="mt-2">
+                                                            {#each item.hierarchy_path as pathItem, index}
+                                                                <div class="flex items-start text-xs text-gray-600 mb-1" style="padding-left: {index * 16}px;">
+                                                                    <div class="w-3 h-3 border-l border-b border-gray-400 mr-2 flex-shrink-0 mt-1"></div>
+                                                                    <span title={pathItem} class="leading-relaxed break-words {index === item.hierarchy_path.length - 1 ? 'font-bold' : ''}">{pathItem}</span>
+                                                                </div>
+                                                            {/each}
                                                         </div>
                                                     {/if}
                                                 </div>
-                                                
-                                                {#if item.hierarchy_path && item.hierarchy_path.length > 1 && item.showHierarchy}
-                                                    <div class="mt-2">
-                                                        {#each item.hierarchy_path as pathItem, index}
-                                                            <div class="flex items-start text-xs text-gray-600 mb-1" style="padding-left: {index * 16}px;">
-                                                                <div class="w-3 h-3 border-l border-b border-gray-400 mr-2 flex-shrink-0 mt-1"></div>
-                                                                <span title={pathItem} class="leading-relaxed break-words {index === item.hierarchy_path.length - 1 ? 'font-bold' : ''}">{pathItem}</span>
-                                                            </div>
-                                                        {/each}
-                                                    </div>
-                                                {/if}
-                                            </div>
-                                            <div class="flex items-center gap-2 mt-0.5">
-                                                <span class="text-xs text-gray-500">
-                                                    Code: {item.code}
-                                                </span>
-                                                {#if item.vmp_count !== undefined}
+                                                <div class="flex items-center gap-2 mt-0.5">
                                                     <span class="text-xs text-gray-500">
-                                                        {item.vmp_count} product{item.vmp_count !== 1 ? 's' : ''}
+                                                        Code: {item.code}
                                                     </span>
-                                                {/if}
+                                                    {#if item.vmp_count !== undefined}
+                                                        <span class="text-xs text-gray-500">
+                                                            {item.vmp_count} product{item.vmp_count !== 1 ? 's' : ''}
+                                                        </span>
+                                                    {/if}
+                                                </div>
                                             </div>
-                                        </div>
-                                        {#if isItemSelected(item, selectedItems)}
-                                            <span class="text-xs font-medium text-oxford-600 ml-2">Selected</span>
-                                        {/if}
-                                    </div>
-                                </li>
-                            {:else}
-                                <li 
-                                    class="py-1.5 px-3 cursor-pointer relative transition-colors duration-150 ease-in-out hover:bg-gray-50"
-                                    class:bg-oxford-50={isItemSelected(item, selectedItems)}
-                                    class:opacity-50={!item.has_vmps && item.type !== 'atc'}
-                                    class:pointer-events-none={!item.has_vmps && item.type !== 'atc'}
-                                    on:click={() => (item.has_vmps || item.type === 'atc') && handleSelect(item)}
-                                >
-                                    <div>
-                                        <span class="text-sm">{item.name}</span>
-                                        {#if !item.has_vmps && item.type !== 'atc'}
-                                            <span class="text-xs text-gray-400">(No products)</span>
-                                        {/if}
-                                        <div class="flex items-center gap-2 mt-0.5">
-                                            
-                                            {#if item.vmp_count !== undefined}
-                                                <span class="text-xs text-gray-500">
-                                                    {item.vmp_count} product{item.vmp_count !== 1 ? 's' : ''}
-                                                </span>
-                                            {:else if item.vmps?.length}
-                                                <span class="text-xs text-gray-500">
-                                                    {item.vmps.length} product{item.vmps.length !== 1 ? 's' : ''}
-                                                </span>
+                                            {#if isItemSelected(item, selectedItems)}
+                                                <span class="text-xs font-medium text-oxford-600 ml-2">Selected</span>
                                             {/if}
                                         </div>
-                                    </div>
-                                    {#if isItemSelected(item, selectedItems)}
-                                        <span class="text-xs font-medium text-oxford-600 mt-0.5 block">Selected</span>
-                                    {/if}
-                                </li>
-                            {/if}
-                        {/each}
-                    </ul>
+                                    </li>
+                                {:else}
+                                    <li>
+                                        <button
+                                            type="button"
+                                            class="w-full py-1.5 px-3 relative transition-colors duration-150 ease-in-out hover:bg-gray-50 text-left"
+                                            class:bg-oxford-50={isItemSelected(item, selectedItems)}
+                                            class:opacity-50={!item.has_vmps && item.type !== 'atc'}
+                                            disabled={!item.has_vmps && item.type !== 'atc'}
+                                            on:click={() => handleSelect(item)}
+                                        >
+                                            <div>
+                                                <span class="text-sm">{item.name}</span>
+                                                {#if !item.has_vmps && item.type !== 'atc'}
+                                                    <span class="text-xs text-gray-400">(No products)</span>
+                                                {/if}
+                                                <div class="flex items-center gap-2 mt-0.5">
+                                                    
+                                                    {#if item.vmp_count !== undefined}
+                                                        <span class="text-xs text-gray-500">
+                                                            {item.vmp_count} product{item.vmp_count !== 1 ? 's' : ''}
+                                                        </span>
+                                                    {:else if item.vmps?.length}
+                                                        <span class="text-xs text-gray-500">
+                                                            {item.vmps.length} product{item.vmps.length !== 1 ? 's' : ''}
+                                                        </span>
+                                                    {/if}
+                                                </div>
+                                            </div>
+                                            {#if isItemSelected(item, selectedItems)}
+                                                <span class="text-xs font-medium text-oxford-600 mt-0.5 block">Selected</span>
+                                            {/if}
+                                        </button>
+                                    </li>
+                                {/if}
+                            {/each}
+                        </ul>
+                    {/if}
                     <div class="py-2 px-3 border-t border-gray-200 flex items-center gap-2 bg-gray-50">
                         <div class="w-20 shrink-0"></div>
                         <div class="flex-grow flex justify-center min-h-[2.25rem] items-center">
-                            {#if showScrollTop}
+                            {#if showResultList && showScrollTop}
                                 <button
                                     type="button"
                                     on:click={() => {
@@ -519,7 +543,7 @@
                         <div class="w-20 shrink-0 flex justify-end">
                             <button
                                 type="button"
-                                on:click={() => (isOpen = false)}
+                                on:click={doneCloseSearch}
                                 class="inline-flex justify-center items-center px-3 py-1.5 bg-oxford-50 text-oxford-600 rounded-md hover:bg-oxford-100 transition-colors duration-200 font-medium text-sm border border-oxford-200"
                             >
                                 Done
@@ -562,11 +586,12 @@
                                        
                                         {#if (type === 'vtm' || type === 'ingredient' || type === 'atc') && data?.vmps?.length > 0}
                                             <button 
+                                                type="button"
                                                 on:click={() => toggleVTMExpand(item)}
                                                 class="flex items-center gap-1.5 mt-2 text-sm text-gray-500 hover:text-gray-700 transition-colors duration-150"
                                             >
                                                 <svg 
-                                                    class="w-3.5 h-3.5 transform transition-transform duration-150 {expandedItems.has(item) ? 'rotate-90' : ''}" 
+                                                    class="w-3.5 h-3.5 transform transition-transform duration-150 {expandedItems.has(vtmKey(item)) ? 'rotate-90' : ''}" 
                                                     fill="none" 
                                                     stroke="currentColor" 
                                                     viewBox="0 0 24 24"
@@ -589,6 +614,7 @@
                                                  'Product'}
                                             </span>
                                         <button 
+                                            type="button"
                                             on:click={() => handleRemove(item)}
                                             class="px-2 py-1 text-xs font-medium text-white bg-red-600 
                                                    hover:bg-red-700 rounded-md transition-colors duration-150"
@@ -598,7 +624,7 @@
                                     </div>
                                 </div>
                             </div>
-                            {#if (type === 'vtm' || type === 'ingredient' || type === 'atc') && data?.vmps && expandedItems.has(item)}
+                            {#if (type === 'vtm' || type === 'ingredient' || type === 'atc') && data?.vmps && expandedItems.has(vtmKey(item))}
                                 <ul class="bg-gray-50 border-t border-gray-100 py-2 px-3">
                                     {#each data.vmps as vmp}
                                         <li class="flex items-center py-1">
