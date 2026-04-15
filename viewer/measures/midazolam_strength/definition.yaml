@@ -1,0 +1,21 @@
+name: High strength midazolam # Full name of the measure/indicator
+short_name: High strength midazolam # Abbreviated name or acronym
+description: Percentage of high strength midazolam of all midazolam products # Brief 1-2 sentence description of what this measure identifies
+why_it_matters: |  
+    High-strength midazolam (≥5 mg/mL) should only be used in restricted clinical areas such as critical care and anaesthesia. Use outside these settings has been associated with medication errors, including accidental overdose and respiratory depression. A National Patient Safety Agency (NPSA) alert highlights the risks and recommends minimising availability of high-strength preparations to reduce harm.
+how_is_it_calculated: |
+    Midazolam products are identified using [Virtual Therapeutic Moiety (VTM)](/faq/#what-is-a-vtm) codes. These products are
+    then filtered to only include injectable midazolam products (excluding oromucosal injections). These products are assigned 
+    as high strength if their strength is ≥5 mg/mL. The total number of [unit doses](https://hospitals.openprescribing.net/faq/#what-is-unit-dose-quantity) 
+    of high strength injectable midazolam is divided by the total number of unit doses of all injectable midazolam products and 
+    then multiplied by 100 to obtain a percentage each month. 
+tags:
+    # List relevant categories (e.g. Safety, Prescribing, Monitoring)
+    - Safety
+quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
+lower_is_better: null # true, false, or null when no value judgement
+authored_by: Victoria Speed # Name of original author
+checked_by: TBC # Name of clinical/technical reviewer
+date_reviewed: 2026-04-15 # Date of last review (YYYY-MM-DD)
+next_review: 2027-04-15 # Date of next scheduled review (YYYY-MM-DD)
+status: in_development # in_development, preview, published
