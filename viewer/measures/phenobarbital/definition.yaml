@@ -8,9 +8,9 @@ why_it_matters: |
     is required. Phenobarbital Elixir BP (15 mg/5 mL) contains 38% v/v of ethanol (alcohol), and so there is potential for accumulation when ingested repeatedly, especially in 
     young children with low or immature metabolic capacity.
 how_is_it_calculated: >
-    We select all phenobarbital or phenobarbital sodium products prepared as a solution or suspension.  The quantity of each product issued as DDDs is calculated.
-    We then divide the DDDs of `Phenobarbital 15mg/5ml elixir` by the total DDDs of all selected phenobarbital products and then multiply that by 100 to 
-    obtain a percentage each month.
+    We select all phenobarbital or phenobarbital sodium products prepared as a solution or suspension. The quantity of each product issued as DDDs is calculated.
+    VMPs with ingredient strength 50 mg per 5 mL are assigned to the numerator; all other selected liquids are assigned to the denominator. We divide the sum of 
+    DDDs of the numerator by the total DDDs of all selected products and multiply by 100 to obtain a percentage each month.
 tags:
     - Safety
 quantity_type: ddd
