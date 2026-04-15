@@ -1,0 +1,26 @@
+name: Oral anticoagulants not issued as a direct oral anticoagulant
+short_name: Oral anticoagulants
+short_description: The percentage of oral anticoagulants not issued as direct oral anticoagulants (DOACs).
+description: |
+  The percentage of oral anticoagulants not issued as direct oral anticoagulants (DOACs).
+why_it_matters: |
+  [NICE guidance on atrial fibrillation](https://www.nice.org.uk/guidance/ng196/chapter/Recommendations)
+  recommends offering a direct-acting oral anticoagulant for many people who need anticoagulation
+  for stroke prevention, and using a vitamin K antagonist (VKA) such as warfarin when a DOAC is
+  contraindicated, not tolerated or not suitable.
+
+  Lower is better for this measure, because it reflects a lower proportion of oral anticoagulant
+  use accounted for by VKAs. However, some use of warfarin is clinically appropriate, including 
+  for people with mechanical heart valves or triple positive antiphospholipid syndrome.
+how_is_it_calculated: >
+  We identify oral anticoagulant products using Virtual Therapeutic Moiety (VTM) codes. We then
+  divide the number of [Defined Daily Doses (DDDs)](/faq/#what-is-a-defined-daily-dose-ddd) for
+  vitamin K antagonists (warfarin, acenocoumarol and phenindione) by the total number of DDDs for
+  all included oral anticoagulants (vitamin K antagonists plus DOACs) and multiply by 100 to
+  obtain a percentage each month. Rivaroxaban initiation packs are excluded because they do not
+  have a comparable DDD allocation.
+tags:
+  - Safety
+quantity_type: ddd
+lower_is_better: true
+status: in_development
