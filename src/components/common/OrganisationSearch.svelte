@@ -32,6 +32,7 @@
     let searchTerm = '';
     let listContainer;
     let showScrollTop = false;
+    let dropdownRef;
 
     $: items = $source.items || [];
     $: selectedItems = Array.from($source.selectedItems || []);
@@ -222,6 +223,18 @@
         });
     }
 
+    function doneCloseSearch() {
+        isOpen = false;
+        searchTerm = '';
+    }
+
+    function handleSearchKeydown(event) {
+        if (disabled || event.key !== 'Escape') return;
+        if (!isOpen) return;
+        event.preventDefault();
+        doneCloseSearch();
+    }
+
     function updateScrollButtonVisibility() {
         if (listContainer) {
             
@@ -232,31 +245,15 @@
 
     onMount(() => {
         const handleClickOutside = (event) => {
-            const searchInput = document.querySelector('.dropdown input[type="text"]');
-            const isSearchInputActive = searchInput === document.activeElement;
-            
-            if (isOpen && 
-                !event.target.closest('.dropdown') && 
-                !isSearchInputActive) {
+            if (isOpen && dropdownRef && !dropdownRef.contains(event.target)) {
                 isOpen = false;
             }
         };
 
         document.addEventListener('click', handleClickOutside);
 
-        setTimeout(() => {
-            listContainer = document.querySelector('.dropdown .overflow-y-auto');
-            if (listContainer) {
-                listContainer.addEventListener('scroll', updateScrollButtonVisibility);
-                updateScrollButtonVisibility();
-            }
-        }, 100);
-
         return () => {
             document.removeEventListener('click', handleClickOutside);
-            if (listContainer) {
-                listContainer.removeEventListener('scroll', updateScrollButtonVisibility);
-            }
         };
     });
 
@@ -288,7 +285,7 @@
     }
 </script>
 
-<div class="dropdown relative w-full h-full flex flex-col">
+<div class="dropdown relative w-full h-full flex flex-col" bind:this={dropdownRef}>
     <div class="flex flex-col">
         <div class="flex flex-col">
             <div class="flex items-center justify-between mb-1">
@@ -331,6 +328,8 @@
                         type="text"
                         bind:value={searchTerm}
                         on:focus={() => !disabled && (isOpen = true)}
+                        on:input={() => !disabled && (isOpen = true)}
+                        on:keydown={handleSearchKeydown}
                         placeholder={placeholderText}
                         disabled={disabled}
                         class="w-full p-2 border border-gray-300 rounded-l-md
@@ -500,6 +499,7 @@
                     <div class="flex-grow flex justify-center">
                         {#if showScrollTop}
                             <button
+                                type="button"
                                 on:click={() => {
                                     if (listContainer) {
                                         listContainer.scrollTo({ top: 0 });
@@ -517,9 +517,8 @@
                     
                     <div class="w-20 flex justify-end">
                         <button
-                            on:click={() => {
-                                isOpen = false;
-                            }}
+                            type="button"
+                            on:click={doneCloseSearch}
                             class="inline-flex justify-center items-center px-3 py-1.5 bg-oxford-50 text-oxford-600 rounded-md hover:bg-oxford-100 transition-colors duration-200 font-medium text-sm border border-oxford-200"
                         >
                             Done

@@ -235,6 +235,23 @@
         });
     }
 
+    function doneCloseSearch() {
+        isOpen = false;
+        searchTerm = '';
+    }
+
+    function handleSearchKeydown(event) {
+        if (disabled || event.key !== 'Escape') return;
+        if (filterDropdownOpen) {
+            event.preventDefault();
+            filterDropdownOpen = false;
+            return;
+        }
+        if (!isOpen) return;
+        event.preventDefault();
+        doneCloseSearch();
+    }
+
     function updateScrollButtonVisibility() {
         if (listContainer) {
             showScrollTop = listContainer.scrollHeight > listContainer.clientHeight && listContainer.scrollTop > 0;
@@ -243,9 +260,7 @@
 
     onMount(() => {
         const handleClickOutside = (event) => {
-            const isInsideDropdown = dropdownRef && dropdownRef.contains(event.target);
-            const isSearchInputActive = searchInputRef === document.activeElement;
-            if (!isInsideDropdown && !isSearchInputActive) {
+            if (dropdownRef && !dropdownRef.contains(event.target)) {
                 if (filterDropdownOpen) filterDropdownOpen = false;
                 if (isOpen) isOpen = false;
             }
@@ -566,7 +581,7 @@
             <div class="relative flex-1 min-w-0 w-full rounded-md border border-gray-200 {isOpen ? 'rounded-b-none' : ''} {isOpen && overlayMode ? 'overflow-visible' : 'overflow-hidden'} focus-within:ring-2 focus-within:ring-inset focus-within:ring-oxford-500 focus-within:border-oxford-500">
                 <div class="flex rounded-t-md overflow-hidden">
                     <div class="relative flex-grow flex items-stretch min-w-0">
-                        <input type="text" bind:this={searchInputRef} bind:value={searchTerm} on:focus={() => !disabled && (isOpen = true)} placeholder={placeholderText} disabled={disabled} class="w-full h-full min-h-0 py-2 pl-2.5 pr-8 border-0 focus:outline-none placeholder:text-gray-400 text-gray-900 text-sm {disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'}" />
+                        <input type="text" bind:this={searchInputRef} bind:value={searchTerm} on:focus={() => !disabled && (isOpen = true)} on:input={() => !disabled && (isOpen = true)} on:keydown={handleSearchKeydown} placeholder={placeholderText} disabled={disabled} class="w-full h-full min-h-0 py-2 pl-2.5 pr-8 border-0 focus:outline-none placeholder:text-gray-400 text-gray-900 text-sm {disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'}" />
                         <button type="button" class="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors {disabled ? 'hidden' : ''}" on:click|stopPropagation={() => searchTerm = ''} aria-label="Clear search">{#if searchTerm}<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>{/if}</button>
                     </div>
                     <div class="flex items-center justify-center min-w-[3.5rem] sm:min-w-[4.5rem] py-1.5 px-1.5 sm:px-2 border-l border-gray-200 text-center shrink-0 {hasSelection ? 'bg-oxford-50' : 'bg-gray-50'}">
@@ -704,6 +719,7 @@
                     <div class="flex-grow flex justify-center">
                         {#if showScrollTop}
                             <button
+                                type="button"
                                 on:click={() => {
                                     if (listContainer) {
                                         listContainer.scrollTo({ top: 0 });
@@ -721,9 +737,8 @@
                     
                     <div class="w-20 flex justify-end">
                         <button
-                            on:click={() => {
-                                isOpen = false;
-                            }}
+                            type="button"
+                            on:click={doneCloseSearch}
                             class="inline-flex justify-center items-center px-3 py-1.5 bg-oxford-50 text-oxford-600 rounded-md hover:bg-oxford-100 transition-colors duration-200 font-medium text-sm border border-oxford-200"
                         >
                             Done
