@@ -1,7 +1,7 @@
 name: Measure
 description: Template for creating a new measure
 title: "[Measure]: "
-labels: ["measure"]
+labels: ["measures"]
 body:
   - type: input
     id: measure_title
