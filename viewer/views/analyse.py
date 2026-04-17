@@ -3,6 +3,7 @@ import json
 
 from ..mixins import MaintenanceModeMixin
 from ..utils import get_organisation_data
+from .api import MAX_ANALYSIS_VMP_COUNT
 
 
 class AnalyseView(MaintenanceModeMixin, TemplateView):
@@ -23,5 +24,7 @@ class AnalyseView(MaintenanceModeMixin, TemplateView):
             'regions_hierarchy': org_data.get('regions_hierarchy', []),
             'cancer_alliances': org_data.get('cancer_alliances', []),
         }, default=str)
+
+        context['max_vmp_count'] = MAX_ANALYSIS_VMP_COUNT
 
         return context

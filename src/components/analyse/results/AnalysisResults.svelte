@@ -535,6 +535,11 @@
                                         <li>{error}</li>
                                     {/each}
                                 </ul>
+                                {#if urlValidationErrors.some(e => e.includes('unique products'))}
+                                    <p class="mt-2">
+                                        <a href="/contact/" target="_blank" class="underline font-medium hover:text-yellow-900">Contact us</a> if you need to analyse a larger selection.
+                                    </p>
+                                {/if}
                             </div>
                         </div>
                     </div>

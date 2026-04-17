@@ -114,6 +114,13 @@
     export let orgData = null;
     export let isAuthenticated = false;
     $: isAuth = isAuthenticated === true;
+    export let maxVmpCount = null;
+
+    let resolvedVmpOverLimit = false;
+
+    function handleVmpCountChange(event) {
+        resolvedVmpOverLimit = event.detail.overLimit;
+    }
     export let mindate = null;
     export let maxdate = null;
 
@@ -653,7 +660,11 @@
               </div>
             </div>
             <div class="relative">
-              <ProductSearch on:selectionChange={handleVMPSelection}/>
+              <ProductSearch
+                on:selectionChange={handleVMPSelection}
+                on:vmpCountChange={handleVmpCountChange}
+                {maxVmpCount}
+              />
             </div>
           </div>
 
@@ -807,7 +818,7 @@
             <div class="flex gap-2 justify-between">
               <button
                 on:click={runAnalysis}
-                disabled={isAnalysisRunning || isSelectingQuantityTypes}
+                disabled={isAnalysisRunning || isSelectingQuantityTypes || resolvedVmpOverLimit}
                 class="w-64 px-6 sm:px-8 py-2 sm:py-2.5 bg-oxford-50 text-oxford-600 font-semibold rounded-md hover:bg-oxford-100 transition-colors duration-200
                      disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
               >

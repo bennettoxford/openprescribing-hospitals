@@ -9,11 +9,16 @@
     const dispatch = createEventDispatcher();
 
     export let type = "product";
+    export let maxVmpCount = null;
 
     let searchTerm = '';
     let filteredItems = [];
     let selectedItems = [];
     let vmpCount = 0;
+
+    $: effectiveMaxVmpCount = Number(maxVmpCount) > 0 ? Number(maxVmpCount) : null;
+    $: overVmpLimit = effectiveMaxVmpCount !== null && vmpCount > effectiveMaxVmpCount;
+    $: dispatch('vmpCountChange', { overLimit: overVmpLimit });
 
     let searchTimeout;
     let isLoading = false;
@@ -77,12 +82,12 @@
         }
 
         const vmpCodes = new Set();
-        
+
         for (const item of selectedItems) {
-            const data = findItemInArray(selectedItemsData, item) || 
-                        lastSearchResults.find(i => i.code === item.code) || 
+            const data = findItemInArray(selectedItemsData, item) ||
+                        lastSearchResults.find(i => i.code === item.code) ||
                         filteredItems.find(i => i.code === item.code);
-            
+
             if (data) {
                 if (item.type === 'vmp') {
                     vmpCodes.add(item.code);
@@ -93,7 +98,7 @@
                 }
             }
         }
-        
+
         vmpCount = vmpCodes.size;
     }
 
@@ -129,7 +134,7 @@
                 selectedItemsData = selectedItemsData.filter(data => !(data.code === item.code && data.type === item.type));
             }
         } else {
-            const parentVtm = filteredItems.find(vtm => 
+            const parentVtm = filteredItems.find(vtm =>
                 vtm.type === 'vtm' && vtm.vmps?.some(vmp => vmp.code === item.code)
             );
             const parentVtmSelected = parentVtm && isItemSelected(parentVtm, selectedItems);
@@ -143,7 +148,7 @@
                 }
             }
         }
-        
+
         
         dispatch('selectionChange', { items: selectedItems });
         calculateVmpCount();
@@ -642,12 +647,11 @@
                     <p class="mt-3 text-sm text-gray-600">
                         {#if vmpCount > 0}
                             This selection will analyse {vmpCount} unique product{vmpCount !== 1 ? 's' : ''}.
-                            {#if vmpCount > 100}
-                                <span class="block mt-1 text-amber-600 font-medium">
-                                    Warning: This is a large number of products. The analysis may take a long time. 
-                                    Consider making your selection more specific.
-                                </span>
-                            {/if}
+                        {/if}
+                        {#if overVmpLimit}
+                            <span class="block mt-1 text-red-600 font-medium">
+                                This is over the limit of {effectiveMaxVmpCount} unique products. Please narrow your selection before running the analysis, or <a href="/contact/" target="_blank" class="underline hover:text-red-800">contact us</a> if you need to analyse a larger selection.
+                            </span>
                         {/if}
                     </p>
             </div>

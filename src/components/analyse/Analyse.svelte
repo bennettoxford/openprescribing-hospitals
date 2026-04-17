@@ -24,6 +24,7 @@
   export let maxDate;
   export let orgData;
   export let isAuthenticated;
+  export let maxVmpCount = null;
 
   $: isResultsBoxPopulated = (analysisData && analysisData.length > 0) || (urlValidationErrors && urlValidationErrors.length > 0);
 
@@ -120,6 +121,7 @@
                         {maxDate}
                         {orgData}
                         isAuthenticated={isAuthenticated}
+                        maxVmpCount={maxVmpCount}
                         on:analysisStart={handleAnalysisStart}
                         on:analysisComplete={handleAnalysisComplete}
                         on:analysisError={handleAnalysisError}

@@ -38,6 +38,7 @@ MAX_INGREDIENT_CANDIDATES = 200
 MAX_INGREDIENT_RESULTS = 50
 MAX_ATC_CANDIDATES = 200
 MAX_ATC_RESULTS = 50
+MAX_ANALYSIS_VMP_COUNT = 250
 
 
 def _product_searchable_tokens(vmp):
@@ -1291,13 +1292,12 @@ def validate_analysis_params(request):
             unique_products.append(product)
     valid_products = unique_products
 
-    # this is number of items selected, which may represent more than 20 products
-    MAX_PRODUCT_SELECTION_LIMIT = 20
-    original_count = len(valid_products)
-
-    if original_count > MAX_PRODUCT_SELECTION_LIMIT:
-        valid_products = valid_products[:MAX_PRODUCT_SELECTION_LIMIT]
-        errors.append(f"Maximum of {MAX_PRODUCT_SELECTION_LIMIT} items allowed")
+    if len(vmp_ids) > MAX_ANALYSIS_VMP_COUNT:
+        errors.append(
+            f"Selection includes {len(vmp_ids)} unique products; "
+            f"maximum of {MAX_ANALYSIS_VMP_COUNT} allowed. "
+            f"Please narrow the selection."
+        )
 
     return Response({
         'valid_products': valid_products,
