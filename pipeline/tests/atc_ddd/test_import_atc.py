@@ -166,6 +166,25 @@ class TestXMLParsing:
         assert 'Name' in df.columns
         assert 'Comment' in df.columns
 
+    @patch('pipeline.utils.utils.get_run_logger')
+    def test_parse_xml_strips_attribute_whitespace(self, mock_logger, tmp_path):
+        mock_logger.return_value = Mock()
+        xml_content = '''<?xml version="1.0" encoding="UTF-8"?>
+        <dataroot xmlns:z="#RowsetSchema">
+            <z:row ATCCode="  A01AA01  " Name="  Padded Name  " Comment="   "/>
+            <z:row ATCCode="A01AA02" Name="Unpadded" Comment="keep internal   spaces"/>
+        </dataroot>'''
+        xml_file = tmp_path / "padded.xml"
+        xml_file.write_text(xml_content)
+
+        df = parse_xml(xml_file)
+
+        assert df.iloc[0]['ATCCode'] == 'A01AA01'
+        assert df.iloc[0]['Name'] == 'Padded Name'
+        assert df.iloc[0]['Comment'] == ''
+        assert df.iloc[1]['Name'] == 'Unpadded'
+        assert df.iloc[1]['Comment'] == 'keep internal   spaces'
+
 
 class TestATCHelpers:
     @pytest.mark.parametrize("code,expected_level", [

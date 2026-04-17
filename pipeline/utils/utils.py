@@ -122,7 +122,9 @@ def download_from_gcs(bucket_name: str, source_blob_name: str, temp_dir: Path) -
 
 @task
 def parse_xml(file_path: Path) -> pd.DataFrame:
-    """Parse XML file and return a pandas DataFrame"""
+    """Parse WHO ATC/DDD rowset XML and return a pandas DataFrame.
+    All row attributes are stripped of leading and trailing whitespace.
+    """
     logger = get_run_logger()
     logger.info(f"Parsing {file_path}")
 
@@ -131,7 +133,11 @@ def parse_xml(file_path: Path) -> pd.DataFrame:
 
     data = []
     for row in root.findall(".//z:row", namespaces={"z": "#RowsetSchema"}):
-        data.append(row.attrib)
+        row_data = {
+            k: v.strip() if isinstance(v, str) else v
+            for k, v in row.attrib.items()
+        }
+        data.append(row_data)
 
     return pd.DataFrame(data)
 
