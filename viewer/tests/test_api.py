@@ -12,7 +12,9 @@ from viewer.models import (
     VTM,
     DDDQuantity,
     DataStatus,
+    Ingredient,
 )
+from viewer.views.api import MAX_ANALYSIS_VMP_COUNT
 
 
 @pytest.fixture
@@ -193,3 +195,74 @@ class TestGetQuantityData:
         ]
         assert len(org_items) == 1
         assert org_items[0]["data"] == [1.0, 2.0, 3.0]
+
+
+@pytest.mark.django_db
+class TestValidateAnalysisParamsVmpCap:
+
+    def _call(self, **params):
+        client = Client()
+        query = "&".join(
+            f"{key}={value}" for key, value in params.items()
+        )
+        url = reverse("viewer:validate_analysis_params")
+        return client.get(f"{url}?{query}" if query else url)
+
+    def _create_vmps(self, n, vtm=None, code_prefix="1000"):
+        vmps = []
+        for i in range(n):
+            vmps.append(
+                VMP.objects.create(
+                    code=f"{code_prefix}{i:04d}",
+                    name=f"VMP {i}",
+                    vtm=vtm,
+                )
+            )
+        return vmps
+
+    def test_accepts_selection_exactly_at_cap(self):
+        vtm = VTM.objects.create(vtm="100", name="Cap VTM")
+        self._create_vmps(MAX_ANALYSIS_VMP_COUNT, vtm=vtm, code_prefix="2000")
+
+        response = self._call(vtms=vtm.vtm)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["errors"] == []
+        assert data["vmp_count"] == MAX_ANALYSIS_VMP_COUNT
+        assert len(data["valid_products"]) == 1
+
+    def test_rejects_selection_one_over_cap(self):
+        vtm = VTM.objects.create(vtm="101", name="Over-cap VTM")
+        self._create_vmps(MAX_ANALYSIS_VMP_COUNT + 1, vtm=vtm, code_prefix="3000")
+
+        response = self._call(vtms=vtm.vtm)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["vmp_count"] == MAX_ANALYSIS_VMP_COUNT + 1
+        assert any(
+            "maximum of" in err.lower() and "unique products" in err.lower()
+            for err in data["errors"]
+        ), f"Expected cap error in {data['errors']!r}"
+
+    def test_counts_union_not_sum_across_overlapping_selections(self):
+        """Two ingredients with overlapping VMPs count as a union, not a sum."""
+        ingredient_a = Ingredient.objects.create(code="900000001", name="Ingredient A")
+        ingredient_b = Ingredient.objects.create(code="900000002", name="Ingredient B")
+
+        overlap = self._create_vmps(3, code_prefix="4000")
+        only_a = self._create_vmps(1, code_prefix="4001")
+        only_b = self._create_vmps(1, code_prefix="4002")
+
+        for vmp in overlap + only_a:
+            vmp.ingredients.add(ingredient_a)
+        for vmp in overlap + only_b:
+            vmp.ingredients.add(ingredient_b)
+
+        response = self._call(ingredients=f"{ingredient_a.code},{ingredient_b.code}")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["errors"] == []
+        assert data["vmp_count"] == 5
