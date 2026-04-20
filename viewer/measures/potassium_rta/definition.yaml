@@ -1,0 +1,17 @@
+name: Safer potassium injectables # Full name of the measure/indicator
+short_name: Safer potassium injectables # Abbreviated name or acronym
+description: Percentage of potassium chloride preparations for injection not supplied as ampoules or vials # Brief 1-2 sentence description of what this measure identifies
+why_it_matters: |  
+  Ampoule or vial potassium chloride injections require preparation and carry a higher risk of dosing and administration errors; national safety guidance recommends using ready-to-use, standardised formulations to reduce harm [NHS England Patient Safety Alerts](https://www.england.nhs.uk/patient-safety/) [National Patient Safety Agency Rapid Response Report on Potassium Solutions](https://www.england.nhs.uk/publication/rapid-response-report-reducing-the-risk-of-harm-from-potassium-injectable-medicines/) [Institute for Safe Medication Practices High-Alert Medications](https://www.ismp.org/recommendations/high-alert-medications).    
+how_is_it_calculated: |
+  Potassium chloride products are identified using Virtual Therapeutic Moiety (VTM) codes for potassium chloride. These products are then filtered to include only injectable formulations, excluding oral and non-injectable presentations and excluding Ringer’s-type preparations. Ampoule and vial presentations are identified using dose/unit metadata (e.g. unit = ampoule or vial). The total number of unit doses of non-ampoule/non-vial injectable potassium chloride products is divided by the total number of unit doses of all injectable potassium chloride products and then multiplied by 100 to obtain a monthly percentage.
+tags:
+    # List relevant categories (e.g. Safety, Prescribing, Monitoring)
+    - Safety
+quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
+lower_is_better: null # true, false, or null when no value judgement
+authored_by: Victoria Speed # Name of original author
+checked_by: TBC # Name of clinical/technical reviewer
+date_reviewed: 2026-04-20 # Date of last review (YYYY-MM-DD)
+next_review: 2027-04-20 # Date of next scheduled review (YYYY-MM-DD)
+status: in_development # in_development, preview, published
