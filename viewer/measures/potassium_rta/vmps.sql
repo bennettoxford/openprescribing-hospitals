@@ -18,18 +18,6 @@ injectable_vmps AS (
     WHERE ofr.name = 'solutioninjection.intravenous'
 ),
 
-strong_vmps AS (
-    -- 3. Strength > 0.5% we need this to cover concentrate and the diluted ready to adminsiter formulations
-    SELECT DISTINCT iv.id, iv.name
-    FROM injectable_vmps iv
-    INNER JOIN viewer_dose d 
-        ON d.vmp_id = iv.id
-    WHERE 
-        d.strength IS NOT NULL
-        AND d.strength > 0.5
-        AND LOWER(d.unit) LIKE '%\%%'  -- ensures % strength
-),
-
 measure_vmps AS (
     -- 4. Define numerator (not amp/vial). The lower the proportion of amps and vials the better
     SELECT DISTINCT
