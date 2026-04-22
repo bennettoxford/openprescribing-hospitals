@@ -25,6 +25,7 @@
     let lastSearchResults = [];
     let searchBoxRef;
     let isOpen = false;
+    let searchRequestId = 0;
 
     let listContainer;
     let showScrollTop = false;
@@ -36,41 +37,53 @@
         filteredItems = [];
     }
 
+    function decorateSearchResult(item) {
+        const productCount = item.vmp_count ?? item.vmps?.length ?? 0;
+        return {
+            ...item,
+            isExpanded: item.type === 'vtm',
+            has_vmps: item.type === 'vmp' || productCount > 0,
+        };
+    }
+
     async function handleInput() {
         isOpen = true;
+        const requestId = ++searchRequestId;
         clearTimeout(searchTimeout);
-        
+
         if (!searchTerm || searchTerm.length < 3) {
             filteredItems = [];
             lastSearchResults = [];
             isLoading = false;
             return;
         }
-        
+
         isLoading = true;
-        
+
         searchTimeout = setTimeout(async () => {
             try {
-                const response = await fetch(`/api/search-products/?type=${type}&term=${encodeURIComponent(searchTerm)}`);
+                const response = await fetch(
+                    `/api/search-products/?type=${type}&term=${encodeURIComponent(searchTerm)}`
+                );
                 const data = await response.json();
+                if (requestId !== searchRequestId) return;
                 if (!response.ok) {
                     filteredItems = [];
                     lastSearchResults = [];
                     return;
                 }
                 const results = Array.isArray(data.results) ? data.results : [];
-                filteredItems = results.map(item => ({
-                    ...item,
-                    isExpanded: item.type === 'vtm' ? true : false,
-                    has_vmps: true
-                }));
+                filteredItems = results.map(decorateSearchResult);
                 lastSearchResults = filteredItems;
             } catch (error) {
+                if (requestId !== searchRequestId) return;
                 console.error('Error fetching search results:', error);
                 filteredItems = [];
                 lastSearchResults = [];
             } finally {
-                isLoading = false;
+                if (requestId === searchRequestId) {
+                    isLoading = false;
+                }
             }
         }, 300);
     }
@@ -163,6 +176,7 @@
     }
 
     function resetSearchState() {
+        searchRequestId++;
         clearTimeout(searchTimeout);
         searchTerm = '';
         filteredItems = [];
@@ -274,8 +288,9 @@
 
     $: showSearchHint = isOpen && searchTerm && searchTerm.length < 3;
     $: showResultList = isOpen && (filteredItems.length > 0 || isLoading);
+    $: showNoResults = isOpen && !isLoading && searchTerm && searchTerm.length >= 3 && filteredItems.length === 0;
     $: resultsPanelOpen =
-        showSearchHint || showResultList;
+        showSearchHint || showResultList || showNoResults;
 </script>
 
 <div 
@@ -337,6 +352,12 @@
                         <div class="p-3">
                             <p class="text-gray-600 text-sm">
                                 Please type at least 3 characters to start searching
+                            </p>
+                        </div>
+                    {:else if showNoResults}
+                        <div class="p-3">
+                            <p class="text-gray-600 text-sm">
+                                No results found.
                             </p>
                         </div>
                     {:else}
