@@ -270,6 +270,63 @@ class TestSearchProducts:
         data = response.json()
         assert _result_names(data)[0] == "Morphine"
 
+    def test_product_search_ranks_name_prefix_ahead_of_ingredient_match_within_same_vtm(
+        self, client
+    ):
+        """Within a single VTM, VMPs whose visible name directly starts with
+        the query shall rank ahead of sibling VMPs that only match via the
+        ingredient blob (see data/search_requirements.md: "Direct prefix
+        matches on the visible product label shall rank ahead of infix
+        matches").
+        """
+        morphine_vtm = VTM.objects.create(vtm="VTMMOR", name="Morphine")
+        morphine_sulfate = Ingredient.objects.create(
+            code="INGMORS", name="Morphine sulfate"
+        )
+        morphine_tartrate = Ingredient.objects.create(
+            code="INGMORT", name="Morphine tartrate"
+        )
+
+        sulfate_named = VMP.objects.create(
+            code="MORS100",
+            name="Morphine sulfate 100mg/100ml infusion bags",
+            vtm=morphine_vtm,
+        )
+        sulfate_named.ingredients.add(morphine_sulfate)
+
+        sulfate_by_ingredient = VMP.objects.create(
+            code="MOR60MR",
+            name="Morphine 60mg modified-release tablets",
+            vtm=morphine_vtm,
+        )
+        sulfate_by_ingredient.ingredients.add(morphine_sulfate)
+
+        non_matching_sibling = VMP.objects.create(
+            code="MOR10TAR",
+            name="Morphine 10mg tartrate tablets",
+            vtm=morphine_vtm,
+        )
+        non_matching_sibling.ingredients.add(morphine_tartrate)
+
+        response = client.get(
+            "/api/search-products/",
+            {"type": "product", "term": "morphine sulfate"},
+        )
+
+        assert response.status_code == 200
+        names = _result_names(response.json())
+        named_idx = next(
+            i for i, n in enumerate(names)
+            if n == "Morphine sulfate 100mg/100ml infusion bags"
+        )
+        ingredient_only_idx = next(
+            i for i, n in enumerate(names)
+            if n == "Morphine 60mg modified-release tablets"
+        )
+        assert named_idx < ingredient_only_idx, (
+            f"Expected name-prefix match ahead of ingredient-only match; got {names}"
+        )
+
     def test_product_search_groups_vtm_only_when_all_children_match(self, client):
         vtm = VTM.objects.create(vtm="VTMOM1", name="Omeprazole")
         VMP.objects.create(code="OMP20", name="Omeprazole 20mg capsules", vtm=vtm)

@@ -137,10 +137,19 @@ def _prefix_match(value, query_normalised):
 
 
 def _rank_key(row, query_normalised, display_name):
-    """Ranking key for a VMP row. Order: exact/prefix on code, then on top-label, then name."""
+    """Deterministic ranking: exact/prefix on code, then on top-label, then on
+    the display label, then name.
+
+    The display-label tiers distinguish a direct prefix match on the label the
+    user sees (e.g. "Morphine sulfate 100mg/100ml infusion bags" for the query
+    "morphine sulfate") from an infix-only or ingredient-only match on a row
+    whose display label does not start with the query (e.g. "Morphine 60mg
+    modified-release tablets" matching via its ingredient blob). 
+    """
     code = row.code_norm
     vtm_code = row.vtm_code_norm
     top_label = row.top_label_norm
+    display_norm = normalise_string(display_name)
 
     exact_code = int(code == query_normalised or vtm_code == query_normalised)
     exact_top = int(top_label == query_normalised)
@@ -149,13 +158,21 @@ def _rank_key(row, query_normalised, display_name):
         or _prefix_match(vtm_code, query_normalised)
     )
     prefix_top = int(_prefix_match(top_label, query_normalised))
+    display_prefix = int(
+        bool(display_norm) and display_norm.startswith(query_normalised)
+    )
+    display_contains = int(
+        bool(display_norm) and query_normalised in display_norm
+    )
 
     return (
         -exact_code,
         -exact_top,
         -prefix_code,
         -prefix_top,
-        normalise_string(display_name),
+        -display_prefix,
+        -display_contains,
+        display_norm,
     )
 
 
@@ -192,7 +209,8 @@ def search_product_results(raw_term):
 
     for vtm_id, rows in matched_by_vtm.items():
         ordered_rows = sorted(
-            rows, key=lambda r: _rank_key(r, normalised, r.name)
+            rows,
+            key=lambda r: _rank_key(r, normalised, r.name),
         )
         best = ordered_rows[0]
         if len(rows) == total_counts_by_vtm[vtm_id]:
