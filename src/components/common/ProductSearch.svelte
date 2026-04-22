@@ -25,6 +25,7 @@
     let lastSearchResults = [];
     let searchBoxRef;
     let isOpen = false;
+    let searchRequestId = 0;
 
     let listContainer;
     let showScrollTop = false;
@@ -47,21 +48,25 @@
 
     async function handleInput() {
         isOpen = true;
+        const requestId = ++searchRequestId;
         clearTimeout(searchTimeout);
-        
+
         if (!searchTerm || searchTerm.length < 3) {
             filteredItems = [];
             lastSearchResults = [];
             isLoading = false;
             return;
         }
-        
+
         isLoading = true;
-        
+
         searchTimeout = setTimeout(async () => {
             try {
-                const response = await fetch(`/api/search-products/?type=${type}&term=${encodeURIComponent(searchTerm)}`);
+                const response = await fetch(
+                    `/api/search-products/?type=${type}&term=${encodeURIComponent(searchTerm)}`
+                );
                 const data = await response.json();
+                if (requestId !== searchRequestId) return;
                 if (!response.ok) {
                     filteredItems = [];
                     lastSearchResults = [];
@@ -71,11 +76,14 @@
                 filteredItems = results.map(decorateSearchResult);
                 lastSearchResults = filteredItems;
             } catch (error) {
+                if (requestId !== searchRequestId) return;
                 console.error('Error fetching search results:', error);
                 filteredItems = [];
                 lastSearchResults = [];
             } finally {
-                isLoading = false;
+                if (requestId === searchRequestId) {
+                    isLoading = false;
+                }
             }
         }, 300);
     }
@@ -168,6 +176,7 @@
     }
 
     function resetSearchState() {
+        searchRequestId++;
         clearTimeout(searchTimeout);
         searchTerm = '';
         filteredItems = [];
