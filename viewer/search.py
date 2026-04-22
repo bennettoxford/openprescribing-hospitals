@@ -2,8 +2,9 @@ import re
 import unicodedata
 from collections import defaultdict
 from dataclasses import dataclass
+from functools import lru_cache
 
-from django.db.models import Q
+from django.db.models import Count, Max, Q
 
 from .models import ATC, Ingredient, VMP
 
@@ -114,6 +115,20 @@ def _load_vmp_rows():
     return rows
 
 
+def _vmp_rows_signature():
+    stats = VMP.objects.aggregate(max_id=Max("id"), count=Count("id"))
+    return (stats["max_id"], stats["count"])
+
+
+@lru_cache(maxsize=1)
+def _load_vmp_rows_for_signature(signature):
+    return _load_vmp_rows()
+
+
+def _load_vmp_rows_cached():
+    return _load_vmp_rows_for_signature(_vmp_rows_signature())
+
+
 def _prefix_match(value, query_normalised):
     """Prefix match in either direction."""
     if not value or not query_normalised:
@@ -150,7 +165,7 @@ def search_product_results(raw_term):
     if len(normalised) < 3:
         return []
 
-    all_rows = _load_vmp_rows()
+    all_rows = _load_vmp_rows_cached()
     matched_rows = [
         row for row in all_rows if _matches_all_tokens(row.search_blob, tokens)
     ]
