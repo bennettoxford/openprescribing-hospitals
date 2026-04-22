@@ -22,289 +22,32 @@ from ..models import (
 )
 from ..utils import (
     safe_float,
-    tokenize,
-    coverage_score,
     get_quantity_months,
     get_ddd_unit_map,
+)
+from ..search import (
+    MAX_ANALYSIS_VMP_COUNT,
+    search_atc_results,
+    search_ingredient_results,
+    search_product_results,
 )
 from .measures import (
     normalise_trust_code,
     get_bulk_trust_series_for_measures,
 )
 
-
-MAX_PRODUCT_CANDIDATES = 1000
-MAX_INGREDIENT_CANDIDATES = 200
-MAX_INGREDIENT_RESULTS = 50
-MAX_ATC_CANDIDATES = 200
-MAX_ATC_RESULTS = 50
-MAX_ANALYSIS_VMP_COUNT = 250
-
-
-def _product_searchable_tokens(vmp):
-    """Build list of searchable tokens for a VMP (name, code, vtm, ingredients)."""
-    parts = []
-    if vmp.name:
-        parts.append(vmp.name)
-    if vmp.code:
-        parts.append(vmp.code)
-    if vmp.vtm:
-        if vmp.vtm.name:
-            parts.append(vmp.vtm.name)
-        if vmp.vtm.vtm:
-            parts.append(vmp.vtm.vtm)
-    for ing in getattr(vmp, "_ingredients_cache", []):
-        if getattr(ing, "name", None):
-            parts.append(ing.name)
-        if getattr(ing, "code", None):
-            parts.append(ing.code)
-    text = " ".join(p for p in parts if p)
-    return list(dict.fromkeys(tokenize(text)))
-
-
-
 @api_view(["GET"])
 def search_products(request):
     search_type = request.GET.get("type", "product")
     raw_term = request.GET.get("term", "").strip()
-    search_tokens = tokenize(raw_term)
-
     if search_type == "product":
-        if not search_tokens:
-            return JsonResponse({"results": []})
+        return JsonResponse({"results": search_product_results(raw_term)})
 
-        vmp_q = Q()
-        for t in search_tokens:
-            vmp_q |= Q(name__icontains=t) | Q(code__icontains=t)
-        vtm_q = Q()
-        for t in search_tokens:
-            vtm_q |= Q(name__icontains=t) | Q(vtm__icontains=t)
+    if search_type == "ingredient":
+        return JsonResponse({"results": search_ingredient_results(raw_term)})
 
-        seen_ids = set()
-        unique_vmps = []
-        initial_vmps = (
-            VMP.objects.filter(vmp_q | Q(vtm__in=VTM.objects.filter(vtm_q)))
-            .select_related("vtm")
-            .prefetch_related("ingredients")
-            .distinct()[:MAX_PRODUCT_CANDIDATES]
-        )
-        for vmp in initial_vmps:
-            if vmp.id not in seen_ids:
-                seen_ids.add(vmp.id)
-                unique_vmps.append(vmp)
-
-        # Add VMPs that match via ingredient
-        if len(unique_vmps) < MAX_PRODUCT_CANDIDATES:
-            ing_q = Q()
-            for t in search_tokens:
-                ing_q |= Q(ingredients__name__icontains=t) | Q(ingredients__code__icontains=t)
-            for vmp in (
-                VMP.objects.filter(ing_q)
-                .exclude(id__in=seen_ids)
-                .select_related("vtm")
-                .prefetch_related("ingredients")
-                .distinct()[: MAX_PRODUCT_CANDIDATES - len(unique_vmps)]
-            ):
-                seen_ids.add(vmp.id)
-                unique_vmps.append(vmp)
-
-        for vmp in unique_vmps:
-            vmp._ingredients_cache = list(vmp.ingredients.all())
-
-        # Group by VTM
-        vmp_by_vtm = {}
-        standalone_vmps = []
-        for vmp in unique_vmps:
-            if vmp.vtm:
-                vtm_key = vmp.vtm.vtm
-                if vtm_key not in vmp_by_vtm:
-                    vmp_by_vtm[vtm_key] = {"vtm": vmp.vtm, "vmps": []}
-                vmp_by_vtm[vtm_key]["vmps"].append(vmp)
-            else:
-                standalone_vmps.append(vmp)
-
-        scored = []
-        for vtm_data in vmp_by_vtm.values():
-            item_tokens = []
-            for vmp in vtm_data["vmps"]:
-                item_tokens.extend(_product_searchable_tokens(vmp))
-            item_tokens = list(dict.fromkeys(item_tokens))
-            score = coverage_score(search_tokens, item_tokens)
-            if score > 0:
-                scored.append(
-                    (
-                        score,
-                        {
-                            "code": vtm_data["vtm"].vtm,
-                            "name": vtm_data["vtm"].name,
-                            "type": "vtm",
-                            "isExpanded": False,
-                            "vmps": [
-                                {"code": vmp.code, "name": vmp.name, "type": "vmp"}
-                                for vmp in vtm_data["vmps"]
-                            ],
-                        },
-                    )
-                )
-        for vmp in standalone_vmps:
-            item_tokens = _product_searchable_tokens(vmp)
-            score = coverage_score(search_tokens, item_tokens)
-            if score > 0:
-                scored.append(
-                    (
-                        score,
-                        {"code": vmp.code, "name": vmp.name, "type": "vmp"},
-                    )
-                )
-
-        scored.sort(key=lambda x: (-x[0], x[1]["name"].lower()))
-        results = [item for _, item in scored]
-        return JsonResponse({"results": results})
-    
-    elif search_type == "ingredient":
-        if not search_tokens:
-            return JsonResponse({"results": []})
-        ing_q = Q()
-        for t in search_tokens:
-            ing_q |= Q(name__icontains=t) | Q(code__icontains=t)
-        candidates = list(Ingredient.objects.filter(ing_q).distinct()[:MAX_INGREDIENT_CANDIDATES])
-        scored = []
-        for ingredient in candidates:
-            searchable = " ".join(
-                filter(None, [ingredient.name, ingredient.code])
-            )
-            item_tokens = tokenize(searchable)
-            score = coverage_score(search_tokens, item_tokens)
-            if score > 0:
-                ingredient_vmps = list(
-                    VMP.objects.filter(ingredients__code=ingredient.code)
-                    .select_related("vtm")
-                    .values("code", "name")
-                )
-                scored.append(
-                    (
-                        score,
-                        {
-                            "code": ingredient.code,
-                            "name": ingredient.name,
-                            "type": "ingredient",
-                            "vmp_count": len(ingredient_vmps),
-                            "vmps": ingredient_vmps,
-                        },
-                    )
-                )
-        scored.sort(key=lambda x: (-x[0], x[1]["name"].lower()))
-        results = [item for _, item in scored][:MAX_INGREDIENT_RESULTS]
-        return JsonResponse({"results": results})
-    
-    elif search_type == "atc":
-        if not search_tokens:
-            return JsonResponse({"results": []})
-        atc_q = Q()
-        for t in search_tokens:
-            atc_q |= (
-                Q(name__icontains=t) | Q(code__icontains=t)
-                | Q(level_1__icontains=t) | Q(level_2__icontains=t)
-                | Q(level_3__icontains=t) | Q(level_4__icontains=t) | Q(level_5__icontains=t)
-            )
-        atc_candidates = list(ATC.objects.filter(atc_q).distinct()[:MAX_ATC_CANDIDATES])
-
-        def build_hierarchy_path(atc_obj):
-            path_parts = []
-            if atc_obj.level_1:
-                path_parts.append(atc_obj.level_1)
-            if atc_obj.level_2:
-                path_parts.append(atc_obj.level_2)
-            if atc_obj.level_3:
-                path_parts.append(atc_obj.level_3)
-            if atc_obj.level_4:
-                path_parts.append(atc_obj.level_4)
-            if atc_obj.level_5:
-                path_parts.append(atc_obj.level_5)
-            return path_parts
-
-        def get_parent_path(code):
-            parent_codes = []
-            if len(code) >= 1:
-                parent_codes.append(code[:1])
-            if len(code) >= 3:
-                parent_codes.append(code[:3])
-            if len(code) >= 4:
-                parent_codes.append(code[:4])
-            if len(code) >= 5:
-                parent_codes.append(code[:5])
-            return parent_codes
-
-        scored = []
-        for atc in atc_candidates:
-            searchable = " ".join(
-                filter(
-                    None,
-                    [
-                        atc.name,
-                        atc.code,
-                        atc.level_1,
-                        atc.level_2,
-                        atc.level_3,
-                        atc.level_4,
-                        atc.level_5,
-                    ],
-                )
-            )
-            item_tokens = tokenize(searchable)
-            score = coverage_score(search_tokens, item_tokens)
-            if score <= 0:
-                continue
-            code_len = len(atc.code)
-            if code_len == 1:
-                level, level_name = 1, atc.level_1
-            elif code_len == 3:
-                level, level_name = 2, atc.level_2
-            elif code_len == 4:
-                level, level_name = 3, atc.level_3
-            elif code_len == 5:
-                level, level_name = 4, atc.level_4
-            elif code_len == 7:
-                level, level_name = 5, atc.level_5
-            else:
-                continue
-            atc_vmps = atc.get_vmps().select_related("vtm").values("code", "name")
-            vmp_list = list(atc_vmps)
-            hierarchy_path = build_hierarchy_path(atc)
-            parent_codes = get_parent_path(atc.code)
-            parent_path = []
-            if parent_codes:
-                parent_atcs = ATC.objects.filter(code__in=parent_codes).order_by("code")
-                for parent in parent_atcs:
-                    if parent.code != atc.code:
-                        parent_hierarchy = build_hierarchy_path(parent)
-                        if parent_hierarchy:
-                            parent_path.append(
-                                {
-                                    "code": parent.code,
-                                    "name": parent_hierarchy[-1],
-                                    "level": len(parent.code) if len(parent.code) <= 5 else 5,
-                                }
-                            )
-            scored.append(
-                (
-                    score,
-                    {
-                        "code": atc.code,
-                        "name": level_name or atc.name,
-                        "full_name": atc.name,
-                        "type": "atc",
-                        "level": level,
-                        "vmp_count": len(vmp_list),
-                        "vmps": vmp_list,
-                        "hierarchy_path": hierarchy_path,
-                        "parent_path": parent_path,
-                    },
-                )
-            )
-        scored.sort(key=lambda x: (-x[0], x[1]["name"] or ""))
-        results = [item for _, item in scored][:MAX_ATC_RESULTS]
-        return JsonResponse({"results": results})
+    if search_type == "atc":
+        return JsonResponse({"results": search_atc_results(raw_term)})
 
     return JsonResponse({"results": []})
 

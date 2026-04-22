@@ -3,7 +3,7 @@ import json
 
 from ..mixins import MaintenanceModeMixin
 from ..utils import get_organisation_data
-from .api import MAX_ANALYSIS_VMP_COUNT
+from ..search import MAX_ANALYSIS_VMP_COUNT
 
 
 class AnalyseView(MaintenanceModeMixin, TemplateView):

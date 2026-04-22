@@ -1,8 +1,6 @@
 import csv
 import math
 import os
-import re
-import unicodedata
 from collections import defaultdict
 from datetime import datetime, timedelta
 from django.conf import settings
@@ -17,40 +15,6 @@ def get_quantity_months():
         DataStatus.objects.order_by('year_month').values_list('year_month', flat=True)
     )
     return [d.strftime('%Y-%m-%d') for d in dates]
-
-
-def normalise_string(s):
-    """Lowercase, NFD normalise, strip accents, remove punctuation, normalise whitespace."""
-    if s is None or not isinstance(s, str):
-        return ""
-    s = s.lower().strip()
-    s = unicodedata.normalize("NFD", s)
-    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
-    s = re.sub(r"""['".,\/#!$%\^&\*;:{}=\-_`~()]""", "", s)
-    s = re.sub(r"\s+", " ", s)
-    return s.strip()
-
-
-def tokenize(s):
-    """Normalise then split on whitespace; return list of non-empty tokens."""
-    normalised = normalise_string(s)
-    return normalised.split() if normalised else []
-
-
-def _token_matches(search_token, item_tokens):
-    """True if any item token equals or contains the search token."""
-    return any(
-        search_token == it or (len(it) >= len(search_token) and search_token in it)
-        for it in item_tokens
-    )
-
-
-def coverage_score(search_tokens, item_tokens):
-    """Fraction of search tokens that match (0..1)."""
-    if not search_tokens:
-        return 1.0
-    matched = sum(1 for st in search_tokens if _token_matches(st, item_tokens))
-    return matched / len(search_tokens)
 
 
 def get_organisation_data():
