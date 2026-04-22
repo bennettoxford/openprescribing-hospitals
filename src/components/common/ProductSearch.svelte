@@ -36,6 +36,15 @@
         filteredItems = [];
     }
 
+    function decorateSearchResult(item) {
+        const productCount = item.vmp_count ?? item.vmps?.length ?? 0;
+        return {
+            ...item,
+            isExpanded: item.type === 'vtm',
+            has_vmps: item.type === 'vmp' || productCount > 0,
+        };
+    }
+
     async function handleInput() {
         isOpen = true;
         clearTimeout(searchTimeout);
@@ -59,11 +68,7 @@
                     return;
                 }
                 const results = Array.isArray(data.results) ? data.results : [];
-                filteredItems = results.map(item => ({
-                    ...item,
-                    isExpanded: item.type === 'vtm' ? true : false,
-                    has_vmps: true
-                }));
+                filteredItems = results.map(decorateSearchResult);
                 lastSearchResults = filteredItems;
             } catch (error) {
                 console.error('Error fetching search results:', error);
@@ -274,8 +279,9 @@
 
     $: showSearchHint = isOpen && searchTerm && searchTerm.length < 3;
     $: showResultList = isOpen && (filteredItems.length > 0 || isLoading);
+    $: showNoResults = isOpen && !isLoading && searchTerm && searchTerm.length >= 3 && filteredItems.length === 0;
     $: resultsPanelOpen =
-        showSearchHint || showResultList;
+        showSearchHint || showResultList || showNoResults;
 </script>
 
 <div 
@@ -337,6 +343,12 @@
                         <div class="p-3">
                             <p class="text-gray-600 text-sm">
                                 Please type at least 3 characters to start searching
+                            </p>
+                        </div>
+                    {:else if showNoResults}
+                        <div class="p-3">
+                            <p class="text-gray-600 text-sm">
+                                No results found.
                             </p>
                         </div>
                     {:else}
