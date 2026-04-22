@@ -135,7 +135,13 @@ def _rank_key(row, query_normalised, display_name):
     )
     prefix_top = int(_prefix_match(top_label, query_normalised))
 
-    return (-exact_code, -exact_top, -prefix_code, -prefix_top, display_name.lower())
+    return (
+        -exact_code,
+        -exact_top,
+        -prefix_code,
+        -prefix_top,
+        normalise_string(display_name),
+    )
 
 
 def search_product_results(raw_term):
@@ -217,7 +223,7 @@ def search_ingredient_results(raw_term):
             tokens,
         )
     ]
-    matched.sort(key=lambda ing: ing.name.lower())
+    matched.sort(key=lambda ing: normalise_string(ing.name))
     matched = matched[:MAX_INGREDIENT_RESULTS]
     if not matched:
         return []
