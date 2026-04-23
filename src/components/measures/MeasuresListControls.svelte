@@ -9,7 +9,8 @@
         selectedSort: { type: 'String', reflect: true },
         tagsData: { type: 'String', reflect: true },
         selectedTags: { type: 'String', reflect: true },
-        archivedCount: { type: 'Number', reflect: true }
+        archivedCount: { type: 'Number', reflect: true },
+        previewMode: { type: 'String', reflect: true }
     },
     shadow: 'none'
 }} />
@@ -38,6 +39,7 @@
     export let tagsData = '[]';
     export let selectedTags = '';
     export let archivedCount = 0;
+    export let previewMode = 'false';
 
     let parsedOrgData = {};
     let parsedRegionData = [];
@@ -59,10 +61,25 @@
         { value: 'newest', label: 'Newest first' },
     ];
     $: selectedItems = $organisationSearchStore?.selectedItems || [];
-    $: singleTrustCode = $mode === 'trust' && selectedItems.length === 1
-        ? findPrimaryTrustCode(selectedItems)
-        : null;
-    $: effectiveTrustCode = $selectedCodeStore || singleTrustCode || '';
+
+    $: listPageTitle = (() => {
+        const isPreview = previewMode === 'true';
+        const base = isPreview ? 'Measure Previews' : 'Measures';
+        let label = '';
+        if ($mode === 'trust' && $selectedCodeStore) {
+            label = (parsedOrgData?.orgs || {})[$selectedCodeStore] || selectedItems[0] || '';
+        } else if ($mode === 'region' && $selectedCodeStore) {
+            label = parsedRegionData.find((r) => r.code === $selectedCodeStore)?.name
+                || selectedItems[0] || '';
+        }
+        return label ? `${base} - ${label}` : base;
+    })();
+
+    $: if (!isInitialLoad && typeof document !== 'undefined') {
+        document.title = listPageTitle;
+        const h1 = document.getElementById('measures-list-heading');
+        if (h1) h1.textContent = listPageTitle;
+    }
 
     function findPrimaryTrustCode(items) {
         const primaryName = items[0];

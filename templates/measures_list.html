@@ -6,7 +6,7 @@
     {% vite_asset 'src/components/measures/MeasuresList.svelte' %}
 {% endblock %}
 
-{% block title %}{% if preview_mode %}Measure Previews{% else %}Measures{% endif %}{% endblock %}
+{% block title %}{% if preview_mode %}Measure Previews{% else %}Measures{% endif %}{% if list_selection_label %} - {{ list_selection_label }}{% endif %}{% endblock %}
 {% block content %}
 
 <div class="container xl:max-w-screen-xl pt-2 md:pt-6 pb-4">
@@ -14,8 +14,8 @@
         <!-- Header Section -->
         <div class="mb-4">
             <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-                <h1 class="text-4xl font-bold text-gray-900 tracking-tight">
-                    {% if preview_mode %}Measure Previews{% else %}Measures{% endif %}
+                <h1 id="measures-list-heading" class="text-4xl font-bold text-gray-900 tracking-tight">
+                    {% if preview_mode %}Measure Previews{% else %}Measures{% endif %}{% if list_selection_label %} - {{ list_selection_label }}{% endif %}
                 </h1>
                 {% if user.is_authenticated %}
                     {% if preview_mode %}

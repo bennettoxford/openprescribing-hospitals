@@ -438,6 +438,14 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
         }.get(selected_mode, '')
         org_data = get_organisation_data()
         region_list = get_region_list()
+        list_selection_label = ''
+        if selected_mode == 'trust' and selected_code:
+            list_selection_label = (org_data.get('orgs') or {}).get(selected_code) or ''
+        elif selected_mode == 'region' and selected_code:
+            list_selection_label = next(
+                (r['name'] for r in region_list if r.get('code') == selected_code),
+                '',
+            ) or selected_code
         context.update({
             "tags_json": json.dumps(
                 [{"id": t.id, "name": t.name, "slug": slugify(t.name), "colour": t.colour or "#6b7280"}
@@ -452,6 +460,7 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
             "selected_trust_codes_param": selected_trust_code if selected_mode == 'trust' else "",
             "org_data_json": json.dumps(org_data, cls=DjangoJSONEncoder),
             "region_data_json": json.dumps(region_list, cls=DjangoJSONEncoder),
+            "list_selection_label": list_selection_label,
         })
 
         measures_for_charts = list(measures) + list(archived_measures)

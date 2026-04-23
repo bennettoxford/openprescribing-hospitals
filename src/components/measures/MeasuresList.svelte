@@ -106,6 +106,7 @@
     tagsData={tagsData}
     selectedTags={initialTags}
     archivedCount={parsedArchivedMeasures.length}
+    previewMode={previewMode}
   />
 </div>
 
