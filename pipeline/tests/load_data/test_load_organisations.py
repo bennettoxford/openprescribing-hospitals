@@ -24,6 +24,7 @@ def sample_bigquery_data():
             "icb_code": "ICB1",
             "cancer_alliance_code": "E56000010",
             "cancer_alliance": "South East London",
+            "in_shelford_group": False,
             "successors": ["DEF456"],
             "ultimate_successors": ["DEF456"],
             "trust_type": "ACUTE - TEACHING",
@@ -37,6 +38,7 @@ def sample_bigquery_data():
             "icb_code": "ICB2",
             "cancer_alliance_code": "E56000010",
             "cancer_alliance": "South East London",
+            "in_shelford_group": True,
             "successors": [],
             "ultimate_successors": [],
             "trust_type": "COMMUNITY",
@@ -50,6 +52,7 @@ def sample_bigquery_data():
             "icb_code": "ICB3",
             "cancer_alliance_code": None,
             "cancer_alliance": None,
+            "in_shelford_group": False,
             "successors": [],
             "ultimate_successors": [],
             "trust_type": None,
@@ -70,6 +73,7 @@ def sample_transformed_data():
             "icb_code": "ICB1",
             "cancer_alliance_code": "E56000010",
             "cancer_alliance": "South East London",
+            "in_shelford_group": False,
             "successor_code": "DEF456",
             "trust_type": "ACUTE - TEACHING",
         },
@@ -82,6 +86,7 @@ def sample_transformed_data():
             "icb_code": "ICB2",
             "cancer_alliance_code": "E56000010",
             "cancer_alliance": "South East London",
+            "in_shelford_group": True,
             "successor_code": None,
             "trust_type": "COMMUNITY",
         },
@@ -94,6 +99,7 @@ def sample_transformed_data():
             "icb_code": "ICB3",
             "cancer_alliance_code": "",
             "cancer_alliance": "",
+            "in_shelford_group": False,
             "successor_code": None,
             "trust_type": None,
         },
@@ -125,6 +131,7 @@ class TestLoadOrganisations:
                 "successors",
                 "ultimate_successors",
                 "trust_type",
+                "in_shelford_group",
             ]
         )
 
@@ -142,7 +149,7 @@ class TestLoadOrganisations:
             key in result[0]
             for key in [
                 "ods_code", "ods_name", "region", "region_code",
-                "icb", "icb_code", "cancer_alliance_code", "cancer_alliance",
+                "icb", "icb_code",                 "cancer_alliance_code", "cancer_alliance", "in_shelford_group",
                 "successor_code", "trust_type",
             ]
         )
@@ -195,8 +202,11 @@ class TestLoadOrganisations:
 
         assert orgs_list[1].trust_type.name == "COMMUNITY"
         assert orgs_list[1].cancer_alliance.name == "South East London"
+        assert orgs_list[1].in_shelford_group is True
+        assert orgs_list[0].in_shelford_group is False
         assert orgs_list[2].trust_type is None  # GHI789 has no trust type
         assert orgs_list[2].cancer_alliance is None
+        assert orgs_list[2].in_shelford_group is False
 
         assert (
             orgs_list[0].successor == orgs_list[1]
