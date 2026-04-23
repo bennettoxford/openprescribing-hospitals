@@ -7,6 +7,7 @@
         nationaldata: { type: 'String', reflect: true },
         percentiledata: { type: 'String', reflect: true },
         quantitytype: { type: 'String', reflect: true },
+        yaxislabel: { type: 'String', reflect: true },
         hasdenominators: { type: 'String', reflect: true },
         denominatorvmps: { type: 'String', reflect: true },
         numeratorvmps: { type: 'String', reflect: true },
@@ -49,6 +50,7 @@
     export let nationaldata = '[]';
     export let percentiledata = '[]';
     export let quantitytype = 'dose';
+    export let yaxislabel = '';
     export let hasdenominators = 'true';
     export let denominatorvmps = '[]';
     export let numeratorvmps = '[]';
@@ -252,7 +254,10 @@
         }
     }
 
-    $: yAxisLabel = getYAxisLabel(quantitytype, hasdenominators, uniqueUnits);
+    $: yAxisLabel =
+        yaxislabel && String(yaxislabel).trim()
+            ? String(yaxislabel).trim()
+            : getYAxisLabel(quantitytype, hasdenominators, uniqueUnits);
     $: yAxisTickFormatter = getYAxisTickFormatter(quantitytype, hasdenominators);
     $: yAxisLimits = getYAxisLimits(hasdenominators, $filteredData);
     
