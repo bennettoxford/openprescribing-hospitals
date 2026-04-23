@@ -80,6 +80,7 @@ class Command(BaseCommand):
                     'archive_description': data.get('archive_description', None),
                     'default_view_mode': data.get('default_view_mode', 'trust'),
                     'lower_is_better': data.get('lower_is_better', None),
+                    'y_axis_label': data.get('y_axis_label') or None,
                 }
             )
             
@@ -209,6 +210,7 @@ def validate_measure_yaml(data):
             error='default_view_mode must be one of: trust, icb, region, national'
         ),
         Optional('lower_is_better'): Or(bool, None, error='lower_is_better must be true, false, or null'),
+        Optional('y_axis_label'): And(str, error='y_axis_label must be a string'),
         Optional('short_description'): And(str, error='short_description must be a string'),
         Optional('annotations'): And(
             list,
