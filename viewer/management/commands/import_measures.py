@@ -82,6 +82,7 @@ class Command(BaseCommand):
                     'default_view_mode': data.get('default_view_mode', 'trust'),
                     'lower_is_better': data.get('lower_is_better', None),
                     'denominator_type': data.get('denominator') or None,
+                    'y_axis_label': data.get('y_axis_label') or None,
                 }
             )
             
@@ -219,6 +220,7 @@ def validate_measure_yaml(data):
                 f"{', '.join(EXTERNAL_DENOMINATOR_TYPES)}"
             ),
         ),
+        Optional('y_axis_label'): And(str, error='y_axis_label must be a string'),
         Optional('short_description'): And(str, error='short_description must be a string'),
         Optional('annotations'): And(
             list,
