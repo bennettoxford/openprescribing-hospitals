@@ -352,11 +352,7 @@
                             {disabled ? 'bg-gray-100' : ''} min-w-[70px]">
                     <div class="flex flex-col items-center text-xs text-gray-500 py-1 w-full">
                         <span class="font-medium">
-                            {(() => {
-                                const selectedCount = selectedItems.filter(item => isItemAvailable(item)).length;
-                                const totalInDropdown = groupedItems.selectedCount + groupedItems.unselectedCount + groupedItems.unselectableCount;
-                                return `${selectedCount}/${totalInDropdown}`;
-                            })()}
+                            {selectedItems.filter((item) => isItemAvailable(item)).length}/{flatItems.length}
                         </span>
                         <span>{counterText}</span>
                     </div>

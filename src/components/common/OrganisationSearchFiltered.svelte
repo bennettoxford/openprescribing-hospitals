@@ -473,7 +473,6 @@
             hasShelfordData);
     $: selectedAvailableCount = selectedItems.filter((item) => isItemAvailable(item)).length;
     $: totalAvailable = Array.from($source.availableItems || []).length;
-    $: totalForDisplay = groupedItems.selectedCount + groupedItems.unselectedCount + groupedItems.unselectableCount;
     $: allSelected = totalAvailable > 0 && selectedAvailableCount >= totalAvailable;
 </script>
 
@@ -649,7 +648,7 @@
                     </div>
                     <div class="flex items-center justify-center min-w-[3.5rem] sm:min-w-[4.5rem] py-1.5 px-1.5 sm:px-2 border-l border-gray-200 text-center shrink-0 {hasSelection ? 'bg-oxford-50' : 'bg-gray-50'}">
                         <div class="flex flex-col items-center leading-tight min-w-0">
-                            <span class="text-[10px] sm:text-xs font-semibold truncate max-w-full {hasSelection ? 'text-oxford-700' : 'text-gray-600'}">{selectedAvailableCount}/{totalForDisplay}</span>
+                            <span class="text-[10px] sm:text-xs font-semibold truncate max-w-full {hasSelection ? 'text-oxford-700' : 'text-gray-600'}">{selectedAvailableCount}/{flatItems.length}</span>
                             <span class="text-[9px] sm:text-[10px] text-gray-500">{counterText}</span>
                         </div>
                     </div>
