@@ -15,6 +15,7 @@ tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Safety
 quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
+y_axis_label: '% of immediate-release oral morphine issued as solution'
 lower_is_better: true # true, false, or null when no value judgement
 authored_by: Chris Wood # Name of original author
 checked_by: TBC # Name of clinical/technical reviewer
