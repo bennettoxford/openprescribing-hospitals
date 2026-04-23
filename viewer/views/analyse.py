@@ -21,6 +21,7 @@ class AnalyseView(MaintenanceModeMixin, TemplateView):
             'org_regions': org_data.get('org_regions', {}),
             'org_icbs': org_data.get('org_icbs', {}),
             'org_cancer_alliances': org_data.get('org_cancer_alliances', {}),
+            'org_shelford_group': org_data.get('org_shelford_group', {}),
             'regions_hierarchy': org_data.get('regions_hierarchy', []),
             'cancer_alliances': org_data.get('cancer_alliances', []),
         }, default=str)

@@ -12,6 +12,7 @@ function createOrganisationSearchStore() {
         orgRegions: new Map(),
         orgIcbs: new Map(),
         orgCancerAlliances: new Map(),
+        orgShelfordGroup: new Map(),
         regionsHierarchy: [],
         cancerAlliances: [],
         filtersApplied: false
@@ -34,6 +35,10 @@ function createOrganisationSearchStore() {
                 const orgIcbs = new Map(Object.entries(orgIcbsRaw));
                 const orgCancerAlliancesRaw = orgData.org_cancer_alliances || {};
                 const orgCancerAlliances = new Map(Object.entries(orgCancerAlliancesRaw));
+                const orgShelfordGroupRaw = orgData.org_shelford_group || {};
+                const orgShelfordGroup = new Map(
+                    Object.entries(orgShelfordGroupRaw).map(([k, v]) => [k, !!v])
+                );
                 const regionsHierarchy = Array.isArray(orgData.regions_hierarchy) ? orgData.regions_hierarchy : [];
                 const cancerAlliances = Array.isArray(orgData.cancer_alliances) ? orgData.cancer_alliances : [];
                 
@@ -67,6 +72,7 @@ function createOrganisationSearchStore() {
                     orgRegions,
                     orgIcbs,
                     orgCancerAlliances,
+                    orgShelfordGroup,
                     regionsHierarchy,
                     cancerAlliances,
                     filtersApplied: false

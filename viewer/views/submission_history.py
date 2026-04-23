@@ -160,6 +160,7 @@ class SubmissionHistoryView(MaintenanceModeMixin, TemplateView):
             'org_icbs': shared_org_data.get('org_icbs', {}),
             'regions_hierarchy': shared_org_data.get('regions_hierarchy', []),
             'org_cancer_alliances': shared_org_data.get('org_cancer_alliances', {}),
+            'org_shelford_group': shared_org_data.get('org_shelford_group', {}),
             'cancer_alliances': shared_org_data.get('cancer_alliances', []),
         }
         context['org_data_json'] = mark_safe(json.dumps(org_data_payload))

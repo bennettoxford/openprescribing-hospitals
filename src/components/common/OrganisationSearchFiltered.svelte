@@ -57,6 +57,7 @@
         collapsedTrustType = true;
         collapsedRegionIcb = true;
         collapsedCancerAlliance = true;
+        collapsedShelfordGroup = true;
     }
 
     $: groupedItems = (() => {
@@ -311,11 +312,14 @@
     let selectedRegions = new Set();
     let selectedICBs = new Set();
     let selectedCancerAlliances = new Set();
+    /** null = no filter, 'in' = Shelford only, 'not_in' = non-Shelford only */
+    let shelfordFilter = null;
     let expandedRegions = new Set();
     let expandedAcute = false;
     let collapsedTrustType = true;
     let collapsedRegionIcb = true;
     let collapsedCancerAlliance = true;
+    let collapsedShelfordGroup = true;
     let acuteParentCheckbox;
     function toggleTrustType(type) {
         const next = new Set(selectedTrustTypes);
@@ -341,6 +345,7 @@
         selectedRegions = new Set();
         selectedICBs = new Set();
         selectedCancerAlliances = new Set();
+        shelfordFilter = null;
         expandedRegions = new Set();
         applyTrustTypeSelection();
     }
@@ -384,7 +389,18 @@
                 const combined = new Set([...byRegionIcb, ...byCancerAlliance]);
                 orgList = orgList.filter((name) => combined.has(name));
             }
-            const hasFilters = selectedTrustTypes.size > 0 || selectedRegions.size > 0 || selectedICBs.size > 0 || selectedCancerAlliances.size > 0;
+            if (shelfordFilter !== null) {
+                const map = get(source).orgShelfordGroup || new Map();
+                orgList = orgList.filter((name) =>
+                    shelfordFilter === 'in' ? map.get(name) === true : !map.get(name)
+                );
+            }
+            const hasFilters =
+                selectedTrustTypes.size > 0 ||
+                selectedRegions.size > 0 ||
+                selectedICBs.size > 0 ||
+                selectedCancerAlliances.size > 0 ||
+                shelfordFilter !== null;
             if (typeof source.setFiltersApplied === 'function') source.setFiltersApplied(hasFilters);
             applyFilterAndSelection(orgList, source.setAvailableItems);
         } else if (store.filterType === 'icb') {
@@ -425,9 +441,36 @@
         selectedCancerAlliances = next;
         applyTrustTypeSelection();
     }
-    $: filterBadgeCount = selectedTrustTypes.size + selectedRegions.size + selectedICBs.size + selectedCancerAlliances.size;
-    $: hasFilterSelection = selectedTrustTypes.size > 0 || selectedRegions.size > 0 || selectedICBs.size > 0 || selectedCancerAlliances.size > 0;
-    $: hasFilters = showFilters && $source.filterType === 'trust' && (trustTypes.length > 0 || regionsHierarchy.length > 0 || cancerAlliances.length > 0);
+    function toggleShelford(key) {
+        shelfordFilter = shelfordFilter === key ? null : key;
+        applyTrustTypeSelection();
+    }
+    $: hasShelfordData = ($source.orgShelfordGroup || new Map()).size > 0;
+    $: shelfordInCount = ($source.items || []).filter(
+        (n) => ($source.orgShelfordGroup || new Map()).get(n) === true
+    ).length;
+    $: shelfordNotCount = ($source.items || []).filter(
+        (n) => !($source.orgShelfordGroup || new Map()).get(n)
+    ).length;
+    $: filterBadgeCount =
+        selectedTrustTypes.size +
+        selectedRegions.size +
+        selectedICBs.size +
+        selectedCancerAlliances.size +
+        (shelfordFilter !== null ? 1 : 0);
+    $: hasFilterSelection =
+        selectedTrustTypes.size > 0 ||
+        selectedRegions.size > 0 ||
+        selectedICBs.size > 0 ||
+        selectedCancerAlliances.size > 0 ||
+        shelfordFilter !== null;
+    $: hasFilters =
+        showFilters &&
+        $source.filterType === 'trust' &&
+        (trustTypes.length > 0 ||
+            regionsHierarchy.length > 0 ||
+            cancerAlliances.length > 0 ||
+            hasShelfordData);
     $: selectedAvailableCount = selectedItems.filter((item) => isItemAvailable(item)).length;
     $: totalAvailable = Array.from($source.availableItems || []).length;
     $: totalForDisplay = groupedItems.selectedCount + groupedItems.unselectedCount + groupedItems.unselectableCount;
@@ -463,7 +506,7 @@
                     {/if}
                 </div>
                 <div class="relative inline-block">
-                    <button type="button" class="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-xs font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-oxford-500 focus:ring-offset-0 {disabled ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-500 border-gray-200' : ''} {filterDropdownOpen || hasFilterSelection ? 'bg-oxford-50 text-oxford-700 border-oxford-200' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}" on:click={() => !disabled && (filterDropdownOpen = !filterDropdownOpen)} disabled={disabled} aria-haspopup="listbox" aria-expanded={filterDropdownOpen} aria-label="Filter by trust type, region and ICB">
+                    <button type="button" class="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-xs font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-oxford-500 focus:ring-offset-0 {disabled ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-500 border-gray-200' : ''} {filterDropdownOpen || hasFilterSelection ? 'bg-oxford-50 text-oxford-700 border-oxford-200' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}" on:click={() => !disabled && (filterDropdownOpen = !filterDropdownOpen)} disabled={disabled} aria-haspopup="listbox" aria-expanded={filterDropdownOpen} aria-label="Filter by trust type, region, ICB, cancer alliance, and Shelford Group">
                         <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
                         <span>Filters</span>
                         {#if hasFilterSelection}<span class="inline-flex items-center justify-center min-w-[1rem] h-4 px-1 rounded-full text-[10px] font-medium leading-none bg-oxford-100 text-oxford-700">{filterBadgeCount}</span>{/if}
@@ -561,6 +604,26 @@
                             <input type="checkbox" checked={selectedCancerAlliances.has('Not applicable')} on:change={() => toggleCancerAlliance('Not applicable')} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0" />
                             <span class="truncate flex-1 min-w-0" title="Trusts not associated with a Cancer Alliance">Not applicable</span>
                             <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">{(source.getOrgsWithNoCancerAlliance?.() || []).length} trusts</span>
+                        </label>
+                        {/if}
+                    </div>
+                    {/if}
+                    {#if $source.filterType === 'trust' && hasShelfordData}
+                    <div class="px-2 pt-2 {$source.filterType === 'trust' && (trustTypes.length > 0 || regionsHierarchy.length > 0 || cancerAlliances.length > 0) ? 'border-t border-gray-100' : ''}">
+                        <button type="button" class="w-full flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 hover:bg-gray-50 transition-colors" on:click={() => collapsedShelfordGroup = !collapsedShelfordGroup}>
+                            <span>Shelford Group</span>
+                            <svg class="w-3.5 h-3.5 transition-transform duration-200 {collapsedShelfordGroup ? '' : 'rotate-180'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        {#if !collapsedShelfordGroup}
+                        <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0 {shelfordFilter === 'in' ? 'text-oxford-700' : ''}">
+                            <input type="checkbox" checked={shelfordFilter === 'in'} on:change={() => toggleShelford('in')} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0" />
+                            <span class="truncate flex-1 min-w-0" title="Trusts in the Shelford Group">In Shelford Group</span>
+                            <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">{shelfordInCount} trusts</span>
+                        </label>
+                        <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0 {shelfordFilter === 'not_in' ? 'text-oxford-700' : ''}">
+                            <input type="checkbox" checked={shelfordFilter === 'not_in'} on:change={() => toggleShelford('not_in')} class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0" />
+                            <span class="truncate flex-1 min-w-0" title="Trusts not in the Shelford Group">Not in Shelford Group</span>
+                            <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">{shelfordNotCount} trusts</span>
                         </label>
                         {/if}
                     </div>

@@ -29,6 +29,7 @@ def get_organisation_data():
             org_regions: organisation name -> NHS region name
             org_icbs: organisation name -> ICB name
             org_cancer_alliances: organisation name -> Cancer Alliance name
+            org_shelford_group: organisation name -> whether trust is in the Shelford Group
             regions_hierarchy: list of dicts with region, region_code, and icbs
             cancer_alliances: list of dicts with name and code for filter dropdown
     """
@@ -37,7 +38,7 @@ def get_organisation_data():
     ).values(
         'ods_code', 'ods_name', 'successor__ods_name', 'trust_type__name',
         'region__name', 'region__code', 'icb__name', 'icb__code',
-        'cancer_alliance__name', 'cancer_alliance__code'
+        'cancer_alliance__name', 'cancer_alliance__code', 'in_shelford_group',
     ).order_by('ods_name')
 
     org_names = {}
@@ -46,6 +47,7 @@ def get_organisation_data():
     org_regions = {}
     org_icbs = {}
     org_cancer_alliances = {}
+    org_shelford_group = {}
 
     for org in orgs:
         name = org['ods_name']
@@ -64,6 +66,7 @@ def get_organisation_data():
             org_icbs[name] = org['icb__name']
         if org.get('cancer_alliance__name'):
             org_cancer_alliances[name] = org['cancer_alliance__name']
+        org_shelford_group[name] = bool(org.get('in_shelford_group'))
 
     # ICBs that have at least one successor
     icb_ids_with_successor_orgs = set(
@@ -98,6 +101,7 @@ def get_organisation_data():
         'org_regions': org_regions,
         'org_icbs': org_icbs,
         'org_cancer_alliances': org_cancer_alliances,
+        'org_shelford_group': org_shelford_group,
         'regions_hierarchy': regions_hierarchy,
         'cancer_alliances': cancer_alliances,
     }
