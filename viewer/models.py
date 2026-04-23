@@ -244,6 +244,10 @@ class Organisation(models.Model):
         related_name="organisations",
         help_text="Cancer Alliance from ONS boundaries (postcode lookup)",
     )
+    in_shelford_group = models.BooleanField(
+        default=False,
+        help_text="Whether this trust is in the Shelford Group (ODS codes from pipeline lookup table)",
+    )
     successor = models.ForeignKey(
         "self",
         on_delete=models.SET_NULL,

@@ -673,6 +673,7 @@ class BaseMeasureItemView(TemplateView):
             'org_regions': shared_org_data.get('org_regions', {}),
             'org_icbs': shared_org_data.get('org_icbs', {}),
             'org_cancer_alliances': shared_org_data.get('org_cancer_alliances', {}),
+            'org_shelford_group': shared_org_data.get('org_shelford_group', {}),
             'regions_hierarchy': shared_org_data.get('regions_hierarchy', []),
             'cancer_alliances': shared_org_data.get('cancer_alliances', []),
         })
@@ -771,6 +772,7 @@ class MeasureTrustsView(MaintenanceModeMixin, TemplateView):
                 'org_regions': shared_org_data.get('org_regions', {}),
                 'org_icbs': shared_org_data.get('org_icbs', {}),
                 'org_cancer_alliances': shared_org_data.get('org_cancer_alliances', {}),
+                'org_shelford_group': shared_org_data.get('org_shelford_group', {}),
                 'regions_hierarchy': shared_org_data.get('regions_hierarchy', []),
                 'cancer_alliances': shared_org_data.get('cancer_alliances', []),
             })

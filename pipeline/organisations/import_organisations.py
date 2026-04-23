@@ -7,6 +7,7 @@ from pipeline.organisations.import_ord_data import import_ord_data
 from pipeline.organisations.import_eric import import_eric_data
 from pipeline.organisations.import_org_ae_status import import_org_ae_status
 from pipeline.organisations.import_cancer_alliance import import_cancer_alliance_data
+from pipeline.organisations.import_shelford_group_trusts import import_shelford_group_trusts
 
 
 @flow(name="Import Organisations")
@@ -18,6 +19,7 @@ def import_organisations():
     import_cancer_alliance_data()
     import_eric_data()
     import_org_ae_status()
+    import_shelford_group_trusts()
 
 
 if __name__ == "__main__":

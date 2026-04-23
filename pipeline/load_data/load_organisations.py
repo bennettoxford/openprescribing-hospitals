@@ -6,6 +6,7 @@ from pipeline.setup.config import (
     DATASET_ID,
     ORGANISATION_TABLE_ID,
     CANCER_ALLIANCE_CATEGORISATIONS_TABLE_ID,
+    SHELFORD_GROUP_TRUSTS_TABLE_ID,
     SCMD_PROCESSED_TABLE_ID,
     ERIC_TRUST_DATA_TABLE_ID,
 )
@@ -74,6 +75,7 @@ def extract_organisations() -> List[Dict]:
         org.icb_code,
         ca.cancer_alliance_code,
         ca.cancer_alliance_name AS cancer_alliance,
+        (sg.ods_code IS NOT NULL) AS in_shelford_group,
         org.successors, 
         org.ultimate_successors,
         eric.trust_type
@@ -85,6 +87,9 @@ def extract_organisations() -> List[Dict]:
     LEFT JOIN 
         `{PROJECT_ID}.{DATASET_ID}.{CANCER_ALLIANCE_CATEGORISATIONS_TABLE_ID}` ca
         ON org.ods_code = ca.ods_code
+    LEFT JOIN 
+        `{PROJECT_ID}.{DATASET_ID}.{SHELFORD_GROUP_TRUSTS_TABLE_ID}` sg
+        ON org.ods_code = sg.ods_code
     WHERE 
         org.ods_code IN (
             SELECT DISTINCT ods_code 
@@ -119,6 +124,7 @@ def transform_organisations(data: List[Dict]) -> List[Dict]:
             "icb_code": row["icb_code"] or "",
             "cancer_alliance_code": row.get("cancer_alliance_code") or "",
             "cancer_alliance": row.get("cancer_alliance") or "",
+            "in_shelford_group": bool(row.get("in_shelford_group")),
             "successor_code": successor_map.get(row["ods_code"]),
             "trust_type": row.get("trust_type"),
         }
@@ -314,6 +320,7 @@ def load_organisation_data(data: List[Dict], trust_type_lookup: Dict) -> Dict:
                     icb=icb,
                     trust_type=trust_type_lookup.get(row.get("trust_type")),
                     cancer_alliance=cancer_alliance,
+                    in_shelford_group=row.get("in_shelford_group", False),
                 ))
 
         created_objects = Organisation.objects.bulk_create(

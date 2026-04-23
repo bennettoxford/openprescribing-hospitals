@@ -7,6 +7,7 @@ from pipeline.setup.config import (
     DATASET_ID,
     ORGANISATION_TABLE_ID,
     CANCER_ALLIANCE_CATEGORISATIONS_TABLE_ID,
+    SHELFORD_GROUP_TRUSTS_TABLE_ID,
     SCMD_RAW_PROVISIONAL_TABLE_ID,
     SCMD_RAW_FINALISED_TABLE_ID,
     SCMD_PROCESSED_TABLE_ID,
@@ -168,6 +169,22 @@ CANCER_ALLIANCE_CATEGORISATIONS_TABLE_SPEC = TableSpec(
             description="Notes from the ODS-CA mapping (e.g. partnership info)",
         ),
     ],
+)
+
+SHELFORD_GROUP_TRUSTS_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=SHELFORD_GROUP_TRUSTS_TABLE_ID,
+    description="NHS trust ODS codes in the Shelford Group (academic health science centre collaborative)",
+    schema=[
+        bigquery.SchemaField(
+            "ods_code",
+            "STRING",
+            mode="REQUIRED",
+            description="ODS code of a trust in the Shelford Group",
+        ),
+    ],
+    cluster_fields=["ods_code"],
 )
 
 SCMD_RAW_PROVISIONAL_TABLE_SPEC = TableSpec(

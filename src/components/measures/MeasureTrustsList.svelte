@@ -153,6 +153,7 @@
             org_regions: parsedOrgData.org_regions || {},
             org_icbs: parsedOrgData.org_icbs || {},
             org_cancer_alliances: parsedOrgData.org_cancer_alliances || {},
+            org_shelford_group: parsedOrgData.org_shelford_group || {},
             regions_hierarchy: parsedOrgData.regions_hierarchy || parsedRegionsHierarchy || [],
             cancer_alliances: parsedOrgData.cancer_alliances || [],
         });
