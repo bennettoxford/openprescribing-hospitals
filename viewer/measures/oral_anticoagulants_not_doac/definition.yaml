@@ -22,5 +22,6 @@ how_is_it_calculated: >
 tags:
   - Safety
 quantity_type: ddd
+y_axis_label: '% non-DOAC oral anticoagulant'
 lower_is_better: true
 status: in_development

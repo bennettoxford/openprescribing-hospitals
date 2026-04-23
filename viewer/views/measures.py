@@ -359,6 +359,7 @@ def _serialize_measures(measures, detail_url_name, prefetched):
             'is_new': getattr(measure, 'is_new', False),
             'has_denominators': getattr(measure, 'has_denominators', False),
             'quantity_type': measure.quantity_type or '',
+            'y_axis_label': measure.y_axis_label or '',
             'first_published': measure.first_published.isoformat() if measure.first_published else None,
             'detail_url_name': detail_url_name,
             'detail_base_url': detail_base_url,
@@ -639,6 +640,7 @@ class BaseMeasureItemView(TemplateView):
                 numerator_vmps, cls=DjangoJSONEncoder
             ),
             "measure_quantity_type": measure.quantity_type,
+            "measure_y_axis_label": measure.y_axis_label or "",
             "has_denominators": len(denominator_vmps) > 0,
             "annotations": json.dumps(annotations_data, cls=DjangoJSONEncoder),
             "default_view_mode": measure.default_view_mode,

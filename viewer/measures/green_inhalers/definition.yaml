@@ -19,6 +19,7 @@ tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Greener NHS
 quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
+y_axis_label: '% inhaler unit doses from MDIs'
 lower_is_better: true
 authored_by: Chris Wood # Name of original author
 checked_by: Richard Croker # Name of clinical/technical reviewer

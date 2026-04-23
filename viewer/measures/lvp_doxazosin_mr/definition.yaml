@@ -1,6 +1,6 @@
 name: Low value prescribing - doxazosin modified release # Full name of the measure/indicator
 short_name: Low value prescribing - doxazosin modified release # Abbreviated name or acronym
-description: Percentage of doxazosin modified release of all doxazosin issued. # Brief 1-2 sentence description of what this measure identifies
+description: Percentage of doxazosin modified release (MR) of all doxazosin issued. # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |
     [NHS England guidance](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/) identifies a number of items which provide low value when prescribed. This guidance has mainly been aimed at primary care but we think it is important to also monitor a selection of these in hospitals - read more about why [in our blog](https://www.bennett.ox.ac.uk/blog/2025/04/low-value-medicines-in-openprescribing-hospitals/).
 
@@ -24,6 +24,7 @@ tags:
     - Low value prescribing
     - Value
 quantity_type: ddd # Type of measurement (e.g. dose, ingredient, ddd)
+y_axis_label: '% doxazosin issued as MR'
 lower_is_better: true
 authored_by: Chris Wood # Name of original author
 checked_by: Richard Croker # Name of clinical/technical reviewer
