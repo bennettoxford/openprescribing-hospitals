@@ -54,9 +54,12 @@ expressed_as_mapped AS (
       WHEN dmd.vmp_code IN ('33596311000001107', '9478911000001107', '9479011000001103') AND ddd.comment = 'Expressed as tiotropium, delivered dose' THEN 10 -- Tiotropium powder for inhalation capsules
       WHEN dmd.vmp_code = '27890611000001109' AND ddd.comment = 'Expressed as umeclidinium, delivered dose' THEN 55 -- Umeclidinium
 
-      -- Iron supplements (expressed as Fe2+ elemental iron) - specific elemental iron values
+      -- Iron products expressed as Fe
       WHEN dmd.vtm = '776398000' AND ddd.comment = 'Fe' THEN ingredient.strnt_nmrtr_val -- VTM for iron sucrose
       WHEN dmd.vtm = '776395002' AND ddd.comment = 'Fe' THEN ingredient.strnt_nmrtr_val -- VTM for iron dextran
+      WHEN dmd.vtm = '775939007' AND ddd.comment = 'Fe' THEN ingredient.strnt_nmrtr_val -- VTM for ferric carboxymaltose
+
+      -- Iron products expressed as Fe2+ - specific elemental iron values
       WHEN dmd.vmp_code = '41984711000001104' AND ddd.comment = 'Fe2+' THEN 69 -- Ferrous fumarate 210mg tablets
       WHEN dmd.vmp_code = '41984811000001107' AND ddd.comment = 'Fe2+' THEN 100 -- Ferrous fumarate 305mg capsules
       WHEN dmd.vmp_code = '41985011000001102' AND ddd.comment = 'Fe2+' THEN 106 -- Ferrous fumarate 322mg tablets
@@ -97,9 +100,12 @@ expressed_as_mapped AS (
       WHEN dmd.vmp_code IN ('33596311000001107', '9478911000001107', '9479011000001103') AND ddd.comment = 'Expressed as tiotropium, delivered dose' THEN 'microgram' -- Tiotropium powder for inhalation capsules
       WHEN dmd.vmp_code = '27890611000001109' AND ddd.comment = 'Expressed as umeclidinium, delivered dose' THEN 'microgram' -- Umeclidinium
 
-      -- Iron supplements (Fe2+)
+      -- Iron products expressed as Fe
       WHEN dmd.vtm = '776398000' AND ddd.comment = 'Fe' THEN ingredient.strnt_nmrtr_uom_name -- Iron sucrose
       WHEN dmd.vtm = '776395002' AND ddd.comment = 'Fe' THEN ingredient.strnt_nmrtr_uom_name -- Iron dextran
+      WHEN dmd.vtm = '775939007' AND ddd.comment = 'Fe' THEN ingredient.strnt_nmrtr_uom_name -- Ferric carboxymaltose
+
+      -- Iron products expressed as Fe2+
       WHEN dmd.vmp_code IN ('41984711000001104', '41984811000001107', '41985011000001102', '38898111000001109', '39108711000001103', '7820811000001101', '12313711000001105', '8513511000001107', '8513311000001101', '41985211000001107', '41985111000001101', '12661411000001106', '39107411000001105') AND ddd.comment = 'Fe2+' THEN 'mg'
 
       -- Anticoagulants
