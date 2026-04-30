@@ -542,6 +542,12 @@ class Measure(models.Model):
         default='trust',
         help_text="Default view mode for this measure"
     )
+    y_axis_label = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Optional override for chart y-axis label; when unset, the label is derived from quantity type and products",
+    )
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)

@@ -23,6 +23,7 @@ tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Safety
 quantity_type: dose # Type of measurement (e.g. scmd, dose, ingredient, ddd, indicative_cost)
+y_axis_label: Custom label # Optional; overrides the default chart y-axis label when set
 lower_is_better: true # true, false, or null when no value judgement
 authored_by: John Doe # Name of original author
 checked_by: Jane Smith # Name of clinical/technical reviewer
