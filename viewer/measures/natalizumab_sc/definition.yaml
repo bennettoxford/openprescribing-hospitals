@@ -1,5 +1,5 @@
-name: Uptake of natalizumab subcutaneous # Full name of the measure/indicator
-short_name: Uptake of natalizumab subcutaneous # Abbreviated name or acronym
+name: Uptake of subcutaneous natalizumab # Full name of the measure/indicator
+short_name: Uptake of subcutaneous natalizumab  # Abbreviated name or acronym
 description: The percentage of natalizumab that is issued as the subcutaneous formulation. # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |
     TBC
