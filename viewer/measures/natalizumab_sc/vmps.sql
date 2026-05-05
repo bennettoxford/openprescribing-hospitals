@@ -13,7 +13,7 @@ INNER JOIN viewer_vmp_ont_form_routes vofr
 INNER JOIN viewer_ontformroute ofr 
     ON ofr.id = vofr.ontformroute_id
 WHERE vtm.vtm = '776876003' -- Natalizumab VTM
-AND ofr.name = (
+AND ofr.name IN (
     'solutioninfusion.intravenous',
     'solutioninjection.subcutaneous'
 )
