@@ -1,11 +1,19 @@
 SELECT DISTINCT
-    vmp.id as vmp_id,
+    vmp.id AS vmp_id,
     CASE 
-        WHEN ofr.name = 'solutioninfusion.intravenous' THEN 'numerator' -- only subcutaneous formulations in numerator
-        WHEN ofr.name = 'solutioninjection.subcutaneous' THEN 'denominator'
-    END as vmp_type
+        WHEN vmp.unit_dose_uom = 'vial'
+        THEN 'numerator'
+        ELSE 'denominator'
+    END AS vmp_type
 FROM viewer_vmp vmp
-INNER JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
-INNER JOIN viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
-INNER JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
+INNER JOIN viewer_vtm vtm 
+    ON vtm.id = vmp.vtm_id
+INNER JOIN viewer_vmp_ont_form_routes vofr 
+    ON vofr.vmp_id = vmp.id
+INNER JOIN viewer_ontformroute ofr 
+    ON ofr.id = vofr.ontformroute_id
 WHERE vtm.vtm = '776876003' -- Natalizumab VTM
+AND ofr.name = (
+    'solutioninfusion.intravenous',
+    'solutioninjection.subcutaneous'
+)
