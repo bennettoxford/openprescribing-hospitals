@@ -16,4 +16,4 @@ checked_by: Vicky Speed # Name of clinical/technical reviewer
 first_published: 2026-05-05 # Date of first publication (YYYY-MM-DD)
 date_reviewed: 2026-05-05 # Date of last review (YYYY-MM-DD)
 next_review: 2027-05-05 # Date of next scheduled review (YYYY-MM-DD)
-status: in_development
+status: preview
