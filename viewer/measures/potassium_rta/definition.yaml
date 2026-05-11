@@ -6,14 +6,13 @@ why_it_matters: |
   
 The safety alert is considered one of the Enduring Standards for Safe Storage of Medicines. The enduring standards are specific actions from previous patient safety alerts identified as likely to always be relevant or unlikely to change in the immediate future. They represent actions that should be embedded systematically across NHS provider organisations. [Enduring standards that remain valid from previous patient safety alerts](https://www.england.nhs.uk/patient-safety/patient-safety-insight/patient-safety-alerts/enduring-standards/standards-that-remain-valid/).  
 
-
 how_is_it_calculated: |
   Virtual Medicinal Products (VMPs) are included if they have a Virtual Therapeutic Moiety (VTM) and an ingredient strength for potassium chloride or potassium dihydrogen phosphate above 0.5% weight/volume (strength per 1 ml: greater than 0.005 g when expressed in grams, or greater than 5 mg when expressed in milligrams). Presentations are limited by unit dose unit of measure to vial, bag, bottle, ampoule, or pre-filled syringe. VMPs without a VTM are excluded (for example, certain combination products). Presentations with unit dose unit of measure ampoule or vial are denominator-only for the measure; other eligible presentations are numerator VMPs. The monthly percentage is total unit doses of numerator VMPs divided by total unit doses of all included VMPs, multiplied by 100.
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Safety
 quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
-lower_is_better: null # true, false, or null when no value judgement
+lower_is_better: true # true, false, or null when no value judgement
 authored_by: Victoria Speed # Name of original author
 checked_by: TBC # Name of clinical/technical reviewer
 date_reviewed: 2026-04-21 # Date of last review (YYYY-MM-DD)
