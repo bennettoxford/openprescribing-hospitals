@@ -8,8 +8,9 @@
 SELECT DISTINCT
     vmp.id AS vmp_id,
     CASE
-        WHEN LOWER(TRIM(vmp.unit_dose_uom)) IN ('ampoule', 'vial') THEN 'denominator'
-        ELSE 'numerator'
+        WHEN LOWER(TRIM(vmp.unit_dose_uom)) IN ('ampoule', 'vial') 
+            THEN 'numerator'
+        ELSE 'denominator'
     END AS vmp_type
 FROM viewer_vmp vmp
 WHERE vmp.vtm_id IS NOT NULL
