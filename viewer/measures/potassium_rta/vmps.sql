@@ -1,6 +1,9 @@
--- Denominator: KCl or potassium dihydrogen phosphate with strength > 0.5% w/v
--- (i.e. > 0.005 g per 1 ml when expressed as gram/ml, or > 5 mg per 1 ml as mg/ml),
--- unit dose UOM in the injectable list. Numerator: where no ampoule or vial unit dose UOM.
+-- Denominator:
+-- KCl or potassium dihydrogen phosphate classified as HIGH STRENGTH:
+-- 10% potassium chloride solutions or greater
+-- (i.e. >= 0.1 g per 1 ml when expressed as gram/ml,
+-- or >= 100 mg per 1 ml when expressed as mg/ml),
+-- unit dose UOM in the injectable list.
 -- Require a VTM (vtm_id IS NOT NULL) so VMPs with no VTM are excluded from the measure,
 -- including e.g. VMP 5239011000001108 (Generic Addiphos solution for infusion 20ml vials).
 SELECT DISTINCT
@@ -25,11 +28,11 @@ AND EXISTS (
       AND (
           (
               vis.strnt_nmrtr_uom_name = 'gram'
-              AND vis.strnt_nmrtr_val > 0.005
+              AND vis.strnt_nmrtr_val >= 0.1
           )
           OR (
               vis.strnt_nmrtr_uom_name IN ('mg', 'milligram')
-              AND vis.strnt_nmrtr_val > 5
+              AND vis.strnt_nmrtr_val > 100
           )
       )
 )
