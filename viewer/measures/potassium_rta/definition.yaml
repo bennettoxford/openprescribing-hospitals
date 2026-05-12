@@ -11,7 +11,7 @@ how_is_it_calculated: |
    
    Products that have been issued as ampoules or vials are numerator VMPs and all other products are denominator VMPs. The monthly percentage is total unit doses of numerator VMPs divided by total unit doses of all included VMPs, multiplied by 100. 
    
-   Products with no VTM are not included in this measure including: Require a VTM (vtm_id IS NOT NULL) so VMPs with no VTM are excluded, including e.g.Generic Addiphos solution for infusion 20ml vials.
+   Products with no VTM are not included in this measure e.g. Generic Addiphos solution for infusion 20ml vials.
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Safety
