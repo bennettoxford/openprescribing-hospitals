@@ -104,7 +104,7 @@ pyparsing==3.2.3
 pytest==9.0.3
 pytest-django==4.10.0
 python-dateutil==2.9.0.post0
-python-dotenv==1.0.1
+python-dotenv==1.2.2
 python-slugify==8.0.4
 python-socks==2.7.1
 pytz==2025.1
