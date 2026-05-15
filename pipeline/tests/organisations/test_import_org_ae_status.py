@@ -65,6 +65,27 @@ def test_fetch_ae_data(mock_requests_get, sample_html_index, sample_html_year_pa
     assert all(result["has_ae"])
 
 
+def test_fetch_ae_data_supports_revised_filename_format(mock_requests_get, sample_html_index, sample_new_csv_content):
+    year_page_with_revised_csv = """
+    <html>
+        <body>
+            <a href="Monthly-AE-Nov-25-CSV-revised.csv">November 2025 revised CSV</a>
+        </body>
+    </html>
+    """
+
+    mock_responses = [
+        Mock(content=sample_html_index.encode()),
+        Mock(content=year_page_with_revised_csv.encode()),
+        Mock(text=sample_new_csv_content),
+    ]
+    mock_requests_get.side_effect = mock_responses
+
+    result = fetch_ae_data()
+    assert len(result) == 2
+    assert set(result["period"].astype(str).unique()) == {"2025-11-01"}
+
+
 def test_prepare_dataframe():
     data = {
         "period": [pd.Timestamp("2024-03-01"), pd.Timestamp("2024-03-01")],

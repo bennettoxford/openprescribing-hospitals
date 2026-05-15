@@ -44,10 +44,15 @@ def fetch_ae_data() -> pd.DataFrame:
             file_url = urljoin(year_url, csv_link["href"])
             file_response = requests.get(file_url)
 
-            pattern = r"Monthly-AE-(\w+)-(\d{4})"
-            year = re.search(pattern, file_url).group(1)
-            month = re.search(pattern, file_url).group(2)
-            year_month = pd.to_datetime(f"{year}-{month}")
+            match = re.search(
+                r"Monthly-AE-([A-Za-z]+)-(?:(\d{4})|(\d{2})-CSV(?:-revised)?)",
+                file_url,
+                re.IGNORECASE,
+            )
+            month_name = match.group(1)
+            year = match.group(2) or f"20{match.group(3)}"
+
+            year_month = pd.to_datetime(f"{month_name}-{year}")
 
             columns = (
                 ["Org Code", "A&E attendances Type 1"]
