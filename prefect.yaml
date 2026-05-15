@@ -10,6 +10,7 @@ deployments:
     name: oph
     work_queue_name: default
     job_variables:
+      image: prefecthq/prefect:3-python3.11
       env:
         PREFECT_ENVIRONMENT: deployment
   schedule:
@@ -22,10 +23,10 @@ deployments:
       id: clone-step
       repository: https://github.com/bennettoxford/openprescribing-hospitals.git
       branch: main
-  - prefect.deployments.steps.pip_install_requirements:
+  - prefect.deployments.steps.run_shell_script:
       directory: '{{ clone-step.directory }}'
-      requirements_file: requirements.txt
-- name: scmd-import-only
+      script: /bin/bash -lc 'set -euo pipefail; python -m pip install --upgrade --root-user-action ignore uv; python -m uv export --locked --group pipeline --no-dev --no-emit-package prefect -o requirements.prefect.txt; python -m uv pip install --system --no-deps -r requirements.prefect.txt'
+- name: scmd-import
   description: SCMD pipeline - runs import flows only
   version:
   entrypoint: pipeline/pipeline.py:scmd_pipeline
@@ -36,6 +37,7 @@ deployments:
     name: oph
     work_queue_name: default
     job_variables:
+      image: prefecthq/prefect:3-python3.11
       env:
         PREFECT_ENVIRONMENT: deployment
   schedule:
@@ -48,9 +50,9 @@ deployments:
       id: clone-step
       repository: https://github.com/bennettoxford/openprescribing-hospitals.git
       branch: main
-  - prefect.deployments.steps.pip_install_requirements:
+  - prefect.deployments.steps.run_shell_script:
       directory: '{{ clone-step.directory }}'
-      requirements_file: requirements.txt
+      script: /bin/bash -lc 'set -euo pipefail; python -m pip install --upgrade --root-user-action ignore uv; python -m uv export --locked --group pipeline --no-dev --no-emit-package prefect -o requirements.prefect.txt; python -m uv pip install --system --no-deps -r requirements.prefect.txt'
 - name: scmd-load-only
   description: SCMD pipeline - runs load flows only
   version:
@@ -62,6 +64,7 @@ deployments:
     name: oph
     work_queue_name: default
     job_variables:
+      image: prefecthq/prefect:3-python3.11
       env:
         PREFECT_ENVIRONMENT: deployment
   schedule:
@@ -74,6 +77,6 @@ deployments:
       id: clone-step
       repository: https://github.com/bennettoxford/openprescribing-hospitals.git
       branch: main
-  - prefect.deployments.steps.pip_install_requirements:
+  - prefect.deployments.steps.run_shell_script:
       directory: '{{ clone-step.directory }}'
-      requirements_file: requirements.txt
+      script: /bin/bash -lc 'set -euo pipefail; python -m pip install --upgrade --root-user-action ignore uv; python -m uv export --locked --group pipeline --no-dev --no-emit-package prefect -o requirements.prefect.txt; python -m uv pip install --system --no-deps -r requirements.prefect.txt'

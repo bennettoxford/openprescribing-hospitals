@@ -2,9 +2,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from pipeline.utils.utils import setup_django_environment
-setup_django_environment()
-
 from django.utils import timezone
 from viewer.models import SystemMaintenance
 
