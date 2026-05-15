@@ -1,0 +1,45 @@
+[project]
+name = "openprescribing-hospitals"
+version = "0.1.0"
+description = "OpenPrescribing Hospitals"
+readme = "README.md"
+requires-python = "==3.11.*"
+dependencies = [
+    "Django>=5.1.10",
+    "django-browser-reload>=1.15.0",
+    "django-vite>=3.0.4",
+    "djangorestframework>=3.15.2",
+    "environs>=11.0.0",
+    "gunicorn>=23.0.0",
+    "markdown2>=2.5.1",
+    "psycopg2-binary>=2.9.10",
+    "PyYAML>=6.0.2",
+    "schema>=0.7.7",
+    "tqdm>=4.67.1",
+    "whitenoise>=6.6.0",
+]
+
+[tool.uv]
+required-version = ">=0.9"
+
+[dependency-groups]
+pipeline = [
+    "beautifulsoup4>=4.13.3",
+    "db-dtypes>=1.4.3",
+    "google-cloud-bigquery>=3.29.0",
+    "google-cloud-bigquery-storage>=2.30.0",
+    "google-cloud-secret-manager>=2.23.2",
+    "google-cloud-storage>=3.1.0",
+    "Jinja2>=3.1.6",
+    "numpy>=2.1.1",
+    "openpyxl>=3.1.5",
+    "pandas>=2.2.3",
+    "prefect>=3.3.3",
+    "prefect-gcp>=0.6.5",
+    "pyarrow>=19.0.1",
+    "requests>=2.33.0",
+]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-django>=4.10.0",
+]
