@@ -18,6 +18,8 @@ RUN npm run build
 # Stage 2: Set up Python environment and run Django
 FROM python:3.11-slim
 
+COPY --from=ghcr.io/astral-sh/uv:0.11.2 /uv /uvx /bin/
+
 WORKDIR /app
 
 # Install system dependencies
@@ -27,8 +29,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt gunicorn
+COPY pyproject.toml uv.lock ./
+RUN uv sync --locked --no-dev --no-group pipeline
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Copy the Django project
 COPY . .
