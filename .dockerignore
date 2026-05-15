@@ -1,6 +1,7 @@
 .git
 .gitignore
 .env
+.venv
 *.pyc
 __pycache__
 staticfiles
