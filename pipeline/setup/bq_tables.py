@@ -14,6 +14,8 @@ from pipeline.setup.config import (
     SCMD_DATA_STATUS_TABLE_ID,
     UNITS_CONVERSION_TABLE_ID,
     ORG_AE_STATUS_TABLE_ID,
+    TRUST_ADMISSIONS_PROVISIONAL_TABLE_ID,
+    TRUST_ADMISSIONS_FINALISED_TABLE_ID,
     DMD_TABLE_ID,
     DMD_FULL_TABLE_ID,
     DMD_SUPP_TABLE_ID,
@@ -383,6 +385,125 @@ ORG_AE_STATUS_TABLE_SPEC = TableSpec(
         ),
     ],
     partition_field="period",
+)
+
+TRUST_ADMISSIONS_PROVISIONAL_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=TRUST_ADMISSIONS_PROVISIONAL_TABLE_ID,
+    description=(
+        "Provisional monthly number of finished spells per NHS trust"
+    ),
+    schema=[
+        bigquery.SchemaField(
+            "ods_code", "STRING", mode="REQUIRED", description="ODS code of the trust (provider)"
+        ),
+        bigquery.SchemaField(
+            "period", "DATE", mode="REQUIRED", description="Start date of the activity month"
+        ),
+        bigquery.SchemaField(
+            "all_specialties_ordinary_elective",
+            "INTEGER",
+            mode="REQUIRED",
+            description=(
+                "Number of finished spells (discharges) where the admission method was elective ordinary."
+            ),
+        ),
+        bigquery.SchemaField(
+            "all_specialties_daycase_elective",
+            "INTEGER",
+            mode="REQUIRED",
+            description=(
+                "Number of finished spells (discharges) where the admission method was elective day case"
+            ),
+        ),
+        bigquery.SchemaField(
+            "all_specialties_elective_total",
+            "INTEGER",
+            mode="REQUIRED",
+            description=(
+                "Number of finished spells (discharges) where the admission method was elective"
+            ),
+        ),
+        bigquery.SchemaField(
+            "all_specialties_non_elective",
+            "INTEGER",
+            mode="REQUIRED",
+            description=(
+                "Number of finished spells (discharges) where the admission method was non-elective"
+            ),
+        ),
+        bigquery.SchemaField(
+            "all_specialties_total",
+            "INTEGER",
+            mode="REQUIRED",
+            description=(
+                "Total number of finished spells (discharges)"
+            ),
+        ),
+    ],
+    partition_field="period",
+    cluster_fields=["ods_code"],
+)
+
+TRUST_ADMISSIONS_FINALISED_TABLE_SPEC = TableSpec(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    table_id=TRUST_ADMISSIONS_FINALISED_TABLE_ID,
+    description=(
+        "Finalised monthly number of finished spells per NHS trust"
+        "Published after the financial year ends"
+    ),
+    schema=[
+        bigquery.SchemaField(
+            "ods_code", "STRING", mode="REQUIRED", description="ODS code of the trust (provider)"
+        ),
+        bigquery.SchemaField(
+            "period", "DATE", mode="REQUIRED", description="Start date of the activity month"
+        ),
+        bigquery.SchemaField(
+            "all_specialties_ordinary_elective",
+            "INTEGER",
+            mode="REQUIRED",
+            description=(
+                "Number of finished spells (discharges) where the admission method was elective ordinary"
+            ),
+        ),
+        bigquery.SchemaField(
+            "all_specialties_daycase_elective",
+            "INTEGER",
+            mode="REQUIRED",
+            description=(
+                "Number of finished spells (discharges) where the admission method was elective day case"
+            ),
+        ),
+        bigquery.SchemaField(
+            "all_specialties_elective_total",
+            "INTEGER",
+            mode="REQUIRED",
+            description=(
+                "Number of finished spells (discharges) where the admission method was elective"
+            ),
+        ),
+        bigquery.SchemaField(
+            "all_specialties_non_elective",
+            "INTEGER",
+            mode="REQUIRED",
+            description=(
+                "Number of finished spells (discharges) where the admission method was non-elective"
+            ),
+        ),
+        bigquery.SchemaField(
+            "all_specialties_total",
+            "INTEGER",
+            mode="REQUIRED",
+            description=(
+                "Total number of finished spells (discharges)"
+            ),
+        ),
+    ],
+    partition_field="period",
+    cluster_fields=["ods_code"],
 )
 
 DMD_TABLE_SPEC = TableSpec(
