@@ -84,7 +84,7 @@
               slug={measure.slug}
               chartdata={initialChartData}
               mode={$mode}
-              ispercentage={measure.has_denominators ? 'true' : 'false'}
+              chartkind={measure.chart_kind || (measure.has_denominators ? 'percentage' : 'absolute')}
               quantitytype={measure.quantity_type || ''}
             />
           </div>

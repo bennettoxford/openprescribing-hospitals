@@ -1075,13 +1075,27 @@ def get_measures_chart_data(request):
             status_filter = {'status': 'published'}
         measures = list(
             Measure.objects.filter(**status_filter)
-            .annotate(has_denominators=Exists(denom_exists))
+            .annotate(
+                has_product_denominator=Exists(denom_exists),
+                has_denominators=(
+                    Exists(denom_exists)
+                    | (
+                        Q(denominator_type__isnull=False)
+                        & ~Q(denominator_type='')
+                    )
+                ),
+            )
             .order_by('name')
         )
 
         effective_code = normalise_trust_code(trust_code)
         if not effective_code:
-            return JsonResponse({'trust_overlay': {m.slug: {'trustData': []}} for m in measures})
+            return JsonResponse({
+                'trust_overlay': {
+                    m.slug: {'trustData': []}
+                    for m in measures
+                }
+            })
 
         overlay_by_measure = get_bulk_trust_series_for_measures(measures, [effective_code])
 

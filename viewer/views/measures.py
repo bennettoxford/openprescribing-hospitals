@@ -9,7 +9,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.text import slugify
-from django.db.models import Count, Exists, OuterRef
+from django.db.models import Count, Exists, OuterRef, Q
 
 from ..mixins import MaintenanceModeMixin
 from ..models import (
@@ -25,6 +25,14 @@ from ..models import (
     ICB,
 )
 from ..utils import get_organisation_data
+from ..measure_denominators import (
+    compute_rate_from_totals,
+    get_measure_chart_kind,
+    measure_has_product_denominator,
+    measure_has_rate_denominator,
+    measure_uses_external_denominator,
+    measure_uses_admissions_denominator,
+)
 
 
 PERCENTILE_LEVELS = [5, 15, 25, 35, 45, 50, 55, 65, 75, 85, 95]
@@ -83,13 +91,12 @@ def normalise_trust_code(trust_code):
 
 def _compute_measure_value_from_rows(measure, rows):
     """Compute chart value from PrecomputedMeasure rows. Reused by get_bulk_trust_series_for_measures."""
-    if measure.has_denominators:
+    if measure_has_rate_denominator(measure):
         total_numerator = sum(row['numerator'] or 0 for row in rows)
         total_denominator = sum(row['denominator'] or 0 for row in rows)
-        if total_denominator > 0:
-            value = (total_numerator / total_denominator) * 100
-        else:
-            value = 0
+        value = compute_rate_from_totals(total_numerator, total_denominator, measure)
+        if measure_uses_external_denominator(measure):
+            return max(0, value)
         return max(0, min(100, value))
     return max(0, sum(row['quantity'] or 0 for row in rows))
 
@@ -358,6 +365,10 @@ def _serialize_measures(measures, detail_url_name, prefetched):
             'tag_slugs': tag_slugs,
             'is_new': getattr(measure, 'is_new', False),
             'has_denominators': getattr(measure, 'has_denominators', False),
+            'chart_kind': get_measure_chart_kind(
+                measure,
+                getattr(measure, 'has_product_denominator', None),
+            ),
             'quantity_type': measure.quantity_type or '',
             'first_published': measure.first_published.isoformat() if measure.first_published else None,
             'detail_url_name': detail_url_name,
@@ -382,13 +393,20 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
         selected_region = (self.request.GET.get('region') or '').strip() if selected_mode == 'region' else ''
         sort = (self.request.GET.get('sort') or 'name').strip()
         denom_exists = MeasureVMP.objects.filter(measure=OuterRef('pk'), type='denominator')
+        product_denominator = Exists(denom_exists)
+        external_denominator = (
+            Q(denominator_type__isnull=False) & ~Q(denominator_type='')
+        )
+        rate_denominator = product_denominator | external_denominator
         if preview_mode:
             preview_measures = Measure.objects.filter(status='preview').annotate(
-                has_denominators=Exists(denom_exists)
+                has_product_denominator=product_denominator,
+                has_denominators=rate_denominator
             ).prefetch_related('tags').order_by('name')
             if is_authenticated:
                 in_development_measures = Measure.objects.filter(status='in_development').annotate(
-                    has_denominators=Exists(denom_exists)
+                    has_product_denominator=product_denominator,
+                    has_denominators=rate_denominator
                 ).prefetch_related('tags').order_by('name')
                 measures = list(preview_measures) + list(in_development_measures)
             else:
@@ -397,10 +415,12 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
             archived_measures = []
         else:
             measures = Measure.objects.filter(status='published').annotate(
-                has_denominators=Exists(denom_exists)
+                has_product_denominator=product_denominator,
+                has_denominators=rate_denominator
             ).prefetch_related('tags').order_by('name')
             archived_measures = Measure.objects.filter(status='archived').annotate(
-                has_denominators=Exists(denom_exists)
+                has_product_denominator=product_denominator,
+                has_denominators=rate_denominator
             ).prefetch_related('tags').order_by('name')
             preview_measures = []
             in_development_measures = []
@@ -639,7 +659,12 @@ class BaseMeasureItemView(TemplateView):
                 numerator_vmps, cls=DjangoJSONEncoder
             ),
             "measure_quantity_type": measure.quantity_type,
-            "has_denominators": len(denominator_vmps) > 0,
+            "has_denominators": measure_has_rate_denominator(measure),
+            "chart_kind": get_measure_chart_kind(
+                measure,
+                measure_has_product_denominator(measure),
+            ),
+            "uses_admissions_denominator": measure_uses_admissions_denominator(measure),
             "annotations": json.dumps(annotations_data, cls=DjangoJSONEncoder),
             "default_view_mode": measure.default_view_mode,
             "lower_is_better": measure.lower_is_better,
@@ -791,10 +816,6 @@ class MeasureTrustsView(MaintenanceModeMixin, TemplateView):
             for p in percentile_data:
                 p['month'] = p['month'].isoformat()
 
-            denom_exists = MeasureVMP.objects.filter(
-                measure=measure, type='denominator'
-            ).exists()
-
             markdowner = Markdown()
             tags_data = [
                 {
@@ -824,15 +845,12 @@ class MeasureTrustsView(MaintenanceModeMixin, TemplateView):
                     org_data.get('regions_hierarchy', []),
                     cls=DjangoJSONEncoder,
                 ),
-                "measure_has_denominators": denom_exists,
-                "measure_quantity_type": measure.quantity_type or "",
-                "measure_lower_is_better": (
-                    "true"
-                    if measure.lower_is_better is True
-                    else "false"
-                    if measure.lower_is_better is False
-                    else ""
+                "measure_has_denominators": measure_has_rate_denominator(measure),
+                "measure_chart_kind": get_measure_chart_kind(
+                    measure,
+                    measure_has_product_denominator(measure),
                 ),
+                "measure_quantity_type": measure.quantity_type or "",
                 "selected_sort": self.request.GET.get("sort", "name"),
             })
         except Measure.DoesNotExist:

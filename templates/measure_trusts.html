@@ -63,9 +63,8 @@
             percentileDataJson="{{ percentile_data_json|default:'[]' }}"
             regionsHierarchy="{{ regions_hierarchy_json|default:'[]' }}"
             measureItemBaseUrl="{% url 'viewer:measure_item' measure.slug %}"
-            measure-has-denominators="{% if measure_has_denominators %}true{% else %}false{% endif %}"
+            measure-chart-kind="{{ measure_chart_kind }}"
             measureQuantityType="{{ measure_quantity_type }}"
-            measureLowerIsBetter="{{ measure_lower_is_better|default:'' }}"
         ></measure-trusts-list>
         {% else %}
         <p class="text-gray-600">No trust data available for this measure.</p>

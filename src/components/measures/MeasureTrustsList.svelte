@@ -5,9 +5,8 @@
         percentileDataJson: { type: 'String', reflect: true },
         regionsHierarchy: { type: 'String', reflect: true },
         measureItemBaseUrl: { type: 'String', reflect: true },
-        measureHasDenominators: { type: 'String', reflect: true, attribute: 'measure-has-denominators' },
+        measureChartKind: { type: 'String', reflect: true, attribute: 'measure-chart-kind' },
         measureQuantityType: { type: 'String', reflect: true },
-        measureLowerIsBetter: { type: 'String', reflect: true },
     },
     shadow: 'none'
 }} />
@@ -24,9 +23,8 @@
     export let percentileDataJson = '[]';
     export let regionsHierarchy = '[]';
     export let measureItemBaseUrl = '';
-    export let measureHasDenominators = 'false';
+    export let measureChartKind = 'absolute';
     export let measureQuantityType = '';
-    export let measureLowerIsBetter = '';
     let parsedOrgData = {};
     let parsedPercentileData = [];
     let parsedRegionsHierarchy = [];
@@ -294,7 +292,7 @@
                             <measure-mini-chart
                                 chartdata={chartDataByTrust[trustName] ? JSON.stringify({ ...chartDataByTrust[trustName], trust_count: searchableOrgs.length, trustName }) : '{}'}
                                 mode="trust"
-                                ispercentage={measureHasDenominators}
+                                chartkind={measureChartKind}
                                 quantitytype={measureQuantityType}
                                 slug=""
                                 min-trusts-for-percentiles={30}

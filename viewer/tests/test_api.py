@@ -1,6 +1,7 @@
 import json
 import pytest
 from datetime import date
+from django.contrib.auth.models import User
 from django.test import Client
 from django.urls import reverse
 
@@ -13,6 +14,9 @@ from viewer.models import (
     DDDQuantity,
     DataStatus,
     Ingredient,
+    Measure,
+    MeasureVMP,
+    PrecomputedMeasure,
 )
 from viewer.views.api import MAX_ANALYSIS_VMP_COUNT
 
@@ -62,6 +66,19 @@ def data_status_months():
     for m in months:
         DataStatus.objects.get_or_create(year_month=m)
     return months
+
+
+@pytest.fixture
+def measure(vmp):
+    measure = Measure.objects.create(
+        name="Test Measure",
+        slug="test-measure",
+        short_name="TEST",
+        quantity_type="ddd",
+        status="published",
+    )
+    MeasureVMP.objects.create(measure=measure, vmp=vmp, type="numerator")
+    return measure
 
 
 @pytest.mark.django_db
@@ -195,6 +212,78 @@ class TestGetQuantityData:
         ]
         assert len(org_items) == 1
         assert org_items[0]["data"] == [1.0, 2.0, 3.0]
+
+
+@pytest.mark.django_db
+class TestGetMeasuresChartData:
+    def test_unknown_trust_returns_empty_overlay_for_all_measures(self, measure):
+        other_measure = Measure.objects.create(
+            name="Other Test Measure",
+            slug="other-test-measure",
+            short_name="OTHER",
+            quantity_type="ddd",
+            status="published",
+        )
+
+        client = Client()
+        response = client.get(
+            reverse("viewer:get_measures_chart_data"),
+            {"trust": "NOPE"},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["trust_overlay"] == {
+            measure.slug: {"trustData": []},
+            other_measure.slug: {"trustData": []},
+        }
+
+    def test_predecessor_trust_code_returns_successor_data(
+        self,
+        predecessor_successor_orgs,
+        measure,
+        data_status_months,
+    ):
+        predecessor, successor = predecessor_successor_orgs
+
+        PrecomputedMeasure.objects.create(
+            measure=measure,
+            organisation=successor,
+            month=date(2024, 1, 1),
+            quantity=50.0,
+            numerator=50.0,
+            denominator=None,
+        )
+        PrecomputedMeasure.objects.create(
+            measure=measure,
+            organisation=successor,
+            month=date(2024, 2, 1),
+            quantity=75.0,
+            numerator=75.0,
+            denominator=None,
+        )
+
+        user = User.objects.create_user(
+            username="testuser", password="testpass123"
+        )
+        client = Client()
+        client.force_login(user)
+
+        response = client.get(
+            reverse("viewer:get_measures_chart_data"),
+            {"trust": predecessor.ods_code},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "trust_overlay" in data
+        assert measure.slug in data["trust_overlay"]
+
+        trust_data = data["trust_overlay"][measure.slug]["trustData"]
+        assert len(trust_data) == 2
+
+        values = [v for _, v in trust_data]
+        assert 50.0 in values
+        assert 75.0 in values
 
 
 @pytest.mark.django_db

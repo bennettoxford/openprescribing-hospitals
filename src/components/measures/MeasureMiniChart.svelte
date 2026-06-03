@@ -3,7 +3,7 @@
     props: {
         chartdata: { type: 'String', reflect: true },
         mode: { type: 'String', reflect: true },
-        ispercentage: { type: 'String', reflect: true },
+        chartkind: { type: 'String', reflect: true },
         quantitytype: { type: 'String', reflect: true },
         slug: { type: 'String', reflect: true },
         minTrustsForPercentiles: { type: 'Number', reflect: true, attribute: 'min-trusts-for-percentiles' }
@@ -21,7 +21,7 @@
 
   export let chartdata = '{}';
   export let mode = 'national';
-  export let ispercentage = 'false';
+  export let chartkind = 'absolute';
   export let quantitytype = '';
   export let slug = '';
   export let minTrustsForPercentiles = 30;
@@ -38,7 +38,7 @@
     : chartdata;
   $: effectiveMode = storeChart?.mode ?? mode;
 
-  $: isPercentageBool = ispercentage === 'true';
+  $: isPercentageBool = chartkind === 'percentage';
 
   $: yAxisRange = isPercentageBool ? { min: 0, max: 100 } : { min: 0 };
 

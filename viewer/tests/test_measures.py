@@ -1,8 +1,5 @@
 import pytest
 from datetime import date
-from django.test import Client
-from django.urls import reverse
-from django.contrib.auth.models import User
 
 from viewer.models import (
     Region,
@@ -10,9 +7,9 @@ from viewer.models import (
     Organisation,
     Measure,
     MeasureVMP,
+    PrecomputedMeasure,
     VMP,
     VTM,
-    PrecomputedMeasure,
     DataStatus,
 )
 from viewer.views.measures import (
@@ -131,58 +128,3 @@ class TestBuildMeasureOrgData:
         assert successor.ods_name in org_names
         assert predecessor.ods_name not in org_names
 
-
-@pytest.mark.django_db
-class TestGetMeasuresChartData:
-    def test_predecessor_trust_code_returns_successor_data(
-        self,
-        predecessor_successor_orgs,
-        measure,
-        data_status_months,
-    ):
-        """
-        When requesting measure chart data with a predecessor trust code,
-        normalise to the successor and returns the successor's
-        precomputed data.
-        """
-        predecessor, successor = predecessor_successor_orgs
-
-        PrecomputedMeasure.objects.create(
-            measure=measure,
-            organisation=successor,
-            month=date(2024, 1, 1),
-            quantity=50.0,
-            numerator=50.0,
-            denominator=None,
-        )
-        PrecomputedMeasure.objects.create(
-            measure=measure,
-            organisation=successor,
-            month=date(2024, 2, 1),
-            quantity=75.0,
-            numerator=75.0,
-            denominator=None,
-        )
-
-        user = User.objects.create_user(
-            username="testuser", password="testpass123"
-        )
-        client = Client()
-        client.force_login(user)
-
-        response = client.get(
-            reverse("viewer:get_measures_chart_data"),
-            {"trust": predecessor.ods_code},
-        )
-
-        assert response.status_code == 200
-        data = response.json()
-        assert "trust_overlay" in data
-        assert measure.slug in data["trust_overlay"]
-
-        trust_data = data["trust_overlay"][measure.slug]["trustData"]
-        assert len(trust_data) == 2
-        
-        values = [v for _, v in trust_data]
-        assert 50.0 in values
-        assert 75.0 in values
