@@ -6,6 +6,7 @@ from prefect import flow, get_run_logger
 from pipeline.organisations.import_ord_data import import_ord_data
 from pipeline.organisations.import_eric import import_eric_data
 from pipeline.organisations.import_org_ae_status import import_org_ae_status
+from pipeline.organisations.import_trust_admissions import import_trust_admissions
 from pipeline.organisations.import_cancer_alliance import import_cancer_alliance_data
 from pipeline.organisations.import_shelford_group_trusts import import_shelford_group_trusts
 
@@ -19,6 +20,7 @@ def import_organisations():
     import_cancer_alliance_data()
     import_eric_data()
     import_org_ae_status()
+    import_trust_admissions()
     import_shelford_group_trusts()
 
 
