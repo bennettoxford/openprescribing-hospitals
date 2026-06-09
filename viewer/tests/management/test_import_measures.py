@@ -50,6 +50,11 @@ class TestImportMeasures:
         valid_measure_data['default_view_mode'] = 'icb'
         validate_measure_yaml(valid_measure_data)
 
+    def test_validate_yaml_invalid_external_denominator(self, valid_measure_data):
+        valid_measure_data['denominator'] = '1000_bed_days'
+        with pytest.raises(SchemaError):
+            validate_measure_yaml(valid_measure_data)
+
     def test_validate_measure_yaml_valid_short_description(self, valid_measure_data):
         valid_measure_data['short_description'] = 'Brief list view text'
         validate_measure_yaml(valid_measure_data)

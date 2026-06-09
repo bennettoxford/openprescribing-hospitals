@@ -23,6 +23,7 @@ tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Safety
 quantity_type: dose # Type of measurement (e.g. scmd, dose, ingredient, ddd, indicative_cost)
+denominator: 1000_admissions # Optional; external denominator (1000_admissions)
 lower_is_better: true # true, false, or null when no value judgement
 authored_by: John Doe # Name of original author
 checked_by: Jane Smith # Name of clinical/technical reviewer

@@ -2,6 +2,8 @@ from django.db import models
 from django.utils.text import slugify
 from django.core.validators import RegexValidator
 from django.contrib.postgres.fields import ArrayField
+from viewer.measure_denominators import EXTERNAL_DENOMINATOR_CHOICES
+
 
 class VTM(models.Model):
     vtm = models.CharField(max_length=20, unique=True)
@@ -453,7 +455,30 @@ class IndicativeCost(models.Model):
     def __str__(self):
         return f"{self.vmp.name} - {self.organisation.ods_name}"
 
-    
+
+class TrustAdmission(models.Model):
+    """Monthly finished discharge episodes per trust."""
+
+    organisation = models.ForeignKey(
+        Organisation,
+        on_delete=models.CASCADE,
+        related_name="trust_admissions",
+    )
+    period = models.DateField(help_text="Start date of the activity month")
+    count = models.PositiveIntegerField(
+        help_text="Finished discharge episodes (elective + non-elective)",
+    )
+
+    class Meta:
+        unique_together = ('organisation', 'period')
+        indexes = [
+            models.Index(fields=['organisation', 'period']),
+        ]
+
+    def __str__(self):
+        return f"{self.organisation.ods_name} - {self.period}: {self.count}"
+
+
 class MeasureTag(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(null=True)
@@ -505,6 +530,7 @@ class Measure(models.Model):
         ('region', 'Region'),
         ('national', 'National'),
     ]
+    DENOMINATOR_TYPE_CHOICES = EXTERNAL_DENOMINATOR_CHOICES
     name = models.CharField(max_length=255, unique=True)
     short_name = models.CharField(max_length=255, null=True)
     slug = models.SlugField(unique=True)
@@ -541,6 +567,13 @@ class Measure(models.Model):
         choices=VIEW_MODE_CHOICES, 
         default='trust',
         help_text="Default view mode for this measure"
+    )
+    denominator_type = models.CharField(
+        max_length=32,
+        choices=DENOMINATOR_TYPE_CHOICES,
+        null=True,
+        blank=True,
+        help_text="External denominator for rate measures",
     )
 
     def save(self, *args, **kwargs):

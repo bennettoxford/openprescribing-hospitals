@@ -14,6 +14,7 @@ from pipeline.load_data.load_indicative_cost import load_indicative_costs
 from pipeline.load_data.load_dose_data import load_dose_data
 from pipeline.load_data.load_ingredient_quantity import load_ingredient_quantity
 from pipeline.load_data.load_ddd_quantity import load_ddd_quantity
+from pipeline.load_data.load_trust_admissions import load_trust_admissions
 
 
 @flow(name="Load Data")
@@ -23,6 +24,7 @@ def load_data():
 
     extract_and_load_data_status()
     load_organisations()
+    load_trust_admissions()
     load_atc()
     load_vmp_vtm_data()
     load_aware_data()

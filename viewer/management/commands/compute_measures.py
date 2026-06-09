@@ -25,6 +25,11 @@ from viewer.views.measures import (
     invalidate_measure_item_cache,
 )
 from viewer.utils import get_ddd_unit_map
+from viewer.measure_denominators import (
+    compute_rate_from_totals,
+    get_external_denominator,
+    get_external_denominator_values_by_org_month,
+)
 
 
 class Command(BaseCommand):
@@ -135,9 +140,19 @@ class Command(BaseCommand):
             type='denominator'
         ).values_list('vmp', flat=True)
         all_vmps = list(numerator_vmps) + list(denominator_vmps)
-        is_ratio_measure = denominator_vmps.exists()
-        
-        if is_ratio_measure:
+        external_denominator = get_external_denominator(measure)
+        is_external_denominator_measure = external_denominator is not None
+        is_product_ratio_measure = denominator_vmps.exists()
+        is_rate_measure = (
+            is_product_ratio_measure or is_external_denominator_measure
+        )
+
+        if is_external_denominator_measure:
+            self.stdout.write(
+                f"Processing {external_denominator.label.lower()} measure: "
+                f"{len(numerator_vmps)} numerator VMPs"
+            )
+        elif is_product_ratio_measure:
             self.stdout.write(
                 f"Processing ratio measure: {len(numerator_vmps)} numerator VMPs "
                 f"and {len(denominator_vmps)} denominator VMPs"
@@ -147,6 +162,12 @@ class Command(BaseCommand):
                 f"Processing absolute measure: {len(numerator_vmps)} numerator VMPs "
                 f"(no denominators)"
             )
+
+        external_denominator_by_org = (
+            get_external_denominator_values_by_org_month(measure)
+            if is_external_denominator_measure
+            else {}
+        )
 
         org_monthly_data = defaultdict(
             lambda: defaultdict(lambda: {'numerator': 0, 'denominator': 0})
@@ -158,7 +179,7 @@ class Command(BaseCommand):
 
         numerator_records = subset.filter(vmp__in=numerator_vmps)
 
-        if is_ratio_measure:
+        if is_product_ratio_measure:
             denominator_records = subset.filter(vmp__in=all_vmps)
             denominator_data = (
                 denominator_records
@@ -183,8 +204,16 @@ class Command(BaseCommand):
                         org_monthly_data[org_id][month][key] += float(data[i] or 0)
 
         add_data_to_org_monthly(numerator_data, 'numerator')
-        if is_ratio_measure and denominator_data:
+        if is_product_ratio_measure and denominator_data:
             add_data_to_org_monthly(denominator_data, 'denominator')
+
+        if is_external_denominator_measure:
+            for org_id, monthly_data in org_monthly_data.items():
+                org_denominators = external_denominator_by_org.get(org_id, {})
+                for month in all_months:
+                    monthly_data[month]['denominator'] = float(
+                        org_denominators.get(month, 0)
+                    )
 
         precomputed_measures = []
         for org_id, monthly_data in org_monthly_data.items():
@@ -192,17 +221,16 @@ class Command(BaseCommand):
             for month, values in monthly_data.items():
                 numerator = values['numerator']
                 denominator = values['denominator']
-                
-                if is_ratio_measure:
-                    # Ratio measure: calculate percentage
-                    quantity = (
-                        (numerator / denominator * 100) if denominator else 0
-                    )
+
+                if is_external_denominator_measure and denominator <= 0:
+                    continue
+
+                if is_rate_measure:
+                    quantity = compute_rate_from_totals(numerator, denominator, measure)
                 else:
-                    # Absolute measure: quantity is just the numerator value
                     quantity = numerator
                     denominator = None
-                
+
                 precomputed_measures.append(
                     PrecomputedMeasure(
                         measure=measure,
@@ -210,7 +238,7 @@ class Command(BaseCommand):
                         month=month,
                         numerator=numerator,
                         denominator=denominator,
-                        quantity=quantity
+                        quantity=quantity,
                     )
                 )
 
@@ -228,10 +256,15 @@ class Command(BaseCommand):
         
         for org_id, monthly_data in org_monthly_data.items():
             for month, data in monthly_data.items():
-                if is_ratio_measure:
-                    data["value"] = (data["numerator"] / data["denominator"] * 100) if data["denominator"] else 0
+                if is_rate_measure:
+                    if is_external_denominator_measure and data['denominator'] <= 0:
+                        data['value'] = None
+                    else:
+                        data['value'] = compute_rate_from_totals(
+                            data['numerator'], data['denominator'], measure
+                        )
                 else:
-                    data["value"] = data["numerator"]
+                    data['value'] = data['numerator']
         
         self.stdout.write(f"Total organisations in monthly data: {len(org_monthly_data)} (normalised - predecessors merged into successors)")
         
@@ -244,7 +277,10 @@ class Command(BaseCommand):
         # Remove trusts with 0 quantity for selected products across all months
         orgs_with_data = set()
         for org_id, monthly_data in org_monthly_data.items():
-            if is_ratio_measure:
+            if is_external_denominator_measure:
+                if any(data['denominator'] > 0 for data in monthly_data.values()):
+                    orgs_with_data.add(org_id)
+            elif is_product_ratio_measure:
                 if any(data['denominator'] > 0 for data in monthly_data.values()):
                     orgs_with_data.add(org_id)
             else:
@@ -257,6 +293,7 @@ class Command(BaseCommand):
             month_values = [
                 org_monthly_data[org_id][month]['value']
                 for org_id in orgs_with_data
+                if org_monthly_data[org_id][month]['value'] is not None
             ]
             
             month_values.sort()
@@ -306,36 +343,35 @@ class Command(BaseCommand):
             region_id = org.region.name if org.region else None
             
             for month, values in monthly_data.items():
+                if is_external_denominator_measure and values['denominator'] <= 0:
+                    continue
                 if icb_id:
                     icb_values[icb_id][month]['numerator'] += values['numerator']
                     icb_values[icb_id][month]['denominator'] += values['denominator']
-                
+
                 if region_id:
                     region_values[region_id][month]['numerator'] += values['numerator']
                     region_values[region_id][month]['denominator'] += values['denominator']
-                
+
                 national_values[month]['numerator'] += values['numerator']
                 national_values[month]['denominator'] += values['denominator']
-        
-        for icb_id, monthly_data in icb_values.items():
+
+        def set_aggregated_values(monthly_data):
             for month, values in monthly_data.items():
-                if is_ratio_measure:
-                    values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else 0
+                if is_rate_measure:
+                    values['value'] = compute_rate_from_totals(
+                        values['numerator'], values['denominator'], measure
+                    )
                 else:
                     values['value'] = values['numerator']
+
+        for icb_id, monthly_data in icb_values.items():
+            set_aggregated_values(monthly_data)
 
         for region_id, monthly_data in region_values.items():
-            for month, values in monthly_data.items():
-                if is_ratio_measure:
-                    values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else 0
-                else:
-                    values['value'] = values['numerator']
+            set_aggregated_values(monthly_data)
 
-        for month, values in national_values.items():
-            if is_ratio_measure:
-                values['value'] = (values['numerator'] / values['denominator'] * 100) if values['denominator'] else 0
-            else:
-                values['value'] = values['numerator']
+        set_aggregated_values(national_values)
         
         aggregation_time = time.time() - start_time
         self.stdout.write(f"All aggregations completed in: {aggregation_time:.2f}s (no additional queries!)")

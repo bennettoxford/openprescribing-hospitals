@@ -8,6 +8,7 @@
         percentiledata: { type: 'String', reflect: true },
         quantitytype: { type: 'String', reflect: true },
         hasdenominators: { type: 'String', reflect: true },
+        chartkind: { type: 'String', reflect: true },
         denominatorvmps: { type: 'String', reflect: true },
         numeratorvmps: { type: 'String', reflect: true },
         annotations: { type: 'String', reflect: true },
@@ -50,6 +51,7 @@
     export let percentiledata = '[]';
     export let quantitytype = 'dose';
     export let hasdenominators = 'true';
+    export let chartkind = 'absolute';
     export let denominatorvmps = '[]';
     export let numeratorvmps = '[]';
     export let annotations = '[]';
@@ -252,40 +254,52 @@
         }
     }
 
-    $: yAxisLabel = getYAxisLabel(quantitytype, hasdenominators, uniqueUnits);
-    $: yAxisTickFormatter = getYAxisTickFormatter(quantitytype, hasdenominators);
-    $: yAxisLimits = getYAxisLimits(hasdenominators, $filteredData);
-    
-    function getYAxisLabel(quantityType, hasDenominators, units) {
-        const hasDenom = hasDenominators === 'true';
-        
-        if (hasDenom) {
-            return '%';
-        } else {
-            if (quantityType === 'indicative_cost') {
-                return 'Indicative Cost (£)';
-            } else {
+    $: effectiveChartKind = chartkind !== 'absolute' ? chartkind : (hasdenominators === 'true' ? 'percentage' : 'absolute');
+    $: shouldShowNumeratorDenominator = hasdenominators === 'true';
 
-                if (units && units.length > 0) {
-                    const unitsString = units.join(' / ');
-                    return `Quantity (${unitsString})`;
-                } else {
-                    return 'Quantity';
-                }
-            }
-        }
+    $: yAxisLabel = getYAxisLabel(quantitytype, effectiveChartKind, uniqueUnits);
+    $: yAxisTickFormatter = getYAxisTickFormatter(quantitytype, effectiveChartKind);
+    $: yAxisLimits = getYAxisLimits(effectiveChartKind, $filteredData);
+    
+    function getQuantityTypeLabel(quantityType) {
+        const quantityLabels = {
+            ddd: 'DDD',
+            dose: 'Dose',
+            scmd: 'SCMD quantity',
+            ingredient: 'Ingredient quantity',
+            indicative_cost: 'Indicative cost',
+        };
+        return quantityLabels[quantityType] || 'Quantity';
     }
 
-    function getYAxisTickFormatter(quantityType, hasDenominators) {
-        const hasDenom = hasDenominators === 'true';
-        
+    function getYAxisLabel(quantityType, chartKind, units) {
+        if (chartKind === 'percentage') {
+            return '%';
+        }
+        if (chartKind === 'per_1000_admissions') {
+            return `${getQuantityTypeLabel(quantityType)} per 1000 admissions`;
+        }
+        if (quantityType === 'indicative_cost') {
+            return 'Indicative Cost (£)';
+        }
+        if (units && units.length > 0) {
+            const unitsString = units.join(' / ');
+            return `Quantity (${unitsString})`;
+        }
+        return 'Quantity';
+    }
+
+    function getYAxisTickFormatter(quantityType, chartKind) {
         return function(value, range) {
-            if (hasDenom) {
-                // For measures with denominators, show percentages
+            if (chartKind === 'percentage') {
                 let decimals = 1;
                 if (range <= 0.1) decimals = 3;
                 else if (range <= 1) decimals = 2;
                 return `${value.toFixed(decimals)}%`;
+            } else if (chartKind === 'per_1000_admissions') {
+                if (value === 0) return '0';
+                if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+                return value >= 10 ? value.toFixed(0) : value.toFixed(1);
             } else if (quantityType === 'indicative_cost') {
                 // For indicative cost, show currency formatting
                 if (value === 0) return '£0';
@@ -306,10 +320,8 @@
         };
     }
 
-    function getYAxisLimits(hasDenominators, chartData) {
-        const hasDenom = hasDenominators === 'true';
-        
-        if (hasDenom) {
+    function getYAxisLimits(chartKind, chartData) {
+        if (chartKind === 'percentage') {
             return [0, 100];
         } else if (chartData && chartData.datasets && chartData.datasets.length > 0) {
             let maxValue = 0;
@@ -370,7 +382,7 @@
         yAxisBehavior: {
             forceZero: true,
             resetToInitial: true,
-            fixedRange: hasdenominators === 'true'
+            fixedRange: effectiveChartKind === 'percentage'
         },
         percentileConfig: {
             medianColor: '#DC3220',
@@ -386,7 +398,7 @@
         title: {
             text: undefined
         },
-        yAxis: hasdenominators === 'true' ? {
+        yAxis: effectiveChartKind === 'percentage' ? {
         min: 0,
         max: 100,
         allowDecimals: false,
@@ -728,7 +740,7 @@
     }
 
     $: if ($selectedMode) {
-        const currentLimits = getYAxisLimits(hasdenominators, $filteredData);
+        const currentLimits = getYAxisLimits(effectiveChartKind, $filteredData);
         measureChartStore.setConfig({
             ...$measureChartStore.config,
             mode: $selectedMode,
@@ -738,7 +750,7 @@
             yAxisBehavior: {
                 forceZero: true,
                 resetToInitial: true,
-                fixedRange: hasdenominators === 'true'
+                fixedRange: effectiveChartKind === 'percentage'
             },
             percentileConfig: {
                 medianColor: '#DC3220',
@@ -808,7 +820,7 @@
         const formattedDate = date.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
         
         let value;
-        if (hasdenominators === 'true') {
+        if (effectiveChartKind === 'percentage') {
             value = (d.value).toFixed(1) + '%';
         } else if (quantitytype === 'indicative_cost') {
             value = '£' + formatNumber(d.value, { addCommas: true, decimalPlaces: 2 });
@@ -827,7 +839,7 @@
                 { label: 'Date', value: formattedDate }
             ];
             
-            if (hasdenominators === 'true') {
+            if (shouldShowNumeratorDenominator) {
                 tooltipEntries.push(
                     { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index] || 0, { addCommas: true }) },
                     { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index] || 0, { addCommas: true }) }
@@ -847,7 +859,7 @@
                     { label: 'Date', value: formattedDate }
                 ];
                 
-                if (hasdenominators === 'true') {
+                if (shouldShowNumeratorDenominator) {
                     tooltipEntries.push(
                         { label: 'Numerator', value: formatNumber(d.dataset.numerator?.[index] || 0, { addCommas: true }) },
                         { label: 'Denominator', value: formatNumber(d.dataset.denominator?.[index] || 0, { addCommas: true }) }

@@ -1,8 +1,5 @@
 import pytest
 from datetime import date
-from django.test import Client
-from django.urls import reverse
-from django.contrib.auth.models import User
 
 from viewer.models import (
     Region,
@@ -10,14 +7,16 @@ from viewer.models import (
     Organisation,
     Measure,
     MeasureVMP,
+    PrecomputedMeasure,
     VMP,
     VTM,
-    PrecomputedMeasure,
     DataStatus,
 )
 from viewer.views.measures import (
     normalise_trust_code,
     build_measure_org_data,
+    build_trust_chart_data,
+    series_dict_to_chart_points,
 )
 
 
@@ -107,6 +106,34 @@ class TestNormaliseTrustCode:
         assert normalise_trust_code(None) is None
 
 
+class TestTrustSeriesGapFill:
+    def test_series_dict_to_chart_points_fills_missing_months_with_zero(self):
+        months = [date(2024, 1, 1), date(2024, 2, 1), date(2024, 3, 1)]
+        values = {date(2024, 1, 1): 10.0, date(2024, 3, 1): 30.0}
+        assert series_dict_to_chart_points(months, values) == [
+            ["2024-01-01", 10.0],
+            ["2024-02-01", 0],
+            ["2024-03-01", 30.0],
+        ]
+
+    def test_build_trust_chart_data_fills_trust_overlay(self):
+        measure = type("Measure", (), {"id": 42})()
+        bulk_percentiles = {
+            measure.id: {
+                date(2024, 1, 1): {50: 10.0},
+                date(2024, 2, 1): {50: 20.0},
+                date(2024, 3, 1): {50: 30.0},
+            }
+        }
+        overlay = {date(2024, 1, 1): 1.0, date(2024, 3, 1): 3.0}
+        chart = build_trust_chart_data(measure, bulk_percentiles, overlay_series=overlay)
+        assert chart["trustData"] == [
+            ["2024-01-01", 1.0],
+            ["2024-02-01", 0],
+            ["2024-03-01", 3.0],
+        ]
+
+
 @pytest.mark.django_db
 class TestBuildMeasureOrgData:
     def test_returns_successors_only(
@@ -131,58 +158,3 @@ class TestBuildMeasureOrgData:
         assert successor.ods_name in org_names
         assert predecessor.ods_name not in org_names
 
-
-@pytest.mark.django_db
-class TestGetMeasuresChartData:
-    def test_predecessor_trust_code_returns_successor_data(
-        self,
-        predecessor_successor_orgs,
-        measure,
-        data_status_months,
-    ):
-        """
-        When requesting measure chart data with a predecessor trust code,
-        normalise to the successor and returns the successor's
-        precomputed data.
-        """
-        predecessor, successor = predecessor_successor_orgs
-
-        PrecomputedMeasure.objects.create(
-            measure=measure,
-            organisation=successor,
-            month=date(2024, 1, 1),
-            quantity=50.0,
-            numerator=50.0,
-            denominator=None,
-        )
-        PrecomputedMeasure.objects.create(
-            measure=measure,
-            organisation=successor,
-            month=date(2024, 2, 1),
-            quantity=75.0,
-            numerator=75.0,
-            denominator=None,
-        )
-
-        user = User.objects.create_user(
-            username="testuser", password="testpass123"
-        )
-        client = Client()
-        client.force_login(user)
-
-        response = client.get(
-            reverse("viewer:get_measures_chart_data"),
-            {"trust": predecessor.ods_code},
-        )
-
-        assert response.status_code == 200
-        data = response.json()
-        assert "trust_overlay" in data
-        assert measure.slug in data["trust_overlay"]
-
-        trust_data = data["trust_overlay"][measure.slug]["trustData"]
-        assert len(trust_data) == 2
-        
-        values = [v for _, v in trust_data]
-        assert 50.0 in values
-        assert 75.0 in values

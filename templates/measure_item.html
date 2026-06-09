@@ -140,6 +140,7 @@
                             percentiledata="{{ percentile_data }}"
                             quantitytype="{{ measure_quantity_type }}"
                             hasdenominators="{{ has_denominators|yesno:'true,false' }}"
+                            chartkind="{{ chart_kind }}"
                             denominatorvmps="{{ denominator_vmps }}"
                             numeratorvmps="{{ numerator_vmps }}"
                             annotations="{{ annotations }}"
@@ -175,7 +176,9 @@
                 <div class="px-4 sm:px-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">Which NHS Trusts are included?</h2>
                     <div class="[&_p]:text-lg [&_p]:text-gray-900 [&_p]:mb-8 [&_a]:underline [&_a]:font-semibold">
-                        {% if has_denominators %}
+                        {% if uses_admissions_denominator %}
+                        <p>Trusts are only included in this measure if they have hospital admissions data within the analysis period and have issued any products included in the numerator for this measure.</p>
+                        {% elif has_denominators %}
                         <p>Trusts are only included in this measure if they have issued any products included in the denominator for this measure.</p>
                         {% else %}
                         <p>Trusts are only included in this measure if they have issued any products included in this measure.</p>

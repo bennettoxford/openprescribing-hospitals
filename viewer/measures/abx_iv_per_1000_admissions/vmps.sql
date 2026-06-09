@@ -25,7 +25,7 @@ WITH measure_vmps AS (
 
 )
 SELECT DISTINCT
-    vmp.id as vmp_id,
+    mv.id as vmp_id,
     mv.vmp_type
-FROM viewer_vmp vmp
-WHERE vmp_type = 'numerator'
+FROM measure_vmps mv
+WHERE mv.vmp_type = 'numerator'
