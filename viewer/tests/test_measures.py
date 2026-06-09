@@ -15,6 +15,8 @@ from viewer.models import (
 from viewer.views.measures import (
     normalise_trust_code,
     build_measure_org_data,
+    build_trust_chart_data,
+    series_dict_to_chart_points,
 )
 
 
@@ -102,6 +104,34 @@ class TestNormaliseTrustCode:
     def test_empty_code_returns_none(self):
         assert normalise_trust_code("") is None
         assert normalise_trust_code(None) is None
+
+
+class TestTrustSeriesGapFill:
+    def test_series_dict_to_chart_points_fills_missing_months_with_zero(self):
+        months = [date(2024, 1, 1), date(2024, 2, 1), date(2024, 3, 1)]
+        values = {date(2024, 1, 1): 10.0, date(2024, 3, 1): 30.0}
+        assert series_dict_to_chart_points(months, values) == [
+            ["2024-01-01", 10.0],
+            ["2024-02-01", 0],
+            ["2024-03-01", 30.0],
+        ]
+
+    def test_build_trust_chart_data_fills_trust_overlay(self):
+        measure = type("Measure", (), {"id": 42})()
+        bulk_percentiles = {
+            measure.id: {
+                date(2024, 1, 1): {50: 10.0},
+                date(2024, 2, 1): {50: 20.0},
+                date(2024, 3, 1): {50: 30.0},
+            }
+        }
+        overlay = {date(2024, 1, 1): 1.0, date(2024, 3, 1): 3.0}
+        chart = build_trust_chart_data(measure, bulk_percentiles, overlay_series=overlay)
+        assert chart["trustData"] == [
+            ["2024-01-01", 1.0],
+            ["2024-02-01", 0],
+            ["2024-03-01", 3.0],
+        ]
 
 
 @pytest.mark.django_db

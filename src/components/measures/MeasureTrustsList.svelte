@@ -173,19 +173,35 @@
         return grouped;
     }
 
-    function buildTrustData(trustName) {
+    function percentileMonths(percentiles) {
+        const median = percentiles[50];
+        if (median?.length) {
+            return median.map(([month]) => month);
+        }
+        const months = new Set();
+        for (const points of Object.values(percentiles)) {
+            for (const [month] of points) {
+                months.add(month);
+            }
+        }
+        return [...months].sort((a, b) => new Date(a) - new Date(b));
+    }
+
+    function buildTrustData(trustName, percentiles) {
         const trustInfo = orgDataByTrust[trustName];
-        if (!trustInfo?.data?.length) return [];
-        return trustInfo.data
-            .map((d) => {
-                const month = typeof d.month === 'string' ? d.month : d.month?.isoformat?.() ?? String(d.month);
-                return [month, d.quantity ?? 0];
-            })
-            .sort((a, b) => new Date(a[0]) - new Date(b[0]));
+        if (!trustInfo) return [];
+
+        const byMonth = {};
+        for (const d of trustInfo.data || []) {
+            const month = typeof d.month === 'string' ? d.month : d.month?.isoformat?.() ?? String(d.month);
+            byMonth[month] = d.quantity ?? 0;
+        }
+
+        return percentileMonths(percentiles).map((month) => [month, byMonth[month] ?? 0]);
     }
 
     function getChartDataForTrust(trustName, percentiles) {
-        const trustData = buildTrustData(trustName);
+        const trustData = buildTrustData(trustName, percentiles);
         if (trustData.length === 0) return null;
         if (Object.keys(percentiles).length === 0) return null;
         return { percentiles, trustData };

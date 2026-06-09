@@ -1,7 +1,7 @@
 import hashlib
 import json
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from markdown2 import Markdown
 from django.core.cache import cache
 from django.views.generic import TemplateView
@@ -184,6 +184,16 @@ def get_region_list():
     return [{'code': r.code, 'name': r.name} for r in regions]
 
 
+def get_percentile_months(bulk_percentiles, measure_id) -> list[date]:
+    """Sorted activity months for which percentile data exists."""
+    return sorted(bulk_percentiles.get(measure_id, {}).keys())
+
+
+def series_dict_to_chart_points(months: list[date], values_by_month: dict) -> list[list]:
+    """Convert a sparse month→value dict to chart points, using 0 for missing months."""
+    return [[month.isoformat(), values_by_month.get(month, 0)] for month in months]
+
+
 def build_national_chart_data(measure, bulk_national):
     """Return chart dict for national-mode chart."""
     data = bulk_national.get(measure.id, {})
@@ -224,7 +234,12 @@ def build_trust_chart_data(measure, bulk_percentiles, overlay_series=None):
     chart_data = {'percentiles': percentiles}
 
     if overlay_series:
-        chart_data['trustData'] = [[m.isoformat(), v] for m, v in sorted(overlay_series.items())]
+        months = get_percentile_months(bulk_percentiles, measure.id)
+        chart_data['trustData'] = (
+            series_dict_to_chart_points(months, overlay_series)
+            if months
+            else [[m.isoformat(), v] for m, v in sorted(overlay_series.items())]
+        )
 
     return chart_data
 
@@ -521,10 +536,19 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
                     chart_data = build_trust_chart_data(measure, bulk_percentiles)
                     trust_count = trust_counts.get(measure.id, 0)
                     trust_series = bulk_trust_series_per_org.get(measure.id, {}) if trust_count < 30 else {}
+                    percentile_months = get_percentile_months(bulk_percentiles, measure.id)
                     if chart_data:
                         chart_data['trust_count'] = trust_count
                         if trust_series:
-                            chart_data['trustSeries'] = trust_series
+                            month_labels = [month.isoformat() for month in percentile_months]
+                            filled_trust_series = {}
+                            for org_name, points in trust_series.items():
+                                by_month = dict(points)
+                                filled_trust_series[org_name] = [
+                                    [month_label, by_month.get(month_label, 0)]
+                                    for month_label in month_labels
+                                ]
+                            chart_data['trustSeries'] = filled_trust_series
                         trust_percentiles_data[measure.slug] = chart_data
                     elif trust_series:
                         trust_percentiles_data[measure.slug] = {

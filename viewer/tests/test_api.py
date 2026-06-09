@@ -17,6 +17,7 @@ from viewer.models import (
     Measure,
     MeasureVMP,
     PrecomputedMeasure,
+    PrecomputedPercentile,
 )
 from viewer.views.api import MAX_ANALYSIS_VMP_COUNT
 
@@ -284,6 +285,96 @@ class TestGetMeasuresChartData:
         values = [v for _, v in trust_data]
         assert 50.0 in values
         assert 75.0 in values
+
+    def test_trust_overlay_fills_missing_months_with_zero(
+        self,
+        region,
+        icb,
+        measure,
+        data_status_months,
+    ):
+        trust = Organisation.objects.create(
+            ods_code="R0A",
+            ods_name="Test Trust",
+            region=region,
+            icb=icb,
+            successor=None,
+        )
+        months = [
+            date(2024, 1, 1),
+            date(2024, 2, 1),
+            date(2024, 3, 1),
+        ]
+        for month in months:
+            DataStatus.objects.get_or_create(year_month=month)
+            PrecomputedPercentile.objects.create(
+                measure=measure,
+                month=month,
+                percentile=50,
+                quantity=10.0,
+            )
+
+        PrecomputedMeasure.objects.create(
+            measure=measure,
+            organisation=trust,
+            month=date(2024, 1, 1),
+            quantity=5.0,
+            numerator=5.0,
+            denominator=1000.0,
+        )
+        PrecomputedMeasure.objects.create(
+            measure=measure,
+            organisation=trust,
+            month=date(2024, 3, 1),
+            quantity=15.0,
+            numerator=15.0,
+            denominator=1000.0,
+        )
+
+        client = Client()
+        response = client.get(
+            reverse("viewer:get_measures_chart_data"),
+            {"trust": trust.ods_code},
+        )
+
+        assert response.status_code == 200
+        trust_data = response.json()["trust_overlay"][measure.slug]["trustData"]
+        assert trust_data == [
+            ["2024-01-01", 5.0],
+            ["2024-02-01", 0],
+            ["2024-03-01", 15.0],
+        ]
+
+    def test_trust_overlay_empty_when_trust_not_in_measure(
+        self,
+        region,
+        icb,
+        measure,
+    ):
+        trust = Organisation.objects.create(
+            ods_code="R1A",
+            ods_name="No Data Trust",
+            region=region,
+            icb=icb,
+            successor=None,
+        )
+        for month in [date(2024, 1, 1), date(2024, 2, 1)]:
+            DataStatus.objects.get_or_create(year_month=month)
+            PrecomputedPercentile.objects.create(
+                measure=measure,
+                month=month,
+                percentile=50,
+                quantity=10.0,
+            )
+
+        client = Client()
+        response = client.get(
+            reverse("viewer:get_measures_chart_data"),
+            {"trust": trust.ods_code},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["trust_overlay"][measure.slug]["trustData"] == []
 
 
 @pytest.mark.django_db

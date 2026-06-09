@@ -34,6 +34,9 @@ from ..search import (
 from .measures import (
     normalise_trust_code,
     get_bulk_trust_series_for_measures,
+    get_bulk_percentiles_for_measures,
+    get_percentile_months,
+    series_dict_to_chart_points,
 )
 
 @api_view(["GET"])
@@ -1097,13 +1100,21 @@ def get_measures_chart_data(request):
                 }
             })
 
+        bulk_percentiles = get_bulk_percentiles_for_measures(measures)
         overlay_by_measure = get_bulk_trust_series_for_measures(measures, [effective_code])
 
         trust_overlay = {}
         for m in measures:
             series = overlay_by_measure.get(m.id, {})
+            months = get_percentile_months(bulk_percentiles, m.id)
             trust_overlay[m.slug] = {
-                'trustData': [[mo.isoformat(), v] for mo, v in sorted(series.items())]
+                'trustData': (
+                    []
+                    if not series
+                    else series_dict_to_chart_points(months, series)
+                    if months
+                    else [[mo.isoformat(), v] for mo, v in sorted(series.items())]
+                )
             }
 
         return JsonResponse({'trust_overlay': trust_overlay})
