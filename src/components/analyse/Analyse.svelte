@@ -163,7 +163,7 @@
                     <h2 class="text-lg font-semibold">Results</h2>
                 </div>
                 <analysis-results
-                    className="flex-grow"
+                    class="flex-grow"
                     isAnalysisRunning={$isAnalysisRunning}
                     analysisData={analysisData}
                     {showResults}
