@@ -5,6 +5,11 @@
     import Accessibility from 'highcharts/modules/accessibility';
     import { organisationSearchStore } from '../../stores/organisationSearchStore.js';
 
+    const accessibilityInitialiser = Accessibility?.default ?? Accessibility;
+    if (typeof accessibilityInitialiser === 'function') {
+        accessibilityInitialiser(Highcharts);
+    }
+
     export let org;
     export let latestDates;
     export let months;
@@ -218,9 +223,6 @@
     let chartInitialized = false;
 
     onMount(() => {
-        if (Highcharts.Accessibility) {
-            Highcharts.Accessibility(Highcharts);
-        }
         chartInitialized = true;
     });
 </script>
