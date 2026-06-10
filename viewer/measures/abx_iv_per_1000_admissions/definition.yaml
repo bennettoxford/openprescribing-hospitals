@@ -19,7 +19,7 @@ how_is_it_calculated: |
      [J01 'Antibacterials for systemic use'](https://atcddd.fhi.no/atc_ddd_index/?code=J01&showdescription=yes) to determine 
      antibiotic products to include in the measure. We use dm+d route data to determine the route of administration. We divide 
      the combined number of [Defined Daily Doses (DDDs)](https://hospitals.openprescribing.net/faq/#what-is-a-defined-daily-dose-ddd) 
-     of intravenous antibiotics by the number of admissions expressed per 1000 to give a rate per 1000 admissions. 
+     of intravenous antibiotics by the number of [admissions](/faq/#admissions) expressed per 1000 to give a rate per 1000 admissions. 
      Teicoplanin and vancomycin injections are licensed for both the oral and intravenous route. We treat them as intravenous antibiotics 
      in this measure as this represents the majority of the indications for use. A small number of relevant antibiotics do not have a 
      DDD assigned by the WHO, these are excluded from the calculation. 
