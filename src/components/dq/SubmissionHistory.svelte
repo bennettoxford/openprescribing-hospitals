@@ -3,7 +3,7 @@
     shadow: 'none',
     props: {
         orgdata: { type: 'String' },
-        latestDates: { type: 'String' }
+        latestdates: { type: 'String' }
     }
   }} />
 
@@ -14,8 +14,8 @@
     import { organisationSearchStore } from '../../stores/organisationSearchStore';
     import OrgSubmissionChart from './OrgSubmissionChart.svelte';
 
-    export let orgData = '{}';
-    export let latestDates = '{}';
+    export let orgdata = '{}';
+    export let latestdates = '{}';
 
     let parsedOrgData = [];
     let parsedLatestDates = {};
@@ -76,18 +76,22 @@
 
     onMount(() => {
         try {
-            const unescapedData = unescapeUnicode(orgData);
+            const unescapedData = unescapeUnicode(orgdata);
             const parsedData = JSON.parse(unescapedData);
 
-            parsedOrgData = parsedData.organisations;
-            parsedLatestDates = JSON.parse(unescapeUnicode(latestDates));
+            parsedOrgData = Array.isArray(parsedData?.organisations) ? parsedData.organisations : [];
+
+            const parsedLatestDatesRaw = JSON.parse(unescapeUnicode(latestdates));
+            parsedLatestDates = parsedLatestDatesRaw && typeof parsedLatestDatesRaw === 'object'
+                ? parsedLatestDatesRaw
+                : {};
             
             const allMonths = new Set();
             function collectMonths(org) {
-                if (org.data) {
+                if (org?.data && typeof org.data === 'object') {
                     Object.keys(org.data).forEach(month => allMonths.add(month));
                 }
-                if (org.predecessors) {
+                if (Array.isArray(org?.predecessors)) {
                     org.predecessors.forEach(pred => collectMonths(pred));
                 }
             }
@@ -96,7 +100,9 @@
             months = Array.from(allMonths).sort();
             
             if (parsedOrgData.length > 0) {
-                searchableOrgs = parsedOrgData.map((o) => o.name);
+                searchableOrgs = parsedOrgData
+                    .map((o) => o?.name)
+                    .filter(Boolean);
                 
                 organisationSearchStore.setOrganisationData({
                     orgs: Object.fromEntries(searchableOrgs.map(name => [name, name])),
