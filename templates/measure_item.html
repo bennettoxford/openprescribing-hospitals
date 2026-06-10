@@ -177,7 +177,7 @@
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">Which NHS Trusts are included?</h2>
                     <div class="[&_p]:text-lg [&_p]:text-gray-900 [&_p]:mb-8 [&_a]:underline [&_a]:font-semibold">
                         {% if uses_admissions_denominator %}
-                        <p>Trusts are only included in this measure if they have hospital admissions data within the analysis period and have issued any products included in the numerator for this measure.</p>
+                        <p>Trusts are only included in this measure if they have <a href="/faq/#admissions" class="underline font-semibold" target="_blank">hospital admissions data</a> within the analysis period and have issued any products included in the numerator for this measure.</p>
                         {% elif has_denominators %}
                         <p>Trusts are only included in this measure if they have issued any products included in the denominator for this measure.</p>
                         {% else %}
