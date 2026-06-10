@@ -290,14 +290,14 @@
         <div class="flex flex-col">
             <div class="flex items-center justify-between mb-1">
                 {#if showTitle}
-                    <label class="text-sm font-medium {disabled ? 'text-gray-400' : 'text-gray-700'}">
+                    <p class="text-sm font-medium {disabled ? 'text-gray-400' : 'text-gray-700'}">
                         Select {$source.filterType === 'icb' ? 'ICB' : 
                                $source.filterType === 'region' ? 'Region' : 
                                'NHS Trust'}
                         {#if maxItems}
                             <span class="text-xs text-gray-500 ml-1">(max {maxItems})</span>
                         {/if}
-                    </label>
+                    </p>
                 {:else}
                     <span></span>
                 {/if}

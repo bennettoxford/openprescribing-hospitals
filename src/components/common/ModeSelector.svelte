@@ -51,7 +51,7 @@
 {:else}
   <div class="w-full">
     {#if label}
-      <label class="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+      <p class="block text-sm font-medium text-gray-700 mb-2">{label}</p>
       <div class="flex flex-wrap gap-2">
         {#each $modeSelectorStore.options as option}
           <div class="relative inline-block group">

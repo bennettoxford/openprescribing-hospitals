@@ -21,10 +21,6 @@
   export let data = { labels: [], datasets: [] };
   export let mode = 'trust';
   export let yAxisLabel = '';
-  export let percentileConfig = {
-    medianColor: '#DC3220',
-    rangeColor: 'rgb(0, 90, 181)'
-  };
   export let store = chartStore;
   export let formatTooltipContent = null;
   export let chartOptions = {};

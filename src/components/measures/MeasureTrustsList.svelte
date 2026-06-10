@@ -312,7 +312,7 @@
                                 quantitytype={measureQuantityType}
                                 slug=""
                                 min-trusts-for-percentiles={30}
-                            />
+                            ></measure-mini-chart>
                         </div>
                         <div class="p-6 pt-2 flex flex-col gap-2">
                             <a
