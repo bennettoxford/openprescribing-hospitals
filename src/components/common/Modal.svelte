@@ -52,6 +52,7 @@
               </h3>
               <button
                 type="button"
+                aria-label="Close modal"
                 class="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 on:click={() => isOpen = false}
               >

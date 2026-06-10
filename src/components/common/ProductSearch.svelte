@@ -385,6 +385,7 @@
                                                     {#if item.vmps?.length > 0}
                                                         <button
                                                             type="button"
+                                                            aria-label={item.isExpanded ? 'Collapse product list' : 'Expand product list'}
                                                             class="p-0.5 hover:bg-gray-200 rounded transition-colors"
                                                             on:click|stopPropagation={(event) => toggleExpand(item, event)}
                                                         >

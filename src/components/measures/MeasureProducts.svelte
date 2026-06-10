@@ -2,7 +2,6 @@
     tag: 'measure-products',
     props: {
         title: { type: 'String' },
-        description: { type: 'String' },
         items: { type: 'String' },
         numeratorItems: { type: 'String' },
         previewCount: { type: 'Number' }
@@ -12,7 +11,6 @@
 
 <script>
     export let title = '';
-    export let description = '';
     export let items = '[]';
     export let numeratorItems = '[]';
     export let previewCount = 3;
