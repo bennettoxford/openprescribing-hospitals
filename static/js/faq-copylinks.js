@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Failed to copy:', e);
     });
 
-    // Add copyable links to all h3 headings in the markdown content
+    // Add copyable links to h3 and h4 headings in the markdown content
     addCopyLinksToSubheadings();
     
     // Reinitialise clipboard.js to include the new buttons
@@ -29,28 +29,28 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function addCopyLinksToSubheadings() {
-    // Find all h3 elements within the prose content
-    const h3Elements = document.querySelectorAll('.prose h3[id]');
+    // Find all h3 and h4 elements within the prose content
+    const subheadingElements = document.querySelectorAll('.prose h3[id], .prose h4[id]');
     
-    h3Elements.forEach(function(h3) {
+    subheadingElements.forEach(function(heading) {
         // Create a wrapper div to handle hover states
         const wrapper = document.createElement('div');
         wrapper.className = 'group flex items-center gap-2';
         
-        // Move the h3 content to a new element inside the wrapper
-        const h3Content = h3.innerHTML;
-        h3.innerHTML = '';
-        h3.appendChild(wrapper);
+        // Move heading content to a new element inside the wrapper
+        const headingContent = heading.innerHTML;
+        heading.innerHTML = '';
+        heading.appendChild(wrapper);
         
         // Create the title span
         const titleSpan = document.createElement('span');
-        titleSpan.innerHTML = h3Content;
+        titleSpan.innerHTML = headingContent;
         wrapper.appendChild(titleSpan);
         
         // Create the copy button
         const copyButton = document.createElement('button');
         copyButton.className = 'copy-link-btn opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-oxford-800';
-        copyButton.setAttribute('data-clipboard-text', window.location.href.split('#')[0] + '#' + h3.id);
+        copyButton.setAttribute('data-clipboard-text', window.location.href.split('#')[0] + '#' + heading.id);
         copyButton.setAttribute('title', 'Copy link to this question');
         copyButton.setAttribute('aria-label', 'Copy link to ' + titleSpan.textContent);
         

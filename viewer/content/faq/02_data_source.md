@@ -8,7 +8,13 @@ The primary data source for the OpenPrescribing Hospitals platform is the [Secon
 
 There is detailed user guide provided on the NHSBSA Open Data Portal alongside the data but briefly the SCMD contains processed pharmacy stock control data. Data is collected and curated from individual trusts by Rx-info. Rx-info then shares the data with the NHSBSA who make it openly available. 
 
-Other data sources which are linked to the SCMD to provide supplementary detail on the products and organisations within the SCMD, are described on the [About page](about/#data-sources).
+### Other data sources
+
+The other main data sources which are linked to the SCMD to provide supplementary detail on the products and organisations within the SCMD, are described on the [About page](about/#data-sources). Additional data sources are described below.
+
+#### Hospital admissions
+
+We use the [Hospital Episode Statistics for Admitted Patient Care and Outpatient Data](https://digital.nhs.uk/search/document-type/series?query=Provisional+Monthly+Hospital+Episode+Statistics+for+Admitted+Patient+Care%2C+Outpatient+and+Accident+and+Emergency+data) including both elective and non-elective admissions. This captures the monthly number of Finished Discharge Episodes (FDEs) within each trust.
 
 ### How often is it updated?
 
