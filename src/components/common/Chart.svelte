@@ -15,7 +15,21 @@
   import { exportAnalysisDataToCSV } from '../../utils/csvExport.js';
   import Modal from './Modal.svelte';
 
-  
+  const initHighchartsModule = (moduleFactory) => {
+    const initialiser = moduleFactory?.default ?? moduleFactory;
+    if (typeof initialiser === 'function') {
+      initialiser(Highcharts);
+    }
+  };
+
+  initHighchartsModule(HCMore);
+  initHighchartsModule(Exporting);
+  initHighchartsModule(ExportData);
+  initHighchartsModule(OfflineExporting);
+  initHighchartsModule(Accessibility);
+  initHighchartsModule(Boost);
+  initHighchartsModule(Annotations);
+
   const dispatch = createEventDispatcher();
 
   export let data = { labels: [], datasets: [] };
