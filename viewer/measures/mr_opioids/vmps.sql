@@ -3,31 +3,42 @@ WITH measure_vmps AS (
         vmp.id,
         CASE 
             WHEN 
-                vmp.code IN (
-                    '36127511000001108', -- VMP code for Morphine 5mg modified-release tablets
-                    '36126411000001107', -- VMP code for Morphine 10mg modified-release capsules
-                    '36126511000001106', -- VMP code for Morphine 10mg modified-release tablets
-                    '36131011000001107', -- VMP code for Oxycodone 5mg modified-release tablets
-                    '36129511000001101' -- VMP code for Oxycodone 10mg modified-release tablets
-
-                )
+                ofr.name LIKE '%modified-release%' -- only include modified-release in the numerator            
             THEN 'numerator'
             ELSE 'denominator'
         END as vmp_type
     FROM viewer_vmp vmp
+    LEFT JOIN viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
+    LEFT JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
 )
 SELECT DISTINCT
     vmp.id as vmp_id,
     mv.vmp_type
 FROM viewer_vmp vmp
 LEFT JOIN measure_vmps mv ON mv.id = vmp.id
-LEFT JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
 LEFT JOIN viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
 LEFT JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
+LEFT JOIN viewer_vmpingredientstrength vis ON vis.vmp_id = vmp.id
+LEFT JOIN viewer_ingredient ing ON ing.id = vis.ingredient_id
 WHERE
-    ofr.name LIKE '%.oral'
+    ofr.name LIKE '%.oral' -- only include oral products in the measure
+    AND 
+    (
+        (
+            ing.name ILIKE 'Morphine%'
+            OR
+            ing.name ILIKE 'Oxycodone%'
+        ) -- only include products with morphine or oxycodone as an ingredient
     AND
-    vtm.vtm IN (
-        '773372004', -- VTM code for morphine
-        '777027001' -- VTM code for oxycodone
+        ( 
+            CASE
+                WHEN vis.strnt_nmrtr_uom_name = 'micrograms' THEN vis.strnt_nmrtr_val / 1000 -- convert micrograms to mg
+                WHEN vis.strnt_nmrtr_uom_name = 'gram'      THEN vis.strnt_nmrtr_val * 1000 -- convert gram to mg
+                ELSE vis.strnt_nmrtr_val
+            END
+            * CASE
+                WHEN vis.strnt_dnmtr_val IS NOT NULL THEN 5 / vis.strnt_dnmtr_val -- for liquids give as mg per 5ml dose
+                ELSE 1
+            END
+        ) <= 10 -- only include products 10mg or less per dose
     )
