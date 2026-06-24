@@ -1,14 +1,9 @@
 <script>
     import { onMount } from 'svelte';
-    import * as Highcharts from 'highcharts';
+    import Highcharts from 'highcharts';
     import { Chart } from '@highcharts/svelte';
-    import Accessibility from 'highcharts/modules/accessibility';
+    import 'highcharts/modules/accessibility';
     import { organisationSearchStore } from '../../stores/organisationSearchStore.js';
-
-    const accessibilityInitialiser = Accessibility?.default ?? Accessibility;
-    if (typeof accessibilityInitialiser === 'function') {
-        accessibilityInitialiser(Highcharts);
-    }
 
     export let org;
     export let latestDates;
