@@ -18,15 +18,16 @@ FROM viewer_vmp vmp
 LEFT JOIN measure_vmps mv ON mv.id = vmp.id
 LEFT JOIN viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
 LEFT JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
-LEFT JOIN viewer_vmpingredientstrength vis ON CAST(vis.vmp AS STRING) = vmp.id
+LEFT JOIN viewer_vmpingredientstrength vis ON vis.vmp_id = vmp.id
+LEFT JOIN viewer_ingredient ing ON ing.id = vis.ingredient_id
 WHERE
     ofr.name LIKE '%.oral' -- only include oral products in the measure
     AND 
     (
         (
-            vis.basis_of_strength_name LIKE 'Morphine%'
+            ing.name ILIKE 'Morphine%'
             OR
-            vis.basis_of_strength_name LIKE 'Oxycodone%'
+            ing.name ILIKE 'Oxycodone%'
         ) -- only include products with morphine or oxycodone as an ingredient
     AND
         ( 
