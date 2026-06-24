@@ -2,33 +2,18 @@
   import { createEventDispatcher } from 'svelte';
   import { onMount } from 'svelte';
 
-  import * as Highcharts from 'highcharts';
-  import HCMore from 'highcharts/highcharts-more';
-  import Exporting from 'highcharts/modules/exporting';
-  import ExportData from 'highcharts/modules/export-data';
-  import OfflineExporting from 'highcharts/modules/offline-exporting';
-  import Accessibility from 'highcharts/modules/accessibility';
-  import Boost from 'highcharts/modules/boost';
-  import Annotations from 'highcharts/modules/annotations';
+  import Highcharts from 'highcharts';
+  import 'highcharts/highcharts-more';
+  import 'highcharts/modules/exporting';
+  import 'highcharts/modules/export-data';
+  import 'highcharts/modules/offline-exporting';
+  import 'highcharts/modules/accessibility';
+  import 'highcharts/modules/boost';
+  import 'highcharts/modules/annotations';
   import { Chart} from '@highcharts/svelte';
   import { chartStore } from '../../stores/chartStore.js';
   import { exportAnalysisDataToCSV } from '../../utils/csvExport.js';
   import Modal from './Modal.svelte';
-
-  const initHighchartsModule = (moduleFactory) => {
-    const initialiser = moduleFactory?.default ?? moduleFactory;
-    if (typeof initialiser === 'function') {
-      initialiser(Highcharts);
-    }
-  };
-
-  initHighchartsModule(HCMore);
-  initHighchartsModule(Exporting);
-  initHighchartsModule(ExportData);
-  initHighchartsModule(OfflineExporting);
-  initHighchartsModule(Accessibility);
-  initHighchartsModule(Boost);
-  initHighchartsModule(Annotations);
 
   const dispatch = createEventDispatcher();
 
