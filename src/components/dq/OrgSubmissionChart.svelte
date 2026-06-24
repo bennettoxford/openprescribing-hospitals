@@ -1,8 +1,7 @@
 <script>
     import { onMount } from 'svelte';
-    import Highcharts from 'highcharts';
+    import Highcharts from '../../utils/highchartsInit.js';
     import { Chart } from '@highcharts/svelte';
-    import 'highcharts/modules/accessibility';
     import { organisationSearchStore } from '../../stores/organisationSearchStore.js';
 
     export let org;

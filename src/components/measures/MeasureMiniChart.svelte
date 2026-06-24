@@ -14,8 +14,7 @@
 
 <script>
   import { onDestroy } from 'svelte';
-  import Highcharts from 'highcharts';
-  import 'highcharts/highcharts-more';
+  import Highcharts from '../../utils/highchartsInit.js';
   import { regionColors, chartConfig, TRUST_OVERLAY_COLOR } from '../../utils/chartConfig.js';
   import { getChartForSlug, isLoadingCharts } from '../../stores/measuresListStore.js';
 

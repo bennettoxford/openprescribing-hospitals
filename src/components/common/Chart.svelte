@@ -2,14 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import { onMount } from 'svelte';
 
-  import Highcharts from 'highcharts';
-  import 'highcharts/highcharts-more';
-  import 'highcharts/modules/exporting';
-  import 'highcharts/modules/export-data';
-  import 'highcharts/modules/offline-exporting';
-  import 'highcharts/modules/accessibility';
-  import 'highcharts/modules/boost';
-  import 'highcharts/modules/annotations';
+  import Highcharts from '../../utils/highchartsInit.js';
   import { Chart} from '@highcharts/svelte';
   import { chartStore } from '../../stores/chartStore.js';
   import { exportAnalysisDataToCSV } from '../../utils/csvExport.js';
