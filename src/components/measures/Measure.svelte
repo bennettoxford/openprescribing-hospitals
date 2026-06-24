@@ -7,6 +7,7 @@
         nationaldata: { type: 'String', reflect: true },
         percentiledata: { type: 'String', reflect: true },
         quantitytype: { type: 'String', reflect: true },
+        yaxislabel: { type: 'String', reflect: true },
         hasdenominators: { type: 'String', reflect: true },
         chartkind: { type: 'String', reflect: true },
         denominatorvmps: { type: 'String', reflect: true },
@@ -50,6 +51,7 @@
     export let nationaldata = '[]';
     export let percentiledata = '[]';
     export let quantitytype = 'dose';
+    export let yaxislabel = '';
     export let hasdenominators = 'true';
     export let chartkind = 'absolute';
     export let denominatorvmps = '[]';
@@ -256,8 +258,10 @@
 
     $: effectiveChartKind = chartkind !== 'absolute' ? chartkind : (hasdenominators === 'true' ? 'percentage' : 'absolute');
     $: shouldShowNumeratorDenominator = hasdenominators === 'true';
-
-    $: yAxisLabel = getYAxisLabel(quantitytype, effectiveChartKind, uniqueUnits);
+    $: yAxisLabel =
+        yaxislabel && String(yaxislabel).trim()
+            ? String(yaxislabel).trim()
+            : getYAxisLabel(quantitytype, effectiveChartKind, uniqueUnits);
     $: yAxisTickFormatter = getYAxisTickFormatter(quantitytype, effectiveChartKind);
     $: yAxisLimits = getYAxisLimits(effectiveChartKind, $filteredData);
     

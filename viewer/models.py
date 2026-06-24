@@ -575,6 +575,12 @@ class Measure(models.Model):
         blank=True,
         help_text="External denominator for rate measures",
     )
+    y_axis_label = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Optional override for chart y-axis label; when unset, the label is derived from quantity type and products",
+    )
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
