@@ -7,24 +7,11 @@ import Accessibility from 'highcharts/modules/accessibility';
 import Boost from 'highcharts/modules/boost';
 import Annotations from 'highcharts/modules/annotations';
 
-const initializeModule = (moduleFactory) => {
-  const initializer = typeof moduleFactory === 'function'
-    ? moduleFactory
-    : moduleFactory?.default;
-
-  if (typeof initializer === 'function') {
-    initializer(Highcharts);
+for (const module of [HighchartsMore, Exporting, ExportData, OfflineExporting, Accessibility, Boost, Annotations]) {
+  const initialise = module?.default ?? module;
+  if (typeof initialise === 'function') {
+    initialise(Highcharts);
   }
-};
-
-[
-  HighchartsMore,
-  Exporting,
-  ExportData,
-  OfflineExporting,
-  Accessibility,
-  Boost,
-  Annotations
-].forEach(initializeModule);
+}
 
 export default Highcharts;

@@ -30,21 +30,6 @@ export default defineConfig({
         'chart': "./src/components/common/Chart.svelte",
         'product-details': "./src/components/dq/ProductDetails.svelte",
       },
-      output: {
-        manualChunks: {
-          'highcharts': ['highcharts'],
-          'highcharts-modules': [
-            'highcharts/modules/stock',
-            'highcharts/highcharts-more',
-            'highcharts/modules/accessibility',
-            'highcharts/modules/exporting',
-            'highcharts/modules/export-data',
-            'highcharts/modules/offline-exporting',
-            'highcharts/modules/boost',
-            'highcharts/modules/annotations'
-          ]
-        }
-      },
     },
   },
   optimizeDeps: {
