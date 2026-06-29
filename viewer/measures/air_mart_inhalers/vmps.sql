@@ -2,13 +2,13 @@ SELECT DISTINCT
     vmp.id as vmp_id,
     CASE 
         WHEN  
-            vmp.id NOT IN (
-                26148711000001101, -- Beclometasone 100micrograms-dose Formoterol 6micrograms-dose dry powder inhaler
-                12911011000001100, -- Beclometasone 100micrograms-dose  Formoterol 6micrograms-dose inhaler CFC free
-                39133611000001108, -- Budesonide 100micrograms-dose Formoterol 3micrograms-dose inhaler CFC free
-                35912011000001109, -- Budesonide 100micrograms-dose Formoterol 6micrograms-dose dry powder inhaler
-                38896811000001103, -- Budesonide 200micrograms-dose Formoterol 6micrograms-dose dry powder inhaler
-                32960711000001105 -- Budesonide 200micrograms-dose Formoterol 6micrograms-dose inhaler CFC free
+            vmp.code NOT IN (
+                '26148711000001101', -- Beclometasone 100micrograms-dose Formoterol 6micrograms-dose dry powder inhaler
+                '12911011000001100', -- Beclometasone 100micrograms-dose  Formoterol 6micrograms-dose inhaler CFC free
+                '39133611000001108', -- Budesonide 100micrograms-dose Formoterol 3micrograms-dose inhaler CFC free
+                '35912011000001109', -- Budesonide 100micrograms-dose Formoterol 6micrograms-dose dry powder inhaler
+                '38896811000001103', -- Budesonide 200micrograms-dose Formoterol 6micrograms-dose dry powder inhaler
+                '32960711000001105' -- Budesonide 200micrograms-dose Formoterol 6micrograms-dose inhaler CFC free
             ) -- exclude VMPs which have products licensed for AIR or MART thearpy
         THEN 'numerator'
         ELSE 'denominator'
