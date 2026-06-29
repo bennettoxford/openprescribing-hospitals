@@ -12,7 +12,7 @@ how_is_it_calculated: >
     We divide the number of doses of inhalers not licensed for MART/AIR therapy by the total number of corticosteroid containing inhaler doses (excluding triple therapy inhalers, as they are more commonly used in COPD) and then multiply that by 100 to obtain the % each month.
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
-    - Greener NHS
+    - Respiratory
 quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
 y_axis_label: '% inhaler unit doses not licensed for MART/AIR therapy'
 lower_is_better: true

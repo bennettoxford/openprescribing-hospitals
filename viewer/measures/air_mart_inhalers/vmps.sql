@@ -2,7 +2,7 @@ SELECT DISTINCT
     vmp.id as vmp_id,
     CASE 
         WHEN  
-            vmp.id NOT IN (
+            vmp.code NOT IN (
                 '26148711000001101', -- Beclometasone 100micrograms-dose Formoterol 6micrograms-dose dry powder inhaler
                 '12911011000001100', -- Beclometasone 100micrograms-dose  Formoterol 6micrograms-dose inhaler CFC free
                 '39133611000001108', -- Budesonide 100micrograms-dose Formoterol 3micrograms-dose inhaler CFC free
