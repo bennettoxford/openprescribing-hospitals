@@ -4,9 +4,6 @@ description: Percentage of corticosteroid containing inhaler doses that are for 
 why_it_matters: |
     The [BTS/NICE/SIGN guidance](https://www.nice.org.uk/guidance/ng245/2024) published in November 2024 made significant changes to recommendations for asthma management. 
     For the majority of patients, [it recommends](https://www.nice.org.uk/guidance/ng245/chapter/Recommendations#principles-of-pharmacological-treatment) use of a combined ICS and formoterol under an AIR (as-needed ICS/formoterol) or MART (maintenance and reliever therapy) regimen.  
-
-    This measure tracks prescribing of corticosteroid containing inhalers that are not licensed for AIR/MART, as a proportion of all corticosteroid containing inhaler doses issued. 
-    A lower value indicates a greater proportion of prescribing consistent with the updated guideline recommendation.
 how_is_it_calculated: >
     We divide the number of doses of corticosteroid containing inhalers not licensed for MART/AIR therapy by the total number of corticosteroid containing inhaler doses and then multiply that by 100 to obtain the % each month. We exclude triple therapy inhalers, as they are more commonly used in COPD.
 tags:
