@@ -2,12 +2,12 @@ name: Prolonged-release opioids # Full name of the measure/indicator
 short_name: Prolonged-release opioids # Abbreviated name or acronym
 description: Percentage of oral prolonged-release oxycodone and morphine up to 10mg Defined Daily Doses of oral oxycodone and morphine up to 10mg Defined Daily Doses # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |  
-    The MHRA has [issued a safety alert](https://www.gov.uk/drug-safety-update/prolonged-release-opioids-removal-of-indication-for-relief-of-post-operative-pain) advising healthcare professionals that prolonged-release opioids should not be used to treat acute pain after surgery. Following a safety review, the indication for post-operative pain has been removed from the licences of prolonged-release morphine and oxycodone.
+    The MHRA has [issued a drug safety update](https://www.gov.uk/drug-safety-update/prolonged-release-opioids-removal-of-indication-for-relief-of-post-operative-pain) advising healthcare professionals that prolonged-release opioids should not be used to treat acute pain after surgery. Following a safety review, the indication for post-operative pain has been removed from the licences of prolonged-release morphine and oxycodone.
 
     Post-operative pain is usually short-lived and should only require short-term pain management, best treated with immediate-release opioids. Evidence shows that using prolonged-release opioids after surgery increases the risk of continued opioid use beyond 90 days and the risk of opioid-induced ventilatory impairment.
 
 how_is_it_calculated: |
-    We divide the combined number of [Defined Daily Doses](https://hospitals.openprescribing.net/faq/#what-is-a-defined-daily-dose-ddd) of oral oxycodone and morphine prolonged-release up to 10mg by the total number of Defined Daily Doses of all oral oxycodone and morphine up to 10mg products and then multiply that by 100 to obtain a percentage each month. 
+    We divide the combined number of [Defined Daily Doses](https://hospitals.openprescribing.net/faq/#what-is-a-defined-daily-dose-ddd) of oral oxycodone and morphine prolonged-release up to 10mg by the total number of Defined Daily Doses of all oral oxycodone and morphine up to 10mg per unit dose products and then multiply that by 100 to obtain a percentage each month. 
 
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
@@ -22,3 +22,7 @@ first_published: 2026-05-26 # Date of first publication (YYYY-MM-DD)
 date_reviewed: 2026-05-26 # Date of last review (YYYY-MM-DD)
 next_review: 2027-05-26 # Date of next scheduled review (YYYY-MM-DD)
 status: preview # in_development, preview, published
+annotations:  # Optional data annotations - vertical lines with labels on charts
+    - date: 2025-03-12
+      label: "MHRA Drug Safety Update: Prolonged-release opioids - removal of indication for relief of post-operative pain"
+      colour: "#0090C1"
