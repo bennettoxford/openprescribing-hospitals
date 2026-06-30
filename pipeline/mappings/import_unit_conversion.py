@@ -151,7 +151,7 @@ def create_units_dict() -> Dict:
             "basis": "vector genome",
             "conversion_factor": 1000000000,
             "id": "10697811000001107",
-            "basis_id": "10696211000001109",
+            "basis_id": "1388150000",
         },
         "glove": {
             "basis": "glove",
@@ -490,8 +490,8 @@ def create_units_dict() -> Dict:
         "tera vector genome": {
             "basis": "vector genome",
             "conversion_factor": 1000000000000,
-            "id": "10696711000001102",
-            "basis_id": "10696211000001109",
+            "id": "1495251000168101",
+            "basis_id": "1388150000",
         },
         "truss": {
             "basis": "truss",
