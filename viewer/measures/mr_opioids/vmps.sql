@@ -17,6 +17,7 @@ SELECT DISTINCT
 FROM viewer_vmp vmp
 LEFT JOIN measure_vmps mv ON mv.id = vmp.id
 LEFT JOIN viewer_vmp_atcs vmp_atcs ON vmp_atcs.vmp_id = vmp.id
+LEFT JOIN viewer_atc atc ON atc.id = vmp_atcs.atc_id
 LEFT JOIN viewer_vmp_ont_form_routes vofr ON vofr.vmp_id = vmp.id
 LEFT JOIN viewer_ontformroute ofr ON ofr.id = vofr.ontformroute_id
 LEFT JOIN viewer_vmpingredientstrength vis ON vis.vmp_id = vmp.id
@@ -24,7 +25,7 @@ LEFT JOIN viewer_ingredient ing ON ing.id = vis.ingredient_id
 WHERE
     ofr.name LIKE '%.oral' -- only include oral products in the measure
     AND 
-    vmp_atcs.atc_id LIKE 'N02%' -- only include products with ATC code N02 (opioids for analgesia)
+    atc.code LIKE 'N02%' -- only include products with ATC code N02 (opioids for analgesia)
     AND 
     (
         (
