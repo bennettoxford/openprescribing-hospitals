@@ -14,15 +14,9 @@
 
 <script>
   import { onDestroy } from 'svelte';
-  import * as Highcharts from 'highcharts';
-  import HCMore from 'highcharts/highcharts-more';
+  import Highcharts from '../../utils/highchartsInit.js';
   import { regionColors, chartConfig, TRUST_OVERLAY_COLOR } from '../../utils/chartConfig.js';
   import { getChartForSlug, isLoadingCharts } from '../../stores/measuresListStore.js';
-
-  const highchartsMoreInitialiser = HCMore?.default ?? HCMore;
-  if (typeof highchartsMoreInitialiser === 'function') {
-    highchartsMoreInitialiser(Highcharts);
-  }
 
   export let chartdata = '{}';
   export let mode = 'national';

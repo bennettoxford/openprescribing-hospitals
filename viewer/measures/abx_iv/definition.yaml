@@ -28,6 +28,7 @@ tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Antimicrobial stewardship
 quantity_type: ddd # Type of measurement (e.g. dose, ingredient, ddd)
+y_axis_label: '% IV antibiotics'
 lower_is_better: true
 authored_by: Chris Wood # Name of original author
 checked_by: Victoria Speed # Name of clinical/technical reviewer
