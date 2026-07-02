@@ -14,4 +14,8 @@ for (const module of [HighchartsMore, Exporting, ExportData, OfflineExporting, A
   }
 }
 
+Highcharts.setOptions({
+  colorScheme: 'light'
+});
+
 export default Highcharts;
