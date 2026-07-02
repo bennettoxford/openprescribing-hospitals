@@ -68,7 +68,7 @@
                 spacingBottom: 0,
                 spacingTop: 10,
                 marginTop: 30,
-                animation: false
+                animation: false,
             },
             accessibility: {
                 enabled: true,
@@ -86,21 +86,43 @@
             },
             xAxis: {
                 type: 'datetime',
+                lineColor: '#d1d5db',
+                tickColor: '#9ca3af',
+                gridLineWidth: 0,
                 labels: {
                     format: '{value:%b %Y}',
-                    style: { fontSize: '12px' }
+                    style: {
+                        fontSize: '12px',
+                        color: '#6b7280'
+                    }
                 }
             },
             yAxis: {
-                title: { text: 'Unique Products' },
+                title: {
+                    text: 'Unique Products',
+                    style: {
+                        color: '#6b7280'
+                    }
+                },
                 min: 0,
                 max: maxVmpCount * 1.1,
-                labels: { style: { fontSize: '12px' } },
+                labels: {
+                    style: {
+                        fontSize: '12px',
+                        color: '#6b7280'
+                    }
+                },
                 endOnTick: false,
-                gridLineWidth: 1
+                gridLineWidth: 1,
+                gridLineColor: '#e5e7eb'
             },
             tooltip: {
                 useHTML: true,
+                backgroundColor: '#ffffff',
+                borderColor: '#d1d5db',
+                style: {
+                    color: '#111827'
+                },
                 formatter: function() {
                     const point = this.point;
                     const isProvisional = finalDate && new Date(point.date) >= finalDate;
@@ -121,6 +143,9 @@
                         <div class="tooltip-row">Products: ${point.y}</div>
                     `;
                 }
+            },
+            exporting: {
+                enabled: false
             },
             responsive: {
                 rules: [{
@@ -223,7 +248,7 @@
 
 <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
     {#if chartInitialized && org?.data && months?.length}
-        <Chart options={getChartOptions(org)} />
+        <Chart options={getChartOptions(org)} highcharts={Highcharts} />
         
         {#if org.predecessors?.length}
             <button 
@@ -245,7 +270,7 @@
                 {#each org.predecessors as predecessor}
                     {#if predecessor?.data}
                         <div class="ml-6 mt-4">
-                            <Chart options={getChartOptions(predecessor)} />
+                            <Chart options={getChartOptions(predecessor)} highcharts={Highcharts} />
                         </div>
                     {/if}
                 {/each}

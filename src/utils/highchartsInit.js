@@ -15,7 +15,11 @@ for (const module of [HighchartsMore, Exporting, ExportData, OfflineExporting, A
 }
 
 Highcharts.setOptions({
-  colorScheme: 'light'
+  colorScheme: 'light',
+  chart: {
+    backgroundColor: '#ffffff',
+    plotBackgroundColor: '#ffffff'
+  }
 });
 
 export default Highcharts;
