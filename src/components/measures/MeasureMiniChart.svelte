@@ -118,7 +118,8 @@
         height: 280,
         margin: [10, 10, 45, 40],
         spacing: [0, 0, 0, 0],
-        backgroundColor: 'transparent'
+        backgroundColor: '#ffffff',
+        plotBackgroundColor: '#ffffff'
       },
       title: { text: null },
       credits: { enabled: false },

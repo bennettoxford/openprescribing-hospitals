@@ -235,6 +235,8 @@
     chart: {
       type: 'line',
       height: 600,
+      backgroundColor: '#ffffff',
+      plotBackgroundColor: '#ffffff',
       zoomType: 'xy',
       panning: true,
       panKey: 'shift',
@@ -333,9 +335,16 @@
       itemStyle: {
         fontSize: '14px',
         fontWeight: 'normal',
+        color: '#1f2937',
         cursor: 'pointer',
         textOverflow: 'ellipsis',
         width: '180px'
+      },
+      itemHoverStyle: {
+        color: '#111827'
+      },
+      itemHiddenStyle: {
+        color: '#94a3b8'
       },
       useHTML: true,
       backgroundColor: '#ffffff',
@@ -380,13 +389,19 @@
       type: 'datetime',
       minRange: 30 * 24 * 3600 * 1000,
       tickPixelInterval: 100,
+      title: {
+        style: {
+          color: '#4b5563'
+        }
+      },
       labels: {
         style: {
-          fontSize: '14px'
+          fontSize: '14px',
+          color: '#4b5563'
         }
       },
       gridLineWidth: 1,
-      gridLineColor: '#e0e0e0'
+      gridLineColor: '#e5e7eb'
     },
     yAxis: {
       min: 0,
@@ -397,12 +412,14 @@
       title: {
         text: config.yAxisLabel || yAxisLabel,
         style: {
-          fontSize: '16px'
+          fontSize: '16px',
+          color: '#4b5563'
         }
       },
       labels: {
         style: {
-          fontSize: '14px'
+          fontSize: '14px',
+          color: '#4b5563'
         },
         formatter: function() {
           if (config.yAxisTickFormat) {
@@ -421,11 +438,16 @@
         }
       },
       gridLineWidth: 1,
-      gridLineColor: '#e0e0e0'
+      gridLineColor: '#e5e7eb'
     },
     tooltip: {
       shared: false,
       useHTML: true,
+      backgroundColor: '#ffffff',
+      borderColor: '#d1d5db',
+      style: {
+        color: '#111827'
+      },
       snap: 10,
       distance: 20,
       hideDelay: 0,
@@ -600,6 +622,23 @@
       filename: 'openprescribing-hospitals-chart',
       buttons: {
         contextButton: {
+          symbolStroke: '#374151',
+          symbolFill: '#374151',
+          theme: {
+            fill: '#ffffff',
+            stroke: 'transparent',
+            r: 4,
+            states: {
+              hover: {
+                fill: '#f3f4f6',
+                stroke: 'transparent'
+              },
+              select: {
+                fill: '#e5e7eb',
+                stroke: 'transparent'
+              }
+            }
+          },
           menuItems: exportMenuItems
         }
       },
