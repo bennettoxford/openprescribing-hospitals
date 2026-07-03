@@ -42,6 +42,6 @@ AND LOWER(TRIM(vmp.unit_dose_uom)) IN (
     'bottle',
     'ampoule',
     'pre-filled syringe',
-    'pre-filled disposable injection'
+    'pre-filled disposable injection',
     'prefilled syringe'
 );
