@@ -10,7 +10,7 @@ tags:
     - Low value prescribing
     - Safety
     - Value
-quantity_type: indicative cost # Type of measurement (e.g. dose, ingredient, ddd)
+quantity_type: indicative_cost # Type of measurement (e.g. dose, ingredient, ddd)
 lower_is_better: true
 authored_by: Victoria Speed # Name of original author
 checked_by: tbc # Name of clinical/technical reviewer
