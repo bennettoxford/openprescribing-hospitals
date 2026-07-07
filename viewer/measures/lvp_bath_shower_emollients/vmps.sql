@@ -1,7 +1,5 @@
 SELECT DISTINCT
     vmp.id as vmp_id,
-    vmp.name,
-    vmp.bnf_code,
     'numerator' as vmp_type -- this measure has no denominator
 FROM viewer_vmp vmp
 WHERE 
