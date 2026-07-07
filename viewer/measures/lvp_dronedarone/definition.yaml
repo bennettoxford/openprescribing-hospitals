@@ -1,0 +1,18 @@
+name: Low value prescribing - dronedarone # Full name of the measure/indicator
+short_name: Low value prescribing - dronedarone # Abbreviated name or acronym
+description: Total number of Defined Daily Doses of dronedarone issued. # Brief 1-2 sentence description of what this measure identifies
+why_it_matters: |
+    [NHS England guidance](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/) identifies a number of items which provide low value when prescribed. This guidance has mainly been aimed at primary care but we think it is important to also monitor a selection of these in hospitals - read more about why [in our blog](https://www.bennett.ox.ac.uk/blog/2025/04/low-value-medicines-in-openprescribing-hospitals/).
+tags:
+    # List relevant categories (e.g. Safety, Prescribing, Monitoring)
+    - Low value prescribing
+    - Safety
+    - Value
+quantity_type: ddd # Type of measurement (e.g. dose, ingredient, ddd)
+lower_is_better: true
+authored_by: Victoria Speed # Name of original author
+checked_by: tbc # Name of clinical/technical reviewer
+first_published: 2026-07-07
+date_reviewed: 2026-07-07 # Date of last review (YYYY-MM-DD)
+next_review: 2026-07-07 # Date of next scheduled review (YYYY-MM-DD)
+status: in_development
