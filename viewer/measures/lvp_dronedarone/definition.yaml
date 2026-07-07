@@ -3,6 +3,20 @@ short_name: Low value prescribing - dronedarone # Abbreviated name or acronym
 description: Total indicative cost for dronedarone. # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |
     [NHS England guidance](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/) identifies a number of items which provide low value when prescribed. This guidance has mainly been aimed at primary care but we think it is important to also monitor a selection of these in hospitals - read more about why [in our blog](https://www.bennett.ox.ac.uk/blog/2025/04/low-value-medicines-in-openprescribing-hospitals/).
+    Recommendations (1)
+    [NHS England guidance](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/#dronedarone-2019)states
+    Must be initiated by a specialist and only continued under a shared care arrangement for patients where other treatments cannot be used, have failed or is in line with [NICE guidance on atrial fibrillation](https://www.nice.org.uk/guidance/ng196/chapter/Recommendations#rhythm-control).
+
+   NHS England recommend that GPs:
+
+    - Do not initiate.
+    - Deprescribe in patients currently prescribed this medicine.
+    - Prescribe only if no other item or intervention is clinically appropriate.
+    - Prescribe only if no other item or intervention is available.
+    - Prescribe only if for a named indication in this guidance.
+   
+    For guidance on when prescribing may be appropriate in some exceptional circumstances, please see the [full NHS England guidance document](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/#items-where-prescribing-may-be-appropriate-in-some-exceptional-circumstances).
+
 how_is_it_calculated: >
     We display the indicative spend for dronedarone. You can read more about indicative cost in our [FAQs](https://hospitals.openprescribing.net/faq/#what-is-indicative-cost) 
 tags:
