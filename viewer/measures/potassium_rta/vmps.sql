@@ -19,21 +19,36 @@ AND EXISTS (
     FROM viewer_vmpingredientstrength vis
     INNER JOIN viewer_ingredient ing ON ing.id = vis.ingredient_id
     WHERE vis.vmp_id = vmp.id
-      AND (
-          LOWER(ing.name) LIKE '%potassium chloride%'
-          OR LOWER(ing.name) LIKE '%potassium dihydrogen phosphate%'
-      )
       AND vis.strnt_dnmtr_val = 1
       AND vis.strnt_dnmtr_uom_name = 'ml'
       AND (
-          (
-              vis.strnt_nmrtr_uom_name = 'gram'
-              AND vis.strnt_nmrtr_val >= 0.002
-          )
-          OR (
-              vis.strnt_nmrtr_uom_name IN ('mg', 'milligram')
-              AND vis.strnt_nmrtr_val > 2
-          )
+            (
+                LOWER(ing.name) LIKE '%potassium chloride%'
+                AND (
+                    (
+                        vis.strnt_nmrtr_uom_name = 'gram'
+                        AND vis.strnt_nmrtr_val >= 0.002982
+                    )
+                    OR (
+                        vis.strnt_nmrtr_uom_name IN ('mg', 'milligram')
+                        AND vis.strnt_nmrtr_val >= 2.982
+                    )
+                )
+            )
+            OR
+            (
+                LOWER(ing.name) LIKE '%potassium dihydrogen phosphate%'
+                AND (
+                    (
+                        vis.strnt_nmrtr_uom_name = 'gram'
+                        AND vis.strnt_nmrtr_val >= 0.005444
+                    )
+                    OR (
+                        vis.strnt_nmrtr_uom_name IN ('mg', 'milligram')
+                        AND vis.strnt_nmrtr_val >= 5.444
+                    )
+                )
+            )
       )
 )
 AND LOWER(TRIM(vmp.unit_dose_uom)) IN (
