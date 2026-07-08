@@ -1,0 +1,21 @@
+name: Uptake of pembrolizumab subcutaneous # Full name of the measure/indicator
+short_name: Uptake of pembrolizumab subcutaneous # Abbreviated name or acronym
+description: The percentage of pembrolizumab that is issued as the subcutaneous formulation. # Brief 1-2 sentence description of what this measure identifies
+why_it_matters: |
+    [Pembrolizumab](https://www.macmillan.org.uk/cancer-information-and-support/treatments-and-drugs/pembrolizumab) can be used in the treatment of a range of cancer types. If given intravenously the infusions can take up to 2 hours in total per session. This uses a lot of nursing time and most importantly the patients time. In May 2026 a new formulation of pembrolizumab designed to be administered as a subcutaneous injection in a fraction of the time received approval for use in the UK. NHS England [announced](https://www.england.nhs.uk/2026/05/1-minute-immunotherapy-jab-rolled-out-on-nhs-for-tens-of-thousands-with-cancer/) in May 2026 that it would be supporting the introduction of subcutaneous pembrolizumab. Around 14,000 patients start pembrolizumab therapy each year in England, and most are now expected to benefit from the more convenient treatment although Patients receiving the drug alongside other intravenous treatments may continue with an infusion where clinically appropriate.
+
+how_is_it_calculated: |
+    We divide the number of products issued of the pembrolizumab subcutaneous formulation by the total number of products issued of pembrolizumab. We then multiply that by 100 to obtain the % each month.
+
+tags:
+    # List relevant categories (e.g. Safety, Prescribing, Monitoring)
+    - Efficiency
+quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
+y_axis_label: '% subcutaneous pembrolizumab'
+lower_is_better: false
+authored_by: Victoria Speed # Name of original author
+checked_by: tbc # Name of clinical/technical reviewer
+first_published: 2026-07-08 # Date of first publication (YYYY-MM-DD)
+date_reviewed: 2026-07-08 # Date of last review (YYYY-MM-DD)
+next_review: 2027-07-08 # Date of next scheduled review (YYYY-MM-DD)
+status: in-development
