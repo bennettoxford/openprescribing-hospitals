@@ -1,0 +1,21 @@
+name: Intravenous heparin per 1000 admissions # Full name of the measure/indicator
+short_name: IV heparin per 1000 admissions  # Abbreviated name or acronym
+description: Rate of intravenous heparin issuing per 1000 admissions # Brief 1-2 sentence description of what this measure identifies
+why_it_matters: |
+    hold  
+
+how_is_it_calculated: |
+     hold
+
+tags:
+    # List relevant categories (e.g. Safety, Prescribing, Monitoring)
+    - Safety
+quantity_type: ddd # Type of measurement (e.g. dose, ingredient, ddd)
+lower_is_better: true
+denominator: 1000_admissions # SQL (default) = Defined in SQL, None = No denominator, 1000_admissions = Number of admissions divided by 1000
+authored_by: Victoria Speed # Name of original author
+checked_by: TBC # Name of clinical/technical reviewer
+date_reviewed: 2026-07-11 # Date of last review (YYYY-MM-DD)
+next_review: 2027-07-11 # Date of next scheduled review (YYYY-MM-DD)
+first_published: 2026-07-11 # Date of first publication (YYYY-MM-DD)
+status: in_development # in_development, preview, published, archived
