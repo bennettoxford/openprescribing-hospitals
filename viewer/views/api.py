@@ -365,7 +365,7 @@ def get_quantity_data(request):
             ingredient_names=ArrayAgg('ingredients__name', distinct=True),
             ingredient_codes=ArrayAgg('ingredients__code', distinct=True)
         ).values(
-            'id', 'code', 'name', 'vtm__name',
+            'id', 'code', 'name', 'vtm__name', 'vtm__vtm',
             'ingredient_names', 'ingredient_codes'
         ))
 
@@ -377,6 +377,7 @@ def get_quantity_data(request):
             base_metadata = {
                 'vmp__code': vmp['code'],
                 'vmp__name': vmp['name'],
+                'vmp__vtm__vtm': vmp['vtm__vtm'],
                 'vmp__vtm__name': vmp['vtm__name'],
                 'ingredient_names': ingredient_names,
                 'ingredient_codes': ingredient_codes
@@ -451,6 +452,7 @@ def get_quantity_data(request):
                 response_item = {
                     'vmp__code': base_metadata['vmp__code'] if base_metadata else item.vmp.code,
                     'vmp__name': base_metadata['vmp__name'] if base_metadata else item.vmp.name,
+                    'vmp__vtm__vtm': base_metadata['vmp__vtm__vtm'] if base_metadata else (item.vmp.vtm.vtm if item.vmp.vtm else None),
                     'vmp__vtm__name': base_metadata['vmp__vtm__name'] if base_metadata else (item.vmp.vtm.name if item.vmp.vtm else None),
                     'ingredient_names': ingredient_names,
                     'ingredient_codes': ingredient_codes,
