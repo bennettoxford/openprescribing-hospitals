@@ -25,7 +25,7 @@
     "highcharts": "^13.0.0",
     "jszip": "^3.10.1",
     "pluralize": "^8.0.0",
-    "postcss-nesting": "^13.0.0",
+    "postcss-nesting": "^14.0.0",
     "postcss-preset-env": "^10.0.2"
   }
 }
