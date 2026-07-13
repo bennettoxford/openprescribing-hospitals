@@ -81,6 +81,7 @@ export function convertToCSV(data, excludedVmps = [], selectedTrusts = null, mon
         'Date',
         'VMP Code',
         'VMP Name',
+        'VTM Code',
         'VTM Name',
         'Trust Code',
         'Trust Name',
@@ -96,6 +97,7 @@ export function convertToCSV(data, excludedVmps = [], selectedTrusts = null, mon
     filteredData.forEach(item => {
         const vmpCode = item.vmp__code || '';
         const vmpName = item.vmp__name || '';
+        const vtmCode = item.vmp__vtm__vtm || '';
         const vtmName = item.vmp__vtm__name || '';
         const trustCode = item.organisation__ods_code || '';
         const trustName = item.organisation__ods_name || '';
@@ -111,6 +113,7 @@ export function convertToCSV(data, excludedVmps = [], selectedTrusts = null, mon
                     date,
                     vmpCode,
                     `"${(vmpName || '').replace(/"/g, '""')}"`,
+                    vtmCode,
                     `"${(vtmName || '').replace(/"/g, '""')}"`,
                     trustCode,
                     `"${(trustName || '').replace(/"/g, '""')}"`,
