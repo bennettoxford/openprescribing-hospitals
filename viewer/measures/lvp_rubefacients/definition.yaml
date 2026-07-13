@@ -1,0 +1,35 @@
+name: Low value prescribing - rubefacients, benzydamine, mucopolysaccharide and cooling products # Full name of the measure/indicator
+short_name: Low value prescribing - rubefacients, benzydamine, mucopolysaccharide and cooling products # Abbreviated name or acronym
+description: Total indicative cost for rubefacients, benzydamine, mucopolysaccharide and cooling products # Brief 1-2 sentence description of what this measure identifies
+why_it_matters: |
+    [NHS England guidance](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/) identifies a number of items which provide low value when prescribed. This guidance has mainly been aimed at primary care but we think it is important to also monitor a selection of these in hospitals - read more about why [in our blog](https://www.bennett.ox.ac.uk/blog/2025/04/low-value-medicines-in-openprescribing-hospitals/).
+
+    [NHS England guidance states](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/#rubefacients-benzydamine-mucopolysaccharide-and-cooling-products-excluding-topical-nsaids-and-capsaicin-updated-2023):
+    > Rubefacients are topical preparations that cause irritation and reddening of the skin due to increased blood flow. They are believed to relieve pain in various musculoskeletal conditions and are available on prescription and in OTC remedies. They may contain nicotinate compounds, salicylate compounds, essential oils and camphor.
+    >  
+    > The BNF states: "The evidence available does not support the use of topical rubefacients in acute or chronic musculoskeletal pain".
+    >  
+    > NICE has issued the following ‘do not do’ recommendation: [Do not offer rubefacients for treating osteoarthritis](https://www.nice.org.uk/donotdo/do-not-offer-rubefacients-for-treating-osteoarthritis).
+    >
+    > Due to limited evidence and NICE recommendations, the joint clinical working group considered rubefacients (excluding topical NSAIDs) suitable for inclusion in this guidance.
+    > 
+    > Other miscellaneous topical analgesics containing benzydamine, mucopolysaccharide polysulphate or cooling ingredients fall under this category. Benzydamine and mucopolysaccharide are weak prostaglandin inhibitors and are therefore pharmacologically different from those routinely referred to as NSAIDs in current practice (such as ibuprofen and diclofenac), so it cannot be presumed that the clinical evidence relating to NSAIDs can be extrapolated to benzydamine or mucopolysaccharide polysulphate containing products (Rubefacients and miscellaneous topical analgesics, PrescQIPP, July 2021).
+    > 
+    > The Clinical Knowledge Summary on sprains and strains (NICE, 2020) does not specifically discuss cooling sprays and gels, but does suggest ice is used for self-management strategies in the first 48–72 hours after injury.
+    > 
+    > Due to limited evidence and the NICE recommendations, the joint clinical working group considered these additional products suitable for inclusion in this category.
+
+    For guidance on when prescribing may be appropriate in some exceptional circumstances, please see the [full NHS England guidance document](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/#items-where-prescribing-may-be-appropriate-in-some-exceptional-circumstances).
+how_is_it_calculated: >
+    We display the indicative spend for rubefacients, benzydamine, mucopolysaccharide and cooling products. You can read more about indicative cost in our [FAQs](https://hospitals.openprescribing.net/faq/#what-is-indicative-cost)
+tags:
+    # List relevant categories (e.g. Safety, Prescribing, Monitoring)
+    - Low value prescribing
+    - Value
+quantity_type: indicative_cost # Type of measurement (e.g. dose, ingredient, ddd)
+lower_is_better: true
+authored_by: Chris Wood # Name of original author
+checked_by: TBC # Name of clinical/technical reviewer
+date_reviewed: 2026-07-07 # Date of last review (YYYY-MM-DD)
+next_review: 2027-07-07 # Date of next scheduled review (YYYY-MM-DD)
+status: in_development
