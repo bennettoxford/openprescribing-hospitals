@@ -27,29 +27,48 @@ WHERE
     AND 
     atc.code LIKE 'N02%' -- only include products with ATC code N02 (opioids for analgesia)
     AND 
-    (
         (
-            LOWER(ing.name) LIKE 'morphine%'
-            OR
-            LOWER(ing.name) LIKE 'oxycodone%'
-        ) -- only include products with morphine or oxycodone as an ingredient
-    AND
-        ( 
-            CASE
-                WHEN LOWER(vis.strnt_nmrtr_uom_name) IN ('mcg', 'mcgs', 'microgram', 'micrograms')  THEN vis.strnt_nmrtr_val / 1000   -- convert micrograms to mg
-                WHEN LOWER(vis.strnt_nmrtr_uom_name) IN ('g', 'gs', 'gram', 'grams')                THEN vis.strnt_nmrtr_val * 1000   -- convert gram to mg
-                WHEN LOWER(vis.strnt_nmrtr_uom_name) IN ('mg', 'mgs', 'milligram', 'milligrams')    THEN vis.strnt_nmrtr_val
-                ELSE NULL
-            END
-            * CASE
-                WHEN vis.strnt_dnmtr_val IS NOT NULL THEN 
-                    5 / (
-                        CASE
-                            WHEN LOWER(vis.strnt_dnmtr_uom_name) IN ('l', 'ls', 'litre', 'litres') THEN vis.strnt_dnmtr_val * 1000
-                            ELSE vis.strnt_dnmtr_val -- assume already in ml
-                        END
-                    ) -- for liquids give as mg per 5ml dose
-                ELSE 1
-            END
-        ) <= 10 -- only include products 10mg or less per dose
-    )
+            (
+                LOWER(ing.name) LIKE 'morphine%' -- only include products with morphine or oxycodone as an ingredient
+                AND
+                ( 
+                    CASE
+                        WHEN LOWER(vis.strnt_nmrtr_uom_name) IN ('mcg', 'mcgs', 'microgram', 'micrograms')  THEN vis.strnt_nmrtr_val / 1000   -- convert micrograms to mg
+                        WHEN LOWER(vis.strnt_nmrtr_uom_name) IN ('g', 'gs', 'gram', 'grams')                THEN vis.strnt_nmrtr_val * 1000   -- convert gram to mg
+                        WHEN LOWER(vis.strnt_nmrtr_uom_name) IN ('mg', 'mgs', 'milligram', 'milligrams')    THEN vis.strnt_nmrtr_val
+                        ELSE NULL
+                    END
+                    * CASE
+                        WHEN vis.strnt_dnmtr_val IS NOT NULL THEN 
+                            5 / (
+                                CASE
+                                    WHEN LOWER(vis.strnt_dnmtr_uom_name) IN ('l', 'ls', 'litre', 'litres') THEN vis.strnt_dnmtr_val * 1000
+                                    ELSE vis.strnt_dnmtr_val -- assume already in ml
+                                END
+                            ) -- for liquids give as mg per 5ml dose
+                        ELSE 1
+                    END
+                ) <= 20 -- only include products 20mg or less per dose
+            ) OR (
+                LOWER(ing.name) LIKE 'oxycodone%' -- only include products with morphine or oxycodone as an ingredient
+                AND
+                ( 
+                    CASE
+                        WHEN LOWER(vis.strnt_nmrtr_uom_name) IN ('mcg', 'mcgs', 'microgram', 'micrograms')  THEN vis.strnt_nmrtr_val / 1000   -- convert micrograms to mg
+                        WHEN LOWER(vis.strnt_nmrtr_uom_name) IN ('g', 'gs', 'gram', 'grams')                THEN vis.strnt_nmrtr_val * 1000   -- convert gram to mg
+                        WHEN LOWER(vis.strnt_nmrtr_uom_name) IN ('mg', 'mgs', 'milligram', 'milligrams')    THEN vis.strnt_nmrtr_val
+                        ELSE NULL
+                    END
+                    * CASE
+                        WHEN vis.strnt_dnmtr_val IS NOT NULL THEN 
+                            5 / (
+                                CASE
+                                    WHEN LOWER(vis.strnt_dnmtr_uom_name) IN ('l', 'ls', 'litre', 'litres') THEN vis.strnt_dnmtr_val * 1000
+                                    ELSE vis.strnt_dnmtr_val -- assume already in ml
+                                END
+                            ) -- for liquids give as mg per 5ml dose
+                        ELSE 1
+                    END
+                ) <= 10 -- only include products 10mg or less per dose
+            )
+        )
