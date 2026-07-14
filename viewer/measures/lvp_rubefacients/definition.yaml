@@ -1,5 +1,5 @@
 name: Low value prescribing - rubefacients, benzydamine, mucopolysaccharide and cooling products # Full name of the measure/indicator
-short_name: Low value prescribing - rubefacients, benzydamine, mucopolysaccharide and cooling products # Abbreviated name or acronym
+short_name: Low value prescribing - rubefacients # Abbreviated name or acronym
 description: Total indicative cost for rubefacients, benzydamine, mucopolysaccharide and cooling products # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |
     [NHS England guidance](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/) identifies a number of items which provide low value when prescribed. This guidance has mainly been aimed at primary care but we think it is important to also monitor a selection of these in hospitals - read more about why [in our blog](https://www.bennett.ox.ac.uk/blog/2025/04/low-value-medicines-in-openprescribing-hospitals/).
@@ -9,7 +9,7 @@ why_it_matters: |
     >  
     > The BNF states: "The evidence available does not support the use of topical rubefacients in acute or chronic musculoskeletal pain".
     >  
-    > NICE has issued the following ‘do not do’ recommendation: [Do not offer rubefacients for treating osteoarthritis](https://www.nice.org.uk/donotdo/do-not-offer-rubefacients-for-treating-osteoarthritis).
+    > NICE has issued the following ‘do not do’ recommendation: Do not offer rubefacients for treating osteoarthritis.
     >
     > Due to limited evidence and NICE recommendations, the joint clinical working group considered rubefacients (excluding topical NSAIDs) suitable for inclusion in this guidance.
     > 
