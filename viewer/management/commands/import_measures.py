@@ -265,6 +265,14 @@ MEASURE_TAG_DEFINITIONS = {
     'Efficiency': {
         'description': 'This measure supports work to improve efficiency in hospitals.',
         'colour': '#FF9800'
+    },
+    'Cancer': {
+        'description': 'This measure focuses on medicines used for the treatment of cancer.',
+        'colour': '#3F51B5'
+    },
+    'Antithrombotic stewardship': {
+        'description': 'This measure supports work to promote antithrombotic stewardship in hospitals.',
+        'colour': '#795548'
     }
 }
 
