@@ -9,6 +9,9 @@ WHERE EXISTS (
         ON ing.id = vis.ingredient_id
     WHERE vis.vmp_id = vmp.id
       AND LOWER(ing.name) LIKE '%heparin sodium%'
-      AND vis.strnt_dnmtr_val = 1
-      AND vis.strnt_nmrtr_val = 1000
+      AND (
+            (vis.strnt_nmrtr_val = 1000  AND vis.strnt_dnmtr_val = 1)
+         OR (vis.strnt_nmrtr_val = 5000  AND vis.strnt_dnmtr_val = 1)
+         OR (vis.strnt_nmrtr_val = 25000 AND vis.strnt_dnmtr_val = 5)
+      )
 );
