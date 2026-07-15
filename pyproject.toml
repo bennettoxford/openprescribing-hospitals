@@ -16,7 +16,7 @@ dependencies = [
     "PyYAML>=6.0.2",
     "requests>=2.33.0",
     "schema>=0.7.7",
-    "tqdm>=4.68.3",
+    "tqdm>=4.68.4",
     "whitenoise>=6.6.0",
 ]
 
@@ -26,17 +26,17 @@ required-version = ">=0.9"
 [dependency-groups]
 pipeline = [
     "beautifulsoup4>=4.15.0",
-    "db-dtypes>=1.7.0",
-    "google-cloud-bigquery>=3.42.1",
+    "db-dtypes>=1.7.1",
+    "google-cloud-bigquery>=3.42.2",
     "google-cloud-bigquery-storage>=2.39.0",
     "google-cloud-secret-manager>=2.29.0",
-    "google-cloud-storage>=3.12.0",
+    "google-cloud-storage>=3.12.1",
     "Jinja2>=3.1.6",
     "numpy>=2.4.6",
     "openpyxl>=3.1.5",
     "pandas>=2.2.3",
     "pandas-gbq>=0.26.1",
-    "prefect>=3.7.6",
+    "prefect>=3.7.7",
     "prefect-gcp>=0.6.20",
     "pyarrow>=19.0.1",
     "requests>=2.33.0",
