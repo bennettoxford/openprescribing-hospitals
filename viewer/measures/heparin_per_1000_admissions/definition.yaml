@@ -21,4 +21,4 @@ checked_by: TBC # Name of clinical/technical reviewer
 date_reviewed: 2026-07-11 # Date of last review (YYYY-MM-DD)
 next_review: 2027-07-11 # Date of next scheduled review (YYYY-MM-DD)
 first_published: 2026-07-11 # Date of first publication (YYYY-MM-DD)
-status: in_development # in_development, preview, published, archived
+status: preview # in_development, preview, published, archived
