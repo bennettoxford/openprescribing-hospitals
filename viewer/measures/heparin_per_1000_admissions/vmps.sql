@@ -14,4 +14,5 @@ WHERE EXISTS (
          OR (vis.strnt_nmrtr_val = 5000  AND vis.strnt_dnmtr_val = 1)
          OR (vis.strnt_nmrtr_val = 25000 AND vis.strnt_dnmtr_val = 5)
       )
-);
+)
+AND LOWER(TRIM(vmp.unit_dose_uom)) NOT LIKE '%eye%';
