@@ -3,7 +3,10 @@ short_name: IV unfractionated heparin per 1000 admissions  # Abbreviated name or
 description: Rate of intravenous unfractionated heparin issuing per 1000 admissions # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |
       Unfractionated heparin is a [leading cause of anticoagulation safety related adverse events](https://www.amjmed.com/article/S0002-9343(23)00344-3/fulltext).
-      In 2026, the [American College of Cardiology/American Heart Association guidelines](https://www.jacc.org/doi/10.1016/j.jacc.2025.11.005) for the treatment of Evaluation and Management of Acute Pulmonary Embolism in Adults recommended low molecular weight heparin over intravenous unfractioned to reduce recurrent VTE and major bleeding for the intital treatment of pulmonary embolism. 
+      
+      In 2026, the [American College of Cardiology/American Heart Association guidelines](https://www.jacc.org/doi/10.1016/j.jacc.2025.11.005) for the treatment of Evaluation and Management of Acute Pulmonary Embolism in Adults recommended low molecular weight heparin over intravenous unfractionated heparin to reduce recurrent VTE and major bleeding for the intital treatment of pulmonary embolism. 
+
+      Whilst there are indications where unfractionated heparin may be preferred, this measure is designed to support organisations who are looking to review their use of unfractionated heparin locally. 
 
 how_is_it_calculated: |
      We identify all products with the 'heparin sodium' in their name. We then extract all products with the following concentrations: 1,000 units in 1ml, 5,000 units in 1ml or 25,000 units in 5ml.  We divide the combined number of [Defined Daily Doses (DDDs)](https://hospitals.openprescribing.net/faq/#what-is-a-defined-daily-dose-ddd) of unfractionated heparin by the number of [admissions](https://hospitals.openprescribing.net/faq/#hospital-admissions) expressed per 1000 to give a rate per 1000 admissions.
