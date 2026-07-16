@@ -8,7 +8,7 @@ why_it_matters: |
 how_is_it_calculated: |
      We identify all products with the 'heparin sodium' in their name. We then extract all products with the following concentrations: 1,000 units in 1ml, 5,000 units in 1ml or 25,000 units in 5ml.  We divide the combined number of [Defined Daily Doses (DDDs)](https://hospitals.openprescribing.net/faq/#what-is-a-defined-daily-dose-ddd) of unfractionated heparin by the number of [admissions](https://hospitals.openprescribing.net/faq/#hospital-admissions) expressed per 1000 to give a rate per 1000 admissions.
      
-     Caution with the interpretation of this measure: Specialist cardiac organisations have a lower number of admissions each year as compared with a large acute hospital organisation and a higher number of procedures which may use intraveous heparin, which may yield a high number of defined daily doses of heparin per 1000 admissions. The measure is designed to support all organisations looking at their intravenous unfractionated heparin usage, but the context of use should be taken into consideration. 
+     Caution with the interpretation of this measure: Specialist cardiac hospitals with a lower number of admissions each year may yield a high number of DDDs of heparin per 1000 admissions. The measure is designed to support all organisations looking at their intravenous unfractionated heparin usage, but the context of use should be taken into consideration. 
 
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
