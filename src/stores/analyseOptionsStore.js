@@ -1,5 +1,9 @@
 import { writable } from 'svelte/store';
-import { organisationSearchStore } from './organisationSearchStore';
+import {
+    allOverlaySelection,
+    normaliseOverlaySelection,
+    overlayTrustsForModeChange,
+} from '../components/analyse/lib/chartOverlay.js';
 
 const createAnalyseOptionsStore = () => {
     const { subscribe, set, update } = writable({
@@ -9,7 +13,10 @@ const createAnalyseOptionsStore = () => {
         vmpNames: [],
         vtmNames: [],
         ingredientNames: [],
-        selectedOrganisations: []
+        selectedOrganisations: [],
+        rememberedOverlayOrganisations: [],
+        selectedChartRegions: allOverlaySelection(),
+        selectedChartIcbs: allOverlaySelection(),
     });
 
     const runAnalysis = (options) => {
@@ -24,15 +31,37 @@ const createAnalyseOptionsStore = () => {
         set,
         update,
         runAnalysis,
-        updateOrganisations: (organisations) => {
-            organisationSearchStore.setItems(organisations);
-            organisationSearchStore.setAvailableItems(organisations);
-            organisationSearchStore.setFilterType('trust');
-        },
         setSelectedOrganisations: (organisations) => {
             update(store => ({
                 ...store,
-                selectedOrganisations: organisations
+                selectedOrganisations: Array.isArray(organisations) ? organisations : []
+            }));
+        },
+        setRememberedOverlayOrganisations: (organisations) => {
+            update(store => ({
+                ...store,
+                rememberedOverlayOrganisations: Array.isArray(organisations) ? organisations : []
+            }));
+        },
+        applyOverlayModeChange: (fromMode, toMode) => {
+            update(store => {
+                const { patch } = overlayTrustsForModeChange(fromMode, toMode, {
+                    selectedOrganisations: store.selectedOrganisations,
+                    rememberedOverlayOrganisations: store.rememberedOverlayOrganisations,
+                });
+                return patch ? { ...store, ...patch } : store;
+            });
+        },
+        setSelectedChartRegions: (regions) => {
+            update(store => ({
+                ...store,
+                selectedChartRegions: normaliseOverlaySelection(regions),
+            }));
+        },
+        setSelectedChartIcbs: (icbs) => {
+            update(store => ({
+                ...store,
+                selectedChartIcbs: normaliseOverlaySelection(icbs),
             }));
         },
         setQuantityType: (quantityType) => {
@@ -45,5 +74,3 @@ const createAnalyseOptionsStore = () => {
 };
 
 export const analyseOptions = createAnalyseOptionsStore();
-
-

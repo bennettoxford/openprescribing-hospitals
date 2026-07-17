@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
-import { processAnalysisData } from '../utils/analyseUtils.js';
+import { processAnalysisData } from '../components/analyse/lib/analyseData.js';
+import { createEmptyScopeFilters, normaliseScopeFilters } from '../utils/scopeFilters.js';
 
 export const resultsStore = writable({
     isAnalysisRunning: false,
@@ -22,8 +23,40 @@ export const resultsStore = writable({
     percentiles: [],
     trustCount: 0,
     excludedTrusts: [],
-    excludedVmps: []
+    excludedVmps: [],
+    scope: 'all',
+    scopeFilters: createEmptyScopeFilters(),
+    inScopeTrusts: []
 });
+
+export function setAnalysisRunning(isRunning) {
+    resultsStore.update(store => ({
+        ...store,
+        isAnalysisRunning: !!isRunning,
+        ...(isRunning ? { showResults: true } : {}),
+    }));
+}
+
+export function clearAnalysisResults() {
+    resultsStore.update(store => ({
+        ...store,
+        isAnalysisRunning: false,
+        showResults: false,
+        analysisData: null,
+        analysisMonths: null,
+        filteredData: null,
+        productData: {},
+        organisationData: {},
+        aggregatedData: { regions: {}, icbs: {}, national: {} },
+        percentiles: [],
+        trustCount: 0,
+        excludedTrusts: [],
+        excludedVmps: [],
+        inScopeTrusts: [],
+        scope: 'all',
+        scopeFilters: createEmptyScopeFilters(),
+    }));
+}
 
 export function updateResults(data, options = {}) {
     const months = data?.months ?? [];
@@ -75,6 +108,9 @@ export function updateResults(data, options = {}) {
         aggregatedData,
         quantityType: options.quantityType || store.quantityType,
         searchType: options.searchType || store.searchType,
+        scope: options.scope || 'all',
+        scopeFilters: normaliseScopeFilters(options.scopeFilters),
+        inScopeTrusts: Array.isArray(options.inScopeTrusts) ? options.inScopeTrusts : [],
         dateRange: calculateDateRange(months),
         selectedOrganisations: options.selectedOrganisations || [],
         showPercentiles: showPercentilesValue,
