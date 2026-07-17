@@ -1,6 +1,15 @@
 <svelte:options customElement={{
     tag: 'organisation-search',
-    shadow: 'none'
+    shadow: 'none',
+    props: {
+      maxItems: { type: 'Number' },
+      hideSelectAll: { type: 'Boolean' },
+      hideClearAll: { type: 'Boolean' },
+      requireSelection: { type: 'Boolean' },
+      overlayMode: { type: 'Boolean' },
+      showTitle: { type: 'Boolean' },
+      disabled: { type: 'Boolean' },
+    }
   }} />
 
 <script>
@@ -14,6 +23,8 @@
     export let disabled = false;
     export let maxItems = null;
     export let hideSelectAll = false;
+    export let hideClearAll = false;
+    export let requireSelection = false;
     export let showTitle = true;
 
     $: placeholderText = disabled ? 
@@ -187,6 +198,13 @@
     };
 
     $: limitReached = maxItems && selectedItems.length >= maxItems;
+  
+    $: selectAllBlockedByCap = maxItems != null && availableItems.length > maxItems;
+    $: shouldHideSelectAll = hideSelectAll || selectAllBlockedByCap;
+    $: hasSelection = selectedItems.some((item) => isItemAvailable(item));
+    $: shouldShowClearAll = !hideClearAll && hasSelection;
+    $: allAvailableSelected = availableItems.length > 0 &&
+        availableItems.every((item) => selectedItems.includes(item));
 
     function toggleItem(item) {
         if (!isItemAvailable(item)) {
@@ -201,6 +219,9 @@
         let newSelectedItems;
 
         if (selectedItems.includes(item)) {
+            if (requireSelection && selectedItems.length <= 1) {
+                return;
+            }
             newSelectedItems = selectedItems.filter((i) => i !== item);
         } else {
             newSelectedItems = [...selectedItems, item];
@@ -216,6 +237,9 @@
     }
 
     function deselectAll() {
+        if (requireSelection) {
+            return;
+        }
         source.updateSelection([]);
         dispatch('selectionChange', {
             selectedItems: [],
@@ -275,7 +299,7 @@
             itemsToSelect: itemsToSelect
         });
         
-        if (!hideSelectAll) {
+        if (!shouldHideSelectAll) {
             source.updateSelection(itemsToSelect);
             dispatch('selectionChange', {
                 selectedItems: itemsToSelect,
@@ -301,8 +325,8 @@
                 {:else}
                     <span></span>
                 {/if}
-                <div class="flex items-center gap-1 text-sm">
-                    {#if !hideSelectAll}
+                <div class="flex items-center gap-1 text-sm min-h-5">
+                    {#if !shouldHideSelectAll && !allAvailableSelected}
                         <button 
                             class="text-blue-600 hover:text-blue-800 font-medium {disabled ? 'opacity-50 cursor-not-allowed' : ''}" 
                             on:click={selectAll}
@@ -310,15 +334,19 @@
                         >
                             Select All
                         </button>
-                        <span class="text-gray-300">|</span>
+                        {#if shouldShowClearAll}
+                            <span class="text-gray-300">|</span>
+                        {/if}
                     {/if}
-                    <button 
-                        class="text-red-600 hover:text-red-800 font-medium {disabled ? 'opacity-50 cursor-not-allowed' : ''}" 
-                        on:click={deselectAll}
-                        disabled={disabled}
-                    >
-                        Clear All
-                    </button>
+                    {#if shouldShowClearAll}
+                        <button 
+                            class="text-red-600 hover:text-red-800 font-medium {disabled ? 'opacity-50 cursor-not-allowed' : ''}" 
+                            on:click={deselectAll}
+                            disabled={disabled}
+                        >
+                            Clear All
+                        </button>
+                    {/if}
                 </div>
             </div>
 
