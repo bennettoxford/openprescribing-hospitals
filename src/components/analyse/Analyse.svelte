@@ -1,4 +1,4 @@
-<svelte:options customElement={{
+<svelte:options runes={false} customElement={{
     tag: 'layout-component',
     shadow: 'none'
   }} />
@@ -7,14 +7,9 @@
   import { onMount } from 'svelte';
   import AnalysisBuilder from './analyse/AnalysisBuilder.svelte';
   import AnalysisResults from './results/AnalysisResults.svelte';
-  import { writable } from 'svelte/store';
-  import { analyseOptions } from '../../stores/analyseOptionsStore';
-  import { organisationSearchStore } from '../../stores/organisationSearchStore';
+  import { resultsStore, setAnalysisRunning, clearAnalysisResults } from '../../stores/resultsStore';
 
-  let isAnalysisRunning = writable(false);
-  let isOrganisationDropdownOpen = false;
-  let showResults = false;
-  let analysisData = null;
+  let analysisResults;
   let isAnalyseBoxCollapsed = false;
   let isLargeScreen = false;
   let isResultsBoxPopulated = false;
@@ -23,53 +18,37 @@
   export let minDate;
   export let maxDate;
   export let orgData;
-  export let isAuthenticated;
   export let maxVmpCount = null;
 
-  $: isResultsBoxPopulated = (analysisData && analysisData.length > 0) || (urlValidationErrors && urlValidationErrors.length > 0);
+  $: isResultsBoxPopulated = $resultsStore.showResults
+    || (urlValidationErrors && urlValidationErrors.length > 0);
 
   function handleAnalysisStart() {
-    showResults = true;
-    isAnalysisRunning.set(true);
-    analysisData = null;
+    setAnalysisRunning(true);
+    analysisResults?.prepareForNewRun?.();
     isAnalyseBoxCollapsed = true;
   }
 
   function handleAnalysisComplete(event) {
-    isAnalysisRunning.set(false);
-    analysisData = event.detail;
+    analysisResults?.loadAnalysis?.(event.detail);
     isAnalyseBoxCollapsed = true;
   }
 
   function handleAnalysisError() {
-    isAnalysisRunning.set(false);
-  }
-
-  function handleOrganisationDropdownToggle(event) {
-    isOrganisationDropdownOpen = event.detail.isOpen;
+    setAnalysisRunning(false);
   }
 
   function handleUrlValidationErrors(event) {
     urlValidationErrors = event.detail.errors || [];
-  }
-
-  $: if (urlValidationErrors && urlValidationErrors.length > 0 && !showResults) {
-    showResults = true;
+    if (urlValidationErrors.length > 0) {
+      resultsStore.update(store => ({ ...store, showResults: true }));
+    }
   }
 
   function handleAnalysisClear() {
-    showResults = false;
-    analysisData = null;
-    isAnalysisRunning.set(false);
+    clearAnalysisResults();
+    analysisResults?.prepareForNewRun?.();
     urlValidationErrors = [];
-  }
-
-  function handleVMPSelection(event) {
-    analyseOptions.update(options => ({
-        ...options,
-        selectedProducts: event.detail.items,
-        searchType: event.detail.type
-    }));
   }
 
   function toggleAnalyseBox() {
@@ -83,52 +62,30 @@
   window.addEventListener('resize', checkScreenSize);
   onMount(() => {
     checkScreenSize();
-    if (orgData) {
-        try {
-            const parsedData = typeof orgData === 'string' ? JSON.parse(orgData) : orgData;
-
-            organisationSearchStore.setOrganisationData({
-                orgs: parsedData.orgs || {},
-                org_codes: parsedData.org_codes || {},
-                trust_types: parsedData.trust_types || {},
-                org_regions: parsedData.org_regions || {},
-                org_icbs: parsedData.org_icbs || {},
-                org_cancer_alliances: parsedData.org_cancer_alliances || {},
-                org_shelford_group: parsedData.org_shelford_group || {},
-                regions_hierarchy: parsedData.regions_hierarchy || [],
-                cancer_alliances: parsedData.cancer_alliances || []
-            });
-            organisationSearchStore.setFilterType('trust');
-        } catch (error) {
-            console.error('Error parsing ODS data:', error);
-        }
-    }
   });
 </script>
 
 
   <div class="max-w-screen-2xl mx-auto min-h-screen p-4 sm:p-6">
     <div class="grid grid-cols-1 lg:grid-cols-[350px_1fr] lg:gap-6">
-        <div class="mb-4 lg:mb-0 transition-all duration-300 ease-in-out">
+        <div class="mb-4 lg:mb-0 min-w-0 max-w-full transition-all duration-300 ease-in-out">
             <div class="bg-white rounded-lg shadow-md flex flex-col overflow-visible relative">
                 <div class="bg-gradient-to-r from-oxford-600/60 via-bn-roman-600/70 to-bn-strawberry-600/60 text-white p-2 rounded-t-lg">
                     <h2 class="text-lg font-semibold">Analysis builder</h2>
                 </div>
-                <div class="flex-grow overflow-y-auto overflow-x-visible transition-all duration-300 ease-in-out"
+                <div class="flex-grow overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out"
                      class:max-h-0={isAnalyseBoxCollapsed && !isLargeScreen}
-                     class:max-h-[1000px]={!isAnalyseBoxCollapsed || isLargeScreen}>
+                     class:max-h-[1000px]={!isAnalyseBoxCollapsed && !isLargeScreen}>
                     <analysis-builder
+                        class="block w-full max-w-full"
                         {minDate}
                         {maxDate}
                         {orgData}
-                        isAuthenticated={isAuthenticated}
                         maxVmpCount={maxVmpCount}
                         on:analysisStart={handleAnalysisStart}
                         on:analysisComplete={handleAnalysisComplete}
                         on:analysisError={handleAnalysisError}
                         on:analysisClear={handleAnalysisClear}
-                        on:organisationDropdownToggle={handleOrganisationDropdownToggle}
-                        on:vmpSelection={handleVMPSelection}
                         on:urlValidationErrors={handleUrlValidationErrors}
                     ></analysis-builder>
                 </div>
@@ -162,13 +119,11 @@
                 <div class="bg-gradient-to-r from-oxford-600/60 via-bn-roman-600/70 to-bn-strawberry-600/60 text-white p-2 rounded-t-lg">
                     <h2 class="text-lg font-semibold">Results</h2>
                 </div>
-                <analysis-results
-                    class="flex-grow"
-                    isAnalysisRunning={$isAnalysisRunning}
-                    analysisData={analysisData}
-                    {showResults}
+                <AnalysisResults
+                    bind:this={analysisResults}
+                    className="flex-grow"
                     {urlValidationErrors}
-                ></analysis-results>
+                />
             </div>
         </div>
     </div>
