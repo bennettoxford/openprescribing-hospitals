@@ -1,16 +1,11 @@
 SELECT DISTINCT
-    vmp.id AS vmp_id,
-    CASE 
-        WHEN vmp.unit_dose_uom = 'ampoule'
-        THEN 'numerator'
+    vmp.id as vmp_id,
+    CASE
+        WHEN vmp.code = '35905711000001104' THEN 'numerator' -- VMP code for Atropine 600micrograms/1ml solution for injection ampoules
         ELSE 'denominator'
-    END AS vmp_type
+    END as vmp_type
 FROM viewer_vmp vmp
-INNER JOIN viewer_vtm vtm 
-    ON vtm.id = vmp.vtm_id
-INNER JOIN viewer_vmp_ont_form_routes vofr 
-    ON vofr.vmp_id = vmp.id
-INNER JOIN viewer_ontformroute ofr 
-    ON ofr.id = vofr.ontformroute_id
-WHERE vtm.vtm = '774696006'  -- Atropine VTM
-  AND ofr.name = 'solutioninjection.intravenous'
+WHERE
+    vmp.code = '35905711000001104' -- VMP code for Atropine 600micrograms/1ml solution for injection ampoules
+    OR
+    vmp.code = '35905311000001103' -- VMP code for Atropine 3mg/10ml solution for injection pre-filled syringes
