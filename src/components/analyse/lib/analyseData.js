@@ -1,16 +1,8 @@
-import { chartConfig } from './chartConfig.js';
-import { normaliseDDDUnit } from './utils';
+import { chartConfig } from '../../../utils/chartConfig.js';
+import { normaliseDDDUnit } from '../../../utils/utils.js';
 import pluralize from 'pluralize';
+import { ANALYSIS_SCOPE, getNationalModeLabel } from './analysisScope.js';
 
-export function buildAnalysisRequestPayload({
-    selectedProducts = [],
-    quantityType = null,
-}) {
-    return {
-        names: selectedProducts,
-        quantity_type: quantityType,
-    };
-}
 
 export class ChartDataProcessor {
     constructor(data, aggregatedData, options = {}) {
@@ -83,8 +75,6 @@ export class ChartDataProcessor {
             this.rawData.filter(item => selectedOrganisations.includes(item.organisation__ods_name)) :
             [];
 
-        // When trusts are selected, ensure all selected trusts appear in orgData
-        // so they show in the chart legend
         if (selectedOrganisations.length > 0) {
             selectedOrganisations.forEach(org => {
                 if (org && !orgData[org]) {
@@ -263,9 +253,11 @@ export class ChartDataProcessor {
             }
         });
 
+        const scope = this.options.scope || ANALYSIS_SCOPE.ALL;
+
         return {
             datasets: [{
-                label: 'National Total',
+                label: getNationalModeLabel(scope, { longForm: true }),
                 data: nationalData,
                 color: '#1e40af',
                 strokeOpacity: 1,
@@ -424,136 +416,351 @@ export class ChartDataProcessor {
     }
 }
 
-export class ViewModeCalculator {
-    constructor(resultsStore, analyseOptions, organisationSearchStore, vmps) {
-        this.resultsStore = resultsStore;
-        this.analyseOptions = analyseOptions;
-        this.organisationSearchStore = organisationSearchStore;
-        this.vmps = vmps;
-    }
 
-    calculateAvailableModes() {
-        const modes = [];
-        
-        // Only add modes if there are VMPs with valid data
-        if (this.vmps && this.vmps.length > 0) {
-            modes.push({ value: 'trust', label: 'NHS Trust' });
-            
-            modes.push(...this.getAggregationModes());
-            
-            modes.push(...this.getProductModes());
-        }
-        
-        return modes;
-    }
+export function shouldIncludeDate(date, period, latestDate) {
+    if (period === 'all') return true;
 
-    hasSelectedOrganisations() {
-        return this.analyseOptions.selectedOrganisations && 
-               this.analyseOptions.selectedOrganisations.length > 0;
-    }
+    const dataDate = new Date(date);
+    const dataDateStr = dataDate.toISOString().split('T')[0];
+    const latestDateStr = latestDate ? latestDate.toISOString().split('T')[0] : null;
 
-    hasSelectedOrganisationsWithData() {
-        if (!this.hasSelectedOrganisations()) return false;
-
-        const selectedOrgNames = new Set(this.analyseOptions.selectedOrganisations);
-
-        const selectedOrganisationsWithData = this.resultsStore.analysisData
-            ?.filter(item => {
-                const orgName = item.organisation__ods_name;
-                const isSelected = selectedOrgNames.has(orgName);
-                const hasData = item.data && Array.isArray(item.data) &&
-                    item.data.some(v => v > 0 && !isNaN(parseFloat(v)));
-                return isSelected && hasData;
-            }) || [];
-
-        return selectedOrganisationsWithData.length >= 1;
-    }
-
-    getAggregationModes() {
-        const modes = [];
-        
-        // Only show aggregation modes if no trusts are selected
-        if (this.hasSelectedOrganisations()) {
-            return modes;
-        }
-        
-        if (!this.resultsStore.aggregatedData) return modes;
-        
-        const { regions = {}, icbs = {}, national = {} } = this.resultsStore.aggregatedData;
-        
-        if (icbs && Object.keys(icbs).length > 1) {
-            modes.push({ value: 'icb', label: 'ICB' });
-        }
-        
-        if (regions && Object.keys(regions).length > 1) {
-            modes.push({ value: 'region', label: 'Region' });
-        }
-        
-        if (national && Object.keys(national).length > 0) {
-            modes.push({ value: 'national', label: 'National' });
-        }
-
-        if (this.resultsStore.analysisData) {
-            const mappedICBs = new Set(
-                this.resultsStore.analysisData.map(item => item.organisation__icb).filter(Boolean)
-            );
-
-            if (mappedICBs.size > 1 && !modes.some(m => m.value === 'icb')) {
-                modes.push({ value: 'icb', label: 'ICB' });
+    switch (period) {
+        case 'latest_month':
+            if (!latestDate) return false;
+            return dataDate.getMonth() === latestDate.getMonth() &&
+                   dataDate.getFullYear() === latestDate.getFullYear();
+        case 'latest_year':
+            if (!latestDate) return false;
+            return dataDate.getFullYear() === latestDate.getFullYear();
+        case 'current_fy':
+            if (!latestDate) return false;
+            const fyStart = new Date(latestDate.getFullYear(), 3, 1); // April 1st
+            if (latestDate < fyStart) {
+                fyStart.setFullYear(fyStart.getFullYear() - 1);
             }
 
-            const uniqueRegions = new Set(this.resultsStore.analysisData.map(item => item.organisation__region).filter(Boolean));
-            if (uniqueRegions.size > 1 && !modes.some(m => m.value === 'region')) {
-                modes.push({ value: 'region', label: 'Region' });
-            }
-        }
-        
-        return modes;
-    }
+            const fyStartStr = fyStart.toISOString().split('T')[0];
 
-    getProductModes() {
-        const modes = [];
-        
-        if (!this.vmps || this.vmps.length === 0) return modes;
+            return dataDateStr >= fyStartStr && dataDateStr <= latestDateStr;
+        case 'last_12_months':
+            if (!latestDate) return false;
+            const twelveMonthsAgo = new Date(latestDate);
+            twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
 
-        if (this.vmps.length > 1) {
-            modes.push({ value: 'product', label: 'Product' });
-        }
+            const startDateStr = twelveMonthsAgo.toISOString().split('T')[0];
 
-        const uniqueVtms = new Set(this.vmps.map(vmp => vmp.vtm).filter(vtm => vtm && vtm !== '-' && vtm !== 'nan'));
-        if (uniqueVtms.size > 1) {
-            modes.push({ value: 'productGroup', label: 'Product Group' });
-        }
-
-        const uniqueIngredients = new Set(
-            this.vmps.flatMap(vmp => (vmp.ingredients || []))
-                .filter(ing => ing && ing !== '-' && ing !== 'nan')
-        );
-        if (uniqueIngredients.size > 1) {
-            modes.push({ value: 'ingredient', label: 'Ingredient' });
-        }
-
-        const uniqueUnits = new Set(
-            this.vmps.flatMap(vmp => Array.from(vmp.units || []))
-                .filter(unit => unit && unit !== '-' && unit !== 'nan')
-                .map(unit => normaliseDDDUnit(unit))
-        );
-        if (uniqueUnits.size > 1) {
-            modes.push({ value: 'unit', label: 'Unit' });
-        }
-
-        return modes;
+            return dataDateStr >= startDateStr && dataDateStr <= latestDateStr;
+        default:
+            return true;
     }
 }
 
-export function selectDefaultMode(availableModes, hasSelectedOrganisations = false) {
-    const trustMode = availableModes.find(m => m.value === 'trust');
-    if (trustMode) return trustMode.value;
-    
-    const nationalMode = availableModes.find(m => m.value === 'national');
-    if (nationalMode) return nationalMode.value;
-    
-    return availableModes[0]?.value || 'trust';
+function getDefaultUnitsForZeroTotals(data) {
+    const units = new Set();
+    const addUnit = (u) => {
+        const n = normaliseDDDUnit(u || '');
+        if (n) units.add(n);
+    };
+
+    data?.forEach(item => addUnit(item.unit));
+
+    const arr = [...units];
+    return arr.length ? arr.map(unit => ({ unit, quantity: 0 })) : null;
+}
+
+export function processTableDataByMode(data, mode, period, aggregatedData, latestDate, selectedOrganisations = [], allOrganisations = [], months = [], regionsHierarchy = [], scope = ANALYSIS_SCOPE.ALL) {
+    if (!data?.length && !aggregatedData) return [];
+
+    const defaultUnits = getDefaultUnitsForZeroTotals(data);
+    const selectedProductCodes = data?.length
+        ? new Set(data.map(item => item.vmp__code).filter(Boolean))
+        : null;
+
+    if (['region', 'icb', 'national'].includes(mode) && aggregatedData) {
+        return processAggregatedMode(aggregatedData, mode, period, latestDate, selectedProductCodes, regionsHierarchy, defaultUnits);
+    }
+
+    if (mode === 'trust') {
+        return processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, months, defaultUnits, scope);
+    }
+
+    return processRawDataMode(data, mode, period, latestDate, selectedOrganisations, months);
+}
+
+function processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, months = [], defaultUnits = null, scope = ANALYSIS_SCOPE.ALL) {
+
+    const filteredData = data || [];
+
+    const selectedSet = new Set(selectedOrganisations);
+    const selectedTrusts = {};
+    const otherTrusts = {};
+    const selectedTotals = { total: 0, units: {} };
+    const otherTotals = { total: 0, units: {} };
+
+    allOrganisations.forEach(orgName => {
+        const isSelected = selectedSet.has(orgName);
+        const targetGroup = isSelected ? selectedTrusts : otherTrusts;
+        targetGroup[orgName] = { total: 0, units: {} };
+    });
+
+    filteredData.forEach(item => {
+        const orgName = item.organisation__ods_name || 'Unknown Organisation';
+        const isSelected = selectedSet.has(orgName);
+        const targetGroup = isSelected ? selectedTrusts : otherTrusts;
+        const targetTotals = isSelected ? selectedTotals : otherTotals;
+
+        if (targetGroup[orgName] !== undefined) {
+            item.data?.forEach((value, i) => {
+                if (i >= months.length || !shouldIncludeDate(months[i], period, latestDate)) return;
+                const parsedQuantity = parseFloat(value) || 0;
+                const normalisedUnit = normaliseDDDUnit(item.unit || '');
+
+                targetGroup[orgName].total += parsedQuantity;
+                if (!targetGroup[orgName].units[normalisedUnit]) {
+                    targetGroup[orgName].units[normalisedUnit] = 0;
+                }
+                targetGroup[orgName].units[normalisedUnit] += parsedQuantity;
+
+                targetTotals.total += parsedQuantity;
+                if (!targetTotals.units[normalisedUnit]) {
+                    targetTotals.units[normalisedUnit] = 0;
+                }
+                targetTotals.units[normalisedUnit] += parsedQuantity;
+            });
+        }
+    });
+
+    const results = [];
+
+    function countTotalOrgs(trustsGroup) {
+        return Object.keys(trustsGroup).length;
+    }
+
+    const toUnitsArray = (unitsObj, fallback) => {
+        const entries = Object.entries(unitsObj).sort(([, a], [, b]) => b - a);
+        if (entries.length === 0 && fallback?.length) {
+            return fallback;
+        }
+        if (entries.length === 0) {
+            return [{ unit: '--', quantity: 0 }];
+        }
+        return entries.map(([unit, quantity]) => ({ unit, quantity }));
+    };
+
+    if (Object.keys(selectedTrusts).length > 0) {
+        const totalSelectedCount = countTotalOrgs(selectedTrusts);
+        
+        results.push({
+            key: totalSelectedCount === 1
+                ? 'Selected trust (1)'
+                : `Selected trusts (${totalSelectedCount})`,
+            total: selectedTotals.total,
+            units: toUnitsArray(selectedTotals.units, defaultUnits),
+            isSubtotal: true
+        });
+
+        Object.entries(selectedTrusts)
+            .sort(([, a], [, b]) => b.total - a.total)
+            .forEach(([trustName, trustData]) => {
+                let units = Object.entries(trustData.units);
+                if (units.length === 0 && defaultUnits?.length) {
+                    units = defaultUnits.map(({ unit, quantity }) => [unit, quantity]);
+                } else if (units.length === 0) {
+                    units = [['--', 0]];
+                }
+                results.push({
+                    key: trustName,
+                    total: trustData.total,
+                    units: units
+                        .sort(([, a], [, b]) => b - a)
+                        .map(([unit, quantity]) => ({ unit, quantity })),
+                    isIndividual: true
+                });
+            });
+    }
+
+    if (Object.keys(otherTrusts).length > 0) {
+        const totalOtherCount = countTotalOrgs(otherTrusts);
+        
+        const isAllTrusts = selectedOrganisations.length === 0;
+        const isFilteredScope = scope === ANALYSIS_SCOPE.GROUP;
+        let keyText;
+        if (isAllTrusts) {
+            keyText = isFilteredScope
+                ? `All in-scope trusts (${totalOtherCount})`
+                : `All trusts (${totalOtherCount})`;
+        } else {
+            keyText = isFilteredScope
+                ? `All other in-scope trusts (${totalOtherCount})`
+                : `All other trusts (${totalOtherCount})`;
+        }
+        
+        results.push({
+            key: keyText,
+            total: otherTotals.total,
+            units: toUnitsArray(otherTotals.units, defaultUnits),
+            isSubtotal: true
+        });
+
+        Object.entries(otherTrusts)
+            .sort(([, a], [, b]) => b.total - a.total)
+            .forEach(([trustName, trustData]) => {
+                let units = Object.entries(trustData.units);
+                if (units.length === 0 && defaultUnits?.length) {
+                    units = defaultUnits.map(({ unit, quantity }) => [unit, quantity]);
+                } else if (units.length === 0) {
+                    units = [['--', 0]];
+                }
+                results.push({
+                    key: trustName,
+                    total: trustData.total,
+                    units: units
+                        .sort(([, a], [, b]) => b - a)
+                        .map(([unit, quantity]) => ({ unit, quantity })),
+                    isIndividual: true
+                });
+            });
+    }
+
+    return results;
+}
+
+function processAggregatedMode(aggregatedData, mode, period, latestDate, selectedProductCodes = null, regionsHierarchy = [], defaultUnits = null) {
+    const categoryMap = {
+        'region': 'regions',
+        'icb': 'icbs',
+        'national': 'national'
+    };
+    const categoryData = aggregatedData[categoryMap[mode]] || {};
+    const resultsMap = new Map();
+
+    Object.entries(categoryData).forEach(([name, info]) => {
+        if (!info?.products) return;
+
+        const totals = { total: 0, units: {} };
+
+        Object.entries(info.products).forEach(([productKey, product]) => {
+            if (selectedProductCodes && !selectedProductCodes.has(productKey)) {
+                return;
+            }
+
+            if (!product?.data) return;
+
+            const unit = product.unit || '';
+            const normalisedUnit = normaliseDDDUnit(unit);
+
+            Object.entries(product.data).forEach(([date, quantity]) => {
+                if (!shouldIncludeDate(date, period, latestDate)) return;
+
+                const parsedQuantity = parseFloat(quantity) || 0;
+                totals.total += parsedQuantity;
+
+                if (!totals.units[normalisedUnit]) {
+                    totals.units[normalisedUnit] = 0;
+                }
+                totals.units[normalisedUnit] += parsedQuantity;
+            });
+        });
+
+        let units = Object.entries(totals.units)
+            .sort(([, a], [, b]) => b - a)
+            .map(([unit, quantity]) => ({ unit, quantity }));
+        if (units.length === 0 && defaultUnits?.length) {
+            units = defaultUnits;
+        } else if (units.length === 0) {
+            units = [{ unit: '--', quantity: 0 }];
+        }
+        resultsMap.set(name, { key: name, total: totals.total, units });
+    });
+
+    const zeroUnits = defaultUnits?.length ? defaultUnits : [{ unit: '--', quantity: 0 }];
+    let allCategoryNames = [];
+    if (mode === 'region' && regionsHierarchy.length > 0) {
+        allCategoryNames = regionsHierarchy.map(r => r.region).filter(Boolean);
+    } else if (mode === 'icb' && regionsHierarchy.length > 0) {
+        allCategoryNames = regionsHierarchy.flatMap(r => (r.icbs || []).map(i => i.name)).filter(Boolean);
+    } else if (mode === 'national') {
+        allCategoryNames = ['National'];
+    }
+    allCategoryNames.forEach(name => {
+        if (!resultsMap.has(name)) {
+            resultsMap.set(name, { key: name, total: 0, units: zeroUnits });
+        }
+    });
+
+    return Array.from(resultsMap.values()).sort((a, b) => b.total - a.total);
+}
+
+function processRawDataMode(data, mode, period, latestDate, selectedOrganisations = [], months = []) {
+    if (!data?.length) return [];
+
+    const dataToProcess = selectedOrganisations.length > 0 
+        ? data.filter(item => selectedOrganisations.includes(item.organisation__ods_name))
+        : data;
+
+    const groupedData = {};
+
+    const singleUnitPerGroup = mode === 'product' || mode === 'unit';
+
+    dataToProcess.forEach(item => {
+        const groupKey = getGroupKey(item, mode);
+        
+        if (Array.isArray(groupKey)) {
+            groupKey.forEach(key => processItemForGroup(groupedData, key, item, months, period, latestDate, singleUnitPerGroup));
+        } else {
+            processItemForGroup(groupedData, groupKey, item, months, period, latestDate, singleUnitPerGroup);
+        }
+    });
+
+    return Object.entries(groupedData)
+        .map(([key, value]) => {
+            const units = value.unit != null
+                ? [{ unit: value.unit, quantity: value.total }]
+                : Object.entries(value.units || {})
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([unit, quantity]) => ({ unit, quantity }));
+            return { key, total: value.total, units };
+        })
+        .sort((a, b) => b.total - a.total);
+}
+
+function getGroupKey(item, mode) {
+    switch (mode) {
+        case 'trust':
+            return item.organisation__ods_name || 'Unknown Organisation';
+        case 'product':
+            return item.vmp__name || 'Unknown Product';
+        case 'productGroup':
+            return item.vmp__vtm__name || 'Unknown Product Group';
+        case 'ingredient':
+            return item.ingredient_names?.length > 0 ? item.ingredient_names : ['Unknown Ingredient'];
+        case 'unit':
+            return item.unit ? [item.unit] : [];
+        default:
+            return item.vmp__name || 'Unknown';
+    }
+}
+
+function processItemForGroup(groupedData, groupKey, item, months = [], period, latestDate, singleUnitPerGroup = false) {
+    if (!groupedData[groupKey]) {
+        groupedData[groupKey] = singleUnitPerGroup
+            ? { total: 0, unit: '' }
+            : { total: 0, units: {} };
+    }
+
+    const g = groupedData[groupKey];
+    item.data?.forEach((value, i) => {
+        if (i >= months.length || !shouldIncludeDate(months[i], period, latestDate)) return;
+        const parsedQuantity = parseFloat(value) || 0;
+        g.total += parsedQuantity;
+
+        if (singleUnitPerGroup) {
+            if (!g.unit && item.unit) g.unit = normaliseDDDUnit(item.unit) || item.unit;
+        } else {
+            const normalisedUnit = normaliseDDDUnit(item.unit || '');
+            g.units[normalisedUnit] = (g.units[normalisedUnit] || 0) + parsedQuantity;
+        }
+    });
 }
 
 export function processAnalysisData(months, items, selectedOrganisations = []) {
@@ -566,9 +773,16 @@ export function processAnalysisData(months, items, selectedOrganisations = []) {
         };
     }
 
+    const organisationItems = items.filter(item => item.organisation__ods_code);
+    const baseVmpItems = items.filter(item => !item.organisation__ods_code);
+    const nationalOnlyItems = organisationItems.length === 0
+        ? baseVmpItems.filter(item => Array.isArray(item.data) && item.data.length > 0)
+        : [];
+
     const groupedData = {
-        organisationItems: items.filter(item => item.organisation__ods_code),
-        baseVmpItems: items.filter(item => !item.organisation__ods_code)
+        organisationItems,
+        baseVmpItems,
+        nationalOnlyItems
     };
 
     const results = {
@@ -664,6 +878,14 @@ export function processAnalysisData(months, items, selectedOrganisations = []) {
         }
     });
 
+    groupedData.nationalOnlyItems.forEach(item => {
+        if (!item.vmp__code) return;
+
+        const productKey = item.vmp__code;
+        const timeSeriesData = denseToTimeSeries(item);
+        aggregateByCategory(results.aggregatedData.national, 'National', productKey, timeSeriesData);
+    });
+
     return results;
 }
 
@@ -687,532 +909,6 @@ function aggregateByCategory(categoryData, categoryName, productKey, timeSeriesD
     timeSeriesData.forEach(({ date, quantity }) => {
         product.data[date] = (product.data[date] || 0) + quantity;
     });
-}
-
-export function shouldIncludeDate(date, period, latestDate) {
-    if (period === 'all') return true;
-
-    const dataDate = new Date(date);
-    const dataDateStr = dataDate.toISOString().split('T')[0];
-    const latestDateStr = latestDate ? latestDate.toISOString().split('T')[0] : null;
-
-    switch (period) {
-        case 'latest_month':
-            if (!latestDate) return false;
-            return dataDate.getMonth() === latestDate.getMonth() &&
-                   dataDate.getFullYear() === latestDate.getFullYear();
-        case 'latest_year':
-            if (!latestDate) return false;
-            return dataDate.getFullYear() === latestDate.getFullYear();
-        case 'current_fy':
-            if (!latestDate) return false;
-        case 'current_fy':
-            if (!latestDate) return false;
-            const fyStart = new Date(latestDate.getFullYear(), 3, 1); // April 1st
-            if (latestDate < fyStart) {
-                fyStart.setFullYear(fyStart.getFullYear() - 1);
-            }
-
-            const fyStartStr = fyStart.toISOString().split('T')[0];
-
-            return dataDateStr >= fyStartStr && dataDateStr <= latestDateStr;
-        case 'last_12_months':
-            if (!latestDate) return false;
-            const twelveMonthsAgo = new Date(latestDate);
-            twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
-
-            const startDateStr = twelveMonthsAgo.toISOString().split('T')[0];
-
-            return dataDateStr >= startDateStr && dataDateStr <= latestDateStr;
-        default:
-            return true;
-    }
-}
-
-function getDefaultUnitsForZeroTotals(data) {
-    const units = new Set();
-    const addUnit = (u) => {
-        const n = normaliseDDDUnit(u || '');
-        if (n) units.add(n);
-    };
-
-    data?.forEach(item => addUnit(item.unit));
-
-    const arr = [...units];
-    return arr.length ? arr.map(unit => ({ unit, quantity: 0 })) : null;
-}
-
-export function processTableDataByMode(data, mode, period, aggregatedData, latestDate, selectedOrganisations = [], allOrganisations = [], months = [], regionsHierarchy = []) {
-    if (!data?.length && !aggregatedData) return [];
-
-    const defaultUnits = getDefaultUnitsForZeroTotals(data);
-    const selectedProductCodes = data?.length
-        ? new Set(data.map(item => item.vmp__code).filter(Boolean))
-        : null;
-
-    if (['region', 'icb', 'national'].includes(mode) && aggregatedData) {
-        return processAggregatedMode(aggregatedData, mode, period, latestDate, selectedProductCodes, regionsHierarchy, defaultUnits);
-    }
-
-    if (mode === 'trust') {
-        return processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, months, defaultUnits);
-    }
-
-    return processRawDataMode(data, mode, period, latestDate, selectedOrganisations, months);
-}
-
-function filterItemDataByPeriod(item, period, latestDate, months) {
-    if (!Array.isArray(item.data) || !months?.length) return item;
-    return { ...item };
-}
-
-function processOrganisationModeWithAggregation(data, period, latestDate, selectedOrganisations, allOrganisations, months = [], defaultUnits = null) {
-
-    const filteredData = data ? data.map(item => filterItemDataByPeriod(item, period, latestDate, months)) : [];
-
-    const selectedSet = new Set(selectedOrganisations);
-    const selectedTrusts = {};
-    const otherTrusts = {};
-    const selectedTotals = { total: 0, units: {} };
-    const otherTotals = { total: 0, units: {} };
-
-    allOrganisations.forEach(orgName => {
-        const isSelected = selectedSet.has(orgName);
-        const targetGroup = isSelected ? selectedTrusts : otherTrusts;
-        targetGroup[orgName] = { total: 0, units: {} };
-    });
-
-    filteredData.forEach(item => {
-        const orgName = item.organisation__ods_name || 'Unknown Organisation';
-        const isSelected = selectedSet.has(orgName);
-        const targetGroup = isSelected ? selectedTrusts : otherTrusts;
-        const targetTotals = isSelected ? selectedTotals : otherTotals;
-
-        if (targetGroup[orgName] !== undefined) {
-            item.data?.forEach((value, i) => {
-                if (i >= months.length || !shouldIncludeDate(months[i], period, latestDate)) return;
-                const parsedQuantity = parseFloat(value) || 0;
-                const normalisedUnit = normaliseDDDUnit(item.unit || '');
-
-                targetGroup[orgName].total += parsedQuantity;
-                if (!targetGroup[orgName].units[normalisedUnit]) {
-                    targetGroup[orgName].units[normalisedUnit] = 0;
-                }
-                targetGroup[orgName].units[normalisedUnit] += parsedQuantity;
-
-                targetTotals.total += parsedQuantity;
-                if (!targetTotals.units[normalisedUnit]) {
-                    targetTotals.units[normalisedUnit] = 0;
-                }
-                targetTotals.units[normalisedUnit] += parsedQuantity;
-            });
-        }
-    });
-
-    const results = [];
-
-    function countTotalOrgs(trustsGroup) {
-        return Object.keys(trustsGroup).length;
-    }
-
-    const toUnitsArray = (unitsObj, fallback) => {
-        const entries = Object.entries(unitsObj).sort(([, a], [, b]) => b - a);
-        if (entries.length === 0 && fallback?.length) {
-            return fallback;
-        }
-        if (entries.length === 0) {
-            return [{ unit: '--', quantity: 0 }];
-        }
-        return entries.map(([unit, quantity]) => ({ unit, quantity }));
-    };
-
-    if (Object.keys(selectedTrusts).length > 0) {
-        const totalSelectedCount = countTotalOrgs(selectedTrusts);
-        
-        results.push({
-            key: `Selected trusts (${totalSelectedCount})`,
-            total: selectedTotals.total,
-            units: toUnitsArray(selectedTotals.units, defaultUnits),
-            isSubtotal: true
-        });
-
-        Object.entries(selectedTrusts)
-            .sort(([, a], [, b]) => b.total - a.total)
-            .forEach(([trustName, trustData]) => {
-                let units = Object.entries(trustData.units);
-                if (units.length === 0 && defaultUnits?.length) {
-                    units = defaultUnits.map(({ unit, quantity }) => [unit, quantity]);
-                } else if (units.length === 0) {
-                    units = [['--', 0]];
-                }
-                results.push({
-                    key: trustName,
-                    total: trustData.total,
-                    units: units
-                        .sort(([, a], [, b]) => b - a)
-                        .map(([unit, quantity]) => ({ unit, quantity })),
-                    isIndividual: true
-                });
-            });
-    }
-
-    if (Object.keys(otherTrusts).length > 0) {
-        const totalOtherCount = countTotalOrgs(otherTrusts);
-        
-        const isAllTrusts = selectedOrganisations.length === 0;
-        const keyText = isAllTrusts ? `All trusts (${totalOtherCount})` : `All other trusts (${totalOtherCount})`;
-        
-        results.push({
-            key: keyText,
-            total: otherTotals.total,
-            units: toUnitsArray(otherTotals.units, defaultUnits),
-            isSubtotal: true
-        });
-
-        Object.entries(otherTrusts)
-            .sort(([, a], [, b]) => b.total - a.total)
-            .forEach(([trustName, trustData]) => {
-                let units = Object.entries(trustData.units);
-                if (units.length === 0 && defaultUnits?.length) {
-                    units = defaultUnits.map(({ unit, quantity }) => [unit, quantity]);
-                } else if (units.length === 0) {
-                    units = [['--', 0]];
-                }
-                results.push({
-                    key: trustName,
-                    total: trustData.total,
-                    units: units
-                        .sort(([, a], [, b]) => b - a)
-                        .map(([unit, quantity]) => ({ unit, quantity })),
-                    isIndividual: true
-                });
-            });
-    }
-
-    return results;
-}
-
-function processAggregatedMode(aggregatedData, mode, period, latestDate, selectedProductCodes = null, regionsHierarchy = [], defaultUnits = null) {
-    const categoryMap = {
-        'region': 'regions',
-        'icb': 'icbs',
-        'national': 'national'
-    };
-
-    const categoryData = aggregatedData[categoryMap[mode]] || {};
-    const resultsMap = new Map();
-
-    Object.entries(categoryData).forEach(([name, info]) => {
-        if (!info?.products) return;
-
-        const totals = { total: 0, units: {} };
-
-        Object.entries(info.products).forEach(([productKey, product]) => {
-            if (selectedProductCodes && !selectedProductCodes.has(productKey)) {
-                return;
-            }
-
-            if (!product?.data) return;
-
-            const unit = product.unit || '';
-            const normalisedUnit = normaliseDDDUnit(unit);
-
-            Object.entries(product.data).forEach(([date, quantity]) => {
-                if (!shouldIncludeDate(date, period, latestDate)) return;
-
-                const parsedQuantity = parseFloat(quantity) || 0;
-                totals.total += parsedQuantity;
-
-                if (!totals.units[normalisedUnit]) {
-                    totals.units[normalisedUnit] = 0;
-                }
-                totals.units[normalisedUnit] += parsedQuantity;
-            });
-        });
-
-        let units = Object.entries(totals.units)
-            .sort(([, a], [, b]) => b - a)
-            .map(([unit, quantity]) => ({ unit, quantity }));
-        if (units.length === 0 && defaultUnits?.length) {
-            units = defaultUnits;
-        } else if (units.length === 0) {
-            units = [{ unit: '--', quantity: 0 }];
-        }
-        resultsMap.set(name, { key: name, total: totals.total, units });
-    });
-
-    const zeroUnits = defaultUnits?.length ? defaultUnits : [{ unit: '--', quantity: 0 }];
-    let allCategoryNames = [];
-    if (mode === 'region' && regionsHierarchy.length > 0) {
-        allCategoryNames = regionsHierarchy.map(r => r.region).filter(Boolean);
-    } else if (mode === 'icb' && regionsHierarchy.length > 0) {
-        allCategoryNames = regionsHierarchy.flatMap(r => (r.icbs || []).map(i => i.name)).filter(Boolean);
-    } else if (mode === 'national') {
-        allCategoryNames = ['National'];
-    }
-    allCategoryNames.forEach(name => {
-        if (!resultsMap.has(name)) {
-            resultsMap.set(name, { key: name, total: 0, units: zeroUnits });
-        }
-    });
-
-    return Array.from(resultsMap.values()).sort((a, b) => b.total - a.total);
-}
-
-function processRawDataMode(data, mode, period, latestDate, selectedOrganisations = [], months = []) {
-    if (!data?.length) return [];
-
-    const filteredData = data.map(item => filterItemDataByPeriod(item, period, latestDate, months));
-
-    const dataToProcess = selectedOrganisations.length > 0 
-        ? filteredData.filter(item => selectedOrganisations.includes(item.organisation__ods_name))
-        : filteredData;
-
-    const groupedData = {};
-
-    const singleUnitPerGroup = mode === 'product' || mode === 'unit';
-
-    dataToProcess.forEach(item => {
-        const groupKey = getGroupKey(item, mode);
-        
-        if (Array.isArray(groupKey)) {
-            groupKey.forEach(key => processItemForGroup(groupedData, key, item, months, period, latestDate, singleUnitPerGroup));
-        } else {
-            processItemForGroup(groupedData, groupKey, item, months, period, latestDate, singleUnitPerGroup);
-        }
-    });
-
-    return Object.entries(groupedData)
-        .map(([key, value]) => {
-            const units = value.unit != null
-                ? [{ unit: value.unit, quantity: value.total }]
-                : Object.entries(value.units || {})
-                    .sort(([, a], [, b]) => b - a)
-                    .map(([unit, quantity]) => ({ unit, quantity }));
-            return { key, total: value.total, units };
-        })
-        .sort((a, b) => b.total - a.total);
-}
-
-function getGroupKey(item, mode) {
-    switch (mode) {
-        case 'trust':
-            return item.organisation__ods_name || 'Unknown Organisation';
-        case 'product':
-            return item.vmp__name || 'Unknown Product';
-        case 'productGroup':
-            return item.vmp__vtm__name || 'Unknown Product Group';
-        case 'ingredient':
-            return item.ingredient_names?.length > 0 ? item.ingredient_names : ['Unknown Ingredient'];
-        case 'unit':
-            return item.unit ? [item.unit] : [];
-        default:
-            return item.vmp__name || 'Unknown';
-    }
-}
-
-function processItemForGroup(groupedData, groupKey, item, months = [], period, latestDate, singleUnitPerGroup = false) {
-    if (!groupedData[groupKey]) {
-        groupedData[groupKey] = singleUnitPerGroup
-            ? { total: 0, unit: '' }
-            : { total: 0, units: {} };
-    }
-
-    const g = groupedData[groupKey];
-    item.data?.forEach((value, i) => {
-        if (i >= months.length || !shouldIncludeDate(months[i], period, latestDate)) return;
-        const parsedQuantity = parseFloat(value) || 0;
-        g.total += parsedQuantity;
-
-        if (singleUnitPerGroup) {
-            if (!g.unit && item.unit) g.unit = normaliseDDDUnit(item.unit) || item.unit;
-        } else {
-            const normalisedUnit = normaliseDDDUnit(item.unit || '');
-            g.units[normalisedUnit] = (g.units[normalisedUnit] || 0) + parsedQuantity;
-        }
-    });
-}
-
-export function getModeDisplayName(mode) {
-    const modeNames = {
-        'trust': 'NHS Trust',
-        'region': 'Region',
-        'icb': 'ICB', 
-        'national': 'National total',
-        'product': 'Product',
-        'productGroup': 'Product group',
-        'ingredient': 'Ingredient',
-        'unit': 'Unit'
-    };
-    return modeNames[mode] || mode;
-}
-
-export function getChartExplainerText(mode, options = {}) {
-    const { hasSelectedOrganisations = false, currentModeHasData = true, vmpsCount = 0 } = options;
-
-    const baseExplainers = {
-        'trust': () => {
-            if (hasSelectedOrganisations) {
-                if (currentModeHasData) {
-                    return "This chart shows individual NHS Trust quantities over time for your selected trusts. Each line represents one trust, allowing you to compare their usage patterns.";
-                } else {
-                    return "This chart would show individual NHS Trust quantities, but the selected trusts have no data for these products.";
-                }
-            } else {
-                return "This chart shows individual NHS Trust quantities over time. Each line represents one trust, allowing you to compare usage patterns across different trusts.";
-            }
-        },
-
-        'icb': () => {
-            return "This chart shows quantities grouped by integrated care board (ICB) over time. Each line represents one ICB, combining data from all trusts within that area.";
-        },
-
-        'region': () => {
-            return "This chart shows quantities grouped by NHS region over time. Each line represents one region, combining data from all trusts within that area.";
-        },
-
-        'national': () => {
-            return "This chart shows the total national quantities over time, combining data from all NHS Trusts in England.";
-        },
-
-        'product': () => {
-            const trustContext = hasSelectedOrganisations ? 
-                "across the selected NHS Trusts" : 
-                "across all NHS Trusts";
-            
-            if (vmpsCount > 1) {
-                return `This chart compares quantities between different products over time. Each line represents one product, showing its total usage ${trustContext}.`;
-            } else {
-                return `This chart shows quantities for the selected product over time ${trustContext}.`;
-            }
-        },
-
-        'productGroup': () => {
-            const trustContext = hasSelectedOrganisations ? 
-                "within the selected NHS Trusts" : 
-                "across all NHS Trusts";
-            return `This chart shows quantities grouped by product category (VTM - Virtual Therapeutic Moiety) over time ${trustContext}. Each line represents a therapeutic group, combining all related products.`;
-        },
-
-        'ingredient': () => {
-            const trustContext = hasSelectedOrganisations ? 
-                "within the selected NHS Trusts" : 
-                "across all NHS Trusts";
-            return `This chart shows quantities grouped by active ingredient over time ${trustContext}. Each line represents one ingredient, combining the amount of that ingredient in the selected products.`;
-        },
-
-        'unit': () => {
-            const trustContext = hasSelectedOrganisations ? 
-                "within the selected NHS Trusts" : 
-                "across all NHS Trusts";
-            return `This chart shows quantities grouped by unit of measurement over time ${trustContext}. Each line represents one unit type (e.g., tablets, bottles, ampoules).`;
-        }
-    };
-
-    const explainerFunc = baseExplainers[mode];
-    if (explainerFunc) {
-        return explainerFunc();
-    }
-
-    return "This chart shows the selected data over time.";
-}
-
-export function getTableExplainerText(mode, options = {}) {
-    const { 
-        hasSelectedTrusts = false, 
-        selectedTrustsCount = 0,
-        selectedPeriod = 'all',
-        latestMonth = '',
-        latestYear = '',
-        dateRange = ''
-    } = options;
-
-    function getPeriodText() {
-        switch (selectedPeriod) {
-            case 'all':
-                return dateRange ? `across the period ${dateRange}` : 'across the entire period';
-            case 'latest_month':
-                return latestMonth ? `for ${latestMonth}` : 'for the latest month';
-            case 'latest_year':
-                return latestYear ? `for ${latestYear}` : 'for the latest year';
-            case 'current_fy':
-                if (latestMonth) {
-                    const latestDate = new Date(latestMonth);
-                    const fyStartYear = latestDate.getMonth() >= 3 ? 
-                        latestDate.getFullYear() : 
-                        latestDate.getFullYear() - 1;
-                    return `for the current financial year to date (April ${fyStartYear} - ${latestMonth})`;
-                }
-                return 'for the current financial year to date';
-            case 'last_12_months':
-                return 'for the last 12 months';
-            default:
-                return 'across the entire period';
-        }
-    }
-
-    const periodText = getPeriodText();
-
-    const baseExplainers = {
-        'trust': () => {
-            if (hasSelectedTrusts) {
-                return `This table shows the total quantities of the selected products issued by NHS trust ${periodText}. Data is grouped into "Selected trusts" (${selectedTrustsCount} trusts) and "All other trusts", allowing you to compare your selected NHS trusts against others.`;
-            } else {
-                return `This table shows the total quantities of the selected products issued by NHS trust ${periodText} for all trusts in England.`;
-            }
-        },
-
-        'region': () => {
-            return `This table shows the total quantities of the selected products issued in all NHS trusts in England by NHS region ${periodText}.`;
-        },
-
-        'icb': () => {
-            return `This table shows the total quantities of the selected products issued in all NHS trusts in England by integrated care board (ICB) ${periodText}.`;
-        },
-
-        'national': () => {
-            return `This table shows the total national quantity of the selected products issued in all NHS trusts in England ${periodText}.`;
-        },
-
-        'product': () => {
-            if (hasSelectedTrusts) {
-                return `This table shows the total quantities of each of the selected products issued ${periodText}, filtered to only include data from your ${selectedTrustsCount} selected NHS trusts.`;
-            } else {
-                return `This table shows the total quantities of each of the selected products issued ${periodText}, in all NHS trusts in England.`;
-            }
-        },
-
-        'productGroup': () => {
-            if (hasSelectedTrusts) {
-                return `This table shows the total quantities of the selected products issued by product group ${periodText}, filtered to only include data from your ${selectedTrustsCount} selected NHS trusts.`;
-            } else {
-                return `This table shows the total quantities of the selected products issued by product group ${periodText} for all NHS trusts in England.`;
-            }
-        },
-
-        'ingredient': () => {
-            if (hasSelectedTrusts) {
-                return `This table shows total quantities by active ingredient ${periodText}, filtered to only include data from your ${selectedTrustsCount} selected trusts.`;
-            } else {
-                return `This table shows total quantities by active ingredient ${periodText} for all trusts in England.`;
-            }
-        },
-
-        'unit': () => {
-            if (hasSelectedTrusts) {
-                return `This table shows total quantities by unit of measurement ${periodText}, filtered to only include data from your ${selectedTrustsCount} selected trusts.`;
-            } else {
-                return `This table shows total quantities by unit of measurement ${periodText} for all trusts in England.`;
-            }
-        }
-    };
-
-    const explainerFunc = baseExplainers[mode];
-    if (explainerFunc) {
-        return explainerFunc();
-    }
-
-    return `This table shows the total quantities of the selected products issued ${periodText}.`;
 }
 
 export function calculatePercentiles(data, allTrusts = [], months = []) {
@@ -1371,23 +1067,131 @@ export function getTrustCount(percentilesResult) {
     return percentilesResult.trustCount;
 }
 
-export const MODE_MAPPINGS = {
-    trust: 'trust',
-    region: 'region',
-    icb: 'icb',
-    national: 'national',
-    product: 'product',
-    productgroup: 'productGroup',
-    product_group: 'productGroup',
-    unit: 'unit',
-    ingredient: 'ingredient'
-};
 
-export function normaliseMode(mode) {
-    if (!mode || typeof mode !== 'string') return null;
-    const trimmed = mode.trim();
-    if (!trimmed) return null;
-    const lower = trimmed.toLowerCase();
-    const normalised = lower.replace(/[-\s]/g, '_');
-    return MODE_MAPPINGS[normalised] || MODE_MAPPINGS[lower] || null;
+export class ViewModeCalculator {
+    constructor(resultsStore, analyseOptions, organisationSearchStore, vmps, scope = ANALYSIS_SCOPE.ALL) {
+        this.resultsStore = resultsStore;
+        this.analyseOptions = analyseOptions;
+        this.organisationSearchStore = organisationSearchStore;
+        this.vmps = vmps;
+        this.scope = scope;
+    }
+
+    calculateAvailableModes() {
+        const modes = [];
+        
+        // Only add modes if there are VMPs with valid data
+        if (this.vmps && this.vmps.length > 0) {
+            if (this.scope === ANALYSIS_SCOPE.NATIONAL) {
+                modes.push({ value: 'national', label: getNationalModeLabel(this.scope) });
+                modes.push(...this.getProductModes());
+                return modes;
+            }
+
+            modes.push({ value: 'trust', label: 'NHS Trust' });
+            
+            modes.push(...this.getAggregationModes());
+            
+            modes.push(...this.getProductModes());
+        }
+        
+        return modes;
+    }
+
+    hasSelectedOrganisations() {
+        return this.analyseOptions.selectedOrganisations && 
+               this.analyseOptions.selectedOrganisations.length > 0;
+    }
+
+    hasSelectedOrganisationsWithData() {
+        if (!this.hasSelectedOrganisations()) return false;
+
+        const selectedOrgNames = new Set(this.analyseOptions.selectedOrganisations);
+
+        const selectedOrganisationsWithData = this.resultsStore.analysisData
+            ?.filter(item => {
+                const orgName = item.organisation__ods_name;
+                const isSelected = selectedOrgNames.has(orgName);
+                const hasData = item.data && Array.isArray(item.data) &&
+                    item.data.some(v => v > 0 && !isNaN(parseFloat(v)));
+                return isSelected && hasData;
+            }) || [];
+
+        return selectedOrganisationsWithData.length >= 1;
+    }
+
+    getAggregationModes() {
+        const modes = [];
+
+        if (!this.resultsStore.aggregatedData) return modes;
+        
+        const { regions = {}, icbs = {}, national = {} } = this.resultsStore.aggregatedData;
+        
+        if (icbs && Object.keys(icbs).length > 1) {
+            modes.push({ value: 'icb', label: 'ICB' });
+        }
+        
+        if (regions && Object.keys(regions).length > 1) {
+            modes.push({ value: 'region', label: 'Region' });
+        }
+        
+        if (
+            this.scope !== ANALYSIS_SCOPE.TRUST &&
+            national &&
+            Object.keys(national).length > 0
+        ) {
+            modes.push({ value: 'national', label: getNationalModeLabel(this.scope) });
+        }
+
+        if (this.resultsStore.analysisData) {
+            const mappedICBs = new Set(
+                this.resultsStore.analysisData.map(item => item.organisation__icb).filter(Boolean)
+            );
+
+            if (mappedICBs.size > 1 && !modes.some(m => m.value === 'icb')) {
+                modes.push({ value: 'icb', label: 'ICB' });
+            }
+
+            const uniqueRegions = new Set(this.resultsStore.analysisData.map(item => item.organisation__region).filter(Boolean));
+            if (uniqueRegions.size > 1 && !modes.some(m => m.value === 'region')) {
+                modes.push({ value: 'region', label: 'Region' });
+            }
+        }
+        
+        return modes;
+    }
+
+    getProductModes() {
+        const modes = [];
+        
+        if (!this.vmps || this.vmps.length === 0) return modes;
+
+        if (this.vmps.length > 1) {
+            modes.push({ value: 'product', label: 'Product' });
+        }
+
+        const uniqueVtms = new Set(this.vmps.map(vmp => vmp.vtm).filter(vtm => vtm && vtm !== '-' && vtm !== 'nan'));
+        if (uniqueVtms.size > 1) {
+            modes.push({ value: 'productGroup', label: 'Product Group' });
+        }
+
+        const uniqueIngredients = new Set(
+            this.vmps.flatMap(vmp => (vmp.ingredients || []))
+                .filter(ing => ing && ing !== '-' && ing !== 'nan')
+        );
+        if (uniqueIngredients.size > 1) {
+            modes.push({ value: 'ingredient', label: 'Ingredient' });
+        }
+
+        const uniqueUnits = new Set(
+            this.vmps.flatMap(vmp => Array.from(vmp.units || []))
+                .filter(unit => unit && unit !== '-' && unit !== 'nan')
+                .map(unit => normaliseDDDUnit(unit))
+        );
+        if (uniqueUnits.size > 1) {
+            modes.push({ value: 'unit', label: 'Unit' });
+        }
+
+        return modes;
+    }
 }
