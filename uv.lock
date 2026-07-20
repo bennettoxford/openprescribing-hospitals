@@ -367,7 +367,7 @@ wheels = [
 
 [[package]]
 name = "db-dtypes"
-version = "1.7.0"
+version = "1.7.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
@@ -375,9 +375,9 @@ dependencies = [
     { name = "pandas" },
     { name = "pyarrow" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/67/9f/5569a989ad23915e51fd1b4a52ecbc7513832c1c7b5e5df262bcecae1b21/db_dtypes-1.7.0.tar.gz", hash = "sha256:30951c7cda9e5455e43636eebe041c9a637ff28bc49a95d82cb68759d7625467", size = 35793, upload-time = "2026-06-03T14:52:07.908Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7d/bc/b348b35245452af9a6c8a360ae3434f027b919349a786d1cb73ded0c234e/db_dtypes-1.7.1.tar.gz", hash = "sha256:75adf3bdf3174a6474ea4162d9a345ea0b3102ec4fd603e69ec26b6e8a99145a", size = 36036, upload-time = "2026-07-08T17:03:35.671Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/be/7a/797ed371bde520223e49dbbe0f8762fa4cc724d0e21fc6af944bb8f82150/db_dtypes-1.7.0-py3-none-any.whl", hash = "sha256:c80a1d9bc7dda3cc63638a3f2cf4ec27af50b809ec2d92b8a94cb9d8438cdc76", size = 17740, upload-time = "2026-06-03T14:51:15.287Z" },
+    { url = "https://files.pythonhosted.org/packages/83/5a/5601050daf8f21d201e7ff68cda559aac56b5be18632876daf7a711809b5/db_dtypes-1.7.1-py3-none-any.whl", hash = "sha256:450b94cd010cfa6d4d13cca2593009eba4fbe15516084c332cde1a47bbce0625", size = 17768, upload-time = "2026-07-08T17:03:03.252Z" },
 ]
 
 [[package]]
@@ -606,7 +606,7 @@ wheels = [
 
 [[package]]
 name = "google-cloud-bigquery"
-version = "3.42.1"
+version = "3.42.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-api-core", extra = ["grpc"] },
@@ -617,9 +617,9 @@ dependencies = [
     { name = "python-dateutil" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/15/a2/be1cffbb1a9894ecf394ab0096b113ae9e4f73686595d906a9f3082b07c2/google_cloud_bigquery-3.42.1.tar.gz", hash = "sha256:3c6878f424fc2b21f0bb414ca7262abd008465575a7b7c44c552105278a18914", size = 515411, upload-time = "2026-06-22T23:21:05.884Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a0/7a/6109aa1803b0c8c93c7064e0e555cff1b12e1692b7b7bc63cdc1619e3722/google_cloud_bigquery-3.42.2.tar.gz", hash = "sha256:08d4b264e5ee4790f719724c76b538f204b7190999328a2f1a6a95eaab74ca39", size = 517250, upload-time = "2026-07-08T17:03:40.675Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7a/1e/8b098aeb69ef87de5195d076ce6d82002c3ebf1920373d386ca7b6e63cfa/google_cloud_bigquery-3.42.1-py3-none-any.whl", hash = "sha256:159143c1b7248858f35549c09efea5d031c2883145623419ea7c505a50c0899a", size = 263814, upload-time = "2026-06-22T23:18:42.313Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/ee/3f3ff62d4ce39e6868ef9b98bea0af46f0c9c270092ef64d2bb5897c6e11/google_cloud_bigquery-3.42.2-py3-none-any.whl", hash = "sha256:41658c19e8ed5b83307011b4e55aca3b1f72052545a22788f1d637984615173f", size = 264272, upload-time = "2026-07-08T17:03:09.511Z" },
 ]
 
 [[package]]
@@ -670,7 +670,7 @@ wheels = [
 
 [[package]]
 name = "google-cloud-storage"
-version = "3.12.0"
+version = "3.12.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-api-core" },
@@ -680,9 +680,9 @@ dependencies = [
     { name = "google-resumable-media" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/58/72/86f94e1639a8bcd9d33e8e01b49afcaa1c3a13bda7683c681717e0901e15/google_cloud_storage-3.12.0.tar.gz", hash = "sha256:03ae9847c6babb368f35f054126b8a08cbc0e3266efb990eb17b9926a45cf3be", size = 17338620, upload-time = "2026-06-12T18:03:29.215Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/ac/60b4cb0a6c8c6bb7cedb8971ba5e34a94096acf76e2cc242bcf1e6fc5c49/google_cloud_storage-3.12.1.tar.gz", hash = "sha256:1d81491c7663bc26c5056d00b834356f2253b910ef467f9cf9928a87fca1e04b", size = 17339353, upload-time = "2026-07-08T17:03:59.142Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1b/bd/a89eaebd2f9db5f92ddcc8e4f23c266be1dbd11058bb83451d8dd029f34c/google_cloud_storage-3.12.0-py3-none-any.whl", hash = "sha256:3880773754ddf7c27567b04e2a4d193950b6b99429f37b9097d873686e95b09c", size = 340605, upload-time = "2026-06-12T18:03:12.677Z" },
+    { url = "https://files.pythonhosted.org/packages/80/6e/ca176e95bafac0fe7befeee7e0420e686de147571cd2908e308c5fe71bda/google_cloud_storage-3.12.1-py3-none-any.whl", hash = "sha256:9297ae0c2ce3f5400b1f2bb3a3e6d2cd256614366e03cd30600871df8e903afb", size = 340845, upload-time = "2026-07-08T17:03:31.418Z" },
 ]
 
 [[package]]
@@ -1219,7 +1219,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "requests", specifier = ">=2.33.0" },
     { name = "schema", specifier = ">=0.7.7" },
-    { name = "tqdm", specifier = ">=4.68.3" },
+    { name = "tqdm", specifier = ">=4.68.4" },
     { name = "whitenoise", specifier = ">=6.6.0" },
 ]
 
@@ -1230,17 +1230,17 @@ dev = [
 ]
 pipeline = [
     { name = "beautifulsoup4", specifier = ">=4.15.0" },
-    { name = "db-dtypes", specifier = ">=1.7.0" },
-    { name = "google-cloud-bigquery", specifier = ">=3.42.1" },
+    { name = "db-dtypes", specifier = ">=1.7.1" },
+    { name = "google-cloud-bigquery", specifier = ">=3.42.2" },
     { name = "google-cloud-bigquery-storage", specifier = ">=2.39.0" },
     { name = "google-cloud-secret-manager", specifier = ">=2.29.0" },
-    { name = "google-cloud-storage", specifier = ">=3.12.0" },
+    { name = "google-cloud-storage", specifier = ">=3.12.1" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pandas-gbq", specifier = ">=0.26.1" },
-    { name = "prefect", specifier = ">=3.7.6" },
+    { name = "prefect", specifier = ">=3.7.7" },
     { name = "prefect-gcp", specifier = ">=0.6.20" },
     { name = "pyarrow", specifier = ">=19.0.1" },
     { name = "requests", specifier = ">=2.33.0" },
@@ -1397,7 +1397,7 @@ wheels = [
 
 [[package]]
 name = "prefect"
-version = "3.7.6"
+version = "3.7.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiosqlite" },
@@ -1457,9 +1457,9 @@ dependencies = [
     { name = "uvicorn" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fd/0e/9f950eb98408f45b0ba3a4410a349d8f830abdcffe05058499eca7260ca9/prefect-3.7.6.tar.gz", hash = "sha256:f35ae765369bc0ab70d622f46e163f38dfad99589e86baa780262166b815212c", size = 14125194, upload-time = "2026-06-25T23:59:41.979Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cc/d0/03cbd44531c51db3af65464c118ddbb09cf5572df18545a019bc730bfed1/prefect-3.7.7.tar.gz", hash = "sha256:816fd64369927916d88480fda24a6c2104f8f53e5adcaee9d6a638f553c023db", size = 14129007, upload-time = "2026-07-03T12:07:56.549Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/48/f2/0769d480c05b33a77a330bd49783d62c32c5e0b4b8303c031e7076ad5bc9/prefect-3.7.6-py3-none-any.whl", hash = "sha256:6ddf34b58b472cb30b44ba0705a5785be94fc1015776d86cc970760baef94f44", size = 15019522, upload-time = "2026-06-25T23:59:38.829Z" },
+    { url = "https://files.pythonhosted.org/packages/27/fb/5edba59724f3c23497b268330ed6a6e9f87d3419fede9a3cebebf489d83f/prefect-3.7.7-py3-none-any.whl", hash = "sha256:c406c2ecba126f228ce150613179a9dbf542f0342a9f3d85bcfe2babad5802e7", size = 15025258, upload-time = "2026-07-03T12:07:53.617Z" },
 ]
 
 [[package]]
@@ -2197,14 +2197,14 @@ wheels = [
 
 [[package]]
 name = "tqdm"
-version = "4.68.3"
+version = "4.68.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/87/d7/0535a28b1f5f24f6612fb3ff1e89fb1a8d160fee0f976e0aa6803862134b/tqdm-4.68.3.tar.gz", hash = "sha256:00dfa48452b6b6cfae3dd9885636c23d3422d1ec97c66d96818cbd5e0821d482", size = 170596, upload-time = "2026-06-17T07:36:52.105Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ae/5f/57ff8b434839e70dab45601284ea413e947a63799891b7553e5960a793a8/tqdm-4.68.4.tar.gz", hash = "sha256:19829c9673638f2a0b8617da4cdcb927e831cd88bcfcb6e78d42a4d1af131520", size = 792418, upload-time = "2026-07-07T09:58:18.369Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d8/8e/bb97bb0c71802080bfc8952937d174e49cfc50de5c951dd47b2496f0dcdb/tqdm-4.68.3-py3-none-any.whl", hash = "sha256:39832cc2def2789a6f29df83f172db7416cea70052c0907a57801c5f2fdccb03", size = 78337, upload-time = "2026-06-17T07:36:50.132Z" },
+    { url = "https://files.pythonhosted.org/packages/22/2a/5e5e750890ada51017d18d0d4c30da696e5b5bd3180947729927628fc3cb/tqdm-4.68.4-py3-none-any.whl", hash = "sha256:5168118b2368f48c561afda8020fd79195b1bdb0bdf8086b88442c267a315dc2", size = 676612, upload-time = "2026-07-07T09:58:16.256Z" },
 ]
 
 [[package]]
