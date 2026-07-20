@@ -419,6 +419,9 @@ def get_quantity_data(request):
 
     try:
         scope_value = scope.strip().lower() if isinstance(scope, str) else "all"
+        if not request.user.is_authenticated and scope_value != "all":
+            scope_value = "all"
+            ods_codes = []
         is_national_scope = scope_value == "national"
 
         base_vmps = list(VMP.objects.filter(

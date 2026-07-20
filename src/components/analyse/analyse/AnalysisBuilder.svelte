@@ -498,6 +498,7 @@
                     resultsStore.update(store => ({ ...store, showPercentiles: true }));
                 }
             }
+            dispatch('overlaySelectionChange');
         }
     }
 
