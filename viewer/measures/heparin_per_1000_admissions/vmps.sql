@@ -2,13 +2,12 @@ SELECT DISTINCT
     vmp.id AS vmp_id,
     'numerator' AS vmp_type
 FROM viewer_vmp vmp
-WHERE EXISTS (
-    SELECT 1
-    FROM viewer_vmpingredientstrength vis
-    JOIN viewer_ingredient ing
-        ON ing.id = vis.ingredient_id
-    WHERE vis.vmp_id = vmp.id
-      AND LOWER(ing.name) LIKE '%heparin sodium%'
-      AND vis.strnt_nmrtr_val >= 20000
-)
-AND LOWER(TRIM(vmp.unit_dose_uom)) NOT LIKE '%eye%';
+WHERE vmp.id IN (
+    35088311000001102,
+    38019111000001104,
+    36054911000001100,
+    36054811000001105,
+    36054711000001102,
+    36054511000001107,
+    36054411000001108
+);
