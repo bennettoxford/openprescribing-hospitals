@@ -2,7 +2,7 @@ SELECT DISTINCT
     vmp.id AS vmp_id,
     'numerator' AS vmp_type
 FROM viewer_vmp vmp
-WHERE vmp.id IN (
+WHERE vmp.code IN (
     35088311000001102,
     38019111000001104,
     36054911000001100,
