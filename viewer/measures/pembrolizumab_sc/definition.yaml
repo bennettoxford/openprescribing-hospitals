@@ -10,6 +10,7 @@ how_is_it_calculated: |
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Efficiency
+    - Cancer
 quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
 y_axis_label: '% subcutaneous pembrolizumab'
 lower_is_better: false
@@ -18,4 +19,4 @@ checked_by: tbc # Name of clinical/technical reviewer
 first_published: 2026-07-08 # Date of first publication (YYYY-MM-DD)
 date_reviewed: 2026-07-08 # Date of last review (YYYY-MM-DD)
 next_review: 2027-07-08 # Date of next scheduled review (YYYY-MM-DD)
-status: in_development
+status: preview
