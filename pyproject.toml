@@ -38,7 +38,7 @@ pipeline = [
     "pandas-gbq>=0.26.1",
     "prefect>=3.7.7",
     "prefect-gcp>=0.6.20",
-    "pyarrow>=19.0.1",
+    "pyarrow>=25.0.0",
     "requests>=2.33.0",
 ]
 dev = [
