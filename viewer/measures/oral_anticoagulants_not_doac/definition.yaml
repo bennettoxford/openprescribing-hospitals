@@ -4,14 +4,9 @@ short_description: The percentage of oral anticoagulants not issued as direct or
 description: |
   The percentage of oral anticoagulants not issued as direct oral anticoagulants (DOACs).
 why_it_matters: |
-  [NICE guidance on atrial fibrillation](https://www.nice.org.uk/guidance/ng196/chapter/Recommendations)
-  recommends offering a direct-acting oral anticoagulant for many people who need anticoagulation
-  for stroke prevention, and using a vitamin K antagonist (VKA) such as warfarin when a DOAC is
-  contraindicated, not tolerated or not suitable.
-
-  Lower is better for this measure, because it reflects a lower proportion of oral anticoagulant
-  use accounted for by VKAs. However, some use of warfarin is clinically appropriate, including 
-  for people with mechanical heart valves or triple positive antiphospholipid syndrome.
+  [NICE guidance](https://www.nice.org.uk/guidance/ng196/chapter/Recommendations) recommends direct-acting oral anticoagulants (DOACs) for people with atrial fibrillation who require stroke prevention. The guidance states that vitamin K antagonists (such as warfarin) should be offered to people in whom a DOAC is contraindicated, not tolerated or otherwise unsuitable. NICE recommends that patients who are already established on warfarin and have stable anticoagulation may continue treatment, with discussion about switching to a DOAC at a routine review, taking into account their time in therapeutic range.
+  
+  Lower values are generally better for this measure, as atrial fibrillation is the most common indication for oral anticoagulation and most eligible patients can be treated with a DOAC.     However, vitamin K antagonists remain the recommended treatment for some patients, including those with mechanical heart valves or triple-positive antiphospholipid syndrome, and may also be   appropriate where DOACs are contraindicated, not tolerated or otherwise unsuitable.
 how_is_it_calculated: >
   We identify oral anticoagulant products using Virtual Therapeutic Moiety (VTM) codes. We then
   divide the number of [Defined Daily Doses (DDDs)](/faq/#what-is-a-defined-daily-dose-ddd) for
@@ -21,7 +16,8 @@ how_is_it_calculated: >
   have a comparable DDD allocation.
 tags:
   - Safety
+  - Antithrombotic Stewardship
 quantity_type: ddd
-y_axis_label: '% non-DOAC oral anticoagulant'
+y_axis_label: '% Vitamin K antagonists'
 lower_is_better: true
-status: in_development
+status: preview
