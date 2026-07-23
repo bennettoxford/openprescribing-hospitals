@@ -39,6 +39,64 @@ from .measures import (
     series_dict_to_chart_points,
 )
 
+
+def add_quantity_data(existing, new_data):
+    """Element-wise sum of new_data into existing, padding with zeros."""
+    new_data = new_data or []
+    for i in range(max(len(existing), len(new_data))):
+        while len(existing) <= i:
+            existing.append(0)
+        add_val = float(new_data[i] or 0) if i < len(new_data) else 0
+        existing[i] = existing[i] + add_val
+
+
+def group_quantity_rows(quantity_data, *, national):
+    """Group quantity rows by VMP (national) or (VMP, effective org)."""
+    grouped = {}
+    for item in quantity_data:
+        if national:
+            key = item.vmp_id
+            effective_org = None
+        else:
+            org = item.organisation
+            effective_org = org.successor if org.successor_id else org
+            key = (item.vmp_id, effective_org.id)
+
+        if key not in grouped:
+            grouped[key] = {
+                'item': item,
+                'effective_org': effective_org,
+                'data': list(item.data or []),
+            }
+        else:
+            add_quantity_data(grouped[key]['data'], item.data)
+    return grouped
+
+
+def build_quantity_response_row(
+    base_metadata, vmp_id, group, quantity_type, ddd_unit_map
+):
+    source_item = group['item'] if group else None
+    effective_org = group['effective_org'] if group else None
+    return {
+        **base_metadata,
+        'organisation__ods_code': effective_org.ods_code if effective_org else None,
+        'organisation__ods_name': effective_org.ods_name if effective_org else None,
+        'organisation__region': (
+            effective_org.region.name if effective_org and effective_org.region else None
+        ),
+        'organisation__icb': (
+            effective_org.icb.name if effective_org and effective_org.icb else None
+        ),
+        'data': group['data'] if group else [],
+        'unit': (
+            ddd_unit_map.get(vmp_id, "DDD")
+            if quantity_type == "Defined Daily Dose Quantity"
+            else (source_item.unit if source_item else None)
+        ),
+    }
+
+
 @api_view(["GET"])
 def search_products(request):
     search_type = request.GET.get("type", "product")
@@ -331,7 +389,8 @@ def _populate_ddd_quantity_info(vmp_ids, vmp_info):
 @api_view(["POST"])
 def get_quantity_data(request):
     search_items = request.data.get("names", None)
-    ods_names = request.data.get("ods_names", None)
+    ods_codes = request.data.get("ods_codes", None)
+    scope = request.data.get("scope", "all")
     quantity_type = request.data.get("quantity_type", None)
     
     if not all([search_items, quantity_type]):
@@ -359,6 +418,9 @@ def get_quantity_data(request):
         return Response({"error": "No valid VMPs found"}, status=400)
 
     try:
+        scope_value = scope.strip().lower() if isinstance(scope, str) else "all"
+        is_national_scope = scope_value == "national"
+
         base_vmps = list(VMP.objects.filter(
             id__in=vmp_ids
         ).select_related('vtm').annotate(
@@ -383,15 +445,15 @@ def get_quantity_data(request):
                 'ingredient_codes': ingredient_codes
             }
             base_vmp_metadata[vmp['id']] = base_metadata
-            response_item = {
-                **base_metadata,
-                'organisation__ods_code': None,
-                'organisation__ods_name': None,
-                'organisation__region': None,
-                'organisation__icb': None,
-                'data': []
-            }
-            response_data.append(response_item)
+            if not is_national_scope:
+                response_data.append({
+                    **base_metadata,
+                    'organisation__ods_code': None,
+                    'organisation__ods_name': None,
+                    'organisation__region': None,
+                    'organisation__icb': None,
+                    'data': []
+                })
 
         quantity_model = {
             "SCMD Quantity": SCMDQuantity,
@@ -405,65 +467,44 @@ def get_quantity_data(request):
             quantity_queryset = quantity_model.objects.filter(
                 vmp_id__in=vmp_ids
             )
-            if ods_names:
+            if not is_national_scope and isinstance(ods_codes, list) and len(ods_codes) > 0:
                 quantity_queryset = quantity_queryset.filter(
-                    Q(organisation__ods_name__in=ods_names)
-                    | Q(organisation__successor__ods_name__in=ods_names)
+                    Q(organisation__ods_code__in=ods_codes)
+                    | Q(organisation__successor__ods_code__in=ods_codes)
                 )
             select_related_fields = [
                 'vmp',
                 'vmp__vtm',
-                'organisation',
-                'organisation__region',
-                'organisation__icb',
-                'organisation__successor',
             ]
+            if not is_national_scope:
+                select_related_fields.extend([
+                    'organisation',
+                    'organisation__region',
+                    'organisation__icb',
+                    'organisation__successor',
+                ])
             if quantity_model is not DDDQuantity:
                 select_related_fields.append('quantity_unit')
             quantity_queryset = quantity_queryset.select_related(*select_related_fields)
             quantity_data = list(quantity_queryset)
 
-            grouped = {}
-            for item in quantity_data:
-                org = item.organisation
-                effective_org = org.successor if org.successor_id else org
-                key = (item.vmp_id, effective_org.id)
-                if key not in grouped:
-                    grouped[key] = {
-                        'item': item,
-                        'effective_org': effective_org,
-                        'data': list(item.data or []),
-                    }
-                else:
-                    existing = grouped[key]['data']
-                    new_data = item.data or []
-                    for i in range(max(len(existing), len(new_data))):
-                        while len(existing) <= i:
-                            existing.append(0)
-                        add_val = float(new_data[i] or 0) if i < len(new_data) else 0
-                        existing[i] = existing[i] + add_val
-
-            for (vmp_id, _), group in grouped.items():
-                item = group['item']
-                effective_org = group['effective_org']
-                base_metadata = base_vmp_metadata.get(vmp_id)
-                ingredient_names = base_metadata['ingredient_names'] if base_metadata else [ing.name for ing in item.vmp.ingredients.all()]
-                ingredient_codes = base_metadata['ingredient_codes'] if base_metadata else [ing.code for ing in item.vmp.ingredients.all()]
-                response_item = {
-                    'vmp__code': base_metadata['vmp__code'] if base_metadata else item.vmp.code,
-                    'vmp__name': base_metadata['vmp__name'] if base_metadata else item.vmp.name,
-                    'vmp__vtm__vtm': base_metadata['vmp__vtm__vtm'] if base_metadata else (item.vmp.vtm.vtm if item.vmp.vtm else None),
-                    'vmp__vtm__name': base_metadata['vmp__vtm__name'] if base_metadata else (item.vmp.vtm.name if item.vmp.vtm else None),
-                    'ingredient_names': ingredient_names,
-                    'ingredient_codes': ingredient_codes,
-                    'organisation__ods_code': effective_org.ods_code,
-                    'organisation__ods_name': effective_org.ods_name,
-                    'organisation__region': effective_org.region.name if effective_org.region else None,
-                    'organisation__icb': effective_org.icb.name if effective_org.icb else None,
-                    'data': group['data'],
-                    'unit': ddd_unit_map.get(vmp_id, "DDD") if quantity_type == "Defined Daily Dose Quantity" else item.unit,
-                }
-                response_data.append(response_item)
+            grouped = group_quantity_rows(quantity_data, national=is_national_scope)
+            if is_national_scope:
+                emit_items = (
+                    (vmp_id, base_vmp_metadata[vmp_id], grouped.get(vmp_id))
+                    for vmp_id in base_vmp_metadata
+                )
+            else:
+                emit_items = (
+                    (vmp_id, base_vmp_metadata[vmp_id], group)
+                    for (vmp_id, _), group in grouped.items()
+                )
+            for vmp_id, base_metadata, group in emit_items:
+                response_data.append(
+                    build_quantity_response_row(
+                        base_metadata, vmp_id, group, quantity_type, ddd_unit_map
+                    )
+                )
 
         months = get_quantity_months()
         return Response({"months": months, "items": response_data})
@@ -731,7 +772,6 @@ def build_single_product_data(vmp, quantity_data):
         'ddd_logic': ddd_logic,
         'ingredient_logic': ingredient_logic
     }
-
 
 
 def validate_and_sanitize_codes(codes_list, max_length, code_type, regex_pattern=None, numeric_only=False, errors=None, allowed_lengths=None):
