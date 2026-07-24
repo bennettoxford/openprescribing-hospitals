@@ -1069,12 +1069,13 @@ export function getTrustCount(percentilesResult) {
 
 
 export class ViewModeCalculator {
-    constructor(resultsStore, analyseOptions, organisationSearchStore, vmps, scope = ANALYSIS_SCOPE.ALL) {
+    constructor(resultsStore, analyseOptions, organisationSearchStore, vmps, scope = ANALYSIS_SCOPE.ALL, isAuthenticated = false) {
         this.resultsStore = resultsStore;
         this.analyseOptions = analyseOptions;
         this.organisationSearchStore = organisationSearchStore;
         this.vmps = vmps;
         this.scope = scope;
+        this.isAuthenticated = isAuthenticated;
     }
 
     calculateAvailableModes() {
@@ -1122,6 +1123,10 @@ export class ViewModeCalculator {
 
     getAggregationModes() {
         const modes = [];
+
+        if (!this.isAuthenticated && this.hasSelectedOrganisations()) {
+            return modes;
+        }
 
         if (!this.resultsStore.aggregatedData) return modes;
         

@@ -59,6 +59,9 @@
     export let annotations = '[]';
     export let defaultviewmode = 'trust';
 
+    modeSelectorStore.setSelectedMode(defaultviewmode);
+    selectedMode.set(defaultviewmode);
+
     let trusts = [];
     let icbs = [];
     let regions = [];
@@ -966,7 +969,6 @@
             <div class="w-full sm:w-fit sm:min-w-[130px]">
                 <ModeSelector 
                     options={modeOptions}
-                    initialMode={defaultviewmode}
                     label="View by"
                     onChange={handleModeChange}
                     variant="dropdown"

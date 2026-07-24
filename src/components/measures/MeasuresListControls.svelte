@@ -60,6 +60,22 @@
         { value: 'name', label: 'Alphabetical' },
         { value: 'newest', label: 'Newest first' },
     ];
+
+    function resolveInitialMeasuresMode() {
+        if (typeof window !== 'undefined') {
+            const urlMode = new URLSearchParams(window.location.search).get('mode');
+            if (['national', 'region', 'trust'].includes(urlMode)) {
+                return urlMode;
+            }
+        }
+        const rawMode = selectedMode || 'trust';
+        return ['national', 'region', 'trust'].includes(rawMode) ? rawMode : 'trust';
+    }
+
+    const seededMeasuresMode = resolveInitialMeasuresMode();
+    mode.set(seededMeasuresMode);
+    modeSelectorStore.setSelectedMode(seededMeasuresMode);
+
     $: selectedItems = $organisationSearchStore?.selectedItems || [];
 
     $: listPageTitle = (() => {
@@ -374,7 +390,6 @@
             <div class="w-full lg:w-fit lg:min-w-[130px]">
                 <ModeSelector
                     options={modeOptions}
-                    initialMode={$mode}
                     label="View by"
                     onChange={handleModeChange}
                     variant="dropdown"

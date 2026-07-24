@@ -1,36 +1,56 @@
-<svelte:options customElement={{
-    tag: 'analysis-results',
-    shadow: 'none'
-  }} />
+<svelte:options runes={false} customElement={{ tag: 'analysis-results', shadow: 'none' }} />
 
 <script>
     import { onDestroy, onMount } from 'svelte';
     import TotalsTable from './TotalsTable.svelte';
     import ProductsTable from './ProductsTable.svelte';
+    import ResultsChartControls from './ResultsChartControls.svelte';
     import { resultsStore } from '../../../stores/resultsStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
     import Chart from '../../common/Chart.svelte';
-    import { modeSelectorStore } from '../../../stores/modeSelectorStore';
-    import { chartConfig } from '../../../utils/chartConfig.js';
-    import ModeSelector from '../../common/ModeSelector.svelte';
+    import { modeSelectorStore, reconcileSelectedMode, selectDefaultMode } from '../../../stores/modeSelectorStore';
     import { createChartStore } from '../../../stores/chartStore';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
-    import { formatNumber, getCurrentUrl, copyToClipboard, getUrlParams } from '../../../utils/utils';
-    import { normaliseMode } from '../../../utils/analyseUtils.js';
-    import pluralize from 'pluralize';
-    import { ChartDataProcessor, ViewModeCalculator, selectDefaultMode, processTableDataByMode, calculatePercentiles, getTrustCount, getChartExplainerText } from '../../../utils/analyseUtils.js';
+    import { createResultsModeSearchStore } from '../../../stores/resultsModeSearchStore';
+    import { getCurrentUrl, copyToClipboard, getUrlParams } from '../../../utils/utils';
+    import { ViewModeCalculator, processTableDataByMode } from '../lib/analyseData.js';
+    import {
+        ANALYSIS_SCOPE,
+        arePercentilesDisabled,
+        computePercentileScopeConstraints,
+        getChartExplainerText,
+        getPercentileChartIntroText,
+        formatScopeFilterDescription,
+        formatInScopePopulationPhrase,
+        normaliseMode,
+        isAggregationChartMode,
+    } from '../lib/analysisScope.js';
+    import {
+        allOverlaySelection,
+        resolveChartOverlayLocals,
+        commitChartDimensionSelection as commitChartDimensionSelectionHelper,
+        buildOrganisationSelectionPatch,
+        applyResultsModeSearchSync,
+        buildResultsModeSearchSync,
+        clampTrustOverlaySelection,
+    } from '../lib/chartOverlay.js';
+    import {
+        buildResultsChartPipeline,
+        buildResultsTooltipContent,
+        buildChartExportOrganisations,
+        buildVmpsFromSelectedData,
+    } from '../lib/resultsChartPipeline.js';
 
-  export let className = '';
-  export let isAnalysisRunning;
-  export let analysisData;
-  export let showResults;
-  export let urlValidationErrors = [];
+    export let className = '';
+    export let urlValidationErrors = [];
+    export let isAuthenticated = false;
+
+    $: isAuth = isAuthenticated === true || isAuthenticated === 'true';
 
     let selectedData = [];
     let vmps = [];
     let filteredData = [];
     let viewModes = [];
-    let viewModeCalculator;
     let isCopyingShareLink = false;
     let showShareToast = false;
     let shareToastMessage = '';
@@ -40,11 +60,15 @@
     let showTrustCountDetails = false;
     let modeFromUrl = null;
     let isModeFromUrlApplied = false;
+    let previousSelectedMode = null;
+    let availableTrusts = [];
+    let selectedRegions = [];
+    let selectedIcbs = [];
+    let regionOverlaySelection = allOverlaySelection();
+    let icbOverlaySelection = allOverlaySelection();
 
     if (typeof window !== 'undefined') {
-        const params = getUrlParams();
-        const modeParam = params.get('mode');
-        modeFromUrl = normaliseMode(modeParam);
+        modeFromUrl = normaliseMode(getUrlParams().get('mode'));
     }
 
     const resultsChartStore = createChartStore({
@@ -52,12 +76,9 @@
         yAxisLabel: 'units',
         yAxisRange: [0, 100],
         visibleItems: new Set(),
-        yAxisBehavior: {
-            forceZero: true,
-            padTop: 1.1,
-            resetToInitial: true
-        }
+        yAxisBehavior: { forceZero: true, padTop: 1.1, resetToInitial: true }
     });
+    const resultsModeSearchStore = createResultsModeSearchStore();
 
     onMount(() => {
         resultsChartStore.setDimensions({
@@ -66,83 +87,167 @@
         });
     });
 
+    onDestroy(() => {
+        if (shareToastTimeout) clearTimeout(shareToastTimeout);
+    });
+
     $: excludedVmps = Array.isArray($resultsStore.excludedVmps) ? $resultsStore.excludedVmps : [];
+    $: analysisScope = $resultsStore.scope || ANALYSIS_SCOPE.ALL;
+    $: availableTrusts = Array.isArray($resultsStore.inScopeTrusts) ? $resultsStore.inScopeTrusts : [];
+    $: isFilteredScope = analysisScope === ANALYSIS_SCOPE.GROUP;
+    $: isTrustScope = analysisScope === ANALYSIS_SCOPE.TRUST;
+    $: scopeFilterDescription = isFilteredScope
+        ? formatScopeFilterDescription($resultsStore.scopeFilters || {})
+        : '';
+    $: inScopeTrustCount = availableTrusts.length;
+    $: inScopeTrustLabel = isFilteredScope ? 'in-scope trusts' : 'trusts';
+    $: percentilePopulationLabel = isFilteredScope
+        ? formatInScopePopulationPhrase({
+            trustCount: inScopeTrustCount,
+            filterDescription: scopeFilterDescription,
+            includeArticle: false
+        })
+        : 'all NHS Trusts';
+    $: isOverlaySelectionScope = [ANALYSIS_SCOPE.ALL, ANALYSIS_SCOPE.GROUP].includes(analysisScope);
+    $: hasRegionMode = viewModes.some(mode => mode.value === 'region');
+    $: hasIcbMode = viewModes.some(mode => mode.value === 'icb');
+    $: shouldShowOrganisationSearch = isAuth && (
+        ($modeSelectorStore.selectedMode === 'trust' && isOverlaySelectionScope) ||
+        ($modeSelectorStore.selectedMode === 'region' && hasRegionMode) ||
+        ($modeSelectorStore.selectedMode === 'icb' && hasIcbMode)
+    );
+    $: percentilesDisabled = arePercentilesDisabled(analysisScope, availableTrusts.length);
+    $: trustPercentileToggleDisabled = percentilesDisabled || !$analyseOptions.selectedOrganisations?.length;
+
+    function assignOverlayLocals(next) {
+        selectedRegions = next.selectedRegions;
+        selectedIcbs = next.selectedIcbs;
+        regionOverlaySelection = next.regionOverlaySelection;
+        icbOverlaySelection = next.icbOverlaySelection;
+    }
+
+    function syncResultsUi({ enforceConstraints = false } = {}) {
+        let selectedOrganisations = $analyseOptions.selectedOrganisations || [];
+        if (enforceConstraints) {
+            const patches = computePercentileScopeConstraints({
+                scope: $resultsStore.scope || ANALYSIS_SCOPE.ALL,
+                inScopeTrusts: $resultsStore.inScopeTrusts,
+                selectedOrganisations,
+                showPercentiles: $resultsStore.showPercentiles,
+                mode: $modeSelectorStore.selectedMode,
+            });
+            if (patches.resultsStore) {
+                resultsStore.update(store => ({ ...store, ...patches.resultsStore }));
+            }
+            if (patches.selectedOrganisations) {
+                analyseOptions.setSelectedOrganisations(patches.selectedOrganisations);
+                selectedOrganisations = patches.selectedOrganisations;
+            }
+        }
+
+        const sync = buildResultsModeSearchSync({
+            selectedMode: $modeSelectorStore.selectedMode,
+            availableTrusts,
+            selectedOrganisations,
+            selectedRegions,
+            selectedIcbs,
+            regionOverlaySelection,
+            icbOverlaySelection,
+            selectedData,
+        });
+        applyResultsModeSearchSync(sync, {
+            analyseOptions,
+            resultsModeSearchStore,
+            assignLocals: assignOverlayLocals,
+        });
+    }
+
+    function rebuildChart({ forceUpdate = false, data = null } = {}) {
+        const chartSource = data
+            ?? ($resultsStore.filteredData?.length > 0 ? $resultsStore.filteredData : selectedData);
+        if (!$modeSelectorStore.selectedMode || !chartSource?.length) return;
+
+        const scope = $resultsStore.scope || ANALYSIS_SCOPE.ALL;
+        const selectedOrganisations = $analyseOptions.selectedOrganisations || [];
+        const showPercentiles = $resultsStore.showPercentiles;
+        const overridesPercentilesDisabled = arePercentilesDisabled(scope, availableTrusts.length);
+        const overrides = {
+            percentilesDisabled: overridesPercentilesDisabled,
+            showPercentiles: overridesPercentilesDisabled ? false : showPercentiles,
+            selectedOrganisations: clampTrustOverlaySelection(selectedOrganisations),
+            selectedRegions,
+            selectedIcbs,
+        };
+        const chartData = processChartData(chartSource, overrides);
+        if (forceUpdate) {
+            resultsChartStore.setData({ ...chartData, forceUpdate: Date.now() });
+        }
+    }
+
+    function handleModeChange(nextMode) {
+        if (previousSelectedMode !== null && previousSelectedMode !== nextMode) {
+            analyseOptions.applyOverlayModeChange(previousSelectedMode, nextMode);
+        }
+        previousSelectedMode = nextMode;
+        syncResultsUi({ enforceConstraints: true });
+        rebuildChart();
+    }
+
+    function applySelectedMode(nextMode) {
+        const fromMode = $modeSelectorStore.selectedMode;
+        if (fromMode !== nextMode) {
+            if (fromMode !== null) {
+                analyseOptions.applyOverlayModeChange(fromMode, nextMode);
+            }
+            modeSelectorStore.setSelectedMode(nextMode);
+        }
+        previousSelectedMode = nextMode;
+        syncResultsUi({ enforceConstraints: true });
+        rebuildChart();
+    }
 
     function hasValidData(item) {
-        if (!item?.data || !Array.isArray(item.data)) return false;
-        return item.data.some(v => v > 0 && !isNaN(parseFloat(v)));
-    }
-
-    $: if (analysisData) {
-        handleUpdateData(analysisData);
-    }
-
-    $: {
-        resultsStore.update(store => ({
-            ...store,
-            isAnalysisRunning,
-            showResults,
-            analysisData
-        }));
-    }
-
-    $: if (selectedData && selectedData.length > 0 && $modeSelectorStore.selectedMode) {
-        processChartData(selectedData);
+        return Array.isArray(item?.data) && item.data.some(v => v > 0 && !isNaN(parseFloat(v)));
     }
 
     $: currentModeHasData = (() => {
-        if (!selectedData || !Array.isArray(selectedData) || selectedData.length === 0) return false;
-        
+        if (!selectedData?.length) return false;
         if ($modeSelectorStore.selectedMode === 'trust') {
             const selectedOrgNames = new Set($analyseOptions.selectedOrganisations || []);
-            
-            // If no trusts are selected, check if there's any data available for percentiles
-            if (selectedOrgNames.size === 0) {
-                return selectedData.some(item => hasValidData(item));
-            }
-            
-            // If trusts are selected, check if selected trusts have data
-            return selectedData.filter(item => selectedOrgNames.has(item.organisation__ods_name))
-                .some(item => hasValidData(item));
+            if (selectedOrgNames.size === 0) return selectedData.some(hasValidData);
+            return selectedData
+                .filter(item => selectedOrgNames.has(item.organisation__ods_name))
+                .some(hasValidData);
         }
-
         const tableData = processTableDataByMode(
-            selectedData, 
-            $modeSelectorStore.selectedMode, 
+            selectedData,
+            $modeSelectorStore.selectedMode,
             'all',
             $resultsStore.aggregatedData,
             null,
             $analyseOptions.selectedOrganisations || [],
             $organisationSearchStore.items || [],
             $resultsStore.analysisMonths || [],
-            $organisationSearchStore.regionsHierarchy || []
+            $organisationSearchStore.regionsHierarchy || [],
+            $resultsStore.scope || 'all'
         );
-        
-        return tableData && tableData.length > 0 && tableData.some(entry => entry.total > 0);
+        return tableData?.length > 0 && tableData.some(entry => entry.total > 0);
     })();
 
-    $: isInTrustModeWithNoData = $modeSelectorStore.selectedMode === 'trust' && 
-           $analyseOptions.selectedOrganisations?.length > 0 &&
-           !currentModeHasData &&
-           !$resultsStore.showPercentiles;
-
-    $: canShowPercentilesWithoutTrustData = $modeSelectorStore.selectedMode === 'trust' &&
-           $analyseOptions.selectedOrganisations?.length > 0 &&
-           !currentModeHasData &&
-           $resultsStore.showPercentiles;
-
-    let colorMappings = new Map();
-
+    $: isInTrustModeWithNoData = $modeSelectorStore.selectedMode === 'trust'
+        && $analyseOptions.selectedOrganisations?.length > 0
+        && !currentModeHasData
+        && !$resultsStore.showPercentiles;
+    $: canShowPercentilesWithoutTrustData = $modeSelectorStore.selectedMode === 'trust'
+        && $analyseOptions.selectedOrganisations?.length > 0
+        && !currentModeHasData
+        && $resultsStore.showPercentiles;
 
     function showShareFeedback(message, variant = 'success') {
         shareToastMessage = message;
         shareToastVariant = variant;
         showShareToast = true;
-
-        if (shareToastTimeout) {
-            clearTimeout(shareToastTimeout);
-        }
-
+        if (shareToastTimeout) clearTimeout(shareToastTimeout);
         shareToastTimeout = setTimeout(() => {
             showShareToast = false;
             shareToastTimeout = null;
@@ -151,12 +256,9 @@
 
     async function handleCopyAnalysisLink() {
         if (isCopyingShareLink) return;
-
         isCopyingShareLink = true;
-
         try {
-            const currentUrl = getCurrentUrl();
-            await copyToClipboard(currentUrl);
+            await copyToClipboard(getCurrentUrl());
             showShareFeedback('Analysis link copied to clipboard!', 'success');
         } catch (error) {
             console.error('Failed to copy analysis link:', error);
@@ -166,152 +268,83 @@
         }
     }
 
-    onDestroy(() => {
-        if (shareToastTimeout) {
-            clearTimeout(shareToastTimeout);
-        }
-    });
-
-
-    function processChartData(data) {
-        const months = $resultsStore.analysisMonths || [];
-        const processor = new ChartDataProcessor(
+    function processChartData(data, overrides = {}) {
+        const { chartData, chartConfig, percentilesPatch } = buildResultsChartPipeline({
             data,
-            $resultsStore.aggregatedData,
-            {
-                months,
-                selectedOrganisations: $analyseOptions.selectedOrganisations,
-                showPercentiles: $resultsStore.showPercentiles !== false
-            }
-        );
-
-        const { datasets: chartDatasets, maxValue, needsPercentiles, percentilesData } = processor.processMode($modeSelectorStore.selectedMode);
-        const combinedUnits = processor.getCombinedUnits();
-
-        let finalDatasets = chartDatasets;
-        
-        if ($modeSelectorStore.selectedMode === 'trust' && needsPercentiles && $resultsStore.showPercentiles) {
-            const percentilesResult = calculatePercentiles(
-                percentilesData, 
-                $organisationSearchStore.items,
-                $resultsStore.analysisMonths || []
-            );
-            
-            const trustCount = getTrustCount(percentilesResult);
-
-            resultsStore.update(store => ({
-                ...store,
-                percentiles: percentilesResult.percentiles,
-                trustCount,
-                excludedTrusts: percentilesResult.excludedTrusts
-            }));
-
-            if (percentilesResult.percentiles.length > 0) {
-                const percentileDatasets = processor.createPercentileDatasets(percentilesResult.percentiles);
-                finalDatasets = [...percentileDatasets, ...chartDatasets];
-            }
-        }
-
-        let yAxisLabel;
-        if (processor.uniqueUnits.length === 1) {
-            const unit = processor.uniqueUnits[0];
-
-            if (unit && unit.startsWith('DDD (')) {
-                yAxisLabel = 'DDDs';
-            } else if (unit === 'DDD') {
-                yAxisLabel = 'DDDs';
-            } else {
-                yAxisLabel = pluralize(unit);
-            }
-        } else if (processor.uniqueUnits.length > 1) {
-
-            const allDDD = processor.uniqueUnits.every(unit => unit && unit.startsWith('DDD ('));
-            if (allDDD) {
-                yAxisLabel = 'DDDs';
-            } else {
-                yAxisLabel = combinedUnits;
-            }
-        } else {
-            yAxisLabel = 'units';
-        }
-
-        const chartConfig = {
             mode: $modeSelectorStore.selectedMode,
-            yAxisLabel: yAxisLabel,
-            yAxisRange: maxValue > 0 ? [0, maxValue] : [0, 100],
-            visibleItems: new Set(finalDatasets.map(d => d.label)),
-            yAxisBehavior: {
-                forceZero: true,
-                padTop: 1.1,
-                resetToInitial: true
-            },
-            yAxisTickFormat: value => {
-                const range = maxValue;
-                let decimals = 1;
-                if (typeof value === 'number' && !isNaN(value)) {
-                    const step = range / 10;
-                    if (step > 0) {
-                        decimals = Math.min(
-                            Math.max(1, Math.ceil(Math.abs(Math.log10(step))) + 1),
-                            5
-                        );
-                    }
-                }
-                return formatNumber(value, { maxDecimals: decimals });
-            },
-            tooltipValueFormat: value => {
-                const baseUnit = combinedUnits || 'units';
-                const pluralizedUnit = formatUnitForTooltip(baseUnit, value);
-                return formatNumber(value, { showUnit: true, unit: pluralizedUnit });
-            }
-        };
-
-        const chartData = {
-            labels: processor.allDates,
-            datasets: finalDatasets
-        };
-
+            aggregatedData: $resultsStore.aggregatedData,
+            months: $resultsStore.analysisMonths || [],
+            selectedOrganisations: overrides.selectedOrganisations
+                ?? (Array.isArray($analyseOptions.selectedOrganisations)
+                    ? $analyseOptions.selectedOrganisations
+                    : []),
+            availableTrusts,
+            showPercentiles: overrides.showPercentiles ?? $resultsStore.showPercentiles,
+            percentilesDisabled: overrides.percentilesDisabled ?? percentilesDisabled,
+            scope: $resultsStore.scope || 'all',
+            selectedRegions: overrides.selectedRegions ?? selectedRegions,
+            selectedIcbs: overrides.selectedIcbs ?? selectedIcbs,
+        });
+        resultsStore.update(store => ({ ...store, ...percentilesPatch }));
         resultsChartStore.setData(chartData);
         resultsChartStore.setConfig(chartConfig);
-
         return chartData;
     }
 
-    function handleUpdateData(data) {
-        const payload = data.data;
-        selectedData = Array.isArray(payload?.items) ? payload.items : [];
-        
-        try {
-            const vmpGroups = selectedData.reduce((acc, item) => {
-                const key = item.vmp__name;
-                if (!acc[key]) {
-                    acc[key] = {
-                        vmp: item.vmp__name,
-                        code: item.vmp__code,
-                        vtm: item.vmp__vtm__name,
-                        ingredients: item.ingredient_names || [],
-                        units: new Set(),
-                        searchType: data.searchType || $analyseOptions.searchType
-                    };
-                }
-                if (item.unit) {
-                    acc[key].units.add(item.unit);
-                }
-                return acc;
-            }, {});
+    function applyChartOverlaySelectionFromStore() {
+        ({
+            selectedRegions,
+            regionOverlaySelection,
+            selectedIcbs,
+            icbOverlaySelection,
+        } = resolveChartOverlayLocals($analyseOptions, selectedData));
+    }
 
-            vmps = Object.values(vmpGroups)
-                .filter(vmp => vmp.vmp) // Filter out undefined VMPs
-                .map(vmp => ({
-                    ...vmp,
-                    unit: vmp.units.size > 0 ? Array.from(vmp.units).join(', ') : 'nan',
-                    ingredients: Array.isArray(vmp.ingredients) ? vmp.ingredients : (vmp.ingredients || []),
-                    vtm: vmp.vtm || '',
-                }));
+    function commitChartDimensionSelection(dimension, selectedItems, availableItems = []) {
+        const committed = commitChartDimensionSelectionHelper(dimension, selectedItems, availableItems);
+        if (!committed) return false;
+        if (dimension === 'region') {
+            selectedRegions = committed.selected;
+            regionOverlaySelection = committed.selection;
+            analyseOptions.setSelectedChartRegions(committed.selection);
+            return true;
+        }
+        selectedIcbs = committed.selected;
+        icbOverlaySelection = committed.selection;
+        analyseOptions.setSelectedChartIcbs(committed.selection);
+        return true;
+    }
+
+    function recalculateViewModes(vmpsWithValidData) {
+        if (vmpsWithValidData.length === 0) {
+            viewModes = [];
+            modeSelectorStore.setSelectedMode(null);
+            return [];
+        }
+        const calculator = new ViewModeCalculator(
+            $resultsStore,
+            $analyseOptions,
+            $organisationSearchStore,
+            vmpsWithValidData,
+            $resultsStore.scope || 'all',
+            isAuth
+        );
+        viewModes = calculator.calculateAvailableModes();
+        return viewModes;
+    }
+
+    function handleUpdateData(data) {
+        selectedData = Array.isArray(data.data?.items) ? data.data.items : [];
+        applyChartOverlaySelectionFromStore();
+
+        try {
+            vmps = buildVmpsFromSelectedData(
+                selectedData,
+                data.searchType || $analyseOptions.searchType
+            );
 
             const availableCodes = new Set(vmps.map(vmp => String(vmp.code ?? '')));
             const currentExcluded = Array.isArray($resultsStore.excludedVmps) ? $resultsStore.excludedVmps : [];
-            const filteredExcluded = currentExcluded.filter(code => availableCodes.has(String(code)));
 
             resultsStore.update(store => ({
                 ...store,
@@ -319,204 +352,183 @@
                 showResults: true,
                 searchType: data.searchType || $analyseOptions.searchType,
                 quantityType: data.quantityType || $analyseOptions.quantityType,
-                excludedVmps: filteredExcluded
+                excludedVmps: currentExcluded.filter(code => availableCodes.has(String(code)))
             }));
 
-            const vmpsWithValidData = vmps.filter(vmp => vmp.unit !== 'nan');
+            if (!isModeFromUrlApplied && isAggregationChartMode(modeFromUrl)) {
+                analyseOptions.applyOverlayModeChange($modeSelectorStore.selectedMode, modeFromUrl);
+            }
 
-            viewModeCalculator = new ViewModeCalculator(
-                $resultsStore,
-                $analyseOptions,
-                $organisationSearchStore,
-                vmpsWithValidData
-            );
+            const nextViewModes = recalculateViewModes(vmps.filter(vmp => vmp.unit !== 'nan'));
 
-            viewModes = viewModeCalculator.calculateAvailableModes();
-
-            if (viewModes.length > 0) {
-                const hasSelectedOrganisations = $analyseOptions.selectedOrganisations && 
-                                               $analyseOptions.selectedOrganisations.length > 0;
-                const availableModeValues = viewModes.map(mode => mode.value);
+            if (nextViewModes.length > 0) {
+                const availableModeValues = nextViewModes.map(mode => mode.value);
                 let nextMode = null;
 
                 if (!isModeFromUrlApplied) {
                     if (modeFromUrl && availableModeValues.includes(modeFromUrl)) {
                         nextMode = modeFromUrl;
                     }
-
                     isModeFromUrlApplied = true;
                     modeFromUrl = null;
                 }
 
                 if (!nextMode) {
                     const currentMode = $modeSelectorStore.selectedMode;
-                    if (currentMode && availableModeValues.includes(currentMode)) {
-                        nextMode = currentMode;
-                    } else {
-                        nextMode = selectDefaultMode(viewModes, hasSelectedOrganisations);
-                    }
+                    nextMode = currentMode && availableModeValues.includes(currentMode)
+                        ? currentMode
+                        : selectDefaultMode(nextViewModes, $resultsStore.scope || 'all');
                 }
-                
-                modeSelectorStore.setSelectedMode(nextMode);
+
+                applySelectedMode(nextMode);
             } else {
-                modeSelectorStore.setSelectedMode(null);
+                syncResultsUi({ enforceConstraints: true });
+                rebuildChart();
             }
         } catch (error) {
-            console.error("Error processing data:", error);
+            console.error('Error processing data:', error);
         }
     }
 
     function handleFilteredData(event) {
         const selectedVMPs = event.detail;
-
-        filteredData = selectedData.filter(item => 
+        filteredData = selectedData.filter(item =>
             selectedVMPs.some(vmp => vmp.vmp === item.vmp__name)
         );
 
-        // Recalculate available view modes based on selected VMPs
-        const filteredVMPs = vmps.filter(vmp => 
+        const filteredVMPs = vmps.filter(vmp =>
             selectedVMPs.some(selectedVmp => selectedVmp.vmp === vmp.vmp)
         );
+        const nextViewModes = recalculateViewModes(filteredVMPs.filter(vmp => vmp.unit !== 'nan'));
 
-        const vmpsWithValidData = filteredVMPs.filter(vmp => vmp.unit !== 'nan');
+        resultsStore.update(store => ({ ...store, filteredData }));
 
-        if (vmpsWithValidData.length > 0) {
-            viewModeCalculator = new ViewModeCalculator(
-                $resultsStore,
-                $analyseOptions,
-                $organisationSearchStore,
-                vmpsWithValidData
+        if (nextViewModes.length > 0) {
+            const reconciledMode = reconcileSelectedMode(
+                $modeSelectorStore.selectedMode,
+                nextViewModes
             );
-
-            const newViewModes = viewModeCalculator.calculateAvailableModes();
-            viewModes = newViewModes;
-
-            // Check if current mode is still available, if not select new default
-            const currentModeStillAvailable = newViewModes.some(mode => 
-                mode.value === $modeSelectorStore.selectedMode
-            );
-
-            if (!currentModeStillAvailable && newViewModes.length > 0) {
-                const hasSelectedOrganisations = $analyseOptions.selectedOrganisations && 
-                                               $analyseOptions.selectedOrganisations.length > 0;
-                const newDefaultMode = selectDefaultMode(newViewModes, hasSelectedOrganisations);
-                modeSelectorStore.setSelectedMode(newDefaultMode);
+            if (reconciledMode === null) {
+                applySelectedMode(selectDefaultMode(nextViewModes, $resultsStore.scope || 'all'));
+            } else if (reconciledMode !== $modeSelectorStore.selectedMode) {
+                applySelectedMode(reconciledMode);
+            } else {
+                syncResultsUi();
+                rebuildChart({ forceUpdate: true, data: filteredData });
             }
         } else {
-            viewModes = [];
-            modeSelectorStore.setSelectedMode(null);
+            syncResultsUi();
+            rebuildChart({ forceUpdate: true, data: filteredData });
         }
-
-        const chartData = processChartData(filteredData);
-
-        resultsChartStore.setData({
-            ...chartData,
-            forceUpdate: Date.now()
-        });
-
-        resultsStore.update(store => ({
-            ...store,
-            filteredData
-        }));
     }
 
-    $: if ($modeSelectorStore.selectedMode && selectedData.length > 0) {
-        
-        const dataToProcess = $resultsStore.filteredData && $resultsStore.filteredData.length > 0 ? 
-            $resultsStore.filteredData : selectedData;
-        
-        processChartData(dataToProcess);
+    export function loadAnalysis(detail) {
+        handleUpdateData(detail);
     }
 
-    $: if (analysisData) {
-        handleUpdateData(analysisData);
+    export function prepareForNewRun() {
+        selectedData = [];
+        filteredData = [];
+        vmps = [];
+        viewModes = [];
+        previousSelectedMode = null;
     }
 
-    $: if (analysisData) {
-        colorMappings.clear();
-        handleUpdateData(analysisData);
-    }
-
-    function formatDate(date) {
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const d = new Date(date);
-        return `${months[d.getMonth()]} ${d.getFullYear()}`;
-    }
-
-    function formatUnitForTooltip(baseUnit, value) {
-        if (!baseUnit) return 'units';
-        
-        // Handle DDD units with dose information like "DDD (60.0mg)"
-        if (baseUnit.startsWith('DDD (') && baseUnit.includes(')')) {
-            const doseMatch = baseUnit.match(/^DDD (\(.+\))$/);
-            if (doseMatch) {
-                const doseInfo = doseMatch[1];
-                return value === 1 ? `DDD ${doseInfo}` : `DDDs ${doseInfo}`;
+    export function syncOverlayFromBuilder() {
+        if (!selectedData.length || !$modeSelectorStore.selectedMode) return;
+        const nextViewModes = recalculateViewModes(vmps.filter(vmp => vmp.unit !== 'nan'));
+        if (nextViewModes.length > 0) {
+            const reconciledMode = reconcileSelectedMode(
+                $modeSelectorStore.selectedMode,
+                nextViewModes
+            );
+            if (reconciledMode === null) {
+                applySelectedMode(selectDefaultMode(nextViewModes, $resultsStore.scope || 'all'));
+                return;
+            }
+            if (reconciledMode !== $modeSelectorStore.selectedMode) {
+                applySelectedMode(reconciledMode);
+                return;
             }
         }
-        
-        // Handle plain "DDD" units
-        if (baseUnit === 'DDD') {
-            return value === 1 ? 'DDD' : 'DDDs';
-        }
-        
-        return pluralize(baseUnit, value);
+        syncResultsUi();
+        rebuildChart({ forceUpdate: true });
     }
 
     function customTooltipFormatter(d) {
-        const label = d.dataset.label || 'No label';
-        const date = formatDate(d.date);
-        const value = d.value;
-        const chartConfig = $resultsChartStore.config;
-        
-        let unit;
-        if (d.dataset.isProduct && vmps.length > 0) {
-            const matchingVmp = vmps.find(vmp => vmp.vmp === d.dataset.label);
-            const baseUnit = matchingVmp?.unit || chartConfig?.yAxisLabel || 'unit';
-            
-            unit = formatUnitForTooltip(baseUnit, value);
-        } else {
-            const baseUnit = chartConfig?.yAxisLabel || 'units';
-            unit = formatUnitForTooltip(baseUnit, value);
-        }
-
-        const tooltipContent = [
-            { text: label, class: 'font-medium' },
-            { label: 'Date', value: date },
-            { label: 'Value', value: `${formatNumber(value)} ${unit}` }
-        ];
-
-        if (d.dataset.isOrganisation || d.dataset.isProduct || d.dataset.isProductGroup) {
-            if (d.dataset.numerator !== undefined && d.dataset.denominator !== undefined) {
-                tooltipContent.push(
-                    { label: 'Numerator', value: formatNumber(d.dataset.numerator[d.index], { addCommas: true }) },
-                    { label: 'Denominator', value: formatNumber(d.dataset.denominator[d.index], { addCommas: true }) }
-                );
-            }
-        }
-
-        return tooltipContent;
+        return buildResultsTooltipContent(d, {
+            vmps,
+            yAxisLabel: $resultsChartStore.config?.yAxisLabel,
+        });
     }
-
 
     function handlePercentileToggle() {
-        if ($modeSelectorStore.selectedMode !== 'trust' || !($analyseOptions.selectedOrganisations?.length > 0)) {
+        if (percentilesDisabled || $modeSelectorStore.selectedMode !== 'trust'
+            || !($analyseOptions.selectedOrganisations?.length > 0)) {
             return;
         }
-        resultsStore.update(store => ({
-            ...store,
-            showPercentiles: !store.showPercentiles
-        }));
+        resultsStore.update(store => ({ ...store, showPercentiles: !store.showPercentiles }));
+        rebuildChart();
     }
 
+    function handleResultsOrganisationSelection(event) {
+        const selectedItems = event?.detail?.selectedItems || [];
+        const patch = buildOrganisationSelectionPatch({
+            selectedMode: $modeSelectorStore.selectedMode,
+            selectedItems,
+            selectedData,
+            selectedRegions,
+            selectedIcbs,
+        });
+        if (!patch) return;
+
+        if (patch.type === 'trust') {
+            analyseOptions.setSelectedOrganisations(patch.selectedOrganisations);
+            analyseOptions.setRememberedOverlayOrganisations(patch.selectedOrganisations);
+            resultsModeSearchStore.updateSelection(patch.searchSelection);
+            syncResultsUi();
+            rebuildChart();
+            return;
+        }
+        if (patch.type === 'revert') {
+            resultsModeSearchStore.updateSelection(patch.searchSelection);
+            return;
+        }
+        if (
+            (patch.type === 'region' || patch.type === 'icb')
+            && commitChartDimensionSelection(patch.type, selectedItems, patch.availableItems)
+        ) {
+            resultsModeSearchStore.updateSelection(
+                patch.type === 'region' ? selectedRegions : selectedIcbs
+            );
+            syncResultsUi();
+            rebuildChart();
+        } else if (patch.type === 'region' || patch.type === 'icb') {
+            resultsModeSearchStore.updateSelection(patch.searchSelection);
+        }
+    }
+
+    $: selectedOrganisationsCount = $analyseOptions.selectedOrganisations?.length || 0;
+    $: singleSelectedTrust = selectedOrganisationsCount === 1;
     $: chartExplainerText = getChartExplainerText($modeSelectorStore.selectedMode, {
-        hasSelectedOrganisations: $analyseOptions.selectedOrganisations?.length > 0,
+        hasSelectedOrganisations: selectedOrganisationsCount > 0,
         currentModeHasData,
-        vmpsCount: vmps.length
+        vmpsCount: vmps.length,
+        selectedOrganisationsCount,
+        scope: $resultsStore.scope || 'all',
+        inScopeTrustCount,
+        scopeFilterDescription
+    });
+    $: percentileIntroText = getPercentileChartIntroText({
+        selectedOrganisationsCount,
+        currentModeHasData,
+        singleSelectedTrust,
+        isFilteredScope,
+        percentilePopulationLabel,
     });
 </script>
 
-{#if showResults || (urlValidationErrors && urlValidationErrors.length > 0)}
+{#if $resultsStore.showResults || (urlValidationErrors && urlValidationErrors.length > 0)}
     <div class="results-box bg-white rounded-lg shadow-md h-full flex flex-col {className}">
         <div class="flex-grow overflow-y-auto rounded-t-lg">
             {#if urlValidationErrors && urlValidationErrors.length > 0}
@@ -545,7 +557,7 @@
                     </div>
                 </div>
             {/if}
-            {#if isAnalysisRunning}
+            {#if $resultsStore.isAnalysisRunning}
                 <div class="flex items-center justify-center h-[500px] p-16">
                     <div class="flex items-center">
                         <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-oxford-600"></div>
@@ -560,84 +572,32 @@
                     
                     {#if viewModes.length > 0}
                     <section class="p-4">
-                        <div class="mb-4">
-                            <div class="flex flex-col sm:items-end mb-2">
-                                <button
-                                    type="button"
-                                    on:click={handleCopyAnalysisLink}
-                                    class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-oxford-600 bg-white border border-oxford-200 rounded-md hover:bg-oxford-50 hover:border-oxford-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-400 disabled:opacity-70 disabled:cursor-not-allowed"
-                                    disabled={isCopyingShareLink}
-                                    title="Copy link to share this analysis with current selections"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.935-2.186 2.25 2.25 0 00-3.935 2.186z" />
-                                    </svg>
-                                    {isCopyingShareLink ? 'Copying...' : 'Share analysis'}
-                                </button>
-                            </div>
-                            <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                                <ModeSelector 
-                                    options={viewModes}
-                                    initialMode={selectDefaultMode(viewModes, $analyseOptions.selectedOrganisations?.length > 0)}
-                                    label="View by"
-                                    variant="pill"
-                                />
-
-                                {#if $modeSelectorStore.selectedMode === 'trust'}
-                                <div class="flex flex-col items-center gap-2">
-                                    <span class="text-sm text-gray-600 leading-tight text-center">
-                                        Show percentiles
-                                    </span>
-                                    <div class="flex items-center gap-2">
-                                        <label class="inline-flex items-center {$analyseOptions.selectedOrganisations?.length > 0 ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}">
-                                            <input
-                                                type="checkbox"
-                                                class="sr-only peer"
-                                                checked={$resultsStore.showPercentiles}
-                                                disabled={!$analyseOptions.selectedOrganisations?.length}
-                                                on:change={handlePercentileToggle}
-                                            />
-                                            <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none {$analyseOptions.selectedOrganisations?.length > 0 ? 'peer-focus:ring-2 peer-focus:ring-blue-500' : ''} rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 {$analyseOptions.selectedOrganisations?.length > 0 ? '' : 'peer-disabled:opacity-50'}"></div>
-                                        </label>
-                                        <div class="relative inline-block group">
-                                            <button type="button" aria-label="Percentiles information" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
-                                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                                                </svg>
-                                            </button>
-                                            <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
-                                                        group-hover:scale-100 w-[280px] -translate-x-1/2 left-1/2 sm:-translate-x-full sm:left-5 top-5 rounded-md shadow-lg bg-white 
-                                                        ring-1 ring-black ring-opacity-5 p-4">
-                                                <p class="text-sm text-gray-500">
-                                                    {#if $analyseOptions.selectedOrganisations?.length > 0}
-                                                        Percentiles show variation in product quantity across NHS Trusts and allow easy comparison of Trust activity relative to the median Trust level. See <a href="/faq/#what-are-percentile-charts" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret them.
-                                                    {:else}
-                                                        Percentiles are always shown when no trusts are selected. Select trusts to enable this toggle. See <a href="/faq/#what-are-percentile-charts" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
-                                                    {/if}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {/if}
-                            </div>
-                        </div>
+                        <ResultsChartControls
+                            {resultsModeSearchStore}
+                            {shouldShowOrganisationSearch}
+                            {availableTrusts}
+                            {viewModes}
+                            {isTrustScope}
+                            {percentilesDisabled}
+                            {trustPercentileToggleDisabled}
+                            {isCopyingShareLink}
+                            on:selectionChange={handleResultsOrganisationSelection}
+                            on:copyLink={handleCopyAnalysisLink}
+                            on:percentileToggle={handlePercentileToggle}
+                            on:modeChange={(e) => handleModeChange(e.detail.mode)}
+                        />
 
                         {#if currentModeHasData || canShowPercentilesWithoutTrustData}
                         <div class="mb-4">
                             <p class="text-sm text-gray-700">
                                 {#if $modeSelectorStore.selectedMode === 'trust' && $resultsStore.showPercentiles}
-                                    {#if $analyseOptions.selectedOrganisations?.length > 0}
-                                        {#if currentModeHasData}
-                                            This chart shows individual NHS Trust quantities overlaid on percentile ranges. Selected trusts appear as colored lines, while percentile bands show the distribution across all trusts with data.
-                                        {:else}
-                                            This chart shows percentile ranges across all NHS Trusts with data. The selected trusts have no data for these products, but percentile bands show the distribution across all trusts with data.
-                                        {/if}
-                                    {:else}
-                                        This chart shows percentile ranges across all NHS Trusts with data for the selected products. The bands represent the variation in quantities across trusts.
-                                    {/if}
+                                    {percentileIntroText}
                                     {#if $resultsStore.trustCount > 0}
-                                        Trusts are only included if they have issued any of the selected products during the time period. For the selected products above, this is <strong>{$resultsStore.trustCount}/{$organisationSearchStore.items.length} trusts</strong>
+                                        {#if isFilteredScope}
+                                            Only in-scope trusts that have issued any of the selected products during the time period are included. For the selected products above, this is <strong>{$resultsStore.trustCount}/{availableTrusts.length} {inScopeTrustLabel}</strong>
+                                        {:else}
+                                            Trusts are only included if they have issued any of the selected products during the time period. For the selected products above, this is <strong>{$resultsStore.trustCount}/{availableTrusts.length} trusts</strong>
+                                        {/if}
                                         {#if $resultsStore.excludedTrusts && $resultsStore.excludedTrusts.length > 0}
                                             <button
                                                 type="button"
@@ -649,7 +609,7 @@
                                         {/if}
                                         .
                                     {/if}
-                                    Variation can reflect differences in hospital size rather than genuine variation. 
+                                    Variation can reflect differences in hospital size rather than genuine variation.
                                     See <a href="/faq/#what-are-percentile-charts" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret this chart.
                                 {:else}
                                     {chartExplainerText}
@@ -703,12 +663,20 @@
                                 <div class="">
                                     <div class="text-center space-y-6">
                                         <div>
-                                            <p class="text-oxford-600 text-xl font-medium mb-3">No data for selected trusts</p>
+                                            <p class="text-oxford-600 text-xl font-medium mb-3">
+                                                {singleSelectedTrust ? 'No data for selected trust' : 'No data for selected trusts'}
+                                            </p>
                                             <p class="text-gray-600 text-base max-w-md mb-4">
-                                                The selected NHS Trusts have no data for the chosen products.
+                                                {singleSelectedTrust
+                                                    ? 'The selected NHS Trust has no data for the chosen products.'
+                                                    : 'The selected NHS Trusts have no data for the chosen products.'}
                                             </p>
                                             <p class="text-gray-600 text-base max-w-md">
-                                                Try <strong>turning on percentiles</strong>, to see variation across all trusts that do have data, or <strong>select more trusts</strong> in the analysis builder. 
+                                                {#if percentilesDisabled}
+                                                    Try <strong>selecting different trusts</strong> above, or choose different products.
+                                                {:else}
+                                                    Try <strong>turning on percentiles</strong>, to see variation across {isFilteredScope ? 'in-scope trusts' : 'all trusts'} that do have data, or <strong>select more trusts</strong> {isAuth ? 'above' : 'in the analysis builder'}.
+                                                {/if}
                                                 <a href="/faq/#why-is-there-no-quantity-for-some-products" class="link-oxford" target="_blank">
                                                     Learn more about why quantities might be missing
                                                 </a>.
@@ -732,26 +700,21 @@
                                             months: $resultsStore.analysisMonths || [],
                                             excludedVmps: $resultsStore.excludedVmps || [],
                                             selectedTrusts: $analyseOptions.selectedOrganisations || null,
-                                            percentilesData: $resultsStore.percentiles || [],
-                                            allOrganisations: (() => {
-                                                const selectedOrgNames = $analyseOptions.selectedOrganisations;
-                                                const allNames = (selectedOrgNames && selectedOrgNames.length > 0)
-                                                    ? selectedOrgNames
-                                                    : ($organisationSearchStore.items || []);
-                                                const orgCodes = $organisationSearchStore.orgCodes || new Map();
-                                                const orgRegions = $organisationSearchStore.orgRegions || new Map();
-                                                const orgIcbs = $organisationSearchStore.orgIcbs || new Map();
-                                                const orgTrustTypes = $organisationSearchStore.trustTypes || new Map();
-                                                return allNames.map(name => {
-                                                    return {
-                                                        name,
-                                                        code: orgCodes.get?.(name) ?? null,
-                                                        region: orgRegions.get?.(name) ?? null,
-                                                        icb: orgIcbs.get?.(name) ?? null,
-                                                        trustType: orgTrustTypes.get?.(name) ?? null
-                                                    };
-                                                });
-                                            })(),
+                                            percentilesData: (
+                                                $modeSelectorStore.selectedMode === 'trust'
+                                                && $resultsStore.showPercentiles
+                                                && !percentilesDisabled
+                                            ) ? ($resultsStore.percentiles || []) : [],
+                                            allOrganisations: buildChartExportOrganisations(
+                                                $analyseOptions.selectedOrganisations,
+                                                availableTrusts,
+                                                {
+                                                    orgCodes: $organisationSearchStore.orgCodes,
+                                                    orgRegions: $organisationSearchStore.orgRegions,
+                                                    orgIcbs: $organisationSearchStore.orgIcbs,
+                                                    trustTypes: $organisationSearchStore.trustTypes,
+                                                }
+                                            ),
                                         }}
                                     />
                                 </div>
@@ -762,7 +725,7 @@
                                     <div>
                                         <p class="text-oxford-600 text-xl font-medium mb-3">No data to display</p>
                                         <p class="text-oxford-400 text-base max-w-md">
-                                            No data was returned for the selected view mode. 
+                                            No data was returned for the selected view mode.
                                             <a href="/faq/#why-is-there-no-quantity-for-some-products" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
                                                 Learn more about why quantities might be missing
                                             </a>.
@@ -804,7 +767,7 @@
                                 <div>
                                     <p class="text-oxford-600 text-xl font-medium mb-3">No data to display</p>
                                     <p class="text-oxford-400 text-base max-w-md">
-                                        No data was returned for the selected quantity type of the chosen products. 
+                                        No data was returned for the selected quantity type of the chosen products.
                                         <a href="/faq/#why-is-there-no-quantity-for-some-products" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">
                                             Learn more about why quantities might be missing
                                         </a>.
@@ -813,15 +776,15 @@
                             </div>
                         </div>
                     {/if}
-
-                   
                 </div>
             {:else}
                 <div class="flex items-center justify-center h-[500px] p-6">
                     <div class="text-center space-y-6">
                         <div>
                             <p class="text-oxford-600 text-xl font-medium mb-3">No data to display</p>
-                            <p class="text-oxford-400 text-base max-w-md">The analysis returned no chartable data.</p>
+                            <p class="text-oxford-400 text-base max-w-md">
+                                The analysis returned no chartable data.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -829,11 +792,15 @@
         </div>
     </div>
 {:else}
-    <div class="flex items-center justify-center h-[500px] p-6 {className}">
-        <div class="text-center space-y-6">
-            <div>
-                <p class="text-oxford-600 text-xl font-medium mb-3">No analysis results to show</p>
-                <p class="text-oxford-400 text-base max-w-md">Please run an analysis to see results here.</p>
+    <div class="{className}">
+        <div class="flex items-center justify-center h-[500px] p-6">
+            <div class="text-center space-y-6">
+                <div>
+                    <p class="text-oxford-600 text-xl font-medium mb-3">No analysis results to show</p>
+                    <p class="text-oxford-400 text-base max-w-md">
+                        Please run an analysis to see results here.
+                    </p>
+                </div>
             </div>
         </div>
     </div>
