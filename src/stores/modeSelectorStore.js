@@ -1,28 +1,46 @@
 import { writable } from 'svelte/store';
+import { ANALYSIS_SCOPE } from '../components/analyse/lib/analysisScope.js';
+
+export function reconcileSelectedMode(selectedMode, availableModes = []) {
+    if (selectedMode == null) {
+        return null;
+    }
+
+    const values = availableModes.map((mode) =>
+        typeof mode === 'string' ? mode : mode?.value
+    );
+
+    return values.includes(selectedMode) ? selectedMode : null;
+}
+
+export function selectDefaultMode(availableModes, scope = ANALYSIS_SCOPE.ALL) {
+    if (scope === ANALYSIS_SCOPE.NATIONAL) {
+        const nationalModeForScope = availableModes.find((m) => m.value === 'national');
+        if (nationalModeForScope) return nationalModeForScope.value;
+    }
+
+    const trustMode = availableModes.find((m) => m.value === 'trust');
+    if (trustMode) return trustMode.value;
+
+    const nationalMode = availableModes.find((m) => m.value === 'national');
+    if (nationalMode) return nationalMode.value;
+
+    return availableModes[0]?.value || 'trust';
+}
 
 function createModeSelectorStore() {
     const { subscribe, set, update } = writable({
         selectedMode: null,
-        options: []
     });
 
     return {
         subscribe,
-        setOptions: (options) => {
-            update(state => ({ 
-                ...state, 
-                options,
-                selectedMode: options.some(opt => opt.value === state.selectedMode) 
-                    ? state.selectedMode 
-                    : (options.length > 0 ? options[0].value : null)
-            }));
-        },
         setSelectedMode: (mode) => {
-            update(state => ({ ...state, selectedMode: mode }));
+            update((state) => ({ ...state, selectedMode: mode }));
         },
         reset: () => {
-            set({ selectedMode: null, options: [] });
-        }
+            set({ selectedMode: null });
+        },
     };
 }
 

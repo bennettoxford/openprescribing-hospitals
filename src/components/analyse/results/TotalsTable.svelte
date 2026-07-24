@@ -9,7 +9,13 @@
     import { resultsStore } from '../../../stores/resultsStore';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     import { formatNumber } from '../../../utils/utils';
-    import { processTableDataByMode, getModeDisplayName, getTableExplainerText } from '../../../utils/analyseUtils';
+    import { processTableDataByMode } from '../lib/analyseData.js';
+    import {
+        ANALYSIS_SCOPE,
+        getModeDisplayName,
+        getTableExplainerText,
+        formatScopeFilterDescription,
+    } from '../lib/analysisScope.js';
 
     export let data = [];
     export let quantityType = 'SCMD Quantity';
@@ -52,6 +58,12 @@
         }
     }
 
+    $: analysisScope = $resultsStore.scope || ANALYSIS_SCOPE.ALL;
+    $: isFilteredScope = analysisScope === ANALYSIS_SCOPE.GROUP;
+    $: totalsTableOrganisations = Array.isArray($resultsStore.inScopeTrusts)
+        ? $resultsStore.inScopeTrusts
+        : [];
+
     $: groupedData = processTableDataByMode(
         data, 
         selectedMode, 
@@ -59,32 +71,41 @@
         $resultsStore.aggregatedData,
         latestDateFromData,
         $analyseOptions.selectedOrganisations || [],
-        $organisationSearchStore.items || [],
+        totalsTableOrganisations,
         $resultsStore.analysisMonths || [],
-        $organisationSearchStore.regionsHierarchy || []
+        $organisationSearchStore.regionsHierarchy || [],
+        analysisScope
     );
 
     $: titleText = selectedMode === 'national' 
-        ? 'National total' 
-        : `Total quantity by ${getModeDisplayName(selectedMode)}`;
+        ? getModeDisplayName('national', analysisScope)
+        : `Total quantity by ${getModeDisplayName(selectedMode, analysisScope)}`;
 
     $: hasSelectedTrusts = $analyseOptions.selectedOrganisations && $analyseOptions.selectedOrganisations.length > 0;
     
     $: quantityColumnHeader = (() => {
         if (hasSelectedTrusts && selectedMode !== 'trust') {
-            return 'Quantity (selected trusts)';
+            const count = $analyseOptions.selectedOrganisations?.length || 0;
+            return count === 1 ? 'Quantity (selected trust)' : 'Quantity (selected trusts)';
         } else {
             return 'Quantity';
         }
     })();
 
+    $: scopeFilterDescription = isFilteredScope
+        ? formatScopeFilterDescription($resultsStore.scopeFilters || {})
+        : '';
+    $: inScopeTrustCount = totalsTableOrganisations.length;
     $: tableExplainerText = getTableExplainerText(selectedMode, {
         hasSelectedTrusts: hasSelectedTrusts,
         selectedTrustsCount: $analyseOptions.selectedOrganisations?.length || 0,
         selectedPeriod: selectedPeriod,
         latestMonth: latestMonth,
         latestYear: latestYear,
-        dateRange: dateRange
+        dateRange: dateRange,
+        scope: analysisScope,
+        inScopeTrustCount,
+        scopeFilterDescription
     });
 
 </script>

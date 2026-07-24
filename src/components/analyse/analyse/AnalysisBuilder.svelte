@@ -1,4 +1,4 @@
-<svelte:options customElement={{
+<svelte:options runes={false} customElement={{
     tag: 'analysis-builder',
     shadow: 'none'
   }} />
@@ -8,21 +8,47 @@
     import '../../../styles/styles.css';
     import ProductSearch from '../../common/ProductSearch.svelte';
     import OrganisationSearch from '../../common/OrganisationSearch.svelte';
-    import OrganisationSearchFiltered from '../../common/OrganisationSearchFiltered.svelte';
+    import AnalysisScopePanel from './AnalysisScopePanel.svelte';
     import { createEventDispatcher } from 'svelte';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
     import { resultsStore, updateResults } from '../../../stores/resultsStore';
     import { modeSelectorStore } from '../../../stores/modeSelectorStore';
-    import { normaliseMode } from '../../../utils/analyseUtils.js';
-    import { buildAnalysisRequestPayload } from '../../../utils/analyseUtils.js';
+    import {
+        ANALYSIS_SCOPE,
+        normaliseMode,
+        isAggregationChartMode,
+    } from '../lib/analysisScope.js';
+    import {
+        createEmptyScopeFilters,
+        decodeTrustTypeFromUrl,
+        hasAnyScopeFilters,
+        normaliseScopeFilters,
+    } from '../../../utils/scopeFilters.js';
+    import {
+        ANALYSIS_QUANTITY_PARAM,
+        SUPPORTED_ANALYSIS_PARAMS,
+        getShowPercentilesParam,
+        getCancerAllianceCodeMaps,
+        getRegionCodeMaps,
+        updateAnalysisUrl as writeAnalysisUrlParams,
+        planAnalysisHydrate,
+        planValidationStorePatch,
+        finishValidatedHydrate,
+    } from '../lib/analyseUrlParams.js';
+    import {
+        validateAnalysisRun,
+        buildAnalysisRunPlan,
+        executeAnalysisFetch,
+        completeAnalysisRun,
+    } from '../lib/runAnalysis.js';
     import {
         getCookie,
         getUrlParams,
-        formatArrayParam,
         setUrlParams,
         cleanupUrl,
     } from '../../../utils/utils';
+    import { allOverlaySelection } from '../lib/chartOverlay.js';
     
     const dispatch = createEventDispatcher();
 
@@ -33,37 +59,6 @@
         'Defined Daily Dose Quantity'
     ];
 
-    const PRODUCT_PARAM_BY_TYPE = {
-        vmp: 'vmps',
-        vtm: 'vtms',
-        ingredient: 'ingredients',
-        atc: 'atcs'
-    };
-
-    const PRODUCT_TYPE_ORDER = Object.keys(PRODUCT_PARAM_BY_TYPE);
-
-    const ANALYSIS_TRUSTS_PARAM = 'trusts';
-    const ANALYSIS_QUANTITY_PARAM = 'quantity';
-    const ANALYSIS_MODE_PARAM = 'mode';
-    const ANALYSIS_PERCENTILES_PARAM = 'show_percentiles';
-    const ANALYSIS_EXCLUDED_VMPS_PARAM = 'excluded_vmps';
-
-    const SUPPORTED_ANALYSIS_PARAMS = [
-        ...Object.values(PRODUCT_PARAM_BY_TYPE),
-        ANALYSIS_TRUSTS_PARAM,
-        ANALYSIS_QUANTITY_PARAM,
-        ANALYSIS_MODE_PARAM,
-        ANALYSIS_PERCENTILES_PARAM,
-        ANALYSIS_EXCLUDED_VMPS_PARAM
-    ];
-
-    const QUANTITY_TYPE_CODES = {
-        'SCMD Quantity': 'scmd',
-        'Unit Dose Quantity': 'dose',
-        'Ingredient Quantity': 'ingredient',
-        'Defined Daily Dose Quantity': 'ddd'
-    };
-
     let isAnalysisRunning = false;
     let errorMessage = '';
     let isSelectingQuantityTypes = false;
@@ -71,6 +66,8 @@
     let recommendedQuantityTypes = [];
     let selectedQuantityType = null;
     let isQuantityDropdownOpen = false;
+    let selectedScope = ANALYSIS_SCOPE.ALL;
+    let selectedScopeFilters = createEmptyScopeFilters();
 
     let urlState = {
         mode: null,
@@ -85,8 +82,15 @@
     $: searchType = $analyseOptions.searchType;
     $: selectedQuantityType = $analyseOptions.quantityType;
     $: selectedTrusts = $organisationSearchStore.selectedItems || [];
+    $: resultsOverlayTrusts = $analyseOptions.selectedOrganisations || [];
     $: selectedMode = $modeSelectorStore.selectedMode;
     $: showPercentiles = $resultsStore.showPercentiles;
+    $: effectiveMode = normaliseMode(selectedMode) || urlState.mode;
+    $: trustsForUrl = selectedScope === ANALYSIS_SCOPE.TRUST
+        ? selectedTrusts
+        : (isAggregationChartMode(effectiveMode)
+            ? []
+            : (isAuth ? resultsOverlayTrusts : selectedTrusts));
 
     $: urlState.excludedVmps = Array.isArray($resultsStore.excludedVmps)
         ? Array.from(new Set($resultsStore.excludedVmps.filter(Boolean).map(String))).sort()
@@ -96,122 +100,60 @@
         urlState.mode = null;
     }
 
-    $: effectiveMode = normaliseMode(selectedMode) || urlState.mode;
+    $: chartRegionsForUrl = effectiveMode === 'region'
+        ? $analyseOptions.selectedChartRegions
+        : null;
+    $: chartIcbsForUrl = effectiveMode === 'icb'
+        ? $analyseOptions.selectedChartIcbs
+        : null;
 
     $: if (!urlState.suppressSync && urlState.validationErrors.length === 0) {
-        const currentMode = effectiveMode || 'trust';
-        const currentShowPercentiles = getShowPercentilesParam(currentMode, selectedTrusts, showPercentiles);
-        updateAnalysisUrl(
-            selectedVMPs,
-            selectedTrusts,
-            selectedQuantityType,
-            effectiveMode,
-            currentShowPercentiles,
-            urlState.excludedVmps
+        const { regionCodeByName, icbCodeByName } = getRegionCodeMaps(
+            $organisationSearchStore.regionsHierarchy || []
         );
+        const { codeByName: cancerAllianceCodeByName } = getCancerAllianceCodeMaps(
+            typeof organisationSearchStore.getCancerAlliances === 'function'
+                ? organisationSearchStore.getCancerAlliances()
+                : []
+        );
+        const currentShowPercentiles = getShowPercentilesParam(
+            effectiveMode,
+            trustsForUrl,
+            showPercentiles,
+            selectedScope
+        );
+        writeAnalysisUrlParams({
+            products: selectedVMPs,
+            trusts: trustsForUrl,
+            quantityType: selectedQuantityType,
+            scope: selectedScope,
+            scopeFilters: selectedScopeFilters,
+            mode: effectiveMode,
+            showPercentiles: currentShowPercentiles,
+            excludedVmps: urlState.excludedVmps,
+            chartRegions: chartRegionsForUrl,
+            chartIcbs: chartIcbsForUrl,
+            getOrgCode: (name) => organisationSearchStore.getOrgCode(name),
+            regionCodeByName,
+            icbCodeByName,
+            cancerAllianceCodeByName,
+        });
     }
 
     export let orgData = null;
     export let isAuthenticated = false;
-    $: isAuth = isAuthenticated === true;
     export let maxVmpCount = null;
+
+    $: isAuth = isAuthenticated === true || isAuthenticated === 'true';
+    $: if (!isAuth && selectedScope !== ANALYSIS_SCOPE.ALL) {
+        selectedScope = ANALYSIS_SCOPE.ALL;
+        selectedScopeFilters = createEmptyScopeFilters();
+    }
 
     let resolvedVmpOverLimit = false;
 
     function handleVmpCountChange(event) {
         resolvedVmpOverLimit = event.detail.overLimit;
-    }
-    function getShowPercentilesParam(mode, trusts, showPercentilesValue) {
-        const hasTrusts = Array.isArray(trusts) && trusts.length > 0;
-        if (mode === 'trust' && hasTrusts && showPercentilesValue === true) {
-            return 'true';
-        }
-        return null;
-    }
-
-
-    function encodeQuantityType(quantityType) {
-        if (!quantityType) return null;
-        const trimmed = quantityType.trim();
-        return QUANTITY_TYPE_CODES[trimmed] || null;
-    }
-
-
-    function updateAnalysisUrl(products = [], trusts = [], quantityType = null, mode = null, showPercentiles = null, excludedVmps = []) {
-        if (typeof window === 'undefined') return;
-
-        const params = {};
-
-        const productGroups = {};
-        products.forEach(item => {
-            if (!item?.code || !item?.type) return;
-            const typeKey = item.type.toLowerCase();
-            const paramName = PRODUCT_PARAM_BY_TYPE[typeKey];
-            if (!paramName) return;
-
-            if (!productGroups[paramName]) productGroups[paramName] = [];
-            if (!productGroups[paramName].includes(item.code)) {
-                productGroups[paramName].push(item.code);
-            }
-        });
-
-        Object.entries(productGroups).forEach(([paramName, codes]) => {
-            if (codes.length > 0) {
-                params[paramName] = formatArrayParam(codes);
-            }
-        });
-
-        const trustCodes = trusts.map(name => organisationSearchStore.getOrgCode(name)).filter(Boolean);
-        if (trustCodes.length > 0) {
-            params[ANALYSIS_TRUSTS_PARAM] = formatArrayParam(trustCodes);
-        }
-
-        if (quantityType) {
-            const encodedQuantity = encodeQuantityType(quantityType);
-            if (encodedQuantity) {
-                params[ANALYSIS_QUANTITY_PARAM] = encodedQuantity;
-            }
-        }
-
-        if (mode) {
-            const normalisedMode = normaliseMode(mode);
-            const shouldForceModeParam = showPercentiles === 'true';
-            if (normalisedMode && (normalisedMode !== 'trust' || shouldForceModeParam)) {
-                params[ANALYSIS_MODE_PARAM] = normalisedMode;
-            }
-        }
-
-        if (showPercentiles !== null) {
-            params[ANALYSIS_PERCENTILES_PARAM] = showPercentiles;
-        }
-
-        if (excludedVmps.length > 0) {
-            params[ANALYSIS_EXCLUDED_VMPS_PARAM] = formatArrayParam(excludedVmps);
-        }
-
-        setUrlParams(params, SUPPORTED_ANALYSIS_PARAMS);
-    }
-
-    function buildValidationParams(urlParams) {
-        const queryParams = new URLSearchParams();
-
-        PRODUCT_TYPE_ORDER.forEach(type => {
-            const paramName = PRODUCT_PARAM_BY_TYPE[type];
-            const paramValue = urlParams.get(paramName);
-            if (paramValue?.trim()) {
-                queryParams.append(paramName, paramValue);
-            }
-        });
-
-        [ANALYSIS_TRUSTS_PARAM, ANALYSIS_QUANTITY_PARAM, ANALYSIS_MODE_PARAM,
-         ANALYSIS_PERCENTILES_PARAM, ANALYSIS_EXCLUDED_VMPS_PARAM].forEach(param => {
-            const value = urlParams.get(param);
-            if (value?.trim()) {
-                queryParams.append(param, value.trim());
-            }
-        });
-
-        return queryParams;
     }
 
     function handleValidationResponse(data) {
@@ -226,56 +168,6 @@
         return true;
     }
 
-    function updateStoresFromValidation(data) {
-        if (data.valid_products?.length > 0) {
-            analyseOptions.update(options => ({
-                ...options,
-                selectedVMPs: data.valid_products
-            }));
-
-            if (data.quantity_type) {
-                analyseOptions.setQuantityType(data.quantity_type.name);
-                selectedQuantityType = data.quantity_type.name;
-                if (data.quantity_type.code) {
-                    setUrlParams({ [ANALYSIS_QUANTITY_PARAM]: data.quantity_type.code }, [ANALYSIS_QUANTITY_PARAM]);
-                }
-            } else {
-                selectQuantityType(data.valid_products);
-            }
-        }
-
-        if (data.valid_trusts?.length > 0) {
-            const trustNames = data.valid_trusts.map(trust => trust.ods_name);
-            organisationSearchStore.updateSelection(trustNames);
-            analyseOptions.setSelectedOrganisations(trustNames);
-        }
-
-        const hasValidTrusts = Array.isArray(data.valid_trusts) && data.valid_trusts.length > 0;
-        const responseExcludedVmps = Array.isArray(data.excluded_vmps)
-            ? Array.from(new Set(data.excluded_vmps.map(String).filter(Boolean))).sort()
-            : [];
-
-
-        let finalShowPercentiles;
-        if (urlState.showPercentiles === 'true') {
-            finalShowPercentiles = true;
-        } else if (urlState.showPercentiles === 'false') {
-            finalShowPercentiles = false;
-        } else if (data.mode === 'trust' && hasValidTrusts) {
-            finalShowPercentiles = data.show_percentiles ?? false;
-        } else {
-            finalShowPercentiles = !hasValidTrusts;
-        }
-
-        resultsStore.update(store => ({
-            ...store,
-            showPercentiles: finalShowPercentiles,
-            excludedVmps: responseExcludedVmps
-        }));
-
-        urlState.excludedVmps = responseExcludedVmps;
-    }
-
     async function hydrateFromUrl() {
         if (urlState.isHydrated || typeof window === 'undefined') {
             urlState.suppressSync = false;
@@ -286,37 +178,96 @@
 
         try {
             const urlParams = getUrlParams();
-            urlState.mode = normaliseMode(urlParams.get(ANALYSIS_MODE_PARAM));
-            urlState.showPercentiles = urlParams.get(ANALYSIS_PERCENTILES_PARAM);
+            const plan = planAnalysisHydrate({
+                urlParams,
+                regionsHierarchy: $organisationSearchStore.regionsHierarchy || [],
+                cancerAlliances:
+                    typeof organisationSearchStore.getCancerAlliances === 'function'
+                        ? organisationSearchStore.getCancerAlliances()
+                        : [],
+                decodeTrustTypeFromUrl,
+            });
 
-            const queryParams = buildValidationParams(urlParams);
-            if (!queryParams.toString()) {
+            const hydrateScope = isAuth ? plan.scope : ANALYSIS_SCOPE.ALL;
+            selectedScopeFilters = isAuth ? plan.scopeFilters : createEmptyScopeFilters();
+            handleScopeChange(hydrateScope);
+            if (isAuth && plan.shouldShowAdvancedOptions) {
+                showAdvancedOptions = true;
+            }
+            urlState.mode = plan.mode;
+            urlState.showPercentiles = plan.showPercentilesRaw;
+            analyseOptions.setSelectedChartRegions(plan.chartRegions);
+            analyseOptions.setSelectedChartIcbs(plan.chartIcbs);
+
+            if (!plan.validationQuery.toString()) {
                 urlState.suppressSync = false;
                 return;
             }
 
-            const response = await fetch(`/api/validate-analysis-params/?${queryParams}`, {
+            const response = await fetch(`/api/validate-analysis-params/?${plan.validationQuery}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                const isValid = handleValidationResponse(data);
+            if (!response.ok) {
+                console.error('Failed to validate URL parameters:', response.status);
+                return;
+            }
 
-                if (isValid) {
-                    updateStoresFromValidation(data);
+            const data = await response.json();
+            if (!handleValidationResponse(data)) {
+                return;
+            }
 
+            const patch = planValidationStorePatch({
+                data,
+                scope: hydrateScope,
+                mode: plan.mode,
+                showPercentilesRaw: plan.showPercentilesRaw,
+                hasExplicitTrustSelection: plan.hasExplicitTrustSelection,
+            });
+
+            const { excludedVmps } = await finishValidatedHydrate({
+                patch,
+                selectedScope: hydrateScope,
+                selectedScopeFilters: isAuth ? plan.scopeFilters : createEmptyScopeFilters(),
+                analyseOptions,
+                organisationSearchStore,
+                resultsStore,
+                modeSelectorStore,
+                applyQuantityType: async (hydratePatch) => {
+                    if (hydratePatch.quantityType) {
+                        analyseOptions.setQuantityType(hydratePatch.quantityType.name);
+                        selectedQuantityType = hydratePatch.quantityType.name;
+                        if (hydratePatch.quantityType.code) {
+                            setUrlParams(
+                                { [ANALYSIS_QUANTITY_PARAM]: hydratePatch.quantityType.code },
+                                [ANALYSIS_QUANTITY_PARAM]
+                            );
+                        }
+                        await selectQuantityType(hydratePatch.selectedVMPs, { preserveSelection: true });
+                    } else {
+                        await selectQuantityType(hydratePatch.selectedVMPs);
+                    }
+                },
+                cleanupUrlParams: () => {
                     if (typeof window !== 'undefined') {
                         cleanupUrl(SUPPORTED_ANALYSIS_PARAMS);
                     }
+                },
+                waitForUi: () => tick(),
+            });
 
-                    await tick();
-                    runAnalysis();
-                }
-            } else {
-                console.error('Failed to validate URL parameters:', response.status);
+            if (!isAuth && patch.selectedOrganisations?.length > 0) {
+                organisationSearchStore.updateSelection(patch.selectedOrganisations);
             }
+
+            urlState.excludedVmps = excludedVmps;
+
+            const overlayFromUrl = hydrateScope === ANALYSIS_SCOPE.TRUST
+                ? (patch.selectedOrganisations || []).slice(0, 1)
+                : (patch.selectedOrganisations || []);
+            await runAnalysis({ overlayOrganisations: overlayFromUrl });
         } catch (error) {
             console.error('Failed to hydrate analysis selections from URL:', error);
         } finally {
@@ -355,7 +306,7 @@
 
     const csrftoken = getCookie('csrftoken');
     
-    async function selectQuantityType(selectedVMPs) {
+    async function selectQuantityType(selectedVMPs, { preserveSelection = false } = {}) {
 
         if (!selectedVMPs || selectedVMPs.length === 0) {
 
@@ -386,9 +337,11 @@
             
             const data = await response.json();
             
-            selectedQuantityType = data.selected_quantity_type;
             recommendedQuantityTypes = data.recommended_quantity_types || [];
-            analyseOptions.setQuantityType(selectedQuantityType);
+            if (!preserveSelection) {
+                selectedQuantityType = data.selected_quantity_type;
+                analyseOptions.setQuantityType(selectedQuantityType);
+            }
             
         } catch (error) {
             console.error('Error selecting quantity type:', error);
@@ -421,32 +374,57 @@
         return resolvedProducts;
     }
 
-    async function runAnalysis() {
+    async function runAnalysis(options = {}) {
         if (isAnalysisRunning) return;
+
+        const runScope = isAuth ? selectedScope : ANALYSIS_SCOPE.ALL;
+        const runScopeFilters = isAuth ? selectedScopeFilters : createEmptyScopeFilters();
 
         errorMessage = '';
 
-        if (!selectedVMPs || selectedVMPs.length === 0) {
-            errorMessage = "Please select at least one product or ingredient.";
+        const validationError = validateAnalysisRun({
+            selectedVMPs,
+            selectedScope: runScope,
+            selectedTrusts,
+            selectedScopeFilters: runScopeFilters,
+            availableItems: $organisationSearchStore.availableItems || [],
+        });
+        if (validationError) {
+            errorMessage = validationError;
             return;
         }
 
-        
         modeSelectorStore.reset();
-
         isAnalysisRunning = true;
         dispatch('analysisStart');
-        
+
+        const hasExplicitOverlay = Object.prototype.hasOwnProperty.call(options, 'overlayOrganisations');
+        const legacyOverlayOrganisations = !isAuth && !hasExplicitOverlay
+            ? ($organisationSearchStore.selectedItems || [])
+            : options.overlayOrganisations;
+
+        const plan = buildAnalysisRunPlan({
+            selectedScope: runScope,
+            selectedItems: $organisationSearchStore.selectedItems || [],
+            availableItems: $organisationSearchStore.availableItems || [],
+            allItems: $organisationSearchStore.items || [],
+            selectedTrusts,
+            getOrgCode: (name) => organisationSearchStore.getOrgCode(name),
+            overlayOrganisations: legacyOverlayOrganisations,
+        });
+
         if (typeof window !== 'undefined' && window.plausible) {
             window.plausible('Analysis Run', {
                 props: {
                     all_products: selectedVMPs.map(p => p.code).join(','),
-                    all_organisations: $organisationSearchStore.selectedItems.join(','),
+                    // Names only for single-trust; larger cohorts are counted via organisation_count.
+                    all_organisations: runScope === ANALYSIS_SCOPE.TRUST ? plan.cohortTrusts.join(',') : '',
                     product_count: selectedVMPs.length.toString(),
-                    organisation_count: $organisationSearchStore.selectedItems.length.toString(),
+                    organisation_count: plan.cohortTrusts.length.toString(),
                     search_type: searchType,
                     quantity_type: selectedQuantityType || 'auto',
                     analysis_mode: effectiveMode || 'trust',
+                    analysis_scope: runScope,
 
                     used_url_params: urlState.isHydrated && Object.keys(urlState).some(key => {
                         const value = urlState[key];
@@ -456,62 +434,31 @@
                 }
             });
         }
-        
-        let endpoint = '/api/get-quantity-data/';
-        
+
         try {
             const resolvedProducts = await resolveProductsToVMPs(selectedVMPs);
-
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken
-                },
-                body: JSON.stringify(
-                    buildAnalysisRequestPayload({
-                        selectedProducts: resolvedProducts,
-                        quantityType: $analyseOptions.quantityType,
-                    })
-                )
+            const payload = await executeAnalysisFetch({
+                csrftoken,
+                resolvedProducts,
+                quantityType: $analyseOptions.quantityType,
+                selectedScope: runScope,
+                odsCodes: plan.odsCodes,
             });
 
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || `HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            const payload = { months: data.months ?? [], items: data.items ?? [] };
-
-            analyseOptions.runAnalysis({
+            const complete = completeAnalysisRun({
+                plan,
+                payload,
                 selectedVMPs,
                 searchType,
-                organisations: $organisationSearchStore.selectedItems
-            });
-
-            const updateOptions = {
-                searchType,
                 quantityType: $analyseOptions.quantityType,
-                selectedOrganisations: $organisationSearchStore.selectedItems,
-            };
-
-            if (urlState.showPercentiles !== null) {
-                updateOptions.showPercentiles = urlState.showPercentiles === 'true';
-            }
-
-            if (urlState.excludedVmps.length > 0) {
-                updateOptions.excludedVmps = urlState.excludedVmps;
-            }
-
-            updateResults(payload, updateOptions);
-
-            dispatch('analysisComplete', { 
-                data: payload,
-                searchType,
-                selectedOrganisations: $organisationSearchStore.selectedItems
+                selectedScope: runScope,
+                selectedScopeFilters: runScopeFilters,
+                showPercentilesFromUrl: urlState.showPercentiles,
+                excludedVmps: urlState.excludedVmps,
+                analyseOptions,
+                updateResults,
             });
+            dispatch('analysisComplete', complete);
         } catch (error) {
             console.error("Error fetching filtered data:", error);
             errorMessage = "An error occurred while fetching data. Please try again.";
@@ -533,22 +480,45 @@
     }
 
     function handleODSSelection(event) {
-        const { selectedItems, usedOrganisationSelection } = event.detail;
+        const selectedItems = event.detail.selectedItems || [];
+        const usedOrganisationSelection = event.detail.usedOrganisationSelection;
         const previouslyHadTrusts = selectedTrusts.length > 0;
-        const willHaveTrusts = Array.isArray(selectedItems) && selectedItems.length > 0;
+        const willHaveTrusts = selectedItems.length > 0;
 
         organisationSearchStore.updateSelection(selectedItems, usedOrganisationSelection);
-        analyseOptions.setSelectedOrganisations(selectedItems);
 
-        if (!previouslyHadTrusts && willHaveTrusts) {
+        if (!isAuth) {
+            analyseOptions.setSelectedOrganisations(selectedItems);
+            analyseOptions.setRememberedOverlayOrganisations(selectedItems);
+
             if (urlState.showPercentiles === null) {
-                resultsStore.update(store => ({ ...store, showPercentiles: false }));
+                if (!previouslyHadTrusts && willHaveTrusts) {
+                    resultsStore.update(store => ({ ...store, showPercentiles: false }));
+                } else if (previouslyHadTrusts && !willHaveTrusts) {
+                    resultsStore.update(store => ({ ...store, showPercentiles: true }));
+                }
             }
-        } else if (previouslyHadTrusts && !willHaveTrusts) {
-            if (urlState.showPercentiles === null) {
-                resultsStore.update(store => ({ ...store, showPercentiles: true }));
-            }
+            dispatch('overlaySelectionChange');
         }
+    }
+
+    function handleScopeChange(scope) {
+        selectedScope = scope;
+
+        if (
+            scope === ANALYSIS_SCOPE.ALL
+            || scope === ANALYSIS_SCOPE.NATIONAL
+            || scope === ANALYSIS_SCOPE.TRUST
+        ) {
+            organisationSearchStore.setAvailableItems(Array.from($organisationSearchStore.items || []));
+            organisationSearchStore.setFiltersApplied(false);
+        }
+
+        if (scope === ANALYSIS_SCOPE.TRUST || scope === ANALYSIS_SCOPE.GROUP) {
+            organisationSearchStore.setFilterType('trust');
+        }
+
+        organisationSearchStore.updateSelection([]);
     }
 
     function toggleAdvancedOptions() {
@@ -577,10 +547,16 @@
         }));
         organisationSearchStore.updateSelection([]);
         analyseOptions.setSelectedOrganisations([]);
+        analyseOptions.setRememberedOverlayOrganisations([]);
+        analyseOptions.setSelectedChartRegions(allOverlaySelection());
+        analyseOptions.setSelectedChartIcbs(allOverlaySelection());
         
         recommendedQuantityTypes = [];
         showAdvancedOptions = false;
         selectedQuantityType = null;
+        selectedScope = ANALYSIS_SCOPE.ALL;
+        selectedScopeFilters = createEmptyScopeFilters();
+        organisationSearchStore.setFilterType('trust');
         modeSelectorStore.reset();
         urlState = {
             mode: null,
@@ -593,7 +569,10 @@
         resultsStore.update(store => ({
             ...store,
             showPercentiles: true,
-            excludedVmps: []
+            excludedVmps: [],
+            scope: ANALYSIS_SCOPE.ALL,
+            scopeFilters: createEmptyScopeFilters(),
+            inScopeTrusts: []
         }));
         dispatch('urlValidationErrors', { errors: [] });
 
@@ -615,6 +594,13 @@
     function handleClearAnalysis() {
         resetSelections();
         dispatch('analysisClear');
+    }
+
+    function handleScopeFiltersChange(event) {
+        selectedScopeFilters = normaliseScopeFilters(event?.detail || {});
+        if (hasAnyScopeFilters(selectedScopeFilters)) {
+            errorMessage = '';
+        }
     }
 
 </script>
@@ -666,6 +652,7 @@
             </div>
           </div>
 
+          {#if !isAuth}
           <!-- Trust Selection -->
           <div class="grid gap-0">
             <div class="flex items-center">
@@ -681,7 +668,7 @@
                   ring-1 ring-black ring-opacity-5 p-4">
                   <div class="text-sm text-gray-500 space-y-3">
                     <div class="space-y-1 text-xs">
-                      <p>{#if isAuth}Select NHS Trusts to filter the analysis.{:else}Select up to 10 NHS Trusts.{/if}</p>
+                      <p>Select up to 10 NHS Trusts.</p>
                       <ul>
                         <li><strong>No trusts selected:</strong> Shows national data with regional/ICB breakdowns available</li>
                         <li><strong>Trusts selected:</strong> Filters analysis results to the selected trusts</li>
@@ -698,26 +685,17 @@
               </div>
             </div>
             <div class="relative min-w-0">
-              {#if isAuth}
-                <OrganisationSearchFiltered
-                  source={organisationSearchStore}
-                  overlayMode={false}
-                  on:selectionChange={handleODSSelection}
-                  showTitle={false}
-                  filterAutoSelectsAll={false}
-                />
-              {:else}
-                <OrganisationSearch
-                  source={organisationSearchStore}
-                  overlayMode={false}
-                  on:selectionChange={handleODSSelection}
-                  maxItems={10}
-                  hideSelectAll={true}
-                  showTitle={false}
-                />
-              {/if}
+              <OrganisationSearch
+                source={organisationSearchStore}
+                overlayMode={false}
+                on:selectionChange={handleODSSelection}
+                maxItems={10}
+                hideSelectAll={true}
+                showTitle={false}
+              />
             </div>
           </div>
+          {/if}
 
         </div>
 
@@ -736,8 +714,21 @@
 
               {#if showAdvancedOptions}
                 <div class="space-y-4">
+                  {#if isAuth}
+                    <AnalysisScopePanel
+                      {selectedScope}
+                      {selectedScopeFilters}
+                      source={organisationSearchStore}
+                      on:scopeChange={(e) => handleScopeChange(e.detail)}
+                      on:filtersChange={handleScopeFiltersChange}
+                      on:selectionChange={handleODSSelection}
+                    />
+                  {/if}
+
                   <div class="space-y-3">
-                    <h3 class="text-base sm:text-lg font-semibold text-oxford">Quantity Type (optional)</h3>
+                    <h3 class="text-base sm:text-lg font-semibold text-oxford">
+                      {isAuth ? 'Quantity Type' : 'Quantity Type (optional)'}
+                    </h3>
                     <p class="text-sm text-oxford">
                       There are different ways to <a href="/faq/#what-does-quantity-mean" class="underline font-semibold" target="_blank">measure the quantity of medicines issued</a>. The most appropriate quantity for the selected products is automatically selected (<a href="/faq/#how-is-the-quantity-type-used-for-an-analysis-chosen" class="underline font-semibold" target="_blank">see how in the FAQs</a>). If you would like to select an alternative quantity type, you can do so below.
                     </p>
@@ -815,7 +806,7 @@
             <!-- Action Buttons -->
             <div class="flex gap-2 justify-between">
               <button
-                on:click={runAnalysis}
+                on:click={() => runAnalysis()}
                 disabled={isAnalysisRunning || isSelectingQuantityTypes || resolvedVmpOverLimit}
                 class="w-64 px-6 sm:px-8 py-2 sm:py-2.5 bg-oxford-50 text-oxford-600 font-semibold rounded-md hover:bg-oxford-100 transition-colors duration-200
                      disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"

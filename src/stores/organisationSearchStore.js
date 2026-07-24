@@ -1,4 +1,5 @@
 import { writable, get } from 'svelte/store';
+import { applyScopeFiltersToSource, CANCER_ALLIANCE_NA } from '../utils/scopeFilters.js';
 
 function createOrganisationSearchStore() {
     const { subscribe, set, update } = writable({
@@ -109,6 +110,21 @@ function createOrganisationSearchStore() {
                 };
             });
         },
+
+        applyScopeFilters(filters) {
+            const store = get(this);
+            const { orgList, hasFilters } = applyScopeFiltersToSource({
+                allItems: store.items || [],
+                filters,
+                getTrustType: (name) => this.getTrustType(name),
+                getOrgsByRegionsOrICBs: (regions, icbs) => this.getOrgsByRegionsOrICBs(regions, icbs),
+                getOrgsByCancerAlliances: (alliances) => this.getOrgsByCancerAlliances(alliances),
+                orgShelfordGroup: store.orgShelfordGroup,
+            });
+            this.setFiltersApplied(hasFilters);
+            this.setAvailableItems(orgList);
+            return { orgList, hasFilters };
+        },
         
         isAvailable(item) {
             const currentStore = get(this);
@@ -139,7 +155,6 @@ function createOrganisationSearchStore() {
             return types.sort((a, b) => a.localeCompare(b));
         },
 
-        /** Returns orgs by trust type from the full items set */
         getOrgsByTrustTypeGlobal(trustType) {
             const currentStore = get(this);
             if (!currentStore.trustTypes || !trustType) return [];
@@ -201,7 +216,7 @@ function createOrganisationSearchStore() {
             const result = new Set();
             if (selectedCancerAlliances && selectedCancerAlliances.size > 0) {
                 selectedCancerAlliances.forEach((caName) => {
-                    if (caName === 'Not applicable') {
+                    if (caName === CANCER_ALLIANCE_NA) {
                         this.getOrgsWithNoCancerAlliance().forEach((name) => result.add(name));
                     } else {
                         this.getOrgsByCancerAlliance(caName).forEach((name) => result.add(name));

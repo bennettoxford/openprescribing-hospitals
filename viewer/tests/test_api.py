@@ -19,7 +19,7 @@ from viewer.models import (
     PrecomputedMeasure,
     PrecomputedPercentile,
 )
-from viewer.views.api import MAX_ANALYSIS_VMP_COUNT
+from viewer.search import MAX_ANALYSIS_VMP_COUNT
 
 
 @pytest.fixture
@@ -82,6 +82,33 @@ def measure(vmp):
     return measure
 
 
+def _quantity_payload(vmp, *, ods_codes=None, scope="all"):
+    payload = {
+        "names": [{"code": vmp.code, "type": "vmp"}],
+        "quantity_type": "Defined Daily Dose Quantity",
+        "scope": scope,
+    }
+    if ods_codes is not None:
+        payload["ods_codes"] = ods_codes
+    return payload
+
+
+def _post_quantity_data(client, payload):
+    return client.post(
+        reverse("viewer:get_quantity_data"),
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+
+
+def _org_items(items, ods_name):
+    return [
+        item
+        for item in items
+        if item.get("organisation__ods_name") == ods_name
+    ]
+
+
 @pytest.mark.django_db
 class TestGetQuantityData:
     def test_predecessor_data_aggregated_into_successor(
@@ -106,41 +133,32 @@ class TestGetQuantityData:
             data=[5.0, 15.0, 25.0],
         )
 
-        client = Client()
-        payload = {
-            "names": [{"code": vmp.code, "type": "vmp"}],
-            "quantity_type": "Defined Daily Dose Quantity",
-            "ods_names": [successor.ods_name],
-        }
-        response = client.post(
-            reverse("viewer:get_quantity_data"),
-            data=json.dumps(payload),
-            content_type="application/json",
+        response = _post_quantity_data(
+            Client(),
+            _quantity_payload(vmp, ods_codes=[successor.ods_code]),
         )
 
         assert response.status_code == 200
-        data = response.json()
-        items = data["items"]
-
-        org_items = [
-            i
-            for i in items
-            if i.get("organisation__ods_name") == successor.ods_name
-        ]
+        org_items = _org_items(response.json()["items"], successor.ods_name)
         assert len(org_items) == 1, "Should have exactly one item for successor"
-        org_item = org_items[0]
+        assert org_items[0]["data"] == [15.0, 35.0, 55.0]
+        assert org_items[0]["organisation__ods_code"] == successor.ods_code
 
-        expected_data = [15.0, 35.0, 55.0]
-        assert org_item["data"] == expected_data
-
-    def test_filter_by_successor_includes_predecessor_rows(
-        self, predecessor_successor_orgs, vmp, data_status_months
+    def test_filter_by_successor_ods_code_includes_predecessor_rows(
+        self, predecessor_successor_orgs, region, icb, vmp, data_status_months
     ):
         """
-        Filtering by successor ods_name should include both successor and
-        predecessor DDDQuantity rows.
+        Filtering by successor ods_code should include both successor and
+        predecessor DDDQuantity rows, and exclude unrelated trusts.
         """
         predecessor, successor = predecessor_successor_orgs
+        other = Organisation.objects.create(
+            ods_code="OTH",
+            ods_name="Other Trust",
+            region=region,
+            icb=icb,
+            successor=None,
+        )
 
         DDDQuantity.objects.create(
             vmp=vmp,
@@ -152,28 +170,23 @@ class TestGetQuantityData:
             organisation=successor,
             data=[0, 50.0, 0],
         )
+        DDDQuantity.objects.create(
+            vmp=vmp,
+            organisation=other,
+            data=[999.0, 999.0, 999.0],
+        )
 
-        client = Client()
-        payload = {
-            "names": [{"code": vmp.code, "type": "vmp"}],
-            "quantity_type": "Defined Daily Dose Quantity",
-            "ods_names": [successor.ods_name],
-        }
-        response = client.post(
-            reverse("viewer:get_quantity_data"),
-            data=json.dumps(payload),
-            content_type="application/json",
+        response = _post_quantity_data(
+            Client(),
+            _quantity_payload(vmp, ods_codes=[successor.ods_code]),
         )
 
         assert response.status_code == 200
-        data = response.json()
-        org_items = [
-            i
-            for i in data["items"]
-            if i.get("organisation__ods_name") == successor.ods_name
-        ]
+        items = response.json()["items"]
+        org_items = _org_items(items, successor.ods_name)
         assert len(org_items) == 1
         assert org_items[0]["data"] == [100.0, 50.0, 0.0]
+        assert _org_items(items, other.ods_name) == []
 
     def test_org_without_successor_returns_own_data(
         self, region, icb, vmp, data_status_months
@@ -192,27 +205,62 @@ class TestGetQuantityData:
             data=[1.0, 2.0, 3.0],
         )
 
-        client = Client()
-        payload = {
-            "names": [{"code": vmp.code, "type": "vmp"}],
-            "quantity_type": "Defined Daily Dose Quantity",
-            "ods_names": [org.ods_name],
-        }
-        response = client.post(
-            reverse("viewer:get_quantity_data"),
-            data=json.dumps(payload),
-            content_type="application/json",
+        response = _post_quantity_data(
+            Client(),
+            _quantity_payload(vmp, ods_codes=[org.ods_code]),
         )
 
         assert response.status_code == 200
-        data = response.json()
-        org_items = [
-            i
-            for i in data["items"]
-            if i.get("organisation__ods_name") == org.ods_name
-        ]
+        org_items = _org_items(response.json()["items"], org.ods_name)
         assert len(org_items) == 1
         assert org_items[0]["data"] == [1.0, 2.0, 3.0]
+
+    def test_national_scope_returns_aggregated_totals(
+        self, predecessor_successor_orgs, region, icb, vmp, data_status_months
+    ):
+        predecessor, successor = predecessor_successor_orgs
+        other = Organisation.objects.create(
+            ods_code="OTH",
+            ods_name="Other Trust",
+            region=region,
+            icb=icb,
+            successor=None,
+        )
+        DDDQuantity.objects.create(
+            vmp=vmp,
+            organisation=predecessor,
+            data=[10.0, 0, 0],
+        )
+        DDDQuantity.objects.create(
+            vmp=vmp,
+            organisation=successor,
+            data=[5.0, 20.0, 0],
+        )
+        DDDQuantity.objects.create(
+            vmp=vmp,
+            organisation=other,
+            data=[1.0, 2.0, 3.0],
+        )
+
+        user = User.objects.create_user(username="analyst", password="pass")
+        client = Client()
+        client.force_login(user)
+
+        response = _post_quantity_data(
+            client,
+            _quantity_payload(vmp, scope="national"),
+        )
+
+        assert response.status_code == 200
+        items = [
+            item
+            for item in response.json()["items"]
+            if item.get("vmp__code") == vmp.code
+        ]
+        assert len(items) == 1
+        assert items[0]["organisation__ods_code"] is None
+        assert items[0]["organisation__ods_name"] is None
+        assert items[0]["data"] == [16.0, 22.0, 3.0]
 
 
 @pytest.mark.django_db

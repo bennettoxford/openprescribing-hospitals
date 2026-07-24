@@ -10,13 +10,24 @@ Quantity is the total amount of a medicine that has been issued as reported in t
 
 There is no quantity reported when a trust has not issued a product or the selected [quantity type](/faq/#what-does-quantity-mean) is not available for the product. See [How is the quantity type used for an analysis chosen?](faq/#how-is-the-quantity-type-used-for-an-analysis-chosen).
 
+### What is analysis scope?
+
+The scope of an analysis specifies which NHS trusts are included and the level of reporting available in the results. You choose a scope in the analysis builder. The options are:
+
+- **All trusts**: Includes all NHS trusts in the analysis. This gives access to trust-level charts and tables, as well as ICB, regional, and national breakdowns, and trust-level percentile charts.
+- **National**: Shows nationally aggregated totals only. Trust-level, ICB, and regional breakdowns are not available. Use this when you only need a national total for the selected products.
+- **Single trust**: Restricts the analysis to one NHS trust that you select. Results show data for that trust only.
+- **Trust group**: Restricts the analysis to a group of NHS trusts defined by filters such as [trust type](/faq/#how-are-trust-types-determined), region, ICB, [Cancer Alliance](/faq/#where-do-cancer-alliance-boundaries-come-from), or [Shelford Group](https://shelfordgroup.org/) membership. Results and comparisons (including percentiles, where available) are based on the trusts in that group.
+
+See also [which NHS trusts are included](/faq/#which-nhs-trusts-are-included).
+
 ### How do I see ICB, regional, and national breakdowns?
 
-To view ICB, regional, and national analysis breakdowns, as well as national trust-level variation as a percentiles chart, run an analysis **without selecting any NHS Trusts** in the analysis builder. These geographic breakdown modes are only available when analysing data across all trusts.
+To view ICB, regional, and national analysis breakdowns, as well as trust-level variation as a percentiles chart, choose the **All trusts** or **Trust group** scope in the analysis builder. With **Trust group**, these breakdowns only include the trusts in the scope for this analysis (for example, regional totals across acute trusts only), not all trusts in England. Percentile charts are available when the filtered group is large enough. See [What is analysis scope?](/faq/#what-is-analysis-scope).
 
 ### How do I restrict an analysis to a specific set of NHS Trusts?
 
-To restrict an analysis to a specific set of NHS Trusts, select the NHS Trusts you want to include in the analysis builder. This will filter the analysis to show only data from your selected trusts.
+To restrict an analysis to a specific set of NHS Trusts, use **Single trust** to select one trust, or **Trust group** to filter trusts by attributes such as [trust type](/faq/#how-are-trust-types-determined), region, or ICB. See [What is analysis scope?](/faq/#what-is-analysis-scope).
 
 ### What is SCMD quantity?
 

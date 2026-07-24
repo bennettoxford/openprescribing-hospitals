@@ -2,30 +2,21 @@
   import { modeSelectorStore } from '../../stores/modeSelectorStore.js';
 
   export let options = [];
-  export let initialMode = null;
   export let label = 'Select Mode';
   export let onChange = () => {};
   export let variant = 'dropdown';
 
   const totalTooltipText = 'Monthly quantity across all selected products and NHS Trusts';
 
-  $: {
-    modeSelectorStore.setOptions(options);
-    if (initialMode && !$modeSelectorStore.selectedMode) {
-      modeSelectorStore.setSelectedMode(initialMode);
-    }
-  }
-
-  $: if ($modeSelectorStore.selectedMode !== undefined) {
-    onChange($modeSelectorStore.selectedMode);
-  }
-
   function handleChange(event) {
-    modeSelectorStore.setSelectedMode(event.target.value);
+    const value = event.target.value;
+    modeSelectorStore.setSelectedMode(value);
+    onChange(value);
   }
 
   function handlePillClick(value) {
     modeSelectorStore.setSelectedMode(value);
+    onChange(value);
   }
 </script>
 
@@ -38,7 +29,7 @@
       on:change={handleChange}
       value={$modeSelectorStore.selectedMode}
     >
-      {#each $modeSelectorStore.options as option}
+      {#each options as option (option.value)}
         <option 
           value={option.value}
           title={option.value === 'total' ? totalTooltipText : ''}
@@ -53,7 +44,7 @@
     {#if label}
       <p class="block text-sm font-medium text-gray-700 mb-2">{label}</p>
       <div class="flex flex-wrap gap-2">
-        {#each $modeSelectorStore.options as option}
+        {#each options as option (option.value)}
           <div class="relative inline-block group">
             <button
               class="px-3 py-1 rounded-full text-sm font-medium transition-colors
