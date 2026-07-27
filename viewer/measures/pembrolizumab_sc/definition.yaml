@@ -15,8 +15,8 @@ quantity_type: dose # Type of measurement (e.g. dose, ingredient, ddd)
 y_axis_label: '% subcutaneous pembrolizumab'
 lower_is_better: false
 authored_by: Victoria Speed # Name of original author
-checked_by: tbc # Name of clinical/technical reviewer
-first_published: 2026-07-08 # Date of first publication (YYYY-MM-DD)
-date_reviewed: 2026-07-08 # Date of last review (YYYY-MM-DD)
-next_review: 2027-07-08 # Date of next scheduled review (YYYY-MM-DD)
-status: preview
+checked_by: Chris Wood # Name of clinical/technical reviewer
+first_published: 2026-07-27 # Date of first publication (YYYY-MM-DD)
+date_reviewed: 2026-07-27 # Date of last review (YYYY-MM-DD)
+next_review: 2027-07-27 # Date of next scheduled review (YYYY-MM-DD)
+status: published # in_development, preview, published, archived
