@@ -352,6 +352,17 @@
                             <span class="text-sm font-medium whitespace-nowrap">VMP code:</span>
                             <span class="text-sm break-words hyphens-auto min-w-0">{product.vmp_code}</span>
                           </div>
+
+                          <div class="grid grid-cols-[auto_1fr] gap-3 items-baseline">
+                            <span class="text-sm font-medium whitespace-nowrap">BNF code:</span>
+                            <span class="text-sm break-words hyphens-auto min-w-0">
+                              {#if product.bnf_code}
+                                {product.bnf_code}
+                              {:else}
+                                <span class="text-gray-400">-</span>
+                              {/if}
+                            </span>
+                          </div>
                           
                           <div class="grid grid-cols-[auto_1fr] gap-3 items-start">
                             <span class="text-sm font-medium whitespace-nowrap">Ingredients:</span>
