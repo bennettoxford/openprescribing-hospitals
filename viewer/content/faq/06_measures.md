@@ -8,6 +8,14 @@ Measures can simply be a count of the amount of a drug being issued but more com
 
 You can read more about measures in our blog, [Introducing OpenPrescribing Hospitals measures](https://www.bennett.ox.ac.uk/blog/2025/04/introducing-openprescribing-hospitals-measures/).
 
+### Why do some measures use denominators?
+
+Where possible, we calculate measures as a percentage rather than using raw issued quantities. This allows fairer comparisons between trusts of different sizes. For example, a large teaching hospital will usually issue more medicines than a smaller hospital simply because it treats more patients. Looking only at raw quantities would often reflect the size of the trust rather than differences in issuing patterns.
+
+By using a denominator that represents the relevant overall prescribing activity, we can compare the proportion of issuing that relates to the products of interest. This helps to account, as far as possible, for differences in hospital size and activity, making variation between trusts more meaningful.
+
+Not every measure has a suitable denominator. In these cases, we present absolute quantities instead, but these should be interpreted with care because differences may reflect the size or activity of the trust rather than genuine differences in issuing patterns.
+
 ### Is lower better?
 
 We are often able to make a value judgement — based on guidance, evidence or national priorities underpinning the measure — to determine what represents "better" practice. When we can do this, we aim to present measures using a "lower is better" principle to ensure consistency with how data is displayed. To achieve this we may need to design and phrase measures [slightly differently to what you may have seen elsewhere](https://www.bennett.ox.ac.uk/blog/2024/01/spot-the-difference-part-1-source-datasets/). For example, for the [Best value DOACs measure](/measures/best_value_doacs/), instead of showing the percentage of DOACs prescribed as the preferred choice, we display the percentage of DOACs that are NOT prescribed as the preferred choices.
