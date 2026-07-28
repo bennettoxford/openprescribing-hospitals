@@ -757,6 +757,7 @@ def build_single_product_data(vmp, quantity_data):
         'vmp_code': vmp.code,
         'vtm_name': vmp.vtm.name if vmp.vtm else None,
         'vtm_code': vmp.vtm.vtm if vmp.vtm else None,
+        'bnf_code': vmp.bnf_code,
         'routes': [route.name for route in vmp.ont_form_routes.all()],
         'who_routes': [route.name for route in vmp.who_routes.all()] if ddd_logic else [],
         'atc_codes': [atc.code for atc in vmp.atcs.all()],

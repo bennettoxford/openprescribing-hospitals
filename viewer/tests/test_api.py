@@ -494,3 +494,37 @@ class TestValidateAnalysisParamsVmpCap:
         data = response.json()
         assert data["errors"] == []
         assert data["vmp_count"] == 5
+
+
+@pytest.mark.django_db
+class TestGetProductDetails:
+    def test_returns_bnf_code_for_vmp(self, client, vmp):
+        vmp.bnf_code = "0501013"
+        vmp.save(update_fields=["bnf_code"])
+
+        response = client.post(
+            reverse("viewer:get_product_details"),
+            data=json.dumps({"names": [{"code": vmp.code, "type": "vmp"}]}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200
+        products = response.json()
+        assert len(products) == 1
+        assert products[0]["vmp_code"] == vmp.code
+        assert products[0]["bnf_code"] == "0501013"
+
+    def test_returns_null_bnf_code_when_missing(self, client, vmp):
+        vmp.bnf_code = None
+        vmp.save(update_fields=["bnf_code"])
+
+        response = client.post(
+            reverse("viewer:get_product_details"),
+            data=json.dumps({"names": [{"code": vmp.code, "type": "vmp"}]}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200
+        products = response.json()
+        assert len(products) == 1
+        assert products[0]["bnf_code"] is None

@@ -4,7 +4,7 @@ SELECT DISTINCT
 FROM viewer_vmp vmp
 INNER JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
 WHERE 
-    vmp.bnf_code IN ('1003020', '10030200') -- Rubefacients, topical NSAIDS, capsaicin and poultice
+    vmp.bnf_code = '1003020' -- Rubefacients, topical NSAIDS, capsaicin and poultice
     AND 
     vtm.vtm NOT IN 
         (

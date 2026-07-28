@@ -1,11 +1,28 @@
 import pytest
 
 from pipeline.dmd.import_dmd_supp import (
+    normalise_bnf_code,
     parse_xml_data,
     parse_vtm_ingredients_xml,
     parse_dmd_history_xml,
     update_atc_codes
 )
+
+
+class TestNormaliseBnfCode:
+    def test_de_pads_eight_char_subparagraph(self):
+        assert normalise_bnf_code("05010103") == "0501013"
+        assert normalise_bnf_code("01010100") == "0101010"
+        assert normalise_bnf_code("10030200") == "1003020"
+
+    def test_leaves_seven_char_and_longer_codes_unchanged(self):
+        assert normalise_bnf_code("0501013") == "0501013"
+        assert normalise_bnf_code("0403030E0") == "0403030E0"
+        assert normalise_bnf_code("0501013B0AAABAB") == "0501013B0AAABAB"
+
+    def test_leaves_none_and_non_padded_eight_char_unchanged(self):
+        assert normalise_bnf_code(None) is None
+        assert normalise_bnf_code("05010113") == "05010113"
 
 @pytest.fixture
 def sample_xml_content():
@@ -30,6 +47,11 @@ def sample_xml_content():
                 <ATC>N02BE01</ATC>
                 <DDD>invalid</DDD>
                 <DDD_UOMCD>mg</DDD_UOMCD>
+            </VMP>
+            <VMP>
+                <VPID>39732411000001106</VPID>
+                <BNF>05010103</BNF>
+                <ATC>J01CA04</ATC>
             </VMP>
         </VMPS>
     </DMDXML>'''
@@ -107,7 +129,7 @@ class TestXMLParsing:
         
         result = parse_xml_data(xml_file)
         
-        assert len(result) == 3
+        assert len(result) == 4
         assert result[0] == {
             'vmp_code': '12345',
             'bnf_code': '0403030E0',
@@ -116,6 +138,13 @@ class TestXMLParsing:
             'ddd_uom': 'mg'
         }
         assert result[2]['ddd'] is None
+        assert result[3] == {
+            'vmp_code': '39732411000001106',
+            'bnf_code': '0501013',
+            'atc_code': 'J01CA04',
+            'ddd': None,
+            'ddd_uom': None
+        }
         
     def test_parse_vtm_ingredients_xml(self, sample_vtm_ingredients_xml_content, tmp_path):
         xml_file = tmp_path / "test_vtm_ing.xml"

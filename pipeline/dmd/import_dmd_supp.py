@@ -26,6 +26,21 @@ from pipeline.atc_ddd.import_atc_ddd.import_atc import create_atc_code_mapping
 TEMP_DIR = Path("temp")
 
 
+def normalise_bnf_code(bnf_code: Optional[str]) -> Optional[str]:
+    """Drop the spurious leading zero on an 8-char dm+d BNF subparagraph.
+
+    NHS BNF hierarchy is chapter(2)+section(2)+paragraph(2)+subparagraph(1).
+    dm+d BNF truncs are often stored as 8 chars with a zero-padded subparagraph
+    in the dm+d supplementary data (e.g. 05010103 instead of 0501013). 
+    Longer chemical/presentation codes are left unchanged.
+    """
+    if bnf_code is None:
+        return None
+    if len(bnf_code) == 8 and bnf_code[6] == "0":
+        return bnf_code[:6] + bnf_code[7]
+    return bnf_code
+
+
 @dataclass
 class TRUDRelease:
     release_date: str
@@ -183,7 +198,7 @@ def parse_xml_data(xml_path: Path) -> List[Dict[str, Optional[str]]]:
         data.append(
             {
                 "vmp_code": str(vmp_code) if vmp_code is not None else None,
-                "bnf_code": str(bnf_code.text)
+                "bnf_code": normalise_bnf_code(str(bnf_code.text))
                 if bnf_code is not None and bnf_code.text is not None
                 else None,
                 "atc_code": str(atc_code.text)
