@@ -499,7 +499,7 @@ wheels = [
 
 [[package]]
 name = "fastapi"
-version = "0.136.1"
+version = "0.139.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "annotated-doc" },
@@ -508,9 +508,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "typing-inspection" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5d/45/c130091c2dfa061bbfe3150f2a5091ef1adf149f2a8d2ae769ecaf6e99a2/fastapi-0.136.1.tar.gz", hash = "sha256:7af665ad7acfa0a3baf8983d393b6b471b9da10ede59c60045f49fbc89a0fa7f", size = 397448, upload-time = "2026-04-23T16:49:44.046Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cd/95/d3f0ae10836324a2eab98a52b61210ac609f08200bf4bb0dc8132d32f78a/fastapi-0.139.2.tar.gz", hash = "sha256:333145a6891e9b5b3cfceb69baf817e8240cde4d4588ae5a10bf56ffacb6255e", size = 423428, upload-time = "2026-07-16T15:06:17.912Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5a/ff/2e4eca3ade2c22fe1dea7043b8ee9dabe47753349eb1b56a202de8af6349/fastapi-0.136.1-py3-none-any.whl", hash = "sha256:a6e9d7eeada96c93a4d69cb03836b44fa34e2854accb7244a1ece36cd4781c3f", size = 117683, upload-time = "2026-04-23T16:49:42.437Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/c7/cb03251d9dfb177246a9809a76f189d21df32dbd4a845951881d11323b7f/fastapi-0.139.2-py3-none-any.whl", hash = "sha256:b9ad015a835173d59865e2f5d8296fbc2b317bf56a2ba1a5bfbdd03de2fd4b1c", size = 130234, upload-time = "2026-07-16T15:06:19.557Z" },
 ]
 
 [[package]]
@@ -670,7 +670,7 @@ wheels = [
 
 [[package]]
 name = "google-cloud-storage"
-version = "3.12.1"
+version = "3.13.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-api-core" },
@@ -680,9 +680,9 @@ dependencies = [
     { name = "google-resumable-media" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/da/ac/60b4cb0a6c8c6bb7cedb8971ba5e34a94096acf76e2cc242bcf1e6fc5c49/google_cloud_storage-3.12.1.tar.gz", hash = "sha256:1d81491c7663bc26c5056d00b834356f2253b910ef467f9cf9928a87fca1e04b", size = 17339353, upload-time = "2026-07-08T17:03:59.142Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e3/25/355ed97c1723c787dfaa888808d55db18371f82c38ff862357b1e902cd19/google_cloud_storage-3.13.0.tar.gz", hash = "sha256:d11d8706ea1520fba0f21043bcb7897caf7015d76ce1ad9a4f60237e4d7a9f6c", size = 17340960, upload-time = "2026-07-13T19:10:07.524Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/80/6e/ca176e95bafac0fe7befeee7e0420e686de147571cd2908e308c5fe71bda/google_cloud_storage-3.12.1-py3-none-any.whl", hash = "sha256:9297ae0c2ce3f5400b1f2bb3a3e6d2cd256614366e03cd30600871df8e903afb", size = 340845, upload-time = "2026-07-08T17:03:31.418Z" },
+    { url = "https://files.pythonhosted.org/packages/81/e8/b3678a0931ee7d4b3fdaf0813e6206d66e0922b2c26d912f308728b5b95a/google_cloud_storage-3.13.0-py3-none-any.whl", hash = "sha256:648af3ef8a6acc674e1359d3c920c67eb89a7a5ab66b336bd3ac43fed6b5ab84", size = 341428, upload-time = "2026-07-13T19:09:52.39Z" },
 ]
 
 [[package]]
@@ -1234,13 +1234,13 @@ pipeline = [
     { name = "google-cloud-bigquery", specifier = ">=3.42.2" },
     { name = "google-cloud-bigquery-storage", specifier = ">=2.39.0" },
     { name = "google-cloud-secret-manager", specifier = ">=2.29.0" },
-    { name = "google-cloud-storage", specifier = ">=3.12.1" },
+    { name = "google-cloud-storage", specifier = ">=3.13.0" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pandas-gbq", specifier = ">=0.26.1" },
-    { name = "prefect", specifier = ">=3.7.7" },
+    { name = "prefect", specifier = ">=3.7.8" },
     { name = "prefect-gcp", specifier = ">=0.6.20" },
     { name = "pyarrow", specifier = ">=19.0.1" },
     { name = "requests", specifier = ">=2.33.0" },
@@ -1397,7 +1397,7 @@ wheels = [
 
 [[package]]
 name = "prefect"
-version = "3.7.7"
+version = "3.7.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiosqlite" },
@@ -1457,9 +1457,9 @@ dependencies = [
     { name = "uvicorn" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cc/d0/03cbd44531c51db3af65464c118ddbb09cf5572df18545a019bc730bfed1/prefect-3.7.7.tar.gz", hash = "sha256:816fd64369927916d88480fda24a6c2104f8f53e5adcaee9d6a638f553c023db", size = 14129007, upload-time = "2026-07-03T12:07:56.549Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/56/03/905ed55a75d5dafa7caf2150ccda295c01ad750e25bc1c4555db2d0ca80e/prefect-3.7.8.tar.gz", hash = "sha256:f8e363d44b92ca11abae3a9307bf1325236c3387cd5969694e7b03a5179ab6d8", size = 14160532, upload-time = "2026-07-09T22:02:40.064Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/27/fb/5edba59724f3c23497b268330ed6a6e9f87d3419fede9a3cebebf489d83f/prefect-3.7.7-py3-none-any.whl", hash = "sha256:c406c2ecba126f228ce150613179a9dbf542f0342a9f3d85bcfe2babad5802e7", size = 15025258, upload-time = "2026-07-03T12:07:53.617Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/5c/47d17acb87e352fbf1e39f2d0170a25bc40e4e3fd6fb6fa36f2230263350/prefect-3.7.8-py3-none-any.whl", hash = "sha256:6816c7f938c4a78b0b6b6f74e254a77472cb2773ad4a62462452ccfadbf9acbf", size = 15097251, upload-time = "2026-07-09T22:02:36.69Z" },
 ]
 
 [[package]]
