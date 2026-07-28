@@ -488,6 +488,22 @@
         if (this.series.type === 'arearange') return false;
         
         if (this.point.dist > 20) return false;
+
+        // Boost mode omits point.index; resolve from series data.
+        let index = this.point.index;
+        if (typeof index !== 'number') {
+          const seriesData = this.series.userOptions?.data ?? this.series.options?.data;
+          if (Array.isArray(seriesData)) {
+            index = seriesData.findIndex((d) => {
+              if (Array.isArray(d)) return d[0] === this.x;
+              if (d && typeof d === 'object') return d.x === this.x;
+              return false;
+            });
+          }
+        }
+        if (typeof index !== 'number' || index < 0) {
+          index = undefined;
+        }
         
         const point = {
           date: this.x,
@@ -502,7 +518,7 @@
             numerator: this.series.options.numerator,
             denominator: this.series.options.denominator
           },
-          index: this.point.index
+          index
         };
         
         return formatTooltipContent(point)
