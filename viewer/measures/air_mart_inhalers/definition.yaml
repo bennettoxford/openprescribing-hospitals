@@ -12,7 +12,7 @@ how_is_it_calculated: |
     - high-dose ICS/formoterol inhalers, which are licensed for maintenance therapy only
 
     Some inhalers may be used off-label for AIR/MART in clinical practice. However, for the purposes of this measure, they are included in the non-AIR/MART group.
-    
+
     We exclude triple therapy inhalers from the measure, as they are more commonly used in COPD.
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
@@ -22,9 +22,9 @@ y_axis_label: '% corticosteroid containing inhaler unit doses not licensed for M
 lower_is_better: true
 authored_by: Chris Wood # Name of original author
 checked_by: TBC # Name of clinical/technical reviewer
-date_reviewed: 2026-06-29 # Date of last review (YYYY-MM-DD)
-next_review: 2027-06-29 # Date of next scheduled review (YYYY-MM-DD)
-first_published: 2026-06-29 # Date of first publication (YYYY-MM-DD)
+date_reviewed: 2026-07-28 # Date of last review (YYYY-MM-DD)
+next_review: 2027-07-28 # Date of next scheduled review (YYYY-MM-DD)
+first_published: 2026-07-28 # Date of first publication (YYYY-MM-DD)
 status: preview # in_development, preview, published, archived
 annotations:  # Optional data annotations - vertical lines with labels on charts
     - date: 2024-11-27
