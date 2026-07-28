@@ -18,6 +18,12 @@ For some measures it is not always possible to determine what is "better," as th
 
 Percentile charts show the extent of variation in medication use at the level of individual trusts. You can read more about why we use them in our blogs, [communicating variation in prescribing](https://www.bennett.ox.ac.uk/blog/2019/04/communicating-variation-in-prescribing-why-we-use-deciles/) and [highlighting variation in hospitals medicines usage](https://www.bennett.ox.ac.uk/blog/2025/04/highlighting-variation-in-hospitals-medicines-usage).
 
+### Why do some measures use denominators?
+
+Where possible, we calculate measures as a percentage rather than using raw issued quantities. This allows fairer comparisons between trusts of different sizes. For example, a large teaching hospital will usually issue more medicines than a smaller hospital simply because it treats more patients. Looking only at raw quantities would often reflect the size of the trust rather than differences in issuing patterns.
+
+By using a denominator that represents the relevant overall prescribing activity, we can compare the proportion of issuing that relates to the products of interest. This helps to account, as far as possible, for differences in hospital size and activity, making variation between trusts more meaningful.
+
 ### How should I interpret percentiles for measures without denominators?
 
 Measures with a denominator are normalised and comparable across trusts of different sizes. However, for measures without denominators and in custom analyses, percentiles show variation in absolute quantities. In these cases, variation in percentiles can simply reflect differences in hospital size rather than genuine variation in what is being measured. When interpreting percentiles for measures without denominators or custom analyses, consider whether differences might be explained by the size or activity level of the trusts rather than differences in issuing patterns.
