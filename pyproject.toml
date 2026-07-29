@@ -16,7 +16,7 @@ dependencies = [
     "PyYAML>=6.0.2",
     "requests>=2.33.0",
     "schema>=0.7.7",
-    "tqdm>=4.68.4",
+    "tqdm>=4.69.0",
     "whitenoise>=6.6.0",
 ]
 
@@ -29,7 +29,7 @@ pipeline = [
     "db-dtypes>=1.7.1",
     "google-cloud-bigquery>=3.42.2",
     "google-cloud-bigquery-storage>=2.39.0",
-    "google-cloud-secret-manager>=2.29.0",
+    "google-cloud-secret-manager>=2.30.0",
     "google-cloud-storage>=3.13.0",
     "Jinja2>=3.1.6",
     "numpy>=2.4.6",
@@ -37,7 +37,7 @@ pipeline = [
     "pandas>=2.2.3",
     "pandas-gbq>=0.26.1",
     "prefect>=3.7.8",
-    "prefect-gcp>=0.6.20",
+    "prefect-gcp>=0.6.21",
     "pyarrow>=19.0.1",
     "requests>=2.33.0",
 ]
