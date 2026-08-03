@@ -231,7 +231,12 @@
         selectedICBs = new Set();
         selectedCancerAlliances = new Set();
         shelfordFilter = null;
+        expandedAcute = false;
         expandedRegions = new Set();
+        collapsedTrustType = true;
+        collapsedRegionIcb = true;
+        collapsedCancerAlliance = true;
+        collapsedShelfordGroup = true;
         emitFiltersChange();
         applyTrustTypeSelection();
     }
