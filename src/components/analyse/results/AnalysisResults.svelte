@@ -4,6 +4,7 @@
     import { onDestroy, onMount } from 'svelte';
     import TotalsTable from './TotalsTable.svelte';
     import ProductsTable from './ProductsTable.svelte';
+    import TrustsIncluded from './TrustsIncluded.svelte';
     import ResultsChartControls from './ResultsChartControls.svelte';
     import { resultsStore } from '../../../stores/resultsStore';
     import { analyseOptions } from '../../../stores/analyseOptionsStore';
@@ -565,9 +566,18 @@
                     </div>
                 </div>
             {:else if selectedData.length > 0}
-                <div class="space-y-6 p-6">
-                    <section class="bg-white rounded-lg p-4 border-2 border-oxford-300 shadow-sm">
+                <div class="space-y-2 p-6">
+                    <section class="bg-white rounded-lg p-2 border-2 border-oxford-300 shadow-sm">
                         <ProductsTable {vmps} {excludedVmps} on:dataFiltered={handleFilteredData} />
+                        {#if (isFilteredScope || isTrustScope) && availableTrusts.length > 0}
+                            <div class="mx-4 border-t border-gray-200">
+                                <TrustsIncluded
+                                    trusts={availableTrusts}
+                                    filterDescription={scopeFilterDescription}
+                                    isSingleTrust={isTrustScope}
+                                />
+                            </div>
+                        {/if}
                     </section>
                     
                     {#if viewModes.length > 0}
@@ -754,7 +764,7 @@
                       </div>
                     </section>
 
-                    <section class="p-4">
+                    <section id="analysis-totals-table" class="p-4">
                         <TotalsTable 
                             data={filteredData} 
                             quantityType={$analyseOptions.quantityType} 
