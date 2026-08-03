@@ -15,8 +15,8 @@ quantity_type: ddd # Type of measurement (e.g. dose, ingredient, ddd)
 y_axis_label: '% adrenaline not in PFS'
 lower_is_better: true
 authored_by: Vicky Speed # Name of original author
-checked_by: tbc # Name of clinical/technical reviewer
+checked_by: Chris Wood # Name of clinical/technical reviewer
 first_published: 2026-02-24 # Date of first publication (YYYY-MM-DD)
-date_reviewed: 2026-02-24 # Date of last review (YYYY-MM-DD)
+date_reviewed: 2026-08-03 # Date of last review (YYYY-MM-DD)
 next_review: 2027-02-24 # Date of next scheduled review (YYYY-MM-DD)
 status: preview
