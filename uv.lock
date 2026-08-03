@@ -653,7 +653,7 @@ wheels = [
 
 [[package]]
 name = "google-cloud-secret-manager"
-version = "2.29.0"
+version = "2.30.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-api-core", extra = ["grpc"] },
@@ -663,9 +663,9 @@ dependencies = [
     { name = "proto-plus" },
     { name = "protobuf" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d2/7c/5c88cdde9664f6c75fb68aa11e0af4309a92bef38dd38df0456ffb0f469b/google_cloud_secret_manager-2.29.0.tar.gz", hash = "sha256:ee64133af8fdb3780affb65ec6ccf10ab15a0113d8edeba388665f4be87ce1be", size = 278437, upload-time = "2026-06-03T16:13:43.149Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/33/4a/7acb616b316c91969f7abf5f3719cb61cc4a97af86411e683ddb11147aa1/google_cloud_secret_manager-2.30.0.tar.gz", hash = "sha256:26ec87737731b483f7f95c26a8c7ab79e22cb66317c95006e7f6985dbc43c8a2", size = 286034, upload-time = "2026-07-16T20:36:23.29Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/c2/fc3275bc42a522757cb5141d7dae51f048b93d2f5fe4574fcee5392cef03/google_cloud_secret_manager-2.29.0-py3-none-any.whl", hash = "sha256:21bac2d0adb0bb3c13c346d7223832f197c2266534528a1bf1402774e06395a3", size = 225042, upload-time = "2026-06-03T16:12:20.162Z" },
+    { url = "https://files.pythonhosted.org/packages/18/8b/9347282b7f6828511d8cf927f3ab62b4b849aaa46aa12ae79e2f6da6cb0b/google_cloud_secret_manager-2.30.0-py3-none-any.whl", hash = "sha256:0f285e77d09a73700e3fca9abbc77f844a50276989bf76d64a76b6e2b871e396", size = 229181, upload-time = "2026-07-16T20:36:01.125Z" },
 ]
 
 [[package]]
@@ -1219,7 +1219,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "requests", specifier = ">=2.33.0" },
     { name = "schema", specifier = ">=0.7.7" },
-    { name = "tqdm", specifier = ">=4.68.4" },
+    { name = "tqdm", specifier = ">=4.69.0" },
     { name = "whitenoise", specifier = ">=6.6.0" },
 ]
 
@@ -1233,7 +1233,7 @@ pipeline = [
     { name = "db-dtypes", specifier = ">=1.7.1" },
     { name = "google-cloud-bigquery", specifier = ">=3.42.2" },
     { name = "google-cloud-bigquery-storage", specifier = ">=2.39.0" },
-    { name = "google-cloud-secret-manager", specifier = ">=2.29.0" },
+    { name = "google-cloud-secret-manager", specifier = ">=2.30.0" },
     { name = "google-cloud-storage", specifier = ">=3.13.0" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "numpy", specifier = ">=2.4.6" },
@@ -1241,7 +1241,7 @@ pipeline = [
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pandas-gbq", specifier = ">=0.26.1" },
     { name = "prefect", specifier = ">=3.7.8" },
-    { name = "prefect-gcp", specifier = ">=0.6.20" },
+    { name = "prefect-gcp", specifier = ">=0.6.21" },
     { name = "pyarrow", specifier = ">=19.0.1" },
     { name = "requests", specifier = ">=2.33.0" },
 ]
@@ -1464,7 +1464,7 @@ wheels = [
 
 [[package]]
 name = "prefect-gcp"
-version = "0.6.20"
+version = "0.6.21"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-api-python-client" },
@@ -1474,9 +1474,9 @@ dependencies = [
     { name = "python-slugify" },
     { name = "tenacity" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/00/ef/459f58cc342229880129b273735f4203dad2ddd0f27dfb5eeef56db9df17/prefect_gcp-0.6.20.tar.gz", hash = "sha256:1274fd2b675c8aea7ef2d1d5953ed38c04f9157e7f57191c9c0818479de569de", size = 109923, upload-time = "2026-06-05T19:38:20.069Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ab/db/06875f7cf8db2fff33ccc63e289aa9bcb2e3412420c5ddea271ab8d68466/prefect_gcp-0.6.21.tar.gz", hash = "sha256:2415a11b7bf86c4534a141b16d33021601d462eb442b134a871d9d1f2ed03d30", size = 110973, upload-time = "2026-07-15T18:15:47.727Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/87/55/410628720fea06851b51ef0d927e79d2460498565faf30f1fcd9607462da/prefect_gcp-0.6.20-py3-none-any.whl", hash = "sha256:c959c8d3962e9f03a05ea0e43f7b786d34ca969e7ad788904bcf093d8b92d548", size = 73870, upload-time = "2026-06-05T19:38:18.838Z" },
+    { url = "https://files.pythonhosted.org/packages/d5/4d/4628925e5759076225b681ad7abf9a875fb23b46eb58a51f265e256f2044/prefect_gcp-0.6.21-py3-none-any.whl", hash = "sha256:6909be7be1a63c1256aa11265eb843e262f66e3aaf9575fd153dbf178dbb11f3", size = 75007, upload-time = "2026-07-15T18:15:46.186Z" },
 ]
 
 [[package]]
@@ -2197,14 +2197,14 @@ wheels = [
 
 [[package]]
 name = "tqdm"
-version = "4.68.4"
+version = "4.69.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ae/5f/57ff8b434839e70dab45601284ea413e947a63799891b7553e5960a793a8/tqdm-4.68.4.tar.gz", hash = "sha256:19829c9673638f2a0b8617da4cdcb927e831cd88bcfcb6e78d42a4d1af131520", size = 792418, upload-time = "2026-07-07T09:58:18.369Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8c/69/40407dfc835517f058b603dbf37a6df094d8582b015a51eddc988febbcb7/tqdm-4.69.0.tar.gz", hash = "sha256:700c5e85dcd5f009dd6222588a29180a193a748247a5d855b4d67db93d79a53b", size = 792569, upload-time = "2026-07-17T18:09:06.2Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/22/2a/5e5e750890ada51017d18d0d4c30da696e5b5bd3180947729927628fc3cb/tqdm-4.68.4-py3-none-any.whl", hash = "sha256:5168118b2368f48c561afda8020fd79195b1bdb0bdf8086b88442c267a315dc2", size = 676612, upload-time = "2026-07-07T09:58:16.256Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/21/99a0cdaf54eb35e77623c41b5a2c9472ee4404bba687052791fe2aba6773/tqdm-4.69.0-py3-none-any.whl", hash = "sha256:9979978912be667a6ef21fd5d8abf54e324e63d82f7f43c360792ebc2bc4e622", size = 676680, upload-time = "2026-07-17T18:09:04.172Z" },
 ]
 
 [[package]]
