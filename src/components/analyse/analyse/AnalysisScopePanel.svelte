@@ -53,7 +53,7 @@
   <p class="text-sm text-oxford">
     The scope of an analysis specifies the NHS trusts to be included and the level of reporting. See <a href="/faq/#what-is-analysis-scope" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
   </p>
-  <div class="relative min-w-0 max-w-full {selectedScope === ANALYSIS_SCOPE.TRUST ? 'overflow-visible' : 'overflow-x-hidden'}">
+  <div class="relative min-w-0 max-w-full {selectedScope === ANALYSIS_SCOPE.TRUST || selectedScope === ANALYSIS_SCOPE.GROUP ? 'overflow-visible' : 'overflow-x-hidden'}">
     <TrustScopePanel
       {source}
       {selectedScope}

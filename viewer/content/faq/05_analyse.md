@@ -17,7 +17,7 @@ The scope of an analysis specifies which NHS trusts are included and the level o
 - **All trusts**: Includes all NHS trusts in the analysis. This gives access to trust-level charts and tables, as well as ICB, regional, and national breakdowns, and trust-level percentile charts.
 - **National**: Shows nationally aggregated totals only. Trust-level, ICB, and regional breakdowns are not available. Use this when you only need a national total for the selected products.
 - **Single trust**: Restricts the analysis to one NHS trust that you select. Results show data for that trust only.
-- **Trust group**: Restricts the analysis to a group of NHS trusts defined by filters such as [trust type](/faq/#how-are-trust-types-determined), region, ICB, [Cancer Alliance](/faq/#where-do-cancer-alliance-boundaries-come-from), or [Shelford Group](https://shelfordgroup.org/) membership. Results and comparisons (including percentiles, where available) are based on the trusts in that group.
+- **Trust group**: Restricts the analysis to a group of NHS trusts defined by filters such as [trust type](/faq/#how-are-trust-types-determined), region, ICB, [Cancer Alliance](/faq/#where-do-cancer-alliance-boundaries-come-from), or [Shelford Group](/faq/#what-is-the-shelford-group) membership. Results and comparisons (including percentiles, where available) are based on the trusts in that group.
 
 See also [which NHS trusts are included](/faq/#which-nhs-trusts-are-included).
 

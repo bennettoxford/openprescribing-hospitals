@@ -242,7 +242,7 @@
     }
 </script>
 
-<div class="w-full flex flex-col rounded-lg border border-gray-200 bg-white {enableScopeSelection && selectedScope === SCOPE_TRUST ? 'overflow-visible' : 'overflow-hidden'}">
+<div class="w-full flex flex-col rounded-lg border border-gray-200 bg-white overflow-visible">
     {#if !enableScopeSelection}
         <div class="px-3 py-2 border-b border-gray-100 flex items-center justify-between shrink-0">
             <div class="flex items-center gap-1.5 min-w-0">
@@ -262,7 +262,7 @@
             {/if}
         </div>
     {/if}
-    <div class="flex-1 py-2 {enableScopeSelection && selectedScope === SCOPE_TRUST ? 'overflow-visible' : 'overflow-y-auto max-h-[min(70vh,400px)]'}">
+    <div class="flex-1 py-2 {enableScopeSelection && (selectedScope === SCOPE_TRUST || selectedScope === SCOPE_GROUP) ? 'overflow-visible' : 'overflow-y-auto max-h-[min(70vh,400px)]'}">
         {#if enableScopeSelection}
             <div class="px-2 pb-2">
                 <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm transition-colors mx-1 min-h-[44px] sm:min-h-0 {selectedScope === SCOPE_ALL ? 'text-oxford-700' : 'text-gray-700'}">
@@ -344,22 +344,54 @@
 
 {#snippet groupFilterSections()}
     {#if trustTypes.length > 0}
-        <div class="px-2 pb-2">
-            <button
-                type="button"
-                class="w-full flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 hover:bg-gray-50 transition-colors"
-                on:click={() => (collapsedTrustType = !collapsedTrustType)}
-            >
-                <span>Trust type</span>
-                <svg
-                    class="w-3.5 h-3.5 transition-transform duration-200 {collapsedTrustType ? '' : 'rotate-180'}"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+        <div class="px-2 pb-1">
+            <div class="w-full flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 tracking-wide hover:bg-gray-50 transition-colors">
+                <button
+                    type="button"
+                    class="flex items-center gap-1.5 min-w-0 text-left uppercase"
+                    on:click={() => (collapsedTrustType = !collapsedTrustType)}
+                    aria-expanded={!collapsedTrustType}
                 >
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-            </button>
+                    <span>Trust type</span>
+                </button>
+                <div class="relative inline-block group shrink-0 z-10 hover:z-[100] focus-within:z-[100]">
+                    <button
+                        type="button"
+                        aria-label="Trust type information"
+                        class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-oxford-500 flex items-center"
+                    >
+                        <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div
+                        class="absolute z-[100] scale-0 transition-all duration-100 origin-top transform
+                            group-hover:scale-100 w-[220px] left-1/2 -translate-x-1/2 top-5 rounded-md shadow-lg bg-white
+                            ring-1 ring-black ring-opacity-5 p-3 normal-case"
+                    >
+                        <p class="text-xs text-gray-500 font-normal tracking-normal">
+                            Trust types come from the Estates Returns Information Collection (ERIC). Every trust is assigned a single type.
+                            See <a href="/faq/#how-are-trust-types-determined" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+                        </p>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    class="ml-auto flex-1 flex items-center justify-end"
+                    on:click={() => (collapsedTrustType = !collapsedTrustType)}
+                    tabindex="-1"
+                    aria-hidden="true"
+                >
+                    <svg
+                        class="w-3.5 h-3.5 transition-transform duration-200 {collapsedTrustType ? '' : 'rotate-180'}"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+            </div>
             {#if !collapsedTrustType}
                 {#if acuteTypes.length > 0}
                     <div class="px-2 pt-1 pb-0.5">
@@ -433,10 +465,10 @@
     {/if}
 
     {#if regionsHierarchy.length > 0}
-        <div class="px-2 pt-2 {trustTypes.length > 0 ? 'border-t border-gray-100' : ''}">
+        <div class="px-2 pt-1 {trustTypes.length > 0 ? 'border-t border-gray-100' : ''}">
             <button
                 type="button"
-                class="w-full flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 hover:bg-gray-50 transition-colors"
+                class="w-full flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide hover:bg-gray-50 transition-colors"
                 on:click={() => (collapsedRegionIcb = !collapsedRegionIcb)}
             >
                 <span>Region &amp; ICB</span>
@@ -517,22 +549,54 @@
     {/if}
 
     {#if cancerAlliances.length > 0}
-        <div class="px-2 pt-2 {trustTypes.length > 0 || regionsHierarchy.length > 0 ? 'border-t border-gray-100' : ''}">
-            <button
-                type="button"
-                class="w-full flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 hover:bg-gray-50 transition-colors"
-                on:click={() => (collapsedCancerAlliance = !collapsedCancerAlliance)}
-            >
-                <span>Cancer Alliance</span>
-                <svg
-                    class="w-3.5 h-3.5 transition-transform duration-200 {collapsedCancerAlliance ? '' : 'rotate-180'}"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+        <div class="px-2 pt-1 {trustTypes.length > 0 || regionsHierarchy.length > 0 ? 'border-t border-gray-100' : ''}">
+            <div class="w-full flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 tracking-wide hover:bg-gray-50 transition-colors">
+                <button
+                    type="button"
+                    class="flex items-center gap-1.5 min-w-0 text-left uppercase"
+                    on:click={() => (collapsedCancerAlliance = !collapsedCancerAlliance)}
+                    aria-expanded={!collapsedCancerAlliance}
                 >
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-            </button>
+                    <span>Cancer Alliance</span>
+                </button>
+                <div class="relative inline-block group shrink-0 z-10 hover:z-[100] focus-within:z-[100]">
+                    <button
+                        type="button"
+                        aria-label="Cancer Alliance information"
+                        class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-oxford-500 flex items-center"
+                    >
+                        <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div
+                        class="absolute z-[100] scale-0 transition-all duration-100 origin-top transform
+                            group-hover:scale-100 w-[220px] left-1/2 -translate-x-1/2 top-5 rounded-md shadow-lg bg-white
+                            ring-1 ring-black ring-opacity-5 p-3 normal-case"
+                    >
+                        <p class="text-xs text-gray-500 font-normal tracking-normal">
+                            Cancer Alliances are regional groupings for cancer care.
+                            See <a href="/faq/#where-do-cancer-alliance-boundaries-come-from" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+                        </p>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    class="ml-auto flex-1 flex items-center justify-end"
+                    on:click={() => (collapsedCancerAlliance = !collapsedCancerAlliance)}
+                    tabindex="-1"
+                    aria-hidden="true"
+                >
+                    <svg
+                        class="w-3.5 h-3.5 transition-transform duration-200 {collapsedCancerAlliance ? '' : 'rotate-180'}"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+            </div>
             {#if !collapsedCancerAlliance}
                 {#each cancerAlliances as ca (ca.name)}
                     <label class="flex flex-wrap items-start gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0 min-w-0 w-full {selectedCancerAlliances.has(ca.name) ? 'text-oxford-700' : ''}">
@@ -565,22 +629,54 @@
     {/if}
 
     {#if hasShelfordData}
-        <div class="px-2 pt-2 {trustTypes.length > 0 || regionsHierarchy.length > 0 || cancerAlliances.length > 0 ? 'border-t border-gray-100' : ''}">
-            <button
-                type="button"
-                class="w-full flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 hover:bg-gray-50 transition-colors"
-                on:click={() => (collapsedShelfordGroup = !collapsedShelfordGroup)}
-            >
-                <span>Shelford Group</span>
-                <svg
-                    class="w-3.5 h-3.5 transition-transform duration-200 {collapsedShelfordGroup ? '' : 'rotate-180'}"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+        <div class="px-2 pt-1 {trustTypes.length > 0 || regionsHierarchy.length > 0 || cancerAlliances.length > 0 ? 'border-t border-gray-100' : ''}">
+            <div class="w-full flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 tracking-wide hover:bg-gray-50 transition-colors">
+                <button
+                    type="button"
+                    class="flex items-center gap-1.5 min-w-0 text-left uppercase"
+                    on:click={() => (collapsedShelfordGroup = !collapsedShelfordGroup)}
+                    aria-expanded={!collapsedShelfordGroup}
                 >
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-            </button>
+                    <span>Shelford Group</span>
+                </button>
+                <div class="relative inline-block group shrink-0 z-10 hover:z-[100] focus-within:z-[100]">
+                    <button
+                        type="button"
+                        aria-label="Shelford Group information"
+                        class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-oxford-500 flex items-center"
+                    >
+                        <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div
+                        class="absolute z-[100] scale-0 transition-all duration-100 origin-top transform
+                            group-hover:scale-100 w-[220px] left-1/2 -translate-x-1/2 top-5 rounded-md shadow-lg bg-white
+                            ring-1 ring-black ring-opacity-5 p-3 normal-case"
+                    >
+                        <p class="text-xs text-gray-500 font-normal tracking-normal">
+                            The Shelford Group is a collaboration of ten large teaching and research NHS hospital trusts in England.
+                            See <a href="/faq/#what-is-the-shelford-group" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+                        </p>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    class="ml-auto flex-1 flex items-center justify-end"
+                    on:click={() => (collapsedShelfordGroup = !collapsedShelfordGroup)}
+                    tabindex="-1"
+                    aria-hidden="true"
+                >
+                    <svg
+                        class="w-3.5 h-3.5 transition-transform duration-200 {collapsedShelfordGroup ? '' : 'rotate-180'}"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+            </div>
             {#if !collapsedShelfordGroup}
                 <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0 {shelfordFilter === 'in' ? 'text-oxford-700' : ''}">
                     <input
