@@ -19,7 +19,7 @@
             {:else}
                 This analysis is scoped to a group of NHS trusts.
             {/if}
-            You can see the trusts included in the <a href="#analysis-totals-table" class="text-blue-600 hover:text-blue-800 underline">below</a>.
+            You can see the trusts included in the <a href="#analysis-totals-table" class="text-blue-600 hover:text-blue-800 underline">table below</a>.
         </p>
     </div>
     <p class="text-sm text-gray-600">
