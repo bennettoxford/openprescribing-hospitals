@@ -1,7 +1,7 @@
 SELECT DISTINCT
     vmp.id as vmp_id,
     CASE
-        WHEN vmp.code = '35894911000001108' THEN 'numerator' -- VMP code for Adrenaline (base) 1mg/10ml (1 in 10,000) dilute solution for injection ampoules
+        WHEN vmp.code = '35894911000001108' THEN 'numerator' -- VMP code for Adrenaline (base) 100micrograms/1ml (1 in 10,000) dilute solution for injection ampoules
         ELSE 'denominator'
     END as vmp_type
 FROM viewer_vmp vmp
