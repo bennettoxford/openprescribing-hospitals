@@ -273,6 +273,10 @@ MEASURE_TAG_DEFINITIONS = {
     'Antithrombotic stewardship': {
         'description': 'This measure supports work to promote antithrombotic stewardship in hospitals.',
         'colour': '#795548'
+    },
+    'Ready-to-administer': {
+        'description': 'This measure supports work to promote the use of ready-to-administer products.',
+        'colour': '#FF5722'
     }
 }
 
