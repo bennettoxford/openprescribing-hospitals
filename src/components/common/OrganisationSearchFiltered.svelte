@@ -7,7 +7,7 @@
     import { onMount, createEventDispatcher } from 'svelte';
     import { get } from 'svelte/store';
     import '../../styles/styles.css';
-    import TrustScopeFilterPanel from './TrustScopeFilterPanel.svelte';
+    import TrustScopePanel from './TrustScopePanel.svelte';
     import {
         createEmptyScopeFilters,
         hasAnyScopeFilters,
@@ -459,7 +459,7 @@
                 <div class="absolute top-0 left-0 right-0 {overlayMode ? 'z-[1000]' : 'z-10'} w-full min-w-[200px] max-w-full sm:min-w-[240px] max-h-[min(70vh,400px)] flex flex-col rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden" role="listbox">
                 {#if $source.filterType === 'trust'}
                     <div class="flex-1 min-h-0 overflow-hidden [&_>div]:border-0 [&_>div]:rounded-none">
-                        <TrustScopeFilterPanel
+                        <TrustScopePanel
                             source={source}
                             applyAvailability={false}
                             resetKey={panelResetKey}

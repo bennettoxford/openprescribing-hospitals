@@ -67,6 +67,12 @@ The geographic boundaries, based on cancer patient pathway flows, are published 
 
 We have manually created a mapping of NHS Trust to Cancer Alliance for use on the platform, which you can [download as a CSV](__STATIC_ODS_CA_MAPPING__). (Background and sources for this mapping are described in [this GitHub issue](https://github.com/bennettoxford/openprescribing-hospitals/issues/707).)
 
+### What is the Shelford Group?
+
+The [Shelford Group](https://shelfordgroup.org/) is a collaboration of ten of the largest teaching and research NHS hospital trusts in England. Member trusts provide a wide range of services, from care for local populations to highly specialised care, and together account for a substantial share of NHS activity and clinical research infrastructure.
+
+You can use this grouping when filtering NHS trusts (for example, when selecting the [analysis scope](/faq/#what-is-analysis-scope)) to include or exclude Shelford Group members.
+
 ### How does the organisation search work?
 
 When you search for NHS Trusts (or Integrated Care Boards or regions), the results match your search in several ways:
