@@ -303,7 +303,7 @@
                             on:change={() => selectScope(SCOPE_GROUP)}
                             class="border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0"
                         />
-                        <span class="flex-1 min-w-0">Trust group</span>
+                        <span class="flex-1 min-w-0">Filtered trusts</span>
                         {#if selectedScope === SCOPE_GROUP && filterBadgeCount > 0}
                             <span class="inline-flex items-center justify-center min-w-[1rem] h-4 px-1 rounded-full text-[10px] font-medium leading-none bg-oxford-100 text-oxford-700">{filterBadgeCount}</span>
                         {/if}

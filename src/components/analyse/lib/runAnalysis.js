@@ -21,7 +21,7 @@ export function validateAnalysisRun({
         return 'Please select at least one product or ingredient.';
     }
     if (selectedScope === ANALYSIS_SCOPE.GROUP && !hasAnyScopeFilters(selectedScopeFilters)) {
-        return 'Please select at least one filter to define your trust group.';
+        return 'Please select at least one filter for filtered trusts.';
     }
     if (
         selectedScope === ANALYSIS_SCOPE.GROUP
