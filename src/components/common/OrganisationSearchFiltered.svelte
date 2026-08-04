@@ -436,7 +436,11 @@
                     <button type="button" class="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-xs font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-oxford-500 focus:ring-offset-0 {disabled ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-500 border-gray-200' : ''} {filterDropdownOpen || hasFilterSelection ? 'bg-oxford-50 text-oxford-700 border-oxford-200' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}" on:click={() => !disabled && (filterDropdownOpen = !filterDropdownOpen)} disabled={disabled} aria-haspopup="listbox" aria-expanded={filterDropdownOpen} aria-label="Filter by trust type, region, ICB, cancer alliance, and Shelford Group">
                         <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
                         <span>Filters</span>
-                        {#if hasFilterSelection}<span class="inline-flex items-center justify-center min-w-[1rem] h-4 px-1 rounded-full text-[10px] font-medium leading-none bg-oxford-100 text-oxford-700">{filterBadgeCount}</span>{/if}
+                        {#if hasFilterSelection}
+                            <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">
+                                {filterBadgeCount} filter{filterBadgeCount === 1 ? '' : 's'} selected
+                            </span>
+                        {/if}
                         <svg class="w-3.5 h-3.5 shrink-0 transition-transform {filterDropdownOpen ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </button>
                 </div>

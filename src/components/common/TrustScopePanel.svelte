@@ -5,6 +5,7 @@
     import {
         ACUTE_PARENT,
         acuteSubtypeLabel,
+        applyScopeFiltersToSource,
         CANCER_ALLIANCE_NA,
         cancerAllianceDisplayName,
         hasAnyScopeFilters,
@@ -21,11 +22,9 @@
     export let resetKey = undefined;
     export let enableScopeSelection = false;
     export let selectedScope = 'all';
-    export let singleTrust = undefined;
 
     const SCOPE_ALL = 'all';
     const SCOPE_NATIONAL = 'national';
-    const SCOPE_TRUST = 'trust';
     const SCOPE_GROUP = 'group';
 
     function normaliseAcuteSelection(types) {
@@ -69,14 +68,62 @@
     ).length;
     $: selectedTrustTypeFilterCount =
         selectedOtherTrustTypeCount + (acuteParentSelected ? 1 : selectedAcuteSubtypeCount);
+    $: regionIcbFilterCount = selectedRegions.size + selectedICBs.size;
+    $: cancerAllianceFilterCount = selectedCancerAlliances.size;
+    $: shelfordFilterCount = shelfordFilter !== null ? 1 : 0;
     $: filterBadgeCount =
         selectedTrustTypeFilterCount +
-        selectedRegions.size +
-        selectedICBs.size +
-        selectedCancerAlliances.size +
-        (shelfordFilter !== null ? 1 : 0);
+        regionIcbFilterCount +
+        cancerAllianceFilterCount +
+        shelfordFilterCount;
     $: showGroupFilters = !enableScopeSelection || selectedScope === SCOPE_GROUP;
-    $: totalTrustCount = ($source.items || []).length;
+    $: currentFilters = {
+        trustTypes: [...selectedTrustTypes].sort(),
+        regions: Array.from(selectedRegions).sort(),
+        icbs: Array.from(selectedICBs).sort(),
+        cancerAlliances: Array.from(selectedCancerAlliances).sort(),
+        shelford: shelfordFilter
+    };
+    $: groupTrustCount = !hasAnyScopeFilters(currentFilters)
+        ? 0
+        : applyScopeFiltersToSource({
+            allItems: $source.items || [],
+            filters: currentFilters,
+            getTrustType: (name) => $source.trustTypes?.get(name) ?? null,
+            getOrgsByRegionsOrICBs: (regions, icbs) => {
+                const hasRegions = regions && regions.size > 0;
+                const hasIcbs = icbs && icbs.size > 0;
+                if (!hasRegions && !hasIcbs) return [];
+                const result = new Set();
+                for (const name of $source.items || []) {
+                    if (hasRegions && regions.has($source.orgRegions?.get(name))) {
+                        result.add(name);
+                        continue;
+                    }
+                    if (hasIcbs && icbs.has($source.orgIcbs?.get(name))) {
+                        result.add(name);
+                    }
+                }
+                return Array.from(result);
+            },
+            getOrgsByCancerAlliances: (alliances) => {
+                if (!alliances || alliances.size === 0) return [];
+                const itemsSet = new Set($source.items || []);
+                const map = $source.orgCancerAlliances || new Map();
+                const result = new Set();
+                if (alliances.has(CANCER_ALLIANCE_NA)) {
+                    for (const name of $source.items || []) {
+                        const ca = map.get(name);
+                        if (!ca || ca === '') result.add(name);
+                    }
+                }
+                for (const [orgName, ca] of map) {
+                    if (ca && alliances.has(ca) && itemsSet.has(orgName)) result.add(orgName);
+                }
+                return Array.from(result);
+            },
+            orgShelfordGroup: $source.orgShelfordGroup,
+        }).orgList.length;
 
     function stripNhsPrefix(str) {
         if (str == null || typeof str !== 'string') return '';
@@ -253,7 +300,9 @@
             <div class="flex items-center gap-1.5 min-w-0">
                 <span class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Filter by</span>
                 {#if filterBadgeCount > 0}
-                    <span class="inline-flex items-center justify-center min-w-[1rem] h-4 px-1 rounded-full text-[10px] font-medium leading-none bg-oxford-100 text-oxford-700">{filterBadgeCount}</span>
+                    <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums normal-case tracking-normal bg-gray-100/80 px-1.5 py-0.5 rounded">
+                        {filterBadgeCount} filter{filterBadgeCount === 1 ? '' : 's'} selected
+                    </span>
                 {/if}
             </div>
             {#if filterBadgeCount > 0}
@@ -267,76 +316,72 @@
             {/if}
         </div>
     {/if}
-    <div class="flex-1 py-2 {enableScopeSelection && (selectedScope === SCOPE_TRUST || selectedScope === SCOPE_GROUP) ? 'overflow-visible' : 'overflow-y-auto max-h-[min(70vh,400px)]'}">
+    <div class="flex-1 {enableScopeSelection ? '' : 'py-2'} {enableScopeSelection && selectedScope === SCOPE_GROUP ? 'overflow-visible' : 'overflow-y-auto max-h-[min(70vh,400px)]'}">
         {#if enableScopeSelection}
-            <div class="px-2 pb-2">
-                <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm transition-colors mx-1 min-h-[44px] sm:min-h-0 {selectedScope === SCOPE_ALL ? 'text-oxford-700' : 'text-gray-700'}">
-                    <input
-                        type="radio"
-                        name="trust-scope-selection"
-                        checked={selectedScope === SCOPE_ALL}
-                        on:change={() => selectScope(SCOPE_ALL)}
-                        class="border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0"
-                    />
-                    <span class="flex-1 min-w-0">All trusts</span>
-                    <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">
-                        {totalTrustCount} trusts
+            <div class="divide-y divide-gray-100" role="radiogroup" aria-label="Analysis scope">
+                <button
+                    type="button"
+                    role="radio"
+                    aria-checked={selectedScope === SCOPE_ALL}
+                    on:click={() => selectScope(SCOPE_ALL)}
+                    class="w-full text-left px-3 py-2.5 text-sm min-h-[44px] sm:min-h-0 transition-none focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500
+                        {selectedScope === SCOPE_ALL ? 'bg-oxford-100 text-oxford-700' : 'text-gray-700 hover:bg-gray-50'}"
+                >
+                    <span class="font-medium">All trusts <span class="font-normal text-gray-500">(default)</span></span>
+                    <span class="block text-xs text-gray-500 mt-0.5 leading-snug">
+                        Trust-level data for every NHS Trust. Analyse one or more trusts and compare them.
                     </span>
-                </label>
-                <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm transition-colors mx-1 min-h-[44px] sm:min-h-0 {selectedScope === SCOPE_NATIONAL ? 'text-oxford-700' : 'text-gray-700'}">
-                    <input
-                        type="radio"
-                        name="trust-scope-selection"
-                        checked={selectedScope === SCOPE_NATIONAL}
-                        on:change={() => selectScope(SCOPE_NATIONAL)}
-                        class="border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0"
-                    />
-                    <span class="flex-1 min-w-0">National</span>
-                    <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">
-                        {totalTrustCount} trusts
+                </button>
+                <button
+                    type="button"
+                    role="radio"
+                    aria-checked={selectedScope === SCOPE_NATIONAL}
+                    on:click={() => selectScope(SCOPE_NATIONAL)}
+                    class="w-full text-left px-3 py-2.5 text-sm min-h-[44px] sm:min-h-0 transition-none focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500
+                        {selectedScope === SCOPE_NATIONAL ? 'bg-oxford-100 text-oxford-700' : 'text-gray-700 hover:bg-gray-50'}"
+                >
+                    <span class="font-medium">National</span>
+                    <span class="block text-xs text-gray-500 mt-0.5 leading-snug">
+                        National totals across all NHS Trusts.
                     </span>
-                </label>
-                <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm transition-colors mx-1 min-h-[44px] sm:min-h-0 {selectedScope === SCOPE_TRUST ? 'text-oxford-700' : 'text-gray-700'}">
-                    <input
-                        type="radio"
-                        name="trust-scope-selection"
-                        checked={selectedScope === SCOPE_TRUST}
-                        on:change={() => selectScope(SCOPE_TRUST)}
-                        class="border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0"
-                    />
-                    <span class="flex-1 min-w-0">Single trust</span>
-                </label>
-                {#if selectedScope === SCOPE_TRUST && singleTrust}
-                    <div class="mx-1 mb-1 min-w-0">
-                        {@render singleTrust()}
-                    </div>
-                {/if}
-                <div class="mx-1 flex items-center gap-2 min-h-[44px] sm:min-h-0">
-                    <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm transition-colors flex-1 min-w-0 {selectedScope === SCOPE_GROUP ? 'text-oxford-700' : 'text-gray-700'}">
-                        <input
-                            type="radio"
-                            name="trust-scope-selection"
-                            checked={selectedScope === SCOPE_GROUP}
-                            on:change={() => selectScope(SCOPE_GROUP)}
-                            class="border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0"
-                        />
-                        <span class="flex-1 min-w-0">Trust group</span>
-                        {#if selectedScope === SCOPE_GROUP && filterBadgeCount > 0}
-                            <span class="inline-flex items-center justify-center min-w-[1rem] h-4 px-1 rounded-full text-[10px] font-medium leading-none bg-oxford-100 text-oxford-700">{filterBadgeCount}</span>
+                </button>
+                <div
+                    role="radio"
+                    tabindex="0"
+                    aria-checked={selectedScope === SCOPE_GROUP}
+                    on:click={() => selectScope(SCOPE_GROUP)}
+                    on:keydown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            selectScope(SCOPE_GROUP);
+                        }
+                    }}
+                    class="w-full text-left px-3 py-2.5 text-sm min-h-[44px] sm:min-h-0 transition-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500
+                        {selectedScope === SCOPE_GROUP ? 'bg-oxford-100 text-oxford-700' : 'text-gray-700 hover:bg-gray-50'}"
+                >
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="font-medium shrink-0">Filtered trusts</span>
+                        {#if selectedScope === SCOPE_GROUP}
+                            <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-white/80 px-1.5 py-0.5 rounded">
+                                {groupTrustCount} trust{groupTrustCount === 1 ? '' : 's'} selected
+                            </span>
                         {/if}
-                    </label>
-                    {#if selectedScope === SCOPE_GROUP && filterBadgeCount > 0}
-                        <button
-                            type="button"
-                            class="text-xs font-medium text-oxford-600 hover:text-oxford-800 py-0.5 px-1.5 rounded hover:bg-oxford-50 transition-colors shrink-0"
-                            on:click={clearAllFilters}
-                        >
-                            Clear all
-                        </button>
-                    {/if}
+                        {#if selectedScope === SCOPE_GROUP && filterBadgeCount > 0}
+                            <button
+                                type="button"
+                                class="ml-auto shrink-0 text-xs font-medium text-oxford-600 hover:text-oxford-800 py-0.5 px-1.5 rounded hover:bg-white/60"
+                                on:click|stopPropagation={clearAllFilters}
+                            >
+                                Clear selection
+                            </button>
+                        {/if}
+                    </div>
+                    <span class="block text-xs text-gray-500 mt-0.5 leading-snug">
+                        Select a subset of trusts by geography, trust type, and more.
+                    </span>
                 </div>
                 {#if selectedScope === SCOPE_GROUP}
-                    <div class="mt-1 ml-1 pl-1.5 border-l border-gray-200 min-w-0">
+                    <div class="pt-1 pb-2 min-w-0">
                         {@render groupFilterSections()}
                     </div>
                 {/if}
@@ -355,7 +400,14 @@
                 class="w-full flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide hover:bg-gray-50 transition-colors"
                 on:click={() => (collapsedRegionIcb = !collapsedRegionIcb)}
             >
-                <span>Region &amp; ICB</span>
+                <span class="flex items-center gap-1.5 min-w-0">
+                    <span>Region &amp; ICB</span>
+                    {#if regionIcbFilterCount > 0}
+                        <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums normal-case tracking-normal bg-gray-100/80 px-1.5 py-0.5 rounded">
+                            {regionIcbFilterCount} filter{regionIcbFilterCount === 1 ? '' : 's'} selected
+                        </span>
+                    {/if}
+                </span>
                 <svg
                     class="w-3.5 h-3.5 transition-transform duration-200 {collapsedRegionIcb ? '' : 'rotate-180'}"
                     fill="none"
@@ -455,15 +507,20 @@
                     </button>
                     <div
                         class="absolute z-[100] scale-0 transition-all duration-100 origin-top transform
-                            group-hover:scale-100 w-[220px] left-1/2 -translate-x-1/2 top-5 rounded-md shadow-lg bg-white
+                            group-hover:scale-100 w-[220px] left-1/2 -translate-x-1/4 top-5 rounded-md shadow-lg bg-white
                             ring-1 ring-black ring-opacity-5 p-3 normal-case"
                     >
-                        <p class="text-xs text-gray-500 font-normal tracking-normal">
-                            Trust types come from the Estates Returns Information Collection (ERIC). Every trust is assigned a single type.
+                        <p class="text-sm text-gray-500 font-normal tracking-normal">
+                            Trust type is a classification of NHS trusts by the kind of services they provide, such as Acute, Mental Health, Community, or Ambulance. Every trust has a single type.
                             See <a href="/faq/#how-are-trust-types-determined" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
                         </p>
                     </div>
                 </div>
+                {#if selectedTrustTypeFilterCount > 0}
+                    <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums normal-case tracking-normal bg-gray-100/80 px-1.5 py-0.5 rounded">
+                        {selectedTrustTypeFilterCount} filter{selectedTrustTypeFilterCount === 1 ? '' : 's'} selected
+                    </span>
+                {/if}
                 <button
                     type="button"
                     class="ml-auto flex-1 flex items-center justify-end"
@@ -579,12 +636,17 @@
                             group-hover:scale-100 w-[220px] left-1/2 -translate-x-1/2 top-5 rounded-md shadow-lg bg-white
                             ring-1 ring-black ring-opacity-5 p-3 normal-case"
                     >
-                        <p class="text-xs text-gray-500 font-normal tracking-normal">
+                        <p class="text-sm text-gray-500 font-normal tracking-normal">
                             Cancer Alliances are regional groupings for cancer care.
                             See <a href="/faq/#where-do-cancer-alliance-boundaries-come-from" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
                         </p>
                     </div>
                 </div>
+                {#if cancerAllianceFilterCount > 0}
+                    <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums normal-case tracking-normal bg-gray-100/80 px-1.5 py-0.5 rounded">
+                        {cancerAllianceFilterCount} filter{cancerAllianceFilterCount === 1 ? '' : 's'} selected
+                    </span>
+                {/if}
                 <button
                     type="button"
                     class="ml-auto flex-1 flex items-center justify-end"
@@ -603,32 +665,34 @@
                 </button>
             </div>
             {#if !collapsedCancerAlliance}
-                {#each cancerAlliances as ca (ca.name)}
-                    <label class="flex flex-wrap items-start gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0 min-w-0 w-full {selectedCancerAlliances.has(ca.name) ? 'text-oxford-700' : ''}">
+                <div class="max-h-48 overflow-y-auto">
+                    {#each cancerAlliances as ca (ca.name)}
+                        <label class="flex flex-wrap items-start gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0 min-w-0 w-full {selectedCancerAlliances.has(ca.name) ? 'text-oxford-700' : ''}">
+                            <input
+                                type="checkbox"
+                                checked={selectedCancerAlliances.has(ca.name)}
+                                on:change={() => toggleCancerAlliance(ca.name)}
+                                class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0"
+                            />
+                            <span class="flex-1 min-w-0 break-words" title={ca.name}>{cancerAllianceDisplayName(ca.name)}</span>
+                            <span class="text-[10px] font-medium text-gray-400 whitespace-normal text-right tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">
+                                {(source.getOrgsByCancerAlliance(ca.name) || []).length} trusts
+                            </span>
+                        </label>
+                    {/each}
+                    <label class="flex flex-wrap items-start gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0 border-t border-gray-100 mt-1 pt-1.5 min-w-0 w-full {selectedCancerAlliances.has(CANCER_ALLIANCE_NA) ? 'text-oxford-700' : ''}">
                         <input
                             type="checkbox"
-                            checked={selectedCancerAlliances.has(ca.name)}
-                            on:change={() => toggleCancerAlliance(ca.name)}
+                            checked={selectedCancerAlliances.has(CANCER_ALLIANCE_NA)}
+                            on:change={() => toggleCancerAlliance(CANCER_ALLIANCE_NA)}
                             class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0"
                         />
-                        <span class="flex-1 min-w-0 break-words" title={ca.name}>{cancerAllianceDisplayName(ca.name)}</span>
+                        <span class="flex-1 min-w-0 break-words" title="Trusts not associated with a Cancer Alliance">{cancerAllianceDisplayName(CANCER_ALLIANCE_NA)}</span>
                         <span class="text-[10px] font-medium text-gray-400 whitespace-normal text-right tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">
-                            {(source.getOrgsByCancerAlliance(ca.name) || []).length} trusts
+                            {(source.getOrgsWithNoCancerAlliance() || []).length} trusts
                         </span>
                     </label>
-                {/each}
-                <label class="flex flex-wrap items-start gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0 border-t border-gray-100 mt-1 pt-1.5 min-w-0 w-full {selectedCancerAlliances.has(CANCER_ALLIANCE_NA) ? 'text-oxford-700' : ''}">
-                    <input
-                        type="checkbox"
-                        checked={selectedCancerAlliances.has(CANCER_ALLIANCE_NA)}
-                        on:change={() => toggleCancerAlliance(CANCER_ALLIANCE_NA)}
-                        class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0"
-                    />
-                    <span class="flex-1 min-w-0 break-words" title="Trusts not associated with a Cancer Alliance">{cancerAllianceDisplayName(CANCER_ALLIANCE_NA)}</span>
-                    <span class="text-[10px] font-medium text-gray-400 whitespace-normal text-right tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">
-                        {(source.getOrgsWithNoCancerAlliance() || []).length} trusts
-                    </span>
-                </label>
+                </div>
             {/if}
         </div>
     {/if}
@@ -659,12 +723,17 @@
                             group-hover:scale-100 w-[220px] left-1/2 -translate-x-1/2 top-5 rounded-md shadow-lg bg-white
                             ring-1 ring-black ring-opacity-5 p-3 normal-case"
                     >
-                        <p class="text-xs text-gray-500 font-normal tracking-normal">
+                        <p class="text-sm text-gray-500 font-normal tracking-normal">
                             The Shelford Group is a collaboration of ten large teaching and research NHS hospital trusts in England.
                             See <a href="/faq/#what-is-the-shelford-group" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
                         </p>
                     </div>
                 </div>
+                {#if shelfordFilterCount > 0}
+                    <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums normal-case tracking-normal bg-gray-100/80 px-1.5 py-0.5 rounded">
+                        {shelfordFilterCount} filter{shelfordFilterCount === 1 ? '' : 's'} selected
+                    </span>
+                {/if}
                 <button
                     type="button"
                     class="ml-auto flex-1 flex items-center justify-end"

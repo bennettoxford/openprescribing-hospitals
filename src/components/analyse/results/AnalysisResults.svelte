@@ -96,12 +96,10 @@
     $: analysisScope = $resultsStore.scope || ANALYSIS_SCOPE.ALL;
     $: availableTrusts = Array.isArray($resultsStore.inScopeTrusts) ? $resultsStore.inScopeTrusts : [];
     $: isFilteredScope = analysisScope === ANALYSIS_SCOPE.GROUP;
-    $: isTrustScope = analysisScope === ANALYSIS_SCOPE.TRUST;
     $: scopeFilterDescription = isFilteredScope
         ? formatScopeFilterDescription($resultsStore.scopeFilters || {})
         : '';
     $: inScopeTrustCount = availableTrusts.length;
-    $: inScopeTrustLabel = isFilteredScope ? 'in-scope trusts' : 'trusts';
     $: percentilePopulationLabel = isFilteredScope
         ? formatInScopePopulationPhrase({
             trustCount: inScopeTrustCount,
@@ -524,7 +522,6 @@
         selectedOrganisationsCount,
         currentModeHasData,
         singleSelectedTrust,
-        isFilteredScope,
         percentilePopulationLabel,
     });
 </script>
@@ -569,12 +566,11 @@
                 <div class="space-y-2 p-6">
                     <section class="bg-white rounded-lg p-2 border-2 border-oxford-300 shadow-sm">
                         <ProductsTable {vmps} {excludedVmps} on:dataFiltered={handleFilteredData} />
-                        {#if (isFilteredScope || isTrustScope) && availableTrusts.length > 0}
+                        {#if isFilteredScope && availableTrusts.length > 0}
                             <div class="mx-4 border-t border-gray-200">
                                 <TrustsIncluded
                                     trusts={availableTrusts}
                                     filterDescription={scopeFilterDescription}
-                                    isSingleTrust={isTrustScope}
                                 />
                             </div>
                         {/if}
@@ -587,7 +583,6 @@
                             {shouldShowOrganisationSearch}
                             {availableTrusts}
                             {viewModes}
-                            {isTrustScope}
                             {percentilesDisabled}
                             {trustPercentileToggleDisabled}
                             {isCopyingShareLink}
@@ -601,10 +596,10 @@
                         <div class="mb-4">
                             <p class="text-sm text-gray-700">
                                 {#if $modeSelectorStore.selectedMode === 'trust' && $resultsStore.showPercentiles}
-                                    {percentileIntroText}
+                                    {@html percentileIntroText}
                                     {#if $resultsStore.trustCount > 0}
                                         {#if isFilteredScope}
-                                            Only in-scope trusts that have issued any of the selected products during the time period are included. For the selected products above, this is <strong>{$resultsStore.trustCount}/{availableTrusts.length} {inScopeTrustLabel}</strong>
+                                            Only in-scope trusts that have issued any of the selected products during the time period are included. For the selected products above, this is <strong>{$resultsStore.trustCount}/{availableTrusts.length} in-scope trusts</strong>
                                         {:else}
                                             Trusts are only included if they have issued any of the selected products during the time period. For the selected products above, this is <strong>{$resultsStore.trustCount}/{availableTrusts.length} trusts</strong>
                                         {/if}
@@ -622,7 +617,7 @@
                                     Variation can reflect differences in hospital size rather than genuine variation.
                                     See <a href="/faq/#what-are-percentile-charts" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret this chart.
                                 {:else}
-                                    {chartExplainerText}
+                                    {@html chartExplainerText}
                                     See <a href="/faq/" class="underline font-semibold" target="_blank">the FAQs</a> for more details about interpreting charts.
                                 {/if}
                             </p>

@@ -14,18 +14,14 @@ import {
 export function validateAnalysisRun({
     selectedVMPs = [],
     selectedScope = ANALYSIS_SCOPE.ALL,
-    selectedTrusts = [],
     selectedScopeFilters = createEmptyScopeFilters(),
     availableItems = [],
 } = {}) {
     if (!selectedVMPs || selectedVMPs.length === 0) {
         return 'Please select at least one product or ingredient.';
     }
-    if (selectedScope === ANALYSIS_SCOPE.TRUST && selectedTrusts.length === 0) {
-        return 'Please select a trust for your single-trust analysis.';
-    }
     if (selectedScope === ANALYSIS_SCOPE.GROUP && !hasAnyScopeFilters(selectedScopeFilters)) {
-        return 'Please select at least one filter to define your trust group.';
+        return 'Please select at least one filter for filtered trusts.';
     }
     if (
         selectedScope === ANALYSIS_SCOPE.GROUP
@@ -38,25 +34,21 @@ export function validateAnalysisRun({
 
 export function buildAnalysisRunPlan({
     selectedScope = ANALYSIS_SCOPE.ALL,
-    selectedItems = [],
     availableItems = [],
     allItems = [],
-    selectedTrusts = [],
     getOrgCode,
     overlayOrganisations,
 } = {}) {
     const cohortTrusts = resolveAnalysisCohort(selectedScope, {
-        selectedItems,
         availableItems,
         allItems,
     });
-    const odsCodes = getScopedTrustCodes(selectedScope, selectedTrusts, {
+    const odsCodes = getScopedTrustCodes(selectedScope, {
         getOrgCode,
         availableItems,
     });
     const hasExplicitOverlay = Array.isArray(overlayOrganisations);
-    const nextOverlaySelection = resolveNextOverlaySelection(selectedScope, {
-        selectedItems,
+    const nextOverlaySelection = resolveNextOverlaySelection({
         overlayOrganisations: hasExplicitOverlay ? overlayOrganisations : undefined,
     });
 
@@ -145,7 +137,7 @@ export function completeAnalysisRun({
     updateResults,
 } = {}) {
     analyseOptions.setSelectedOrganisations(plan.nextOverlaySelection);
-    if (!plan.hasExplicitOverlay && selectedScope !== ANALYSIS_SCOPE.TRUST) {
+    if (!plan.hasExplicitOverlay) {
         analyseOptions.setRememberedOverlayOrganisations([]);
     }
     analyseOptions.runAnalysis({

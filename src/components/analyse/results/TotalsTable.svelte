@@ -16,7 +16,6 @@
         getTableExplainerText,
         formatScopeFilterDescription,
     } from '../lib/analysisScope.js';
-
     export let data = [];
     export let quantityType = 'SCMD Quantity';
     export let searchType = 'vmp';
@@ -194,7 +193,7 @@
     
     <div class="mb-4">
         <p class="text-sm text-gray-700">
-            {tableExplainerText}
+            {@html tableExplainerText}
         </p>
     </div>
     

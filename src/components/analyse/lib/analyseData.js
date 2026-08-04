@@ -1140,11 +1140,7 @@ export class ViewModeCalculator {
             modes.push({ value: 'region', label: 'Region' });
         }
         
-        if (
-            this.scope !== ANALYSIS_SCOPE.TRUST &&
-            national &&
-            Object.keys(national).length > 0
-        ) {
+        if (national && Object.keys(national).length > 0) {
             modes.push({ value: 'national', label: getNationalModeLabel(this.scope) });
         }
 
