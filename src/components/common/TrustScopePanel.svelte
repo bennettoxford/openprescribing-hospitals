@@ -68,12 +68,14 @@
     ).length;
     $: selectedTrustTypeFilterCount =
         selectedOtherTrustTypeCount + (acuteParentSelected ? 1 : selectedAcuteSubtypeCount);
+    $: regionIcbFilterCount = selectedRegions.size + selectedICBs.size;
+    $: cancerAllianceFilterCount = selectedCancerAlliances.size;
+    $: shelfordFilterCount = shelfordFilter !== null ? 1 : 0;
     $: filterBadgeCount =
         selectedTrustTypeFilterCount +
-        selectedRegions.size +
-        selectedICBs.size +
-        selectedCancerAlliances.size +
-        (shelfordFilter !== null ? 1 : 0);
+        regionIcbFilterCount +
+        cancerAllianceFilterCount +
+        shelfordFilterCount;
     $: showGroupFilters = !enableScopeSelection || selectedScope === SCOPE_GROUP;
     $: currentFilters = {
         trustTypes: [...selectedTrustTypes].sort(),
@@ -298,7 +300,9 @@
             <div class="flex items-center gap-1.5 min-w-0">
                 <span class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Filter by</span>
                 {#if filterBadgeCount > 0}
-                    <span class="inline-flex items-center justify-center min-w-[1rem] h-4 px-1 rounded-full text-[10px] font-medium leading-none bg-oxford-100 text-oxford-700">{filterBadgeCount}</span>
+                    <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums normal-case tracking-normal bg-gray-100/80 px-1.5 py-0.5 rounded">
+                        {filterBadgeCount} filter{filterBadgeCount === 1 ? '' : 's'} selected
+                    </span>
                 {/if}
             </div>
             {#if filterBadgeCount > 0}
@@ -396,7 +400,14 @@
                 class="w-full flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wide hover:bg-gray-50 transition-colors"
                 on:click={() => (collapsedRegionIcb = !collapsedRegionIcb)}
             >
-                <span>Region &amp; ICB</span>
+                <span class="flex items-center gap-1.5 min-w-0">
+                    <span>Region &amp; ICB</span>
+                    {#if regionIcbFilterCount > 0}
+                        <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums normal-case tracking-normal bg-gray-100/80 px-1.5 py-0.5 rounded">
+                            {regionIcbFilterCount} filter{regionIcbFilterCount === 1 ? '' : 's'} selected
+                        </span>
+                    {/if}
+                </span>
                 <svg
                     class="w-3.5 h-3.5 transition-transform duration-200 {collapsedRegionIcb ? '' : 'rotate-180'}"
                     fill="none"
@@ -505,6 +516,11 @@
                         </p>
                     </div>
                 </div>
+                {#if selectedTrustTypeFilterCount > 0}
+                    <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums normal-case tracking-normal bg-gray-100/80 px-1.5 py-0.5 rounded">
+                        {selectedTrustTypeFilterCount} filter{selectedTrustTypeFilterCount === 1 ? '' : 's'} selected
+                    </span>
+                {/if}
                 <button
                     type="button"
                     class="ml-auto flex-1 flex items-center justify-end"
@@ -626,6 +642,11 @@
                         </p>
                     </div>
                 </div>
+                {#if cancerAllianceFilterCount > 0}
+                    <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums normal-case tracking-normal bg-gray-100/80 px-1.5 py-0.5 rounded">
+                        {cancerAllianceFilterCount} filter{cancerAllianceFilterCount === 1 ? '' : 's'} selected
+                    </span>
+                {/if}
                 <button
                     type="button"
                     class="ml-auto flex-1 flex items-center justify-end"
@@ -706,6 +727,11 @@
                         </p>
                     </div>
                 </div>
+                {#if shelfordFilterCount > 0}
+                    <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums normal-case tracking-normal bg-gray-100/80 px-1.5 py-0.5 rounded">
+                        {shelfordFilterCount} filter{shelfordFilterCount === 1 ? '' : 's'} selected
+                    </span>
+                {/if}
                 <button
                     type="button"
                     class="ml-auto flex-1 flex items-center justify-end"
