@@ -167,10 +167,12 @@ export function formatInScopePopulationPhrase({
 } = {}) {
     const hasCount = Number.isFinite(trustCount) && trustCount > 0;
     const trustNoun = hasCount
-        ? (trustCount === 1 ? '1 trust' : `${trustCount} trusts`)
+        ? (trustCount === 1 ? '<strong>1 trust</strong>' : `<strong>${trustCount} trusts</strong>`)
         : 'trusts';
     const article = includeArticle && hasCount ? 'the ' : '';
-    const filterSuffix = filterDescription ? ` (${filterDescription})` : '';
+    const filterSuffix = filterDescription
+        ? ` (<strong>${filterDescription}</strong>)`
+        : '';
     return `${article}${trustNoun} in the scope for this analysis${filterSuffix}`;
 }
 
@@ -190,10 +192,15 @@ function getChartTrustContext(scope, {
     selectedTrustLabel,
     preposition = 'across',
     trustCount = null,
-    filterDescription = ''
+    filterDescription = '',
+    inScopePopulation = '',
 } = {}) {
     if (hasSelectedOrganisations) {
-        return `${preposition} the ${selectedTrustLabel}`;
+        const selectedContext = `${preposition} the ${selectedTrustLabel}`;
+        if (scope === ANALYSIS_SCOPE.GROUP && inScopePopulation) {
+            return `${selectedContext} among ${inScopePopulation}`;
+        }
+        return selectedContext;
     }
     if (scope === ANALYSIS_SCOPE.NATIONAL) {
         return 'nationally';
@@ -211,6 +218,7 @@ function createScopeCopyContext({
     hasSelectedOrganisations = false,
     selectedOrganisationsCount = 0,
 } = {}) {
+    const resolvedScope = normaliseScope(scope);
     const scopeDetails = {
         trustCount: inScopeTrustCount,
         filterDescription: scopeFilterDescription,
@@ -219,30 +227,32 @@ function createScopeCopyContext({
         trustCount: inScopeTrustCount,
         filterDescription: scopeFilterDescription,
     });
-    const defaultPopulation = getDefaultTrustPopulationPhrase(scope, scopeDetails);
+    const defaultPopulation = getDefaultTrustPopulationPhrase(resolvedScope, scopeDetails);
     const singleSelectedTrust = hasSelectedOrganisations && selectedOrganisationsCount === 1;
     const selectedTrustLabel = singleSelectedTrust ? 'selected NHS Trust' : 'selected NHS Trusts';
     const selectedTrustsPhrase = singleSelectedTrust
         ? 'your selected NHS Trust'
         : `your ${selectedOrganisationsCount} selected NHS Trusts`;
-    const otherTrustsLabel = scope === ANALYSIS_SCOPE.GROUP
+    const otherTrustsLabel = resolvedScope === ANALYSIS_SCOPE.GROUP
         ? 'All other in-scope trusts'
         : 'All other trusts';
-    const productTrustContext = getChartTrustContext(scope, {
+    const productTrustContext = getChartTrustContext(resolvedScope, {
         hasSelectedOrganisations,
         selectedTrustLabel,
         preposition: 'across',
+        inScopePopulation,
         ...scopeDetails,
     });
-    const groupedTrustContext = getChartTrustContext(scope, {
+    const groupedTrustContext = getChartTrustContext(resolvedScope, {
         hasSelectedOrganisations,
         selectedTrustLabel,
         preposition: hasSelectedOrganisations ? 'within' : 'across',
+        inScopePopulation,
         ...scopeDetails,
     });
 
     return {
-        scope,
+        scope: resolvedScope,
         scopeDetails,
         inScopePopulation,
         defaultPopulation,
@@ -255,16 +265,15 @@ function createScopeCopyContext({
     };
 }
 
-function formatListForSentence(items) {
-    if (items.length === 1) return items[0];
-    if (items.length === 2) return `${items[0]} and ${items[1]}`;
-    return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
+function formatFilterGroup(labelSingular, labelPlural, values) {
+    if (!values.length) return null;
+    const label = values.length === 1 ? labelSingular : labelPlural;
+    return `${label}: ${values.join(', ')}`;
 }
 
 export function formatScopeFilterDescription(scopeFilters = {}) {
-    const parts = [];
     const trustTypes = Array.isArray(scopeFilters.trustTypes)
-        ? scopeFilters.trustTypes.map(String).filter(Boolean)
+        ? scopeFilters.trustTypes.map(String).filter(Boolean).map((type) => type.toLowerCase())
         : [];
     const regions = Array.isArray(scopeFilters.regions)
         ? scopeFilters.regions.map(String).filter(Boolean)
@@ -276,34 +285,17 @@ export function formatScopeFilterDescription(scopeFilters = {}) {
         ? scopeFilters.cancerAlliances.map(String).filter(Boolean).map(cancerAllianceDisplayName)
         : [];
 
-    if (trustTypes.length === 1) {
-        parts.push(`${trustTypes[0]} trusts`);
-    } else if (trustTypes.length > 1) {
-        parts.push(`trust types ${formatListForSentence(trustTypes)}`);
-    }
-
-    if (regions.length === 1) {
-        parts.push(`${regions[0]} region`);
-    } else if (regions.length > 1) {
-        parts.push(`regions ${formatListForSentence(regions)}`);
-    }
-
-    if (icbs.length === 1) {
-        parts.push(icbs[0]);
-    } else if (icbs.length > 1) {
-        parts.push(`ICBs ${formatListForSentence(icbs)}`);
-    }
-
-    if (cancerAlliances.length === 1) {
-        parts.push(`${cancerAlliances[0]} cancer alliance`);
-    } else if (cancerAlliances.length > 1) {
-        parts.push(`cancer alliances ${formatListForSentence(cancerAlliances)}`);
-    }
+    const parts = [
+        formatFilterGroup('trust type', 'trust types', trustTypes),
+        formatFilterGroup('region', 'regions', regions),
+        formatFilterGroup('ICB', 'ICBs', icbs),
+        formatFilterGroup('cancer alliance', 'cancer alliances', cancerAlliances),
+    ].filter(Boolean);
 
     if (scopeFilters.shelford === 'in') {
-        parts.push('Shelford Group trusts');
+        parts.push('Shelford Group: included');
     } else if (scopeFilters.shelford === 'not_in') {
-        parts.push('trusts outside the Shelford Group');
+        parts.push('Shelford Group: excluded');
     }
 
     return parts.join('; ');
@@ -334,22 +326,26 @@ export function getChartExplainerText(mode, options = {}) {
         selectedOrganisationsCount,
     });
 
+    const selectedAmongScopeSuffix = resolvedScope === ANALYSIS_SCOPE.GROUP
+        ? ` among ${inScopePopulation}`
+        : '';
+
     const baseExplainers = {
         'trust': () => {
             if (hasSelectedOrganisations) {
                 if (currentModeHasData) {
                     if (singleSelectedTrust) {
-                        return "This chart shows quantities over time for your selected NHS Trust.";
+                        return `This chart shows quantities over time for your selected NHS Trust${selectedAmongScopeSuffix}.`;
                     }
-                    return "This chart shows individual NHS Trust quantities over time for your selected trusts. Each line represents one trust, allowing you to compare their usage patterns.";
+                    return `This chart shows individual NHS Trust quantities over time for your selected trusts${selectedAmongScopeSuffix}. Each line represents one trust, allowing you to compare their usage patterns.`;
                 }
                 if (singleSelectedTrust) {
-                    return "This chart would show NHS Trust quantities, but the selected trust has no data for these products.";
+                    return `This chart would show NHS Trust quantities${selectedAmongScopeSuffix}, but the selected trust has no data for these products.`;
                 }
-                return "This chart would show individual NHS Trust quantities, but the selected trusts have no data for these products.";
+                return `This chart would show individual NHS Trust quantities${selectedAmongScopeSuffix}, but the selected trusts have no data for these products.`;
             }
             if (resolvedScope === ANALYSIS_SCOPE.GROUP) {
-                return `This chart shows individual NHS Trust quantities over time. Each line represents one trust in the scope for this analysis, allowing you to compare usage patterns across ${inScopePopulation}.`;
+                return `This chart shows individual NHS Trust quantities over time. Each line represents one trust, allowing you to compare usage patterns across ${inScopePopulation}.`;
             }
             return "This chart shows individual NHS Trust quantities over time. Each line represents one trust, allowing you to compare usage patterns across different trusts.";
         },
@@ -490,28 +486,28 @@ export function getTableExplainerText(mode, options = {}) {
 
         'product': () => {
             if (hasSelectedTrusts) {
-                return `This table shows the total quantities of each of the selected products issued ${periodText}, filtered to only include data from ${selectedTrustsPhrase}.`;
+                return `This table shows the total quantities of each of the selected products issued ${periodText}, filtered to only include data from ${selectedTrustsPhrase}${filteredAmongSuffix}.`;
             }
             return `This table shows the total quantities of each of the selected products issued ${periodText}, across ${defaultPopulation}.`;
         },
 
         'productGroup': () => {
             if (hasSelectedTrusts) {
-                return `This table shows the total quantities of the selected products issued by product group ${periodText}, filtered to only include data from ${selectedTrustsPhrase}.`;
+                return `This table shows the total quantities of the selected products issued by product group ${periodText}, filtered to only include data from ${selectedTrustsPhrase}${filteredAmongSuffix}.`;
             }
             return `This table shows the total quantities of the selected products issued by product group ${periodText} across ${defaultPopulation}.`;
         },
 
         'ingredient': () => {
             if (hasSelectedTrusts) {
-                return `This table shows total quantities by active ingredient ${periodText}, filtered to only include data from ${selectedTrustsPhrase}.`;
+                return `This table shows total quantities by active ingredient ${periodText}, filtered to only include data from ${selectedTrustsPhrase}${filteredAmongSuffix}.`;
             }
             return `This table shows total quantities by active ingredient ${periodText} across ${defaultPopulation}.`;
         },
 
         'unit': () => {
             if (hasSelectedTrusts) {
-                return `This table shows total quantities by unit of measurement ${periodText}, filtered to only include data from ${selectedTrustsPhrase}.`;
+                return `This table shows total quantities by unit of measurement ${periodText}, filtered to only include data from ${selectedTrustsPhrase}${filteredAmongSuffix}.`;
             }
             return `This table shows total quantities by unit of measurement ${periodText} across ${defaultPopulation}.`;
         }
@@ -529,23 +525,19 @@ export function getPercentileChartIntroText({
     selectedOrganisationsCount = 0,
     currentModeHasData = true,
     singleSelectedTrust = false,
-    isFilteredScope = false,
     percentilePopulationLabel = 'all NHS Trusts',
 } = {}) {
-    const trustScope = isFilteredScope ? 'in-scope trusts' : 'all trusts';
-
     if (selectedOrganisationsCount <= 0) {
-        const bandScope = isFilteredScope ? 'trusts in scope' : 'trusts';
-        return `This chart shows percentile ranges across ${percentilePopulationLabel} with data for the selected products. The bands represent the variation in quantities across ${bandScope}.`;
+        return `This chart shows percentile ranges across ${percentilePopulationLabel} with data for the selected products. The bands represent the variation in quantities across those trusts.`;
     }
 
     if (currentModeHasData) {
         return singleSelectedTrust
-            ? `This chart shows the selected NHS Trust quantity overlaid on percentile ranges. The selected trust appears as a coloured line, while percentile bands show the distribution across ${trustScope} with data.`
-            : `This chart shows individual NHS Trust quantities overlaid on percentile ranges. Selected trusts appear as coloured lines, while percentile bands show the distribution across ${trustScope} with data.`;
+            ? `This chart shows the selected NHS Trust quantity overlaid on percentile ranges. The selected trust appears as a coloured line, while percentile bands show the distribution across ${percentilePopulationLabel} with data.`
+            : `This chart shows individual NHS Trust quantities overlaid on percentile ranges. Selected trusts appear as coloured lines, while percentile bands show the distribution across ${percentilePopulationLabel} with data.`;
     }
 
     return singleSelectedTrust
-        ? `This chart shows percentile ranges across ${percentilePopulationLabel} with data. The selected trust has no data for these products, but percentile bands show the distribution across ${trustScope} with data.`
-        : `This chart shows percentile ranges across ${percentilePopulationLabel} with data. The selected trusts have no data for these products, but percentile bands show the distribution across ${trustScope} with data.`;
+        ? `This chart shows percentile ranges across ${percentilePopulationLabel} with data. The selected trust has no data for these products, but percentile bands show the distribution across ${percentilePopulationLabel} with data.`
+        : `This chart shows percentile ranges across ${percentilePopulationLabel} with data. The selected trusts have no data for these products, but percentile bands show the distribution across ${percentilePopulationLabel} with data.`;
 }

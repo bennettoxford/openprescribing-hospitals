@@ -100,7 +100,6 @@
         ? formatScopeFilterDescription($resultsStore.scopeFilters || {})
         : '';
     $: inScopeTrustCount = availableTrusts.length;
-    $: inScopeTrustLabel = isFilteredScope ? 'in-scope trusts' : 'trusts';
     $: percentilePopulationLabel = isFilteredScope
         ? formatInScopePopulationPhrase({
             trustCount: inScopeTrustCount,
@@ -523,7 +522,6 @@
         selectedOrganisationsCount,
         currentModeHasData,
         singleSelectedTrust,
-        isFilteredScope,
         percentilePopulationLabel,
     });
 </script>
@@ -598,10 +596,10 @@
                         <div class="mb-4">
                             <p class="text-sm text-gray-700">
                                 {#if $modeSelectorStore.selectedMode === 'trust' && $resultsStore.showPercentiles}
-                                    {percentileIntroText}
+                                    {@html percentileIntroText}
                                     {#if $resultsStore.trustCount > 0}
                                         {#if isFilteredScope}
-                                            Only in-scope trusts that have issued any of the selected products during the time period are included. For the selected products above, this is <strong>{$resultsStore.trustCount}/{availableTrusts.length} {inScopeTrustLabel}</strong>
+                                            Only in-scope trusts that have issued any of the selected products during the time period are included. For the selected products above, this is <strong>{$resultsStore.trustCount}/{availableTrusts.length} in-scope trusts</strong>
                                         {:else}
                                             Trusts are only included if they have issued any of the selected products during the time period. For the selected products above, this is <strong>{$resultsStore.trustCount}/{availableTrusts.length} trusts</strong>
                                         {/if}
@@ -619,7 +617,7 @@
                                     Variation can reflect differences in hospital size rather than genuine variation.
                                     See <a href="/faq/#what-are-percentile-charts" class="underline font-semibold" target="_blank">the FAQs</a> for more details about how to interpret this chart.
                                 {:else}
-                                    {chartExplainerText}
+                                    {@html chartExplainerText}
                                     See <a href="/faq/" class="underline font-semibold" target="_blank">the FAQs</a> for more details about interpreting charts.
                                 {/if}
                             </p>

@@ -17,6 +17,6 @@
         </p>
     </div>
     <p class="text-sm text-gray-600">
-        Included: <span class="font-semibold">{trustCount}</span> {trustLabel}{filterDescription ? ` (${filterDescription})` : ''}
+        Included: <span class="font-semibold">{trustCount} {trustLabel}</span>{filterDescription ? ` (${filterDescription})` : ''}
     </p>
 </div>
