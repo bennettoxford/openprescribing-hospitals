@@ -507,11 +507,11 @@
                     </button>
                     <div
                         class="absolute z-[100] scale-0 transition-all duration-100 origin-top transform
-                            group-hover:scale-100 w-[220px] left-1/2 -translate-x-1/2 top-5 rounded-md shadow-lg bg-white
+                            group-hover:scale-100 w-[220px] left-1/2 -translate-x-1/4 top-5 rounded-md shadow-lg bg-white
                             ring-1 ring-black ring-opacity-5 p-3 normal-case"
                     >
-                        <p class="text-xs text-gray-500 font-normal tracking-normal">
-                            Trust types come from the Estates Returns Information Collection (ERIC). Every trust is assigned a single type.
+                        <p class="text-sm text-gray-500 font-normal tracking-normal">
+                            Trust type is a classification of NHS trusts by the kind of services they provide, such as Acute, Mental Health, Community, or Ambulance. Every trust has a single type.
                             See <a href="/faq/#how-are-trust-types-determined" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
                         </p>
                     </div>
@@ -636,7 +636,7 @@
                             group-hover:scale-100 w-[220px] left-1/2 -translate-x-1/2 top-5 rounded-md shadow-lg bg-white
                             ring-1 ring-black ring-opacity-5 p-3 normal-case"
                     >
-                        <p class="text-xs text-gray-500 font-normal tracking-normal">
+                        <p class="text-sm text-gray-500 font-normal tracking-normal">
                             Cancer Alliances are regional groupings for cancer care.
                             See <a href="/faq/#where-do-cancer-alliance-boundaries-come-from" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
                         </p>
@@ -721,7 +721,7 @@
                             group-hover:scale-100 w-[220px] left-1/2 -translate-x-1/2 top-5 rounded-md shadow-lg bg-white
                             ring-1 ring-black ring-opacity-5 p-3 normal-case"
                     >
-                        <p class="text-xs text-gray-500 font-normal tracking-normal">
+                        <p class="text-sm text-gray-500 font-normal tracking-normal">
                             The Shelford Group is a collaboration of ten large teaching and research NHS hospital trusts in England.
                             See <a href="/faq/#what-is-the-shelford-group" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
                         </p>
