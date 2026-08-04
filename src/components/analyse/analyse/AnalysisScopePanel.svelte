@@ -2,43 +2,11 @@
 
 <script>
     import TrustScopePanel from '../../common/TrustScopePanel.svelte';
-    import {
-        ANALYSIS_SCOPE,
-        formatBuilderScopeSummary,
-        formatScopeFilterDescription,
-    } from '../lib/analysisScope.js';
-    import { applyScopeFiltersToSource, hasAnyScopeFilters } from '../../../utils/scopeFilters.js';
+    import { ANALYSIS_SCOPE } from '../lib/analysisScope.js';
 
     export let selectedScope = 'all';
     export let selectedScopeFilters = {};
     export let source;
-
-    function countGroupTrusts(store, filters) {
-        if (!hasAnyScopeFilters(filters)) {
-            return (store.items || []).length;
-        }
-        return applyScopeFiltersToSource({
-            allItems: store.items || [],
-            filters,
-            getTrustType: (name) => source.getTrustType(name),
-            getOrgsByRegionsOrICBs: (regions, icbs) => source.getOrgsByRegionsOrICBs(regions, icbs),
-            getOrgsByCancerAlliances: (alliances) => source.getOrgsByCancerAlliances(alliances),
-            orgShelfordGroup: store.orgShelfordGroup,
-        }).orgList.length;
-    }
-
-    $: trustCount = selectedScope === ANALYSIS_SCOPE.GROUP
-        ? countGroupTrusts($source, selectedScopeFilters)
-        : ($source.items || []).length;
-    $: filterDescription = selectedScope === ANALYSIS_SCOPE.GROUP
-        ? formatScopeFilterDescription(selectedScopeFilters)
-        : '';
-    $: scopeSummary = formatBuilderScopeSummary({
-        scope: selectedScope,
-        trustCount,
-        hasFilters: hasAnyScopeFilters(selectedScopeFilters),
-        filterDescription,
-    });
 </script>
 
 <div class="space-y-3">
@@ -56,7 +24,4 @@
       on:filtersChange
     />
   </div>
-  {#if scopeSummary}
-    <p class="text-sm text-gray-600">{scopeSummary}</p>
-  {/if}
 </div>

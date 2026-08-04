@@ -59,35 +59,6 @@ export function resolveAnalysisCohort(scope, {
     return Array.from(allItems || []);
 }
 
-export function formatBuilderScopeSummary({
-    scope,
-    trustCount = 0,
-    hasFilters = false,
-    filterDescription = '',
-} = {}) {
-    const normalisedScope = normaliseScope(scope);
-    const trimmedFilterDescription = (filterDescription || '').trim();
-    const filterSuffix = trimmedFilterDescription ? ` (${trimmedFilterDescription})` : '';
-
-    switch (normalisedScope) {
-        case ANALYSIS_SCOPE.ALL:
-            return `This analysis will include all ${trustCount} trusts.`;
-        case ANALYSIS_SCOPE.NATIONAL:
-            return `This analysis will report national totals across ${trustCount} trust${trustCount === 1 ? '' : 's'}.`;
-        case ANALYSIS_SCOPE.GROUP: {
-            if (!hasFilters) {
-                return null;
-            }
-            if (trustCount <= 0) {
-                return `No trusts match these filters${filterSuffix}.`;
-            }
-            return `This selection will analyse ${trustCount} trust${trustCount === 1 ? '' : 's'}${filterSuffix}.`;
-        }
-        default:
-            return null;
-    }
-}
-
 export function getScopedTrustCodes(scope, {
     getOrgCode,
     availableItems = [],
