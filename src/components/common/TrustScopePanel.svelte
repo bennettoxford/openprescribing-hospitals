@@ -21,11 +21,9 @@
     export let resetKey = undefined;
     export let enableScopeSelection = false;
     export let selectedScope = 'all';
-    export let singleTrust = undefined;
 
     const SCOPE_ALL = 'all';
     const SCOPE_NATIONAL = 'national';
-    const SCOPE_TRUST = 'trust';
     const SCOPE_GROUP = 'group';
 
     function normaliseAcuteSelection(types) {
@@ -267,7 +265,7 @@
             {/if}
         </div>
     {/if}
-    <div class="flex-1 py-2 {enableScopeSelection && (selectedScope === SCOPE_TRUST || selectedScope === SCOPE_GROUP) ? 'overflow-visible' : 'overflow-y-auto max-h-[min(70vh,400px)]'}">
+    <div class="flex-1 py-2 {enableScopeSelection && selectedScope === SCOPE_GROUP ? 'overflow-visible' : 'overflow-y-auto max-h-[min(70vh,400px)]'}">
         {#if enableScopeSelection}
             <div class="px-2 pb-2">
                 <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm transition-colors mx-1 min-h-[44px] sm:min-h-0 {selectedScope === SCOPE_ALL ? 'text-oxford-700' : 'text-gray-700'}">
@@ -296,21 +294,6 @@
                         {totalTrustCount} trusts
                     </span>
                 </label>
-                <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm transition-colors mx-1 min-h-[44px] sm:min-h-0 {selectedScope === SCOPE_TRUST ? 'text-oxford-700' : 'text-gray-700'}">
-                    <input
-                        type="radio"
-                        name="trust-scope-selection"
-                        checked={selectedScope === SCOPE_TRUST}
-                        on:change={() => selectScope(SCOPE_TRUST)}
-                        class="border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0"
-                    />
-                    <span class="flex-1 min-w-0">Single trust</span>
-                </label>
-                {#if selectedScope === SCOPE_TRUST && singleTrust}
-                    <div class="mx-1 mb-1 min-w-0">
-                        {@render singleTrust()}
-                    </div>
-                {/if}
                 <div class="mx-1 flex items-center gap-2 min-h-[44px] sm:min-h-0">
                     <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm transition-colors flex-1 min-w-0 {selectedScope === SCOPE_GROUP ? 'text-oxford-700' : 'text-gray-700'}">
                         <input

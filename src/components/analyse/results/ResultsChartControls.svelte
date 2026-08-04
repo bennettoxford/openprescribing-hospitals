@@ -13,7 +13,6 @@
     export let shouldShowOrganisationSearch = false;
     export let availableTrusts = [];
     export let viewModes = [];
-    export let isTrustScope = false;
     export let percentilesDisabled = false;
     export let trustPercentileToggleDisabled = true;
     export let isCopyingShareLink = false;
@@ -67,7 +66,7 @@
             onChange={(mode) => dispatch('modeChange', { mode })}
         />
 
-        {#if $modeSelectorStore.selectedMode === 'trust' && !isTrustScope}
+        {#if $modeSelectorStore.selectedMode === 'trust'}
             <div class="flex flex-col gap-4">
                 <div class="flex flex-col items-center gap-2">
                     <span class="text-sm text-gray-600 leading-tight text-center">

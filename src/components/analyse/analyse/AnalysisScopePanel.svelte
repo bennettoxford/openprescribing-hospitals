@@ -1,7 +1,6 @@
 <svelte:options runes={false} />
 
 <script>
-    import OrganisationSearch from '../../common/OrganisationSearch.svelte';
     import TrustScopePanel from '../../common/TrustScopePanel.svelte';
     import {
         ANALYSIS_SCOPE,
@@ -28,21 +27,15 @@
         }).orgList.length;
     }
 
-    $: selectedTrustName = selectedScope === ANALYSIS_SCOPE.TRUST
-        ? (($source.selectedItems || [])[0] || null)
-        : null;
-    $: trustCount = selectedScope === ANALYSIS_SCOPE.TRUST
-        ? ($source.selectedItems || []).length
-        : selectedScope === ANALYSIS_SCOPE.GROUP
-            ? countGroupTrusts($source, selectedScopeFilters)
-            : ($source.items || []).length;
+    $: trustCount = selectedScope === ANALYSIS_SCOPE.GROUP
+        ? countGroupTrusts($source, selectedScopeFilters)
+        : ($source.items || []).length;
     $: filterDescription = selectedScope === ANALYSIS_SCOPE.GROUP
         ? formatScopeFilterDescription(selectedScopeFilters)
         : '';
     $: scopeSummary = formatBuilderScopeSummary({
         scope: selectedScope,
         trustCount,
-        selectedTrustName,
         hasFilters: hasAnyScopeFilters(selectedScopeFilters),
         filterDescription,
     });
@@ -53,7 +46,7 @@
   <p class="text-sm text-oxford">
     The scope of an analysis specifies the NHS trusts to be included and the level of reporting. See <a href="/faq/#what-is-analysis-scope" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
   </p>
-  <div class="relative min-w-0 max-w-full {selectedScope === ANALYSIS_SCOPE.TRUST || selectedScope === ANALYSIS_SCOPE.GROUP ? 'overflow-visible' : 'overflow-x-hidden'}">
+  <div class="relative min-w-0 max-w-full {selectedScope === ANALYSIS_SCOPE.GROUP ? 'overflow-visible' : 'overflow-x-hidden'}">
     <TrustScopePanel
       {source}
       {selectedScope}
@@ -61,20 +54,7 @@
       initialFilters={selectedScopeFilters}
       on:scopeChange
       on:filtersChange
-    >
-      {#snippet singleTrust()}
-        <div class="relative min-w-0 w-full z-[1000]">
-          <OrganisationSearch
-            {source}
-            overlayMode={true}
-            on:selectionChange
-            maxItems={1}
-            hideSelectAll={true}
-            showTitle={false}
-          />
-        </div>
-      {/snippet}
-    </TrustScopePanel>
+    />
   </div>
   {#if scopeSummary}
     <p class="text-sm text-gray-600">{scopeSummary}</p>

@@ -86,11 +86,9 @@
     $: selectedMode = $modeSelectorStore.selectedMode;
     $: showPercentiles = $resultsStore.showPercentiles;
     $: effectiveMode = normaliseMode(selectedMode) || urlState.mode;
-    $: trustsForUrl = selectedScope === ANALYSIS_SCOPE.TRUST
-        ? selectedTrusts
-        : (isAggregationChartMode(effectiveMode)
-            ? []
-            : (isAuth ? resultsOverlayTrusts : selectedTrusts));
+    $: trustsForUrl = isAggregationChartMode(effectiveMode)
+        ? []
+        : (isAuth ? resultsOverlayTrusts : selectedTrusts);
 
     $: urlState.excludedVmps = Array.isArray($resultsStore.excludedVmps)
         ? Array.from(new Set($resultsStore.excludedVmps.filter(Boolean).map(String))).sort()
@@ -119,8 +117,7 @@
         const currentShowPercentiles = getShowPercentilesParam(
             effectiveMode,
             trustsForUrl,
-            showPercentiles,
-            selectedScope
+            showPercentiles
         );
         writeAnalysisUrlParams({
             products: selectedVMPs,
@@ -264,10 +261,9 @@
 
             urlState.excludedVmps = excludedVmps;
 
-            const overlayFromUrl = hydrateScope === ANALYSIS_SCOPE.TRUST
-                ? (patch.selectedOrganisations || []).slice(0, 1)
-                : (patch.selectedOrganisations || []);
-            await runAnalysis({ overlayOrganisations: overlayFromUrl });
+            await runAnalysis({
+                overlayOrganisations: patch.selectedOrganisations || [],
+            });
         } catch (error) {
             console.error('Failed to hydrate analysis selections from URL:', error);
         } finally {
@@ -385,7 +381,6 @@
         const validationError = validateAnalysisRun({
             selectedVMPs,
             selectedScope: runScope,
-            selectedTrusts,
             selectedScopeFilters: runScopeFilters,
             availableItems: $organisationSearchStore.availableItems || [],
         });
@@ -405,10 +400,8 @@
 
         const plan = buildAnalysisRunPlan({
             selectedScope: runScope,
-            selectedItems: $organisationSearchStore.selectedItems || [],
             availableItems: $organisationSearchStore.availableItems || [],
             allItems: $organisationSearchStore.items || [],
-            selectedTrusts,
             getOrgCode: (name) => organisationSearchStore.getOrgCode(name),
             overlayOrganisations: legacyOverlayOrganisations,
         });
@@ -417,8 +410,7 @@
             window.plausible('Analysis Run', {
                 props: {
                     all_products: selectedVMPs.map(p => p.code).join(','),
-                    // Names only for single-trust; larger cohorts are counted via organisation_count.
-                    all_organisations: runScope === ANALYSIS_SCOPE.TRUST ? plan.cohortTrusts.join(',') : '',
+                    all_organisations: '',
                     product_count: selectedVMPs.length.toString(),
                     organisation_count: plan.cohortTrusts.length.toString(),
                     search_type: searchType,
@@ -505,16 +497,12 @@
     function handleScopeChange(scope) {
         selectedScope = scope;
 
-        if (
-            scope === ANALYSIS_SCOPE.ALL
-            || scope === ANALYSIS_SCOPE.NATIONAL
-            || scope === ANALYSIS_SCOPE.TRUST
-        ) {
+        if (scope === ANALYSIS_SCOPE.ALL || scope === ANALYSIS_SCOPE.NATIONAL) {
             organisationSearchStore.setAvailableItems(Array.from($organisationSearchStore.items || []));
             organisationSearchStore.setFiltersApplied(false);
         }
 
-        if (scope === ANALYSIS_SCOPE.TRUST || scope === ANALYSIS_SCOPE.GROUP) {
+        if (scope === ANALYSIS_SCOPE.GROUP) {
             organisationSearchStore.setFilterType('trust');
         }
 

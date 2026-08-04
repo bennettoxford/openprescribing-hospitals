@@ -68,8 +68,8 @@ export function encodeQuantityType(quantityType) {
     return QUANTITY_TYPE_CODES[trimmed] || null;
 }
 
-export function getShowPercentilesParam(mode, trusts, showPercentilesValue, scope = 'all') {
-    if (scope === ANALYSIS_SCOPE.TRUST || mode !== 'trust') return null;
+export function getShowPercentilesParam(mode, trusts, showPercentilesValue) {
+    if (mode !== 'trust') return null;
     const hasTrusts = Array.isArray(trusts) && trusts.length > 0;
     if (hasTrusts && showPercentilesValue === true) return 'true';
     return null;
@@ -310,8 +310,7 @@ export function planAnalysisHydrate({
 
     const rawShowPercentiles = urlParams.get(ANALYSIS_PERCENTILES_PARAM);
     const showPercentilesRaw =
-        scope === ANALYSIS_SCOPE.TRUST ||
-        (rawShowPercentiles?.toLowerCase() === 'true' && mode !== 'trust')
+        rawShowPercentiles?.toLowerCase() === 'true' && mode !== 'trust'
             ? null
             : rawShowPercentiles;
 
@@ -344,19 +343,17 @@ export function planValidationStorePatch({
         : [];
 
     const stashTrustsForAggregation =
-        scope !== ANALYSIS_SCOPE.TRUST &&
         hasExplicitTrustSelection &&
         isAggregationChartMode(mode);
 
-    const selectedOrganisations = scope === ANALYSIS_SCOPE.TRUST
-        ? hydratedTrustNames.slice(0, 1)
-        : (hasExplicitTrustSelection && !stashTrustsForAggregation ? hydratedTrustNames : []);
+    const selectedOrganisations = hasExplicitTrustSelection && !stashTrustsForAggregation
+        ? hydratedTrustNames
+        : [];
 
     const rememberedOverlayOrganisations = stashTrustsForAggregation
         ? hydratedTrustNames
-        : (scope !== ANALYSIS_SCOPE.TRUST && hasExplicitTrustSelection ? hydratedTrustNames : []);
+        : (hasExplicitTrustSelection ? hydratedTrustNames : []);
 
-    const organisationSelection = scope === ANALYSIS_SCOPE.TRUST ? selectedOrganisations : [];
     const hasValidTrusts = selectedOrganisations.length > 0;
     const excludedVmps = Array.isArray(data?.excluded_vmps)
         ? Array.from(new Set(data.excluded_vmps.map(String).filter(Boolean))).sort()
@@ -378,7 +375,6 @@ export function planValidationStorePatch({
         quantityType: data?.quantity_type || null,
         selectedOrganisations,
         rememberedOverlayOrganisations,
-        organisationSelection,
         showPercentiles,
         excludedVmps,
         mode: mode || null,
@@ -387,7 +383,6 @@ export function planValidationStorePatch({
 
 export function applyHydrateStorePatch(patch, {
     analyseOptions,
-    organisationSearchStore,
     resultsStore,
     modeSelectorStore,
 } = {}) {
@@ -400,7 +395,6 @@ export function applyHydrateStorePatch(patch, {
         }));
     }
 
-    organisationSearchStore.updateSelection(patch.organisationSelection);
     analyseOptions.setSelectedOrganisations(patch.selectedOrganisations);
     analyseOptions.setRememberedOverlayOrganisations(patch.rememberedOverlayOrganisations);
     resultsStore.update(store => ({
@@ -428,7 +422,6 @@ export async function finishValidatedHydrate({
 } = {}) {
     applyHydrateStorePatch(patch, {
         analyseOptions,
-        organisationSearchStore,
         resultsStore,
         modeSelectorStore,
     });

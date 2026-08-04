@@ -3,7 +3,6 @@ import { cancerAllianceDisplayName } from '../../../utils/scopeFilters.js';
 export const ANALYSIS_SCOPE = {
     ALL: 'all',
     NATIONAL: 'national',
-    TRUST: 'trust',
     GROUP: 'group',
 };
 
@@ -46,7 +45,6 @@ export function normaliseScope(scopeValue) {
 }
 
 export function resolveAnalysisCohort(scope, {
-    selectedItems = [],
     availableItems = [],
     allItems = [],
 } = {}) {
@@ -54,9 +52,6 @@ export function resolveAnalysisCohort(scope, {
 
     if (normalisedScope === ANALYSIS_SCOPE.GROUP) {
         return Array.from(availableItems || []);
-    }
-    if (normalisedScope === ANALYSIS_SCOPE.TRUST) {
-        return (selectedItems || []).slice(0, 1);
     }
     if (normalisedScope === ANALYSIS_SCOPE.NATIONAL) {
         return [];
@@ -67,7 +62,6 @@ export function resolveAnalysisCohort(scope, {
 export function formatBuilderScopeSummary({
     scope,
     trustCount = 0,
-    selectedTrustName = null,
     hasFilters = false,
     filterDescription = '',
 } = {}) {
@@ -80,13 +74,6 @@ export function formatBuilderScopeSummary({
             return `This analysis will include all ${trustCount} trusts.`;
         case ANALYSIS_SCOPE.NATIONAL:
             return `This analysis will report national totals across ${trustCount} trust${trustCount === 1 ? '' : 's'}.`;
-        case ANALYSIS_SCOPE.TRUST: {
-            const trustName = (selectedTrustName || '').trim();
-            if (!trustName) {
-                return 'No trust selected.';
-            }
-            return `This analysis will include 1 trust: ${trustName}.`;
-        }
         case ANALYSIS_SCOPE.GROUP: {
             if (!hasFilters) {
                 return null;
@@ -101,19 +88,11 @@ export function formatBuilderScopeSummary({
     }
 }
 
-export function getScopedTrustCodes(scope, selectedTrustNames = [], {
+export function getScopedTrustCodes(scope, {
     getOrgCode,
     availableItems = [],
 } = {}) {
     const normalisedScope = normaliseScope(scope);
-    const uniqueSelectedTrusts = Array.from(new Set((selectedTrustNames || []).filter(Boolean)));
-    const selectedTrustCodes = uniqueSelectedTrusts
-        .map(name => getOrgCode?.(name))
-        .filter(Boolean);
-
-    if (normalisedScope === ANALYSIS_SCOPE.TRUST) {
-        return selectedTrustCodes;
-    }
 
     if (normalisedScope === ANALYSIS_SCOPE.GROUP) {
         return Array.from(new Set(
@@ -126,14 +105,9 @@ export function getScopedTrustCodes(scope, selectedTrustNames = [], {
     return [];
 }
 
-export function resolveNextOverlaySelection(scope, {
-    selectedItems = [],
+export function resolveNextOverlaySelection({
     overlayOrganisations,
 } = {}) {
-    const normalisedScope = normaliseScope(scope);
-    if (normalisedScope === ANALYSIS_SCOPE.TRUST) {
-        return (selectedItems || []).slice(0, 1);
-    }
     if (Array.isArray(overlayOrganisations)) {
         return overlayOrganisations;
     }
@@ -141,7 +115,7 @@ export function resolveNextOverlaySelection(scope, {
 }
 
 export function isNarrowedAnalysisScope(scope) {
-    return scope === ANALYSIS_SCOPE.TRUST || scope === ANALYSIS_SCOPE.GROUP;
+    return normaliseScope(scope) === ANALYSIS_SCOPE.GROUP;
 }
 
 export function getNationalModeLabel(scope, { longForm = false } = {}) {
@@ -165,8 +139,7 @@ export function buildAnalysisRequestPayload({
 
 export function arePercentilesDisabled(scope, trustCount = 0) {
     const normalisedScope = normaliseScope(scope);
-    return normalisedScope === ANALYSIS_SCOPE.TRUST
-        || (normalisedScope === ANALYSIS_SCOPE.GROUP && trustCount < TRUST_PERCENTILE_MIN_COUNT);
+    return normalisedScope === ANALYSIS_SCOPE.GROUP && trustCount < TRUST_PERCENTILE_MIN_COUNT;
 }
 
 export function computePercentileScopeConstraints({
@@ -238,9 +211,6 @@ function getDefaultTrustPopulationPhrase(scope, scopeDetails = {}) {
             includeArticle: false
         });
     }
-    if (scope === ANALYSIS_SCOPE.TRUST) {
-        return 'the selected NHS Trust';
-    }
     return 'all NHS Trusts in England';
 }
 
@@ -259,9 +229,6 @@ function getChartTrustContext(scope, {
     }
     if (scope === ANALYSIS_SCOPE.GROUP) {
         return `${preposition} ${formatInScopePopulationPhrase({ trustCount, filterDescription })}`;
-    }
-    if (scope === ANALYSIS_SCOPE.TRUST) {
-        return `${preposition} the selected NHS Trust`;
     }
     return `${preposition} all NHS Trusts`;
 }
@@ -428,9 +395,6 @@ export function getChartExplainerText(mode, options = {}) {
             if (resolvedScope === ANALYSIS_SCOPE.GROUP) {
                 return `This chart shows the total quantities over time across ${inScopePopulation}.`;
             }
-            if (resolvedScope === ANALYSIS_SCOPE.TRUST) {
-                return "This chart shows the total quantities over time for your selected NHS Trust.";
-            }
             return `This chart shows the total national quantities over time, combining data from ${defaultPopulation}.`;
         },
 
@@ -520,9 +484,6 @@ export function getTableExplainerText(mode, options = {}) {
 
     const baseExplainers = {
         'trust': () => {
-            if (resolvedScope === ANALYSIS_SCOPE.TRUST) {
-                return `This table shows the total quantities of the selected products issued by your selected NHS Trust ${periodText}.`;
-            }
             if (hasSelectedTrusts) {
                 if (singleSelectedTrust) {
                     return `This table shows the total quantities of the selected products issued by NHS trust ${periodText}. Data is grouped into "Selected trust" and "${otherTrustsLabel}", allowing you to compare your selected NHS Trust against others${filteredAmongSuffix}.`;
@@ -552,9 +513,6 @@ export function getTableExplainerText(mode, options = {}) {
         'national': () => {
             if (resolvedScope === ANALYSIS_SCOPE.GROUP) {
                 return `This table shows the total quantity of the selected products issued by ${inScopePopulation} ${periodText}.`;
-            }
-            if (resolvedScope === ANALYSIS_SCOPE.TRUST) {
-                return `This table shows the total quantity of the selected products issued by your selected NHS Trust ${periodText}.`;
             }
             return `This table shows the total national quantity of the selected products issued across ${defaultPopulation} ${periodText}.`;
         },

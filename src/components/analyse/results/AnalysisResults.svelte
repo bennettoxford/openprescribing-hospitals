@@ -96,7 +96,6 @@
     $: analysisScope = $resultsStore.scope || ANALYSIS_SCOPE.ALL;
     $: availableTrusts = Array.isArray($resultsStore.inScopeTrusts) ? $resultsStore.inScopeTrusts : [];
     $: isFilteredScope = analysisScope === ANALYSIS_SCOPE.GROUP;
-    $: isTrustScope = analysisScope === ANALYSIS_SCOPE.TRUST;
     $: scopeFilterDescription = isFilteredScope
         ? formatScopeFilterDescription($resultsStore.scopeFilters || {})
         : '';
@@ -569,12 +568,11 @@
                 <div class="space-y-2 p-6">
                     <section class="bg-white rounded-lg p-2 border-2 border-oxford-300 shadow-sm">
                         <ProductsTable {vmps} {excludedVmps} on:dataFiltered={handleFilteredData} />
-                        {#if (isFilteredScope || isTrustScope) && availableTrusts.length > 0}
+                        {#if isFilteredScope && availableTrusts.length > 0}
                             <div class="mx-4 border-t border-gray-200">
                                 <TrustsIncluded
                                     trusts={availableTrusts}
                                     filterDescription={scopeFilterDescription}
-                                    isSingleTrust={isTrustScope}
                                 />
                             </div>
                         {/if}
@@ -587,7 +585,6 @@
                             {shouldShowOrganisationSearch}
                             {availableTrusts}
                             {viewModes}
-                            {isTrustScope}
                             {percentilesDisabled}
                             {trustPercentileToggleDisabled}
                             {isCopyingShareLink}
