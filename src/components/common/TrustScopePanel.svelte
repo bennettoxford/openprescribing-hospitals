@@ -74,7 +74,6 @@
         selectedCancerAlliances.size +
         (shelfordFilter !== null ? 1 : 0);
     $: showGroupFilters = !enableScopeSelection || selectedScope === SCOPE_GROUP;
-    $: totalTrustCount = ($source.items || []).length;
 
     function stripNhsPrefix(str) {
         if (str == null || typeof str !== 'string') return '';
@@ -265,61 +264,67 @@
             {/if}
         </div>
     {/if}
-    <div class="flex-1 py-2 {enableScopeSelection && selectedScope === SCOPE_GROUP ? 'overflow-visible' : 'overflow-y-auto max-h-[min(70vh,400px)]'}">
+    <div class="flex-1 {enableScopeSelection ? '' : 'py-2'} {enableScopeSelection && selectedScope === SCOPE_GROUP ? 'overflow-visible' : 'overflow-y-auto max-h-[min(70vh,400px)]'}">
         {#if enableScopeSelection}
-            <div class="px-2 pb-2">
-                <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm transition-colors mx-1 min-h-[44px] sm:min-h-0 {selectedScope === SCOPE_ALL ? 'text-oxford-700' : 'text-gray-700'}">
-                    <input
-                        type="radio"
-                        name="trust-scope-selection"
-                        checked={selectedScope === SCOPE_ALL}
-                        on:change={() => selectScope(SCOPE_ALL)}
-                        class="border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0"
-                    />
-                    <span class="flex-1 min-w-0">All trusts</span>
-                    <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">
-                        {totalTrustCount} trusts
+            <div class="divide-y divide-gray-100" role="radiogroup" aria-label="Analysis scope">
+                <button
+                    type="button"
+                    role="radio"
+                    aria-checked={selectedScope === SCOPE_ALL}
+                    on:click={() => selectScope(SCOPE_ALL)}
+                    class="w-full text-left px-3 py-2.5 text-sm min-h-[44px] sm:min-h-0 transition-none focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500
+                        {selectedScope === SCOPE_ALL ? 'bg-oxford-100 text-oxford-700' : 'text-gray-700 hover:bg-gray-50'}"
+                >
+                    <span class="font-medium">All trusts <span class="font-normal text-gray-500">(default)</span></span>
+                    <span class="block text-xs text-gray-500 mt-0.5 leading-snug">
+                        Trust-level data for every NHS Trust. Analyse one or more trusts and compare them.
                     </span>
-                </label>
-                <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm transition-colors mx-1 min-h-[44px] sm:min-h-0 {selectedScope === SCOPE_NATIONAL ? 'text-oxford-700' : 'text-gray-700'}">
-                    <input
-                        type="radio"
-                        name="trust-scope-selection"
-                        checked={selectedScope === SCOPE_NATIONAL}
-                        on:change={() => selectScope(SCOPE_NATIONAL)}
-                        class="border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0"
-                    />
-                    <span class="flex-1 min-w-0">National</span>
-                    <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">
-                        {totalTrustCount} trusts
+                </button>
+                <button
+                    type="button"
+                    role="radio"
+                    aria-checked={selectedScope === SCOPE_NATIONAL}
+                    on:click={() => selectScope(SCOPE_NATIONAL)}
+                    class="w-full text-left px-3 py-2.5 text-sm min-h-[44px] sm:min-h-0 transition-none focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500
+                        {selectedScope === SCOPE_NATIONAL ? 'bg-oxford-100 text-oxford-700' : 'text-gray-700 hover:bg-gray-50'}"
+                >
+                    <span class="font-medium">National</span>
+                    <span class="block text-xs text-gray-500 mt-0.5 leading-snug">
+                        National totals across all NHS Trusts.
                     </span>
-                </label>
-                <div class="mx-1 flex items-center gap-2 min-h-[44px] sm:min-h-0">
-                    <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm transition-colors flex-1 min-w-0 {selectedScope === SCOPE_GROUP ? 'text-oxford-700' : 'text-gray-700'}">
-                        <input
-                            type="radio"
-                            name="trust-scope-selection"
-                            checked={selectedScope === SCOPE_GROUP}
-                            on:change={() => selectScope(SCOPE_GROUP)}
-                            class="border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0"
-                        />
-                        <span class="flex-1 min-w-0">Filtered trusts</span>
+                </button>
+                <div
+                    role="radio"
+                    tabindex="0"
+                    aria-checked={selectedScope === SCOPE_GROUP}
+                    on:click={() => selectScope(SCOPE_GROUP)}
+                    on:keydown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            selectScope(SCOPE_GROUP);
+                        }
+                    }}
+                    class="w-full text-left px-3 py-2.5 text-sm min-h-[44px] sm:min-h-0 transition-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500
+                        {selectedScope === SCOPE_GROUP ? 'bg-oxford-100 text-oxford-700' : 'text-gray-700 hover:bg-gray-50'}"
+                >
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="font-medium shrink-0">Filtered trusts</span>
                         {#if selectedScope === SCOPE_GROUP && filterBadgeCount > 0}
-                            <span class="inline-flex items-center justify-center min-w-[1rem] h-4 px-1 rounded-full text-[10px] font-medium leading-none bg-oxford-100 text-oxford-700">{filterBadgeCount}</span>
+                            <button
+                                type="button"
+                                class="ml-auto shrink-0 text-xs font-medium text-oxford-600 hover:text-oxford-800 py-0.5 px-1.5 rounded hover:bg-white/60"
+                                on:click|stopPropagation={clearAllFilters}
+                            >
+                                Clear all
+                            </button>
                         {/if}
-                    </label>
-                    {#if selectedScope === SCOPE_GROUP && filterBadgeCount > 0}
-                        <button
-                            type="button"
-                            class="text-xs font-medium text-oxford-600 hover:text-oxford-800 py-0.5 px-1.5 rounded hover:bg-oxford-50 transition-colors shrink-0"
-                            on:click={clearAllFilters}
-                        >
-                            Clear all
-                        </button>
-                    {/if}
+                    </div>
+                    <span class="block text-xs text-gray-500 mt-0.5 leading-snug">
+                        Select a subset of trusts by geography, trust type, and more.
+                    </span>
                 </div>
                 {#if selectedScope === SCOPE_GROUP}
-                    <div class="mt-1 ml-1 pl-1.5 border-l border-gray-200 min-w-0">
+                    <div class="pt-1 pb-2 min-w-0">
                         {@render groupFilterSections()}
                     </div>
                 {/if}
