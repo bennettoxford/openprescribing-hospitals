@@ -665,32 +665,34 @@
                 </button>
             </div>
             {#if !collapsedCancerAlliance}
-                {#each cancerAlliances as ca (ca.name)}
-                    <label class="flex flex-wrap items-start gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0 min-w-0 w-full {selectedCancerAlliances.has(ca.name) ? 'text-oxford-700' : ''}">
+                <div class="max-h-48 overflow-y-auto">
+                    {#each cancerAlliances as ca (ca.name)}
+                        <label class="flex flex-wrap items-start gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0 min-w-0 w-full {selectedCancerAlliances.has(ca.name) ? 'text-oxford-700' : ''}">
+                            <input
+                                type="checkbox"
+                                checked={selectedCancerAlliances.has(ca.name)}
+                                on:change={() => toggleCancerAlliance(ca.name)}
+                                class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0"
+                            />
+                            <span class="flex-1 min-w-0 break-words" title={ca.name}>{cancerAllianceDisplayName(ca.name)}</span>
+                            <span class="text-[10px] font-medium text-gray-400 whitespace-normal text-right tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">
+                                {(source.getOrgsByCancerAlliance(ca.name) || []).length} trusts
+                            </span>
+                        </label>
+                    {/each}
+                    <label class="flex flex-wrap items-start gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0 border-t border-gray-100 mt-1 pt-1.5 min-w-0 w-full {selectedCancerAlliances.has(CANCER_ALLIANCE_NA) ? 'text-oxford-700' : ''}">
                         <input
                             type="checkbox"
-                            checked={selectedCancerAlliances.has(ca.name)}
-                            on:change={() => toggleCancerAlliance(ca.name)}
+                            checked={selectedCancerAlliances.has(CANCER_ALLIANCE_NA)}
+                            on:change={() => toggleCancerAlliance(CANCER_ALLIANCE_NA)}
                             class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0"
                         />
-                        <span class="flex-1 min-w-0 break-words" title={ca.name}>{cancerAllianceDisplayName(ca.name)}</span>
+                        <span class="flex-1 min-w-0 break-words" title="Trusts not associated with a Cancer Alliance">{cancerAllianceDisplayName(CANCER_ALLIANCE_NA)}</span>
                         <span class="text-[10px] font-medium text-gray-400 whitespace-normal text-right tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">
-                            {(source.getOrgsByCancerAlliance(ca.name) || []).length} trusts
+                            {(source.getOrgsWithNoCancerAlliance() || []).length} trusts
                         </span>
                     </label>
-                {/each}
-                <label class="flex flex-wrap items-start gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-gray-700 transition-colors mx-1 min-h-[44px] sm:min-h-0 border-t border-gray-100 mt-1 pt-1.5 min-w-0 w-full {selectedCancerAlliances.has(CANCER_ALLIANCE_NA) ? 'text-oxford-700' : ''}">
-                    <input
-                        type="checkbox"
-                        checked={selectedCancerAlliances.has(CANCER_ALLIANCE_NA)}
-                        on:change={() => toggleCancerAlliance(CANCER_ALLIANCE_NA)}
-                        class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500 focus:ring-offset-0 w-4 h-4 shrink-0"
-                    />
-                    <span class="flex-1 min-w-0 break-words" title="Trusts not associated with a Cancer Alliance">{cancerAllianceDisplayName(CANCER_ALLIANCE_NA)}</span>
-                    <span class="text-[10px] font-medium text-gray-400 whitespace-normal text-right tabular-nums bg-gray-100/80 px-1.5 py-0.5 rounded">
-                        {(source.getOrgsWithNoCancerAlliance() || []).length} trusts
-                    </span>
-                </label>
+                </div>
             {/if}
         </div>
     {/if}
