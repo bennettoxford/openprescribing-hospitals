@@ -5,6 +5,7 @@
     import {
         ACUTE_PARENT,
         acuteSubtypeLabel,
+        applyScopeFiltersToSource,
         CANCER_ALLIANCE_NA,
         cancerAllianceDisplayName,
         hasAnyScopeFilters,
@@ -74,6 +75,53 @@
         selectedCancerAlliances.size +
         (shelfordFilter !== null ? 1 : 0);
     $: showGroupFilters = !enableScopeSelection || selectedScope === SCOPE_GROUP;
+    $: currentFilters = {
+        trustTypes: [...selectedTrustTypes].sort(),
+        regions: Array.from(selectedRegions).sort(),
+        icbs: Array.from(selectedICBs).sort(),
+        cancerAlliances: Array.from(selectedCancerAlliances).sort(),
+        shelford: shelfordFilter
+    };
+    $: groupTrustCount = !hasAnyScopeFilters(currentFilters)
+        ? 0
+        : applyScopeFiltersToSource({
+            allItems: $source.items || [],
+            filters: currentFilters,
+            getTrustType: (name) => $source.trustTypes?.get(name) ?? null,
+            getOrgsByRegionsOrICBs: (regions, icbs) => {
+                const hasRegions = regions && regions.size > 0;
+                const hasIcbs = icbs && icbs.size > 0;
+                if (!hasRegions && !hasIcbs) return [];
+                const result = new Set();
+                for (const name of $source.items || []) {
+                    if (hasRegions && regions.has($source.orgRegions?.get(name))) {
+                        result.add(name);
+                        continue;
+                    }
+                    if (hasIcbs && icbs.has($source.orgIcbs?.get(name))) {
+                        result.add(name);
+                    }
+                }
+                return Array.from(result);
+            },
+            getOrgsByCancerAlliances: (alliances) => {
+                if (!alliances || alliances.size === 0) return [];
+                const itemsSet = new Set($source.items || []);
+                const map = $source.orgCancerAlliances || new Map();
+                const result = new Set();
+                if (alliances.has(CANCER_ALLIANCE_NA)) {
+                    for (const name of $source.items || []) {
+                        const ca = map.get(name);
+                        if (!ca || ca === '') result.add(name);
+                    }
+                }
+                for (const [orgName, ca] of map) {
+                    if (ca && alliances.has(ca) && itemsSet.has(orgName)) result.add(orgName);
+                }
+                return Array.from(result);
+            },
+            orgShelfordGroup: $source.orgShelfordGroup,
+        }).orgList.length;
 
     function stripNhsPrefix(str) {
         if (str == null || typeof str !== 'string') return '';
@@ -307,15 +355,20 @@
                     class="w-full text-left px-3 py-2.5 text-sm min-h-[44px] sm:min-h-0 transition-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500
                         {selectedScope === SCOPE_GROUP ? 'bg-oxford-100 text-oxford-700' : 'text-gray-700 hover:bg-gray-50'}"
                 >
-                    <div class="flex items-center gap-2 min-w-0">
+                    <div class="flex items-center gap-1.5 min-w-0">
                         <span class="font-medium shrink-0">Filtered trusts</span>
+                        {#if selectedScope === SCOPE_GROUP}
+                            <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-white/80 px-1.5 py-0.5 rounded">
+                                {groupTrustCount} trust{groupTrustCount === 1 ? '' : 's'} selected
+                            </span>
+                        {/if}
                         {#if selectedScope === SCOPE_GROUP && filterBadgeCount > 0}
                             <button
                                 type="button"
                                 class="ml-auto shrink-0 text-xs font-medium text-oxford-600 hover:text-oxford-800 py-0.5 px-1.5 rounded hover:bg-white/60"
                                 on:click|stopPropagation={clearAllFilters}
                             >
-                                Clear all
+                                Clear selection
                             </button>
                         {/if}
                     </div>
