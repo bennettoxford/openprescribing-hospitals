@@ -44,7 +44,7 @@
 <div class="space-y-3">
   <h3 class="text-base sm:text-lg font-semibold text-oxford">Scope</h3>
   <p class="text-sm text-oxford">
-    The scope of an analysis specifies the NHS trusts to be included and the level of reporting. See <a href="/faq/#what-is-analysis-scope" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
+    Choose which NHS trusts to include, and the level of reporting. See <a href="/faq/#what-is-analysis-scope" class="underline font-semibold" target="_blank">the FAQs</a> for more details.
   </p>
   <div class="relative min-w-0 max-w-full {selectedScope === ANALYSIS_SCOPE.GROUP ? 'overflow-visible' : 'overflow-x-hidden'}">
     <TrustScopePanel
