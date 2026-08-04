@@ -1,29 +1,22 @@
--- Denominator:
--- KCl or potassium dihydrogen phosphate with strength > 0.2% w/v
--- (i.e. > 0.002 g per 1 ml when expressed as gram/ml,
--- or > 2 mg per 1 ml when expressed as mg/ml),
--- unit dose UOM in the injectable list.
--- Require a VTM (vtm_id IS NOT NULL) so VMPs with no VTM are excluded from the measure,
--- including e.g. VMP 5239011000001108 (Generic Addiphos solution for infusion 20ml vials).
 SELECT DISTINCT
     vmp.id AS vmp_id,
     CASE
-        WHEN LOWER(TRIM(vmp.unit_dose_uom)) IN ('ampoule', 'vial') 
-            THEN 'numerator'
+        WHEN LOWER(TRIM(vmp.unit_dose_uom)) IN ('ampoule', 'vial')   -- makes lower case and trims any spaces around ampoule or vial
+            THEN 'numerator'                                         -- unit dose is used to determine whether the VMP is a numerator or denominator, in this measure ampoules or vials become the numerator
         ELSE 'denominator'
     END AS vmp_type
 FROM viewer_vmp vmp
-WHERE vmp.vtm_id IS NOT NULL
+WHERE vmp.vtm_id IS NOT NULL                                          -- vtm must not be blank. products with no vtm will not be returned
 AND EXISTS (
     SELECT 1
-    FROM viewer_vmpingredientstrength vis
-    INNER JOIN viewer_ingredient ing ON ing.id = vis.ingredient_id
+    FROM viewer_vmpingredientstrength vis                           
+    INNER JOIN viewer_ingredient ing ON ing.id = vis.ingredient_id    -- need to know what ingredient is and strength information (eg. how much potassium chloride in a ml)
     WHERE vis.vmp_id = vmp.id
       AND vis.strnt_dnmtr_val = 1
       AND vis.strnt_dnmtr_uom_name = 'ml'
       AND (
             (
-                LOWER(ing.name) LIKE '%potassium chloride%'
+                LOWER(ing.name) LIKE '%potassium chloride%'           -- we need denominator products to have a concentration greater than 40mmol/L. Here we need to make a threshold using the equivalent threshold in grams/L / mg/ml. The molecular weight of potassium chloride in 74.55g/mol (https://pubchem.ncbi.nlm.nih.gov/compound/Potassium-Chloride). 74.55*0.040 = 2.982g/L.
                 AND (
                     (
                         vis.strnt_nmrtr_uom_name = 'gram'
@@ -37,7 +30,7 @@ AND EXISTS (
             )
             OR
             (
-                LOWER(ing.name) LIKE '%potassium dihydrogen phosphate%'
+                LOWER(ing.name) LIKE '%potassium dihydrogen phosphate%'  --we need denominator products to have a concentration greater than 40mmol/L. Here we need to make a threshold using the equivalent threshold in grams/L / mg/ml. The molecular weight of potassium dihydrogen phsophate is 136.086g/mol (https://pubchem.ncbi.nlm.nih.gov/compound/24506). 136.086*0.040 = 5.44g/L.
                 AND (
                     (
                         vis.strnt_nmrtr_uom_name = 'gram'
