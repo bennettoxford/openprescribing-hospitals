@@ -327,7 +327,12 @@
                     class="w-full text-left px-3 py-2.5 text-sm min-h-[44px] sm:min-h-0 transition-none focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500
                         {selectedScope === SCOPE_ALL ? 'bg-oxford-100 text-oxford-700' : 'text-gray-700 hover:bg-gray-50'}"
                 >
-                    <span class="font-medium">All trusts <span class="font-normal text-gray-500">(default)</span></span>
+                    <div class="flex items-center justify-between min-w-0">
+                        <span class="font-medium">All trusts <span class="font-normal text-gray-500">(default)</span></span>
+                        {#if selectedScope === SCOPE_ALL}
+                            <span class="text-xs font-medium text-oxford-600 ml-2 shrink-0">Selected</span>
+                        {/if}
+                    </div>
                     <span class="block text-xs text-gray-500 mt-0.5 leading-snug">
                         Trust-level data for every NHS Trust. Analyse one or more trusts and compare them.
                     </span>
@@ -340,7 +345,12 @@
                     class="w-full text-left px-3 py-2.5 text-sm min-h-[44px] sm:min-h-0 transition-none focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500
                         {selectedScope === SCOPE_NATIONAL ? 'bg-oxford-100 text-oxford-700' : 'text-gray-700 hover:bg-gray-50'}"
                 >
-                    <span class="font-medium">National</span>
+                    <div class="flex items-center justify-between min-w-0">
+                        <span class="font-medium">National</span>
+                        {#if selectedScope === SCOPE_NATIONAL}
+                            <span class="text-xs font-medium text-oxford-600 ml-2 shrink-0">Selected</span>
+                        {/if}
+                    </div>
                     <span class="block text-xs text-gray-500 mt-0.5 leading-snug">
                         National totals across all NHS Trusts.
                     </span>
@@ -359,21 +369,17 @@
                     class="w-full text-left px-3 py-2.5 text-sm min-h-[44px] sm:min-h-0 transition-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-inset focus:ring-oxford-500
                         {selectedScope === SCOPE_GROUP ? 'bg-oxford-100 text-oxford-700' : 'text-gray-700 hover:bg-gray-50'}"
                 >
-                    <div class="flex items-center gap-1.5 min-w-0">
-                        <span class="font-medium shrink-0">Filtered trusts</span>
+                    <div class="flex items-center justify-between min-w-0">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span class="font-medium shrink-0">Filtered trusts</span>
+                            {#if selectedScope === SCOPE_GROUP}
+                                <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-white/80 px-1.5 py-0.5 rounded">
+                                    {groupTrustCount} trust{groupTrustCount === 1 ? '' : 's'}
+                                </span>
+                            {/if}
+                        </div>
                         {#if selectedScope === SCOPE_GROUP}
-                            <span class="text-[10px] font-medium text-gray-400 shrink-0 tabular-nums bg-white/80 px-1.5 py-0.5 rounded">
-                                {groupTrustCount} trust{groupTrustCount === 1 ? '' : 's'} selected
-                            </span>
-                        {/if}
-                        {#if selectedScope === SCOPE_GROUP && filterBadgeCount > 0}
-                            <button
-                                type="button"
-                                class="ml-auto shrink-0 text-xs font-medium text-oxford-600 hover:text-oxford-800 py-0.5 px-1.5 rounded hover:bg-white/60"
-                                on:click|stopPropagation={clearAllFilters}
-                            >
-                                Clear selection
-                            </button>
+                            <span class="text-xs font-medium text-oxford-600 ml-2 shrink-0">Selected</span>
                         {/if}
                     </div>
                     <span class="block text-xs text-gray-500 mt-0.5 leading-snug">
@@ -381,6 +387,20 @@
                     </span>
                 </div>
                 {#if selectedScope === SCOPE_GROUP}
+                    {#if filterBadgeCount > 0}
+                        <div class="px-3 py-1.5 flex items-center justify-between gap-2 bg-white">
+                            <span class="text-xs text-gray-500">
+                                {filterBadgeCount} filter{filterBadgeCount === 1 ? '' : 's'} selected
+                            </span>
+                            <button
+                                type="button"
+                                class="text-xs font-medium text-red-600 hover:text-red-800 py-0.5 px-1.5 rounded hover:bg-red-50 transition-colors shrink-0"
+                                on:click={clearAllFilters}
+                            >
+                                Clear selection
+                            </button>
+                        </div>
+                    {/if}
                     <div class="pt-1 pb-2 min-w-0">
                         {@render groupFilterSections()}
                     </div>
