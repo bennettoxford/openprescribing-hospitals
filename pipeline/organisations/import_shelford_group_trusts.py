@@ -8,7 +8,7 @@ from pipeline.utils.utils import get_bigquery_client
 
 SHELFORD_GROUP_ODS_CODES = (
     "RGT",
-    "RP4",
+    "RJ1",
     "RYJ",
     "RJZ",
     "R0A",
