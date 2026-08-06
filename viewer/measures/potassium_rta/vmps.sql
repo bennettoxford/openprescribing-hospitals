@@ -44,6 +44,14 @@ AND EXISTS (
             )
       )
 )
+AND NOT EXISTS (
+    SELECT 1
+    FROM viewer_vmpingredientstrength vis_ex
+    INNER JOIN viewer_ingredient ing_ex
+        ON ing_ex.id = vis_ex.ingredient_id
+    WHERE vis_ex.vmp_id = vmp.id
+      AND LOWER(ing_ex.name) LIKE '%procaine hydrochloride%'
+)
 AND LOWER(TRIM(vmp.unit_dose_uom)) IN (
     'vial',
     'bag',
