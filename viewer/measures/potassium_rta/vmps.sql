@@ -34,7 +34,7 @@ AND EXISTS (
                 AND (
                     (
                         vis.strnt_nmrtr_uom_name = 'gram'
-                        AND vis.strnt_nmrtr_val >= 0.001089
+                        AND vis.strnt_nmrtr_val >= 0.01089
                     )
                     OR (
                         vis.strnt_nmrtr_uom_name IN ('mg', 'milligram')
