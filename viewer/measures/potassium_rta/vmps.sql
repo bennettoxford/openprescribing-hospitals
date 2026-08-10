@@ -16,29 +16,29 @@ AND EXISTS (
       AND vis.strnt_dnmtr_uom_name = 'ml'
       AND (
             (
-                LOWER(ing.name) LIKE '%potassium chloride%'           -- we need denominator products to have a concentration greater than 40mmol/L. Here we need to make a threshold using the equivalent threshold in grams/L / mg/ml. The molecular weight of potassium chloride in 74.55g/mol (https://pubchem.ncbi.nlm.nih.gov/compound/Potassium-Chloride). 74.55*0.040 = 2.982g/L.
+                LOWER(ing.name) LIKE '%potassium chloride%'           -- we need denominator products to have a concentration greater than 80mmol/L. Here we need to make a threshold using the equivalent threshold in grams/L / mg/ml. The molecular weight of potassium chloride in 74.55g/mol (https://pubchem.ncbi.nlm.nih.gov/compound/Potassium-Chloride). 74.55*0.080 = 5.964g/L.
                 AND (
                     (
                         vis.strnt_nmrtr_uom_name = 'gram'
-                        AND vis.strnt_nmrtr_val >= 0.002982
+                        AND vis.strnt_nmrtr_val >= 0.005964
                     )
                     OR (
                         vis.strnt_nmrtr_uom_name IN ('mg', 'milligram')
-                        AND vis.strnt_nmrtr_val >= 2.982
+                        AND vis.strnt_nmrtr_val >= 5.964
                     )
                 )
             )
             OR
             (
-                LOWER(ing.name) LIKE '%potassium dihydrogen phosphate%'  --we need denominator products to have a concentration greater than 40mmol/L. Here we need to make a threshold using the equivalent threshold in grams/L / mg/ml. The molecular weight of potassium dihydrogen phsophate is 136.086g/mol (https://pubchem.ncbi.nlm.nih.gov/compound/24506). 136.086*0.040 = 5.44g/L.
+                LOWER(ing.name) LIKE '%potassium dihydrogen phosphate%'  --we need denominator products to have a concentration greater than 80mmol/L. Here we need to make a threshold using the equivalent threshold in grams/L / mg/ml. The molecular weight of potassium dihydrogen phsophate is 136.086g/mol (https://pubchem.ncbi.nlm.nih.gov/compound/24506). 136.086*0.040 = 10.88g/L.
                 AND (
                     (
                         vis.strnt_nmrtr_uom_name = 'gram'
-                        AND vis.strnt_nmrtr_val >= 0.005444
+                        AND vis.strnt_nmrtr_val >= 0.001089
                     )
                     OR (
                         vis.strnt_nmrtr_uom_name IN ('mg', 'milligram')
-                        AND vis.strnt_nmrtr_val >= 5.444
+                        AND vis.strnt_nmrtr_val >= 10.89
                     )
                 )
             )
