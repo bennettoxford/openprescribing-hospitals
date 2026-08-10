@@ -1,6 +1,6 @@
 name: AIR/MART inhalers # Full name of the measure/indicator
 short_name: AIR/MART inhalers # Abbreviated name or acronym
-description: Percentage of corticosteroid containing inhaler doses that are for inhalers not licensed for MART/AIR therapy # Brief 1-2 sentence description of what this measure identifies
+description: Percentage of corticosteroid containing inhaler doses from inhalers not licensed for AIR/MART therapy # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |
     The [BTS/NICE/SIGN guidance](https://www.nice.org.uk/guidance/ng245/) published in November 2024 made significant changes to recommendations for asthma management. 
     For the majority of patients, [it recommends](https://www.nice.org.uk/guidance/ng245/chapter/Recommendations#principles-of-pharmacological-treatment) use of a combined inhaled corticosteroid (ICS) and formoterol under an AIR (anti-inflammatory reliever) or MART (maintenance and reliever therapy) regimen.  
