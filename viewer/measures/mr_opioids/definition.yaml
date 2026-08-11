@@ -17,7 +17,7 @@ quantity_type: ddd # Type of measurement (e.g. dose, ingredient, ddd)
 y_axis_label: '% prolonged-release'
 lower_is_better: true # true, false, or null when no value judgement
 authored_by: Chris Wood # Name of original author
-checked_by: TBC # Name of clinical/technical reviewer
+checked_by: Victoria Speed # Name of clinical/technical reviewer
 first_published: 2026-08-11 # Date of first publication (YYYY-MM-DD)
 date_reviewed: 2026-08-11 # Date of last review (YYYY-MM-DD)
 next_review: 2027-08-11 # Date of next scheduled review (YYYY-MM-DD)
