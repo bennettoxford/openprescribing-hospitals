@@ -14,14 +14,14 @@ tags:
     - Safety
     - Opioids
 quantity_type: ddd # Type of measurement (e.g. dose, ingredient, ddd)
-y_axis_label: '% of oral oxycodone and morphine that are prolonged-release'
+y_axis_label: '% prolonged-release'
 lower_is_better: true # true, false, or null when no value judgement
 authored_by: Chris Wood # Name of original author
-checked_by: TBC # Name of clinical/technical reviewer
-first_published: 2026-05-26 # Date of first publication (YYYY-MM-DD)
-date_reviewed: 2026-05-26 # Date of last review (YYYY-MM-DD)
-next_review: 2027-05-26 # Date of next scheduled review (YYYY-MM-DD)
-status: preview # in_development, preview, published
+checked_by: Victoria Speed # Name of clinical/technical reviewer
+first_published: 2026-08-11 # Date of first publication (YYYY-MM-DD)
+date_reviewed: 2026-08-11 # Date of last review (YYYY-MM-DD)
+next_review: 2027-08-11 # Date of next scheduled review (YYYY-MM-DD)
+status: published # in_development, preview, published
 annotations:  # Optional data annotations - vertical lines with labels on charts
     - date: 2025-03-12
       label: "MHRA Drug Safety Update: Prolonged-release opioids - removal of indication for relief of post-operative pain"
