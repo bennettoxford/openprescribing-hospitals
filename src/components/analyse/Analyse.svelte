@@ -18,10 +18,7 @@
   export let minDate;
   export let maxDate;
   export let orgData;
-  export let isAuthenticated = false;
   export let maxVmpCount = null;
-
-  $: isAuth = isAuthenticated === true || isAuthenticated === 'true';
 
   $: isResultsBoxPopulated = $resultsStore.showResults
     || (urlValidationErrors && urlValidationErrors.length > 0);
@@ -84,14 +81,12 @@
                         {minDate}
                         {maxDate}
                         {orgData}
-                        isAuthenticated={isAuth}
                         maxVmpCount={maxVmpCount}
                         on:analysisStart={handleAnalysisStart}
                         on:analysisComplete={handleAnalysisComplete}
                         on:analysisError={handleAnalysisError}
                         on:analysisClear={handleAnalysisClear}
                         on:urlValidationErrors={handleUrlValidationErrors}
-                        on:overlaySelectionChange={() => analysisResults?.syncOverlayFromBuilder?.()}
                     ></analysis-builder>
                 </div>
                 {#if !isLargeScreen}
@@ -127,7 +122,6 @@
                 <AnalysisResults
                     bind:this={analysisResults}
                     className="flex-grow"
-                    isAuthenticated={isAuth}
                     {urlValidationErrors}
                 />
             </div>
