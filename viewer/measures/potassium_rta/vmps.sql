@@ -20,11 +20,11 @@ AND EXISTS (
                 AND (
                     (
                         vis.strnt_nmrtr_uom_name = 'gram'
-                        AND vis.strnt_nmrtr_val >= 0.005964
+                        AND vis.strnt_nmrtr_val > 0.005964
                     )
                     OR (
                         vis.strnt_nmrtr_uom_name IN ('mg', 'milligram')
-                        AND vis.strnt_nmrtr_val >= 5.964
+                        AND vis.strnt_nmrtr_val > 5.964
                     )
                 )
             )
@@ -34,11 +34,11 @@ AND EXISTS (
                 AND (
                     (
                         vis.strnt_nmrtr_uom_name = 'gram'
-                        AND vis.strnt_nmrtr_val >= 0.01089
+                        AND vis.strnt_nmrtr_val > 0.01089
                     )
                     OR (
                         vis.strnt_nmrtr_uom_name IN ('mg', 'milligram')
-                        AND vis.strnt_nmrtr_val >= 10.89
+                        AND vis.strnt_nmrtr_val > 10.89
                     )
                 )
             )
