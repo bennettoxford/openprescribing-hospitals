@@ -319,8 +319,6 @@
         }
         const calculator = new ViewModeCalculator(
             $resultsStore,
-            $analyseOptions,
-            $organisationSearchStore,
             vmpsWithValidData,
             $resultsStore.scope || 'all'
         );
@@ -427,27 +425,6 @@
         vmps = [];
         viewModes = [];
         previousSelectedMode = null;
-    }
-
-    export function syncOverlayFromBuilder() {
-        if (!selectedData.length || !$modeSelectorStore.selectedMode) return;
-        const nextViewModes = recalculateViewModes(vmps.filter(vmp => vmp.unit !== 'nan'));
-        if (nextViewModes.length > 0) {
-            const reconciledMode = reconcileSelectedMode(
-                $modeSelectorStore.selectedMode,
-                nextViewModes
-            );
-            if (reconciledMode === null) {
-                applySelectedMode(selectDefaultMode(nextViewModes, $resultsStore.scope || 'all'));
-                return;
-            }
-            if (reconciledMode !== $modeSelectorStore.selectedMode) {
-                applySelectedMode(reconciledMode);
-                return;
-            }
-        }
-        syncResultsUi();
-        rebuildChart({ forceUpdate: true });
     }
 
     function customTooltipFormatter(d) {

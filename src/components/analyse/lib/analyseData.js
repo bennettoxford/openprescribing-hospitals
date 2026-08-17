@@ -1069,10 +1069,8 @@ export function getTrustCount(percentilesResult) {
 
 
 export class ViewModeCalculator {
-    constructor(resultsStore, analyseOptions, organisationSearchStore, vmps, scope = ANALYSIS_SCOPE.ALL) {
+    constructor(resultsStore, vmps, scope = ANALYSIS_SCOPE.ALL) {
         this.resultsStore = resultsStore;
-        this.analyseOptions = analyseOptions;
-        this.organisationSearchStore = organisationSearchStore;
         this.vmps = vmps;
         this.scope = scope;
     }
@@ -1096,28 +1094,6 @@ export class ViewModeCalculator {
         }
         
         return modes;
-    }
-
-    hasSelectedOrganisations() {
-        return this.analyseOptions.selectedOrganisations && 
-               this.analyseOptions.selectedOrganisations.length > 0;
-    }
-
-    hasSelectedOrganisationsWithData() {
-        if (!this.hasSelectedOrganisations()) return false;
-
-        const selectedOrgNames = new Set(this.analyseOptions.selectedOrganisations);
-
-        const selectedOrganisationsWithData = this.resultsStore.analysisData
-            ?.filter(item => {
-                const orgName = item.organisation__ods_name;
-                const isSelected = selectedOrgNames.has(orgName);
-                const hasData = item.data && Array.isArray(item.data) &&
-                    item.data.some(v => v > 0 && !isNaN(parseFloat(v)));
-                return isSelected && hasData;
-            }) || [];
-
-        return selectedOrganisationsWithData.length >= 1;
     }
 
     getAggregationModes() {
