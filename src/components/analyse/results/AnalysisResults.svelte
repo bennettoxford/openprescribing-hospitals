@@ -44,9 +44,6 @@
 
     export let className = '';
     export let urlValidationErrors = [];
-    export let isAuthenticated = false;
-
-    $: isAuth = isAuthenticated === true || isAuthenticated === 'true';
 
     let selectedData = [];
     let vmps = [];
@@ -110,7 +107,7 @@
     $: isOverlaySelectionScope = [ANALYSIS_SCOPE.ALL, ANALYSIS_SCOPE.GROUP].includes(analysisScope);
     $: hasRegionMode = viewModes.some(mode => mode.value === 'region');
     $: hasIcbMode = viewModes.some(mode => mode.value === 'icb');
-    $: shouldShowOrganisationSearch = isAuth && (
+    $: shouldShowOrganisationSearch = (
         ($modeSelectorStore.selectedMode === 'trust' && isOverlaySelectionScope) ||
         ($modeSelectorStore.selectedMode === 'region' && hasRegionMode) ||
         ($modeSelectorStore.selectedMode === 'icb' && hasIcbMode)
@@ -322,11 +319,8 @@
         }
         const calculator = new ViewModeCalculator(
             $resultsStore,
-            $analyseOptions,
-            $organisationSearchStore,
             vmpsWithValidData,
-            $resultsStore.scope || 'all',
-            isAuth
+            $resultsStore.scope || 'all'
         );
         viewModes = calculator.calculateAvailableModes();
         return viewModes;
@@ -431,27 +425,6 @@
         vmps = [];
         viewModes = [];
         previousSelectedMode = null;
-    }
-
-    export function syncOverlayFromBuilder() {
-        if (!selectedData.length || !$modeSelectorStore.selectedMode) return;
-        const nextViewModes = recalculateViewModes(vmps.filter(vmp => vmp.unit !== 'nan'));
-        if (nextViewModes.length > 0) {
-            const reconciledMode = reconcileSelectedMode(
-                $modeSelectorStore.selectedMode,
-                nextViewModes
-            );
-            if (reconciledMode === null) {
-                applySelectedMode(selectDefaultMode(nextViewModes, $resultsStore.scope || 'all'));
-                return;
-            }
-            if (reconciledMode !== $modeSelectorStore.selectedMode) {
-                applySelectedMode(reconciledMode);
-                return;
-            }
-        }
-        syncResultsUi();
-        rebuildChart({ forceUpdate: true });
     }
 
     function customTooltipFormatter(d) {
@@ -680,7 +653,7 @@
                                                 {#if percentilesDisabled}
                                                     Try <strong>selecting different trusts</strong> above, or choose different products.
                                                 {:else}
-                                                    Try <strong>turning on percentiles</strong>, to see variation across {isFilteredScope ? 'in-scope trusts' : 'all trusts'} that do have data, or <strong>select more trusts</strong> {isAuth ? 'above' : 'in the analysis builder'}.
+                                                    Try <strong>turning on percentiles</strong>, to see variation across {isFilteredScope ? 'in-scope trusts' : 'all trusts'} that do have data, or <strong>select more trusts</strong> above.
                                                 {/if}
                                                 <a href="/faq/#why-is-there-no-quantity-for-some-products" class="link-oxford" target="_blank">
                                                     Learn more about why quantities might be missing

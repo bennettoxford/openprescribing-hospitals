@@ -7,7 +7,6 @@
     import { onMount, tick } from 'svelte';
     import '../../../styles/styles.css';
     import ProductSearch from '../../common/ProductSearch.svelte';
-    import OrganisationSearch from '../../common/OrganisationSearch.svelte';
     import AnalysisScopePanel from './AnalysisScopePanel.svelte';
     import { createEventDispatcher } from 'svelte';
     import { organisationSearchStore } from '../../../stores/organisationSearchStore';
@@ -81,14 +80,13 @@
     $: selectedVMPs = $analyseOptions.selectedVMPs;
     $: searchType = $analyseOptions.searchType;
     $: selectedQuantityType = $analyseOptions.quantityType;
-    $: selectedTrusts = $organisationSearchStore.selectedItems || [];
     $: resultsOverlayTrusts = $analyseOptions.selectedOrganisations || [];
     $: selectedMode = $modeSelectorStore.selectedMode;
     $: showPercentiles = $resultsStore.showPercentiles;
     $: effectiveMode = normaliseMode(selectedMode) || urlState.mode;
     $: trustsForUrl = isAggregationChartMode(effectiveMode)
         ? []
-        : (isAuth ? resultsOverlayTrusts : selectedTrusts);
+        : resultsOverlayTrusts;
 
     $: urlState.excludedVmps = Array.isArray($resultsStore.excludedVmps)
         ? Array.from(new Set($resultsStore.excludedVmps.filter(Boolean).map(String))).sort()
@@ -138,14 +136,7 @@
     }
 
     export let orgData = null;
-    export let isAuthenticated = false;
     export let maxVmpCount = null;
-
-    $: isAuth = isAuthenticated === true || isAuthenticated === 'true';
-    $: if (!isAuth && selectedScope !== ANALYSIS_SCOPE.ALL) {
-        selectedScope = ANALYSIS_SCOPE.ALL;
-        selectedScopeFilters = createEmptyScopeFilters();
-    }
 
     let resolvedVmpOverLimit = false;
 
@@ -185,10 +176,10 @@
                 decodeTrustTypeFromUrl,
             });
 
-            const hydrateScope = isAuth ? plan.scope : ANALYSIS_SCOPE.ALL;
-            selectedScopeFilters = isAuth ? plan.scopeFilters : createEmptyScopeFilters();
+            const hydrateScope = plan.scope;
+            selectedScopeFilters = plan.scopeFilters;
             handleScopeChange(hydrateScope);
-            if (isAuth && plan.shouldShowAdvancedOptions) {
+            if (plan.shouldShowAdvancedOptions) {
                 showAdvancedOptions = true;
             }
             urlState.mode = plan.mode;
@@ -227,7 +218,7 @@
             const { excludedVmps } = await finishValidatedHydrate({
                 patch,
                 selectedScope: hydrateScope,
-                selectedScopeFilters: isAuth ? plan.scopeFilters : createEmptyScopeFilters(),
+                selectedScopeFilters: plan.scopeFilters,
                 analyseOptions,
                 organisationSearchStore,
                 resultsStore,
@@ -254,10 +245,6 @@
                 },
                 waitForUi: () => tick(),
             });
-
-            if (!isAuth && patch.selectedOrganisations?.length > 0) {
-                organisationSearchStore.updateSelection(patch.selectedOrganisations);
-            }
 
             urlState.excludedVmps = excludedVmps;
 
@@ -373,8 +360,8 @@
     async function runAnalysis(options = {}) {
         if (isAnalysisRunning) return;
 
-        const runScope = isAuth ? selectedScope : ANALYSIS_SCOPE.ALL;
-        const runScopeFilters = isAuth ? selectedScopeFilters : createEmptyScopeFilters();
+        const runScope = selectedScope;
+        const runScopeFilters = selectedScopeFilters;
 
         errorMessage = '';
 
@@ -394,16 +381,16 @@
         dispatch('analysisStart');
 
         const hasExplicitOverlay = Object.prototype.hasOwnProperty.call(options, 'overlayOrganisations');
-        const legacyOverlayOrganisations = !isAuth && !hasExplicitOverlay
-            ? ($organisationSearchStore.selectedItems || [])
-            : options.overlayOrganisations;
+        const overlayOrganisations = hasExplicitOverlay
+            ? options.overlayOrganisations
+            : undefined;
 
         const plan = buildAnalysisRunPlan({
             selectedScope: runScope,
             availableItems: $organisationSearchStore.availableItems || [],
             allItems: $organisationSearchStore.items || [],
             getOrgCode: (name) => organisationSearchStore.getOrgCode(name),
-            overlayOrganisations: legacyOverlayOrganisations,
+            overlayOrganisations,
         });
 
         if (typeof window !== 'undefined' && window.plausible) {
@@ -469,29 +456,6 @@
         }));
 
         selectQuantityType(event.detail.items);
-    }
-
-    function handleODSSelection(event) {
-        const selectedItems = event.detail.selectedItems || [];
-        const usedOrganisationSelection = event.detail.usedOrganisationSelection;
-        const previouslyHadTrusts = selectedTrusts.length > 0;
-        const willHaveTrusts = selectedItems.length > 0;
-
-        organisationSearchStore.updateSelection(selectedItems, usedOrganisationSelection);
-
-        if (!isAuth) {
-            analyseOptions.setSelectedOrganisations(selectedItems);
-            analyseOptions.setRememberedOverlayOrganisations(selectedItems);
-
-            if (urlState.showPercentiles === null) {
-                if (!previouslyHadTrusts && willHaveTrusts) {
-                    resultsStore.update(store => ({ ...store, showPercentiles: false }));
-                } else if (previouslyHadTrusts && !willHaveTrusts) {
-                    resultsStore.update(store => ({ ...store, showPercentiles: true }));
-                }
-            }
-            dispatch('overlaySelectionChange');
-        }
     }
 
     function handleScopeChange(scope) {
@@ -640,51 +604,6 @@
             </div>
           </div>
 
-          {#if !isAuth}
-          <!-- Trust Selection -->
-          <div class="grid gap-0">
-            <div class="flex items-center">
-              <h3 class="text-base sm:text-lg font-semibold text-oxford mr-2">Select NHS Trust(s) (optional)</h3>
-              <div class="relative inline-block group">
-                <button type="button" aria-label="Trust selection information" class="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-oxford-500 flex items-center">
-                  <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                  </svg>
-                </button>
-                <div class="absolute z-10 scale-0 transition-all duration-100 origin-top transform 
-                  group-hover:scale-100 w-[300px] -translate-x-[85%] left-1/2 top-5 rounded-md shadow-lg bg-white  
-                  ring-1 ring-black ring-opacity-5 p-4">
-                  <div class="text-sm text-gray-500 space-y-3">
-                    <div class="space-y-1 text-xs">
-                      <p>Select up to 10 NHS Trusts.</p>
-                      <ul>
-                        <li><strong>No trusts selected:</strong> Shows national data with regional/ICB breakdowns available</li>
-                        <li><strong>Trusts selected:</strong> Filters analysis results to the selected trusts</li>
-                      </ul>
-                    </div>
-                    <div>
-                      <p class="text-xs">
-                        See <a href="/faq/#how-do-i-see-icb-regional-and-national-breakdowns" class="underline font-semibold" target="_blank">the FAQs</a> for more details
-                        of how trust selection affects analysis modes and <a href="/faq/#which-nhs-trusts-are-included" class="underline font-semibold" target="_blank">which trusts are included</a>.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="relative min-w-0">
-              <OrganisationSearch
-                source={organisationSearchStore}
-                overlayMode={false}
-                on:selectionChange={handleODSSelection}
-                maxItems={10}
-                hideSelectAll={true}
-                showTitle={false}
-              />
-            </div>
-          </div>
-          {/if}
-
         </div>
 
         <!-- Analysis Controls -->
@@ -702,20 +621,17 @@
 
               {#if showAdvancedOptions}
                 <div class="space-y-4">
-                  {#if isAuth}
                     <AnalysisScopePanel
                       {selectedScope}
                       {selectedScopeFilters}
                       source={organisationSearchStore}
                       on:scopeChange={(e) => handleScopeChange(e.detail)}
                       on:filtersChange={handleScopeFiltersChange}
-                      on:selectionChange={handleODSSelection}
                     />
-                  {/if}
 
                   <div class="space-y-3">
                     <h3 class="text-base sm:text-lg font-semibold text-oxford">
-                      {isAuth ? 'Quantity Type' : 'Quantity Type (optional)'}
+                      Quantity Type
                     </h3>
                     <p class="text-sm text-oxford">
                       There are different ways to <a href="/faq/#what-does-quantity-mean" class="underline font-semibold" target="_blank">measure the quantity of medicines issued</a>. The most appropriate quantity for the selected products is automatically selected (<a href="/faq/#how-is-the-quantity-type-used-for-an-analysis-chosen" class="underline font-semibold" target="_blank">see how in the FAQs</a>). If you would like to select an alternative quantity type, you can do so below.

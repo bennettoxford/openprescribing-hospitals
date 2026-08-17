@@ -419,9 +419,6 @@ def get_quantity_data(request):
 
     try:
         scope_value = scope.strip().lower() if isinstance(scope, str) else "all"
-        if not request.user.is_authenticated and scope_value != "all":
-            scope_value = "all"
-            ods_codes = []
         is_national_scope = scope_value == "national"
 
         base_vmps = list(VMP.objects.filter(
@@ -993,11 +990,6 @@ def validate_analysis_params(request):
                     else:
                         codes_list = ', '.join(f"'{code}'" for code in invalid_trust_codes)
                         errors.append(f"Trust codes not found: {codes_list}")
-
-    MAX_TRUST_SELECTION_LIMIT = 10
-    if not request.user.is_authenticated and len(valid_trusts) > MAX_TRUST_SELECTION_LIMIT:
-        valid_trusts = valid_trusts[:MAX_TRUST_SELECTION_LIMIT]
-        errors.append(f"Maximum of {MAX_TRUST_SELECTION_LIMIT} trusts allowed")
 
     quantity_code = request.GET.get('quantity', '').strip().lower()
     if quantity_code:

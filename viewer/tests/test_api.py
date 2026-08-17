@@ -262,6 +262,50 @@ class TestGetQuantityData:
         assert items[0]["organisation__ods_name"] is None
         assert items[0]["data"] == [16.0, 22.0, 3.0]
 
+    def test_anonymous_user_can_use_national_scope(
+        self, predecessor_successor_orgs, region, icb, vmp, data_status_months
+    ):
+        predecessor, successor = predecessor_successor_orgs
+        other = Organisation.objects.create(
+            ods_code="OTH",
+            ods_name="Other Trust",
+            region=region,
+            icb=icb,
+            successor=None,
+        )
+        DDDQuantity.objects.create(
+            vmp=vmp,
+            organisation=predecessor,
+            data=[10.0, 0, 0],
+        )
+        DDDQuantity.objects.create(
+            vmp=vmp,
+            organisation=successor,
+            data=[5.0, 20.0, 0],
+        )
+        DDDQuantity.objects.create(
+            vmp=vmp,
+            organisation=other,
+            data=[1.0, 2.0, 3.0],
+        )
+
+        client = Client()
+        response = _post_quantity_data(
+            client,
+            _quantity_payload(vmp, scope="national"),
+        )
+
+        assert response.status_code == 200
+        items = [
+            item
+            for item in response.json()["items"]
+            if item.get("vmp__code") == vmp.code
+        ]
+        assert len(items) == 1
+        assert items[0]["organisation__ods_code"] is None
+        assert items[0]["organisation__ods_name"] is None
+        assert items[0]["data"] == [16.0, 22.0, 3.0]
+
 
 @pytest.mark.django_db
 class TestGetMeasuresChartData:
