@@ -380,7 +380,7 @@
                             {disabled ? 'bg-gray-100' : ''} min-w-[70px]">
                     <div class="flex flex-col items-center text-xs text-gray-500 py-1 w-full">
                         <span class="font-medium">
-                            {selectedItems.filter((item) => isItemAvailable(item)).length}/{flatItems.length}
+                            {selectedItems.filter((item) => isItemAvailable(item)).length}/{availableItems.length}
                         </span>
                         <span>{counterText}</span>
                     </div>

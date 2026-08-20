@@ -150,6 +150,7 @@
             regionOverlaySelection,
             icbOverlaySelection,
             selectedData,
+            months: $resultsStore.analysisMonths || [],
         });
         applyResultsModeSearchSync(sync, {
             analyseOptions,

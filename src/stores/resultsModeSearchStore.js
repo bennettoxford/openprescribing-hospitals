@@ -8,15 +8,15 @@ export function createResultsModeSearchStore() {
         availableItems: new Set()
     });
 
-    function setItems(items = [], filterType = 'trust') {
+    function setItems(items = [], filterType = 'trust', availableItems = items) {
         const uniqueItems = Array.from(new Set((items || []).filter(Boolean)));
-        const availableItems = new Set(uniqueItems);
+        const availableSet = new Set(availableItems);
         update(store => ({
             ...store,
             filterType,
             items: uniqueItems,
-            selectedItems: (store.selectedItems || []).filter(item => availableItems.has(item)),
-            availableItems
+            selectedItems: (store.selectedItems || []).filter(item => availableSet.has(item)),
+            availableItems: availableSet
         }));
     }
 

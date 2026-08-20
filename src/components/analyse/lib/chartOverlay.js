@@ -226,6 +226,30 @@ export function resolveChartOverlayLocals(analyseOptions, selectedData = []) {
     };
 }
 
+function getTrustNamesWithAnalysisData(data = [], months = []) {
+    const trustsWithData = new Set();
+
+    (data || []).forEach(item => {
+        const orgName = item.organisation__ods_name;
+        if (!orgName) {
+            return;
+        }
+        const quantities = Array.isArray(item.data) ? item.data : [];
+        const hasQuantityData = quantities.some((qty, i) => {
+            if (!months[i]) {
+                return false;
+            }
+            const quantity = Number(qty);
+            return Number.isFinite(quantity) && quantity !== 0;
+        });
+        if (hasQuantityData) {
+            trustsWithData.add(orgName);
+        }
+    });
+
+    return Array.from(trustsWithData);
+}
+
 export function commitChartDimensionSelection(dimension, selectedItems, availableItems = []) {
     const nextSelection = Array.isArray(selectedItems) ? selectedItems : [];
     if (nextSelection.length === 0) {
@@ -248,16 +272,23 @@ export function buildResultsModeSearchSync({
     regionOverlaySelection,
     icbOverlaySelection,
     selectedData = [],
+    months = [],
 } = {}) {
     if (selectedMode === 'trust') {
-        const cappedOrganisations = clampTrustOverlaySelection(selectedOrganisations);
+        const searchItems = Array.from(availableTrusts || []);
+        const trustsWithData = new Set(getTrustNamesWithAnalysisData(selectedData, months));
+        const currentSelection = Array.isArray(selectedOrganisations) ? selectedOrganisations : [];
+        const selectableOrganisations = clampTrustOverlaySelection(
+            currentSelection.filter(name => trustsWithData.has(name))
+        );
+        const overlayChanged = selectableOrganisations.length !== currentSelection.length
+            || selectableOrganisations.some((name, index) => name !== currentSelection[index]);
         return {
             filterType: 'trust',
-            availableItems: availableTrusts,
-            selectedItems: cappedOrganisations,
-            selectedOrganisations: cappedOrganisations.length !== selectedOrganisations.length
-                ? cappedOrganisations
-                : undefined,
+            searchItems,
+            availableItems: searchItems.filter(name => trustsWithData.has(name)),
+            selectedItems: selectableOrganisations,
+            selectedOrganisations: overlayChanged ? selectableOrganisations : undefined,
             selectedRegions,
             selectedIcbs,
             regionOverlaySelection,
@@ -349,6 +380,10 @@ export function applyResultsModeSearchSync(sync, {
     if (sync.chartIcbsStoreValue !== undefined) {
         analyseOptions.setSelectedChartIcbs(sync.chartIcbsStoreValue);
     }
-    resultsModeSearchStore.setItems(sync.availableItems, sync.filterType);
+    resultsModeSearchStore.setItems(
+        sync.searchItems ?? sync.availableItems,
+        sync.filterType,
+        sync.availableItems
+    );
     resultsModeSearchStore.updateSelection(sync.selectedItems);
 }
