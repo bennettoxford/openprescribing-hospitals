@@ -61,5 +61,8 @@ export default defineConfig({
   },
   css: {
     postcss: './postcss.config.cjs'
+  },
+  test: {
+    include: ['src/tests/**/*.{test,spec}.{js,ts}']
   }
 })
