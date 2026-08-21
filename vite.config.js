@@ -16,7 +16,7 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        'main': path.resolve(__dirname, "src/main.js"),
+        'main': path.resolve(import.meta.dirname, "src/main.js"),
         'analyse': "./src/components/analyse/Analyse.svelte",
         'product-search-box': "./src/components/common/ProductSearch.svelte",
         'organisation-search': "./src/components/common/OrganisationSearch.svelte",
@@ -46,14 +46,14 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      'highcharts': path.resolve(__dirname, 'node_modules/highcharts'),
-      'highcharts/highcharts-more': path.resolve(__dirname, 'node_modules/highcharts/highcharts-more.js'),
-      'highcharts/modules/accessibility': path.resolve(__dirname, 'node_modules/highcharts/modules/accessibility.js'),
-      'highcharts/modules/exporting': path.resolve(__dirname, 'node_modules/highcharts/modules/exporting.js'),
-      'highcharts/modules/export-data': path.resolve(__dirname, 'node_modules/highcharts/modules/export-data.js'),
-      'highcharts/modules/offline-exporting': path.resolve(__dirname, 'node_modules/highcharts/modules/offline-exporting.js'),
-      'highcharts/modules/boost': path.resolve(__dirname, 'node_modules/highcharts/modules/boost.js'),
-      'highcharts/modules/annotations': path.resolve(__dirname, 'node_modules/highcharts/modules/annotations.js'),
+      'highcharts': path.resolve(import.meta.dirname, 'node_modules/highcharts'),
+      'highcharts/highcharts-more': path.resolve(import.meta.dirname, 'node_modules/highcharts/highcharts-more.js'),
+      'highcharts/modules/accessibility': path.resolve(import.meta.dirname, 'node_modules/highcharts/modules/accessibility.js'),
+      'highcharts/modules/exporting': path.resolve(import.meta.dirname, 'node_modules/highcharts/modules/exporting.js'),
+      'highcharts/modules/export-data': path.resolve(import.meta.dirname, 'node_modules/highcharts/modules/export-data.js'),
+      'highcharts/modules/offline-exporting': path.resolve(import.meta.dirname, 'node_modules/highcharts/modules/offline-exporting.js'),
+      'highcharts/modules/boost': path.resolve(import.meta.dirname, 'node_modules/highcharts/modules/boost.js'),
+      'highcharts/modules/annotations': path.resolve(import.meta.dirname, 'node_modules/highcharts/modules/annotations.js'),
     }
   },
   server: {
