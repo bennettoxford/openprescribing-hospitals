@@ -41,6 +41,7 @@
     import ModeSelector from '../common/ModeSelector.svelte';
     import { organisationSearchStore } from '../../stores/organisationSearchStore';
     import { modeSelectorStore } from '../../stores/modeSelectorStore.js';
+    import { syncOrganisationSearchForMode } from './lib/measure.js';
     import { formatNumber, getUrlParams, setUrlParams, parseArrayParam, formatArrayParam, getCurrentUrl, copyToClipboard } from '../../utils/utils.js';
     import { flattenOrganisationsToData } from '../../utils/regionIcbFilterUtils.js';
     import pluralize from 'pluralize';
@@ -567,20 +568,33 @@
     ];
 
     $: currentMode = $modeSelectorStore.selectedMode;
+    let lastSearchMode;
     $: {
         if (currentMode) {
-            selectedMode.set(currentMode);
-            
+            if ($selectedMode !== currentMode) {
+                selectedMode.set(currentMode);
+            }
+
+            let selectedItems = $visibleTrusts;
+            if (currentMode === 'icb') {
+                selectedItems = $visibleICBs;
+            } else if (currentMode === 'region') {
+                selectedItems = $visibleRegions;
+            }
+
+            lastSearchMode = syncOrganisationSearchForMode({
+                currentMode,
+                lastSearchMode,
+                organisationSearchStore,
+                parsedOrgData,
+                icbs,
+                regions,
+                trusts,
+                availableTrusts: trusts.filter(trust => $orgdataStore[trust]?.available),
+                selectedItems,
+            });
 
             if (currentMode === 'icb') {
-                organisationSearchStore.setOrganisationData({
-                    orgs: Object.fromEntries(icbs.map(name => [name, name])),
-                    regions_hierarchy: parsedOrgData.regions_hierarchy || []
-                });
-                organisationSearchStore.setFilterType('icb');
-                organisationSearchStore.setAvailableItems(icbs);
-                organisationSearchStore.updateSelection(Array.from($visibleICBs));
-
                 const updatedData = {
                     ...$filteredData,
                     datasets: $filteredData.datasets.map(dataset => ({
@@ -590,13 +604,6 @@
                 };
                 measureChartStore.setData(updatedData);
             } else if (currentMode === 'region') {
-                organisationSearchStore.setOrganisationData({
-                    orgs: Object.fromEntries(regions.map(name => [name, name]))
-                });
-                organisationSearchStore.setFilterType('region');
-                organisationSearchStore.setAvailableItems(regions);
-                organisationSearchStore.updateSelection(Array.from($visibleRegions));
-
                 const updatedData = {
                     ...$filteredData,
                     datasets: $filteredData.datasets.map(dataset => ({
@@ -606,22 +613,6 @@
                 };
                 measureChartStore.setData(updatedData);
             } else if (currentMode === 'trust') {
-                organisationSearchStore.setOrganisationData({
-                    orgs: Object.fromEntries(trusts.map(name => [parsedOrgData.org_codes?.[name] || name, name])),
-                    org_codes: parsedOrgData.org_codes || {},
-                    trust_types: parsedOrgData.trust_types || {},
-                    org_regions: parsedOrgData.org_regions || {},
-                    org_icbs: parsedOrgData.org_icbs || {},
-                    org_cancer_alliances: parsedOrgData.org_cancer_alliances || {},
-                    org_shelford_group: parsedOrgData.org_shelford_group || {},
-                    regions_hierarchy: parsedOrgData.regions_hierarchy || [],
-                    cancer_alliances: parsedOrgData.cancer_alliances || []
-                });
-                organisationSearchStore.setFilterType('trust');
-                const availableTrusts = trusts.filter(trust => $orgdataStore[trust]?.available);
-                organisationSearchStore.setAvailableItems(availableTrusts);
-
-                organisationSearchStore.updateSelection(Array.from($visibleTrusts));
                 measureChartStore.updateVisibleItems(new Set($visibleTrusts));
                 if (currentMode === 'trust') {
                     const updatedData = {
