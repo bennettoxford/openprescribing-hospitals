@@ -2,21 +2,25 @@ SELECT DISTINCT
     vmp.id as vmp_id,
     'numerator' as vmp_type -- this measure has no denominator
 FROM viewer_vmp vmp
-WHERE 
-    LOWER(vmp.name) NOT LIKE '% shampoo%'AND -- exclude all shampoos
-    LOWER(vmp.name) NOT LIKE '%wash cap%' AND -- exclude wash caps
-    LOWER(vmp.name) NOT LIKE '%wash mitts%' AND -- exclude wash mitts
-    LOWER(vmp.name) NOT LIKE '%antimicrobial%' AND  -- exclude formulations with antimicrobial in name
-    LOWER(vmp.name) NOT LIKE '%feminine%' AND -- exclude formulations with feminine in name
-    LOWER(vmp.name) NOT LIKE '%mouthwash%' AND -- exclude formulations with mouthwash in name
-    LOWER(vmp.name) NOT LIKE '%facewash%' AND -- exclude formulations with facewash in name
-    LOWER(vmp.name) NOT LIKE '%eye %' AND -- exclude formulations with eye in name
-    LOWER(vmp.name) NOT LIKE '%coal tar%' AND -- exclude formulations with coal in name
-    LOWER(vmp.name) NOT LIKE 'tar%' AND -- exclude formulations with tar in name
-    LOWER(vmp.name) NOT LIKE '%benzoyl peroxide%' AND -- exclude formulations with benzoyl peroxide in name
-    LOWER(vmp.name) NOT LIKE '%methoxsalen%' -- exclude formulations with methoxsalen in name
-    AND (
+WHERE
+    (
         LOWER(vmp.name) LIKE '%bath%' OR -- include formulations with bath in name
         LOWER(vmp.name) LIKE '%wash%' OR -- include formulations with wash in name
         LOWER(vmp.name) LIKE '%shower%' -- include formulations with shower in name
     )
+    AND LOWER(vmp.name) NOT LIKE '%shampoo%'            -- exclude shampoos
+    AND LOWER(vmp.name) NOT LIKE '%antimicrobial%'      -- exclude antimicrobial cleansing preparations
+    AND LOWER(vmp.name) NOT LIKE '%facewash%'           -- exclude facial/medicated cleansing preparations
+    AND LOWER(vmp.name) NOT LIKE '%hand wash%'          -- exclude hand washing products
+    AND LOWER(vmp.name) NOT LIKE '%mouthwash%'          -- exclude oral preparations
+    AND LOWER(vmp.name) NOT LIKE '%eye %'               -- exclude ophthalmic preparations
+    AND LOWER(vmp.name) NOT LIKE '%feminine%'           -- exclude feminine hygiene preparations
+
+    AND LOWER(vmp.name) NOT LIKE '%methoxsalen%'        -- exclude medicated phototherapy preparations
+    AND LOWER(vmp.name) NOT LIKE '%benzoyl peroxide%'   -- exclude medicated acne preparations
+    AND LOWER(vmp.name) NOT LIKE '%coal tar%'           -- exclude medicated coal tar preparations
+    AND LOWER(vmp.name) NOT LIKE 'tar%'                 -- exclude medicated tar preparations
+
+    AND LOWER(vmp.name) NOT LIKE '%wash cap%'           -- exclude wash caps
+    AND LOWER(vmp.name) NOT LIKE '%wash mitts%'         -- exclude wash mitts
+    AND LOWER(vmp.name) NOT LIKE '%washcloth%'          -- exclude patient cleansing wipes
