@@ -1,3 +1,17 @@
+export function sortMeasureProducts(denominatorItems = [], numeratorItems = []) {
+    const numeratorCodes = new Set(
+        (numeratorItems || []).map((item) => item?.code).filter(Boolean)
+    );
+    const sortedNumeratorItems = [...(numeratorItems || [])].sort((a, b) =>
+        a.name.localeCompare(b.name)
+    );
+    const sortedNonNumeratorItems = [...(denominatorItems || [])]
+        .filter((item) => !numeratorCodes.has(item?.code))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    return [...sortedNumeratorItems, ...sortedNonNumeratorItems];
+}
+
 function rebuildOrganisationSearchForMode({
     mode,
     organisationSearchStore,

@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { get } from 'svelte/store';
 import { organisationSearchStore } from '../../stores/organisationSearchStore.js';
-import { syncOrganisationSearchForMode } from '../../components/measures/lib/measure.js';
+import {
+    sortMeasureProducts,
+    syncOrganisationSearchForMode,
+} from '../../components/measures/lib/measure.js';
 
 const SAMPLE_ORG_DATA = {
     orgs: {
@@ -96,5 +99,29 @@ describe('Measure organisation search rebuild', () => {
         expect(state.filterType).toBe('icb');
         expect(state.availableItems).toEqual(new Set(['ICB 1']));
         expect(state.selectedItems).toEqual(['ICB 1']);
+    });
+});
+
+describe('sortMeasureProducts', () => {
+    it('puts numerators first and drops denominator duplicates', () => {
+        const denominatorItems = [
+            { code: '1', name: 'Zopiclone 7.5mg tablets' },
+            { code: '2', name: 'Amoxicillin 500mg capsules' },
+            { code: '3', name: 'Metformin 500mg tablets' },
+        ];
+        const numeratorItems = [
+            { code: '1', name: 'Zopiclone 7.5mg tablets' },
+            { code: '2', name: 'Amoxicillin 500mg capsules' },
+        ];
+
+        const sorted = sortMeasureProducts(denominatorItems, numeratorItems);
+
+        expect(sorted.map((item) => item.name)).toEqual([
+            'Amoxicillin 500mg capsules',
+            'Zopiclone 7.5mg tablets',
+            'Metformin 500mg tablets',
+        ]);
+        expect(sorted.map((item) => item.code)).toEqual(['2', '1', '3']);
+        expect(sorted).toHaveLength(3);
     });
 });

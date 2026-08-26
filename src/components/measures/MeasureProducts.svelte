@@ -12,6 +12,10 @@
 }} />
 
 <script>
+    import {
+        sortMeasureProducts,
+    } from './lib/measure.js';
+
     export let title = '';
     export let items = '[]';
     export let numeratorItems = '[]';
@@ -28,14 +32,7 @@
         try {
             parsedItems = JSON.parse(items);
             parsedNumeratorItems = JSON.parse(numeratorItems);
-            
-            const sortedNumeratorItems = parsedNumeratorItems
-                .sort((a, b) => a.name.localeCompare(b.name));
-            const sortedNonNumeratorItems = parsedItems
-                .filter(item => !isInNumerator(item))
-                .sort((a, b) => a.name.localeCompare(b.name));
-            
-            sortedItems = [...sortedNumeratorItems, ...sortedNonNumeratorItems];
+            sortedItems = sortMeasureProducts(parsedItems, parsedNumeratorItems);
         } catch (error) {
             console.error('Failed to parse items:', error);
             parsedItems = [];
