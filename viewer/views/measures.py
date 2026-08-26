@@ -25,6 +25,7 @@ from ..models import (
     ICB,
 )
 from ..utils import get_organisation_data
+from ..search import MAX_ANALYSIS_VMP_COUNT
 from ..measure_denominators import (
     compute_rate_from_totals,
     get_measure_chart_kind,
@@ -683,6 +684,7 @@ class BaseMeasureItemView(TemplateView):
             "numerator_vmps": json.dumps(
                 numerator_vmps, cls=DjangoJSONEncoder
             ),
+            "max_vmp_count": MAX_ANALYSIS_VMP_COUNT,
             "measure_quantity_type": measure.quantity_type,
             "has_denominators": measure_has_rate_denominator(measure),
             "chart_kind": get_measure_chart_kind(

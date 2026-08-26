@@ -4,7 +4,9 @@
         title: { type: 'String' },
         items: { type: 'String' },
         numeratorItems: { type: 'String' },
-        previewCount: { type: 'Number' }
+        previewCount: { type: 'Number' },
+        maxVmpCount: { type: 'Number' },
+        quantityType: { type: 'String' }
     },
     shadow: 'none'
 }} />
@@ -14,6 +16,8 @@
     export let items = '[]';
     export let numeratorItems = '[]';
     export let previewCount = 3;
+    export let maxVmpCount = null;
+    export let quantityType = null;
 
     let isExpanded = false;
     let parsedItems = [];
