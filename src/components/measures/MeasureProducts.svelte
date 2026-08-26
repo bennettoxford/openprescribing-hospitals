@@ -13,6 +13,7 @@
 
 <script>
     import {
+        buildMeasureAnalyseHref,
         sortMeasureProducts,
     } from './lib/measure.js';
 
@@ -57,13 +58,28 @@
     $: noDddCount = sortedItems.filter(
         (item) => item.unit === 'No DDD' || item.unit === 'DDD'
     ).length;
+    $: analyseHref = buildMeasureAnalyseHref({
+        products: sortedItems,
+        quantityType,
+        maxVmpCount,
+    });
 
 </script>
 
 <div class="border border-gray-200 rounded-lg shadow-sm my-4 overflow-hidden">
     <div class="px-4 py-3 bg-white">
-        <div class="flex justify-between items-center mb-2">
+        <div class="mb-2 lg:flex lg:justify-between lg:items-center lg:gap-2">
             <h3 class="text-lg font-semibold text-gray-800">{title}</h3>
+            {#if analyseHref}
+                <a
+                    href={analyseHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="mt-2 lg:mt-0 inline-flex items-center px-3 py-1.5 bg-oxford-50 text-oxford-600 rounded-md hover:bg-oxford-100 transition-colors duration-200 font-medium text-sm border border-oxford-200"
+                >
+                    View products on Analyse
+                </a>
+            {/if}
         </div>
 
         {#if hasDenominators}

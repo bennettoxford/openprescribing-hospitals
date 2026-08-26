@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { get } from 'svelte/store';
 import { organisationSearchStore } from '../../stores/organisationSearchStore.js';
 import {
+    buildMeasureAnalyseHref,
     sortMeasureProducts,
     syncOrganisationSearchForMode,
 } from '../../components/measures/lib/measure.js';
@@ -124,6 +125,86 @@ describe('sortMeasureProducts', () => {
         ]);
         expect(sorted.map((item) => item.code)).toEqual(['2', '1', '3']);
         expect(sorted).toHaveLength(3);
+    });
+});
+
+describe('buildMeasureAnalyseHref', () => {
+    it('builds an Analyse URL with vmps and quantity type', () => {
+        const href = buildMeasureAnalyseHref({
+            products: [
+                { code: '111', name: 'Amoxicillin 500mg capsules' },
+                { code: '222', name: 'Metformin 500mg tablets' },
+            ],
+            quantityType: 'ddd',
+            maxVmpCount: 250,
+        });
+
+        expect(href).toBe('/analyse/?vmps=111,222&quantity=ddd');
+    });
+
+    it('does not duplicate vmp codes when numerator is also in denominator', () => {
+        const products = sortMeasureProducts(
+            [
+                { code: '111', name: 'Amoxicillin 500mg capsules' },
+                { code: '222', name: 'Metformin 500mg tablets' },
+            ],
+            [{ code: '111', name: 'Amoxicillin 500mg capsules' }]
+        );
+
+        const href = buildMeasureAnalyseHref({
+            products,
+            quantityType: 'dose',
+            maxVmpCount: 250,
+        });
+
+        expect(href).toBe('/analyse/?vmps=111,222&quantity=dose');
+        expect(href.match(/111/g)).toHaveLength(1);
+    });
+
+    it('returns null when the product count is over the limit', () => {
+        const products = [
+            { code: '1', name: 'Amoxicillin 500mg capsules' },
+            { code: '2', name: 'Fluconazole 50mg capsules' },
+            { code: '3', name: 'Metformin 500mg tablets' },
+        ];
+
+        expect(
+            buildMeasureAnalyseHref({
+                products,
+                quantityType: 'scmd',
+                maxVmpCount: 2,
+            })
+        ).toBeNull();
+    });
+
+    it('returns null when there are no products', () => {
+        expect(
+            buildMeasureAnalyseHref({
+                products: [],
+                quantityType: 'ddd',
+                maxVmpCount: 250,
+            })
+        ).toBeNull();
+    });
+
+    it('returns null when maxVmpCount is missing', () => {
+        expect(
+            buildMeasureAnalyseHref({
+                products: [{ code: '111', name: 'Amoxicillin 500mg capsules' }],
+                quantityType: 'ddd',
+                maxVmpCount: null,
+            })
+        ).toBeNull();
+    });
+
+    it('uses SCMD quantity for indicative cost measures', () => {
+        const href = buildMeasureAnalyseHref({
+            products: [{ code: '111', name: 'Amoxicillin 500mg capsules' }],
+            quantityType: 'indicative_cost',
+            maxVmpCount: 250,
+        });
+
+        expect(href).toBe('/analyse/?vmps=111&quantity=scmd');
     });
 });
 
