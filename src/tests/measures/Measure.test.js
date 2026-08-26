@@ -5,6 +5,7 @@ import {
     sortMeasureProducts,
     syncOrganisationSearchForMode,
 } from '../../components/measures/lib/measure.js';
+import { encodeQuantityType } from '../../components/analyse/lib/analyseUrlParams.js';
 
 const SAMPLE_ORG_DATA = {
     orgs: {
@@ -123,5 +124,15 @@ describe('sortMeasureProducts', () => {
         ]);
         expect(sorted.map((item) => item.code)).toEqual(['2', '1', '3']);
         expect(sorted).toHaveLength(3);
+    });
+});
+
+describe('encodeQuantityType for measure short codes', () => {
+    it('encodes measure short codes and Analyse display names', () => {
+        expect(encodeQuantityType('ddd')).toBe('ddd');
+        expect(encodeQuantityType('dose')).toBe('dose');
+        expect(encodeQuantityType('Defined Daily Dose Quantity')).toBe('ddd');
+        expect(encodeQuantityType('Unit Dose Quantity')).toBe('dose');
+        expect(encodeQuantityType('indicative_cost')).toBeNull();
     });
 });

@@ -65,6 +65,9 @@ export const SUPPORTED_ANALYSIS_PARAMS = [
 export function encodeQuantityType(quantityType) {
     if (!quantityType) return null;
     const trimmed = quantityType.trim();
+    if (Object.values(QUANTITY_TYPE_CODES).includes(trimmed)) {
+        return trimmed;
+    }
     return QUANTITY_TYPE_CODES[trimmed] || null;
 }
 
