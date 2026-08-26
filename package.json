@@ -24,7 +24,7 @@
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/typography": "^0.5.20",
     "clipboard": "^2.0.11",
-    "highcharts": "^13.0.0",
+    "highcharts": "^13.0.1",
     "jszip": "^3.10.1",
     "pluralize": "^8.0.0",
     "postcss-nesting": "^14.0.1",
