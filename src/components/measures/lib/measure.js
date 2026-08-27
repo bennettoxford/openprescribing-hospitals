@@ -1,3 +1,49 @@
+import { buildAnalysisUrlParams } from '../../analyse/lib/analyseUrlParams.js';
+
+export const ANALYSE_BASE_PATH = '/analyse/';
+
+export function sortMeasureProducts(denominatorItems = [], numeratorItems = []) {
+    const numeratorCodes = new Set(
+        (numeratorItems || []).map((item) => item?.code).filter(Boolean)
+    );
+    const sortedNumeratorItems = [...(numeratorItems || [])].sort((a, b) =>
+        a.name.localeCompare(b.name)
+    );
+    const sortedNonNumeratorItems = [...(denominatorItems || [])]
+        .filter((item) => !numeratorCodes.has(item?.code))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    return [...sortedNumeratorItems, ...sortedNonNumeratorItems];
+}
+
+export function buildMeasureAnalyseHref({
+    products = [],
+    quantityType = null,
+    maxVmpCount = null,
+    basePath = ANALYSE_BASE_PATH,
+} = {}) {
+    const effectiveMaxVmpCount = Number(maxVmpCount) > 0 ? Number(maxVmpCount) : null;
+    if (
+        !Array.isArray(products) ||
+        products.length === 0 ||
+        effectiveMaxVmpCount === null ||
+        products.length > effectiveMaxVmpCount
+    ) {
+        return null;
+    }
+
+    const params = buildAnalysisUrlParams({
+        products: products.map((item) => ({ code: item.code, type: 'vmp' })),
+        quantityType: quantityType === 'indicative_cost' ? 'scmd' : quantityType,
+    });
+    const query = Object.entries(params)
+        .filter(([, value]) => value)
+        .map(([key, value]) => `${key}=${value}`)
+        .join('&');
+
+    return query ? `${basePath}?${query}` : basePath;
+}
+
 function rebuildOrganisationSearchForMode({
     mode,
     organisationSearchStore,

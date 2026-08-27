@@ -4,16 +4,25 @@
         title: { type: 'String' },
         items: { type: 'String' },
         numeratorItems: { type: 'String' },
-        previewCount: { type: 'Number' }
+        previewCount: { type: 'Number' },
+        maxVmpCount: { type: 'Number' },
+        quantityType: { type: 'String' }
     },
     shadow: 'none'
 }} />
 
 <script>
+    import {
+        buildMeasureAnalyseHref,
+        sortMeasureProducts,
+    } from './lib/measure.js';
+
     export let title = '';
     export let items = '[]';
     export let numeratorItems = '[]';
     export let previewCount = 3;
+    export let maxVmpCount = null;
+    export let quantityType = null;
 
     let isExpanded = false;
     let parsedItems = [];
@@ -24,14 +33,7 @@
         try {
             parsedItems = JSON.parse(items);
             parsedNumeratorItems = JSON.parse(numeratorItems);
-            
-            const sortedNumeratorItems = parsedNumeratorItems
-                .sort((a, b) => a.name.localeCompare(b.name));
-            const sortedNonNumeratorItems = parsedItems
-                .filter(item => !isInNumerator(item))
-                .sort((a, b) => a.name.localeCompare(b.name));
-            
-            sortedItems = [...sortedNumeratorItems, ...sortedNonNumeratorItems];
+            sortedItems = sortMeasureProducts(parsedItems, parsedNumeratorItems);
         } catch (error) {
             console.error('Failed to parse items:', error);
             parsedItems = [];
@@ -56,13 +58,28 @@
     $: noDddCount = sortedItems.filter(
         (item) => item.unit === 'No DDD' || item.unit === 'DDD'
     ).length;
+    $: analyseHref = buildMeasureAnalyseHref({
+        products: sortedItems,
+        quantityType,
+        maxVmpCount,
+    });
 
 </script>
 
 <div class="border border-gray-200 rounded-lg shadow-sm my-4 overflow-hidden">
     <div class="px-4 py-3 bg-white">
-        <div class="flex justify-between items-center mb-2">
+        <div class="mb-2 lg:flex lg:justify-between lg:items-center lg:gap-2">
             <h3 class="text-lg font-semibold text-gray-800">{title}</h3>
+            {#if analyseHref}
+                <a
+                    href={analyseHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="mt-2 lg:mt-0 inline-flex items-center px-3 py-1.5 bg-oxford-50 text-oxford-600 rounded-md hover:bg-oxford-100 transition-colors duration-200 font-medium text-sm border border-oxford-200"
+                >
+                    View products on Analyse
+                </a>
+            {/if}
         </div>
 
         {#if hasDenominators}
