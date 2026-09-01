@@ -28,6 +28,6 @@
     "jszip": "^3.10.1",
     "pluralize": "^8.0.0",
     "postcss-nesting": "^14.0.1",
-    "postcss-preset-env": "^10.0.2"
+    "postcss-preset-env": "^11.4.0"
   }
 }
