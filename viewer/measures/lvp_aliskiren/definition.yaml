@@ -4,13 +4,12 @@ description: Total indicative cost for aliskiren. # Brief 1-2 sentence descripti
 why_it_matters: |
     [NHS England guidance](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/) identifies a number of items which provide low value when prescribed. This guidance has mainly been aimed at primary care but we think it is important to also monitor a selection of these in hospitals - read more about why [in our blog](https://www.bennett.ox.ac.uk/blog/2025/04/low-value-medicines-in-openprescribing-hospitals/).
     
-    [NHS England guidance](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/#aliskiren-updated-2023) states
-    
-    Aliskiren is a direct renin inhibitor; renin converts angiotensinogen to angiotensin. It is indicated for essential hypertension either alone or in combination with other antihypertensives. The patent expired April 2020 but no generics are available yet.
-
-    NICE states there is insufficient evidence of its effectiveness to determine its suitability for use in resistant hypertension.
-
-    While aliskiren has shown comparable efficacy to other antihypertensive agents in terms of blood pressure reduction, its effects on mortality and long-term morbidity are currently unknown.
+    [NHS England guidance](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/#aliskiren-updated-2023) states:
+    > Aliskiren is a direct renin inhibitor; renin converts angiotensinogen to angiotensin. It is indicated for essential hypertension either alone or in combination with other antihypertensives. The patent expired April 2020 but no generics are available yet.
+    >
+    > NICE states there is insufficient evidence of its effectiveness to determine its suitability for use in resistant hypertension.
+    >
+    > While aliskiren has shown comparable efficacy to other antihypertensive agents in terms of blood pressure reduction, its effects on mortality and long-term morbidity are currently unknown.
 
     For guidance on when prescribing may be appropriate in some exceptional circumstances, please see the [full NHS England guidance document](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/#items-where-prescribing-may-be-appropriate-in-some-exceptional-circumstances).
 

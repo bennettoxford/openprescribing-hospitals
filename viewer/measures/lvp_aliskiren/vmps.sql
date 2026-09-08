@@ -3,4 +3,4 @@ SELECT DISTINCT
     'numerator' as vmp_type -- this measure has no denominator
 FROM viewer_vmp vmp
 LEFT JOIN viewer_vtm vtm ON vtm.id = vmp.vtm_id
-WHERE vtm.vtm = '774471001' -- VTM for dosulepin
+WHERE vtm.vtm = '774471001' -- VTM for aliskiren
