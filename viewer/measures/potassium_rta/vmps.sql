@@ -1,63 +1,93 @@
-SELECT DISTINCT
+WITH mmol_calculated AS ( -- This pre-calculates the mmol per litre for each VMP and calculates the number of ingredients in each VMP
+  SELECT
     vmp.id AS vmp_id,
-    CASE
-        WHEN LOWER(TRIM(vmp.unit_dose_uom)) IN ('ampoule', 'vial')   -- makes lower case and trims any spaces around ampoule or vial
-            THEN 'numerator'                                         -- unit dose is used to determine whether the VMP is a numerator or denominator, in this measure ampoules or vials become the numerator
-        ELSE 'denominator'
-    END AS vmp_type
-FROM viewer_vmp vmp
-WHERE vmp.vtm_id IS NOT NULL                                          -- vtm must not be blank. products with no vtm will not be returned
-AND EXISTS (
-    SELECT 1
-    FROM viewer_vmpingredientstrength vis                           
-    INNER JOIN viewer_ingredient ing ON ing.id = vis.ingredient_id    -- need to know what ingredient is and strength information (eg. how much potassium chloride in a ml)
-    WHERE vis.vmp_id = vmp.id
-      AND vis.strnt_dnmtr_val = 1
-      AND vis.strnt_dnmtr_uom_name = 'ml'
-      AND (
-            (
-                LOWER(ing.name) LIKE '%potassium chloride%'           -- we need denominator products to have a concentration greater than 80mmol/L. Here we need to make a threshold using the equivalent threshold in grams/L / mg/ml. The molecular weight of potassium chloride in 74.55g/mol (https://pubchem.ncbi.nlm.nih.gov/compound/Potassium-Chloride). 74.55*0.080 = 5.964g/L.
-                AND (
-                    (
-                        vis.strnt_nmrtr_uom_name = 'gram'
-                        AND vis.strnt_nmrtr_val > 0.005964
-                    )
-                    OR (
-                        vis.strnt_nmrtr_uom_name IN ('mg', 'milligram')
-                        AND vis.strnt_nmrtr_val > 5.964
-                    )
-                )
-            )
-            OR
-            (
-                LOWER(ing.name) LIKE '%potassium dihydrogen phosphate%'  --we need denominator products to have a concentration greater than 80mmol/L. Here we need to make a threshold using the equivalent threshold in grams/L / mg/ml. The molecular weight of potassium dihydrogen phsophate is 136.086g/mol (https://pubchem.ncbi.nlm.nih.gov/compound/24506). 136.086*0.040 = 10.88g/L.
-                AND (
-                    (
-                        vis.strnt_nmrtr_uom_name = 'gram'
-                        AND vis.strnt_nmrtr_val > 0.01089
-                    )
-                    OR (
-                        vis.strnt_nmrtr_uom_name IN ('mg', 'milligram')
-                        AND vis.strnt_nmrtr_val > 10.89
-                    )
-                )
-            )
+    vmp.name AS vmp_name,
+    (
+      SELECT COUNT(*)
+      FROM viewer_vmpingredientstrength vis_count
+      WHERE vis_count.vmp_id = vmp.id
+    ) AS ing_count, -- Add a count of ingredients for each VMP
+    ROUND( -- Calculate the mmol per litre for each VMP
+      (
+        CASE -- Convert the numerator to milligrams
+          WHEN vis.strnt_nmrtr_uom_name IN ('gram', 'g')
+            THEN vis.strnt_nmrtr_val * 1000
+          WHEN vis.strnt_nmrtr_uom_name IN ('milligram', 'mg')
+            THEN vis.strnt_nmrtr_val
+          WHEN vis.strnt_nmrtr_uom_name IN ('microgram', 'mcg')
+            THEN vis.strnt_nmrtr_val / 1000
+        END
+        /
+        CASE -- Define the molecular weight from ingredient to convert strength from mg to mmol
+          WHEN LOWER(ing.name) = 'potassium chloride'
+            THEN 74.55 -- Molecular weight of potassium chloride is 74.55 g/mol - REF: https://pubchem.ncbi.nlm.nih.gov/compound/Potassium-Chloride
+          WHEN LOWER(ing.name) = 'potassium dihydrogen phosphate'
+            THEN 136.09 -- Molecular weight of potassium dihydrogen phosphate is 136.09 g/mol - REF: https://pubchem.ncbi.nlm.nih.gov/compound/24506
+        END
       )
+      /
+      CASE -- Convert the denominator to litres
+        WHEN vis.strnt_dnmtr_uom_name = 'ml'
+          THEN vis.strnt_dnmtr_val / 1000
+        WHEN vis.strnt_dnmtr_uom_name = 'litre'
+          THEN vis.strnt_dnmtr_val
+      END,
+      0
+    ) AS mmol_per_litre,
+    vmp.udfs,
+    vmp.udfs_uom,
+    vmp.unit_dose_uom,
+    vmp.special,
+    ing.name AS ingredient_name,
+    vis.strnt_nmrtr_val,
+    vis.strnt_nmrtr_uom_name,
+    vis.strnt_dnmtr_val,
+    vis.strnt_dnmtr_uom_name
+
+  FROM viewer_vmp AS vmp
+  INNER JOIN viewer_vmpingredientstrength AS vis
+    ON vis.vmp_id = vmp.id
+  INNER JOIN viewer_ingredient AS ing
+    ON ing.id = vis.ingredient_id
 )
-AND NOT EXISTS (
+
+SELECT DISTINCT
+  vmp_id,
+  CASE
+    WHEN udfs_uom = 'ml'
+      AND udfs <= 20
+      THEN 'numerator'
+    ELSE 'denominator'
+  END AS vmp_type
+FROM mmol_calculated
+WHERE LOWER(ingredient_name) IN ( -- -- Only include potassium chloride or potassium dihydrogen phosphate ingredient records
+  'potassium chloride',
+  'potassium dihydrogen phosphate'
+)
+AND ing_count <= 2 -- Only include VMPs with 2 or fewer ingredients, mainly to exclude Addiphos which has a different purpose
+AND LOWER(TRIM(unit_dose_uom)) IN ( -- Restrict to relevant injectable unit-dose presentations; route cannot be relied on because some VMPs have no recorded route
+  'vial',
+  'bag',
+  'bottle',
+  'ampoule',
+  'pre-filled syringe',
+  'pre-filled disposable injection',
+  'prefilled syringe'
+)
+AND mmol_per_litre > 80 -- Only include VMPs with mmol per litre greater than 80
+AND (
+    -- Include VMPs with no recorded form/route, or where at least one recorded route is intravenous - mainly aimed to exclude cardioplegia solutions which have intraarterial route
+  NOT EXISTS (
     SELECT 1
-    FROM viewer_vmpingredientstrength vis_ex
-    INNER JOIN viewer_ingredient ing_ex
-        ON ing_ex.id = vis_ex.ingredient_id
-    WHERE vis_ex.vmp_id = vmp.id
-      AND LOWER(ing_ex.name) LIKE '%procaine hydrochloride%'
-)
-AND LOWER(TRIM(vmp.unit_dose_uom)) IN (
-    'vial',
-    'bag',
-    'bottle',
-    'ampoule',
-    'pre-filled syringe',
-    'pre-filled disposable injection',
-    'prefilled syringe'
+    FROM viewer_vmp_ont_form_routes vofr
+    WHERE vofr.vmp_id = mmol_calculated.vmp_id
+  )
+  OR EXISTS (
+    SELECT 1
+    FROM viewer_vmp_ont_form_routes vofr
+    INNER JOIN viewer_ontformroute ofr
+      ON ofr.id = vofr.ontformroute_id
+    WHERE vofr.vmp_id = mmol_calculated.vmp_id
+      AND ofr.name LIKE '%intravenous'
+  )
 );
