@@ -31,8 +31,7 @@ WITH mmol_calculated AS ( -- This pre-calculates the mmol per litre for each VMP
           THEN vis.strnt_dnmtr_val / 1000
         WHEN vis.strnt_dnmtr_uom_name = 'litre'
           THEN vis.strnt_dnmtr_val
-      END,
-      0
+      END
     ) AS mmol_per_litre,
     vmp.udfs,
     vmp.udfs_uom,
