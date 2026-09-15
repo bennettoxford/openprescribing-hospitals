@@ -23,7 +23,7 @@ why_it_matters: |
 how_is_it_calculated: |
     We identify Virtual Medicinal Products (VMPs) that are rubefacients, benzydamine, mucopolysaccharide and cooling products from the BNF section for "rubefacients, topical NSAIDs, capsaicin and poultices", but exclude products not relevant to the measure, such as topical NSAIDs and capsaicin.
     
-    We display the total indicative cost for the products. You can read more about indicative cost in our [FAQs](https://hospitals.openprescribing.net/faq/#what-is-indicative-cost)
+    We display the total indicative cost for these rubefacient, benzydamine, mucopolysaccharide and cooling products. You can read more about indicative cost in our [FAQs](https://hospitals.openprescribing.net/faq/#what-is-indicative-cost)
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Low value prescribing
