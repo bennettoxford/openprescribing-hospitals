@@ -21,6 +21,7 @@ tags:
     - Safety
     - Value
 quantity_type: ddd # Type of measurement (e.g. dose, ingredient, ddd)
+y_axis_label: Defined daily doses (DDDs) # Optional; overrides the default chart y-axis label when set
 lower_is_better: true
 authored_by: Victoria Speed # Name of original author
 checked_by: tbc # Name of clinical/technical reviewer
