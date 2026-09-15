@@ -1,6 +1,6 @@
 name: Safer potassium injectables # Full name of the measure/indicator
 short_name: Safer potassium injectables # Abbreviated name or acronym
-description: Percentage of potassium chloride or potassium dihydrogen phosphate injectable unit doses (>80mmol/L) supplied in non-ready diluted presentations (20ml or less) # Brief 1-2 sentence description of what this measure identifies
+description: Percentage of potassium chloride or potassium dihydrogen phosphate (potassium acid phosphate) injectable unit doses (>80mmol/L) supplied in non-ready diluted presentations (20ml or less) # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |  
   Concentrated potassium solutions are high risk medicines which, if administered incorrectly, can cause potentially fatal arrhythmias and cardiac arrest. 
 
@@ -9,7 +9,7 @@ why_it_matters: |
   The safety alert is considered one of the [NHS England *Enduring Standards*](https://www.england.nhs.uk/patient-safety/patient-safety-insight/patient-safety-alerts/enduring-standards/standards-that-remain-valid/) for Safe Storage of Medicines. The enduring standards are specific actions from previous patient safety alerts identified as likely to always be relevant or unlikely to change in the immediate future. They represent actions that should be embedded systematically across NHS provider organisations.
 
 how_is_it_calculated: |
-  This measure focuses on injectable products containing potassium chloride or potassium dihydrogen phosphate with a strength greater than 80 mmol/L. The threshold of >80 mmol/L is based on the previous [Royal Pharmaceutical Society benchmarking metric](https://membership.rcpharm.org/recognition/setting-professional-standards/professional-standards-for-hospital-pharmacy/rps-benchmarking-metrics-for-acute-hospitals#14) for the safer use of intravenous potassium salts.
+  This measure focuses on injectable products containing potassium chloride or potassium dihydrogen phosphate (potassium acid phosphate) with a strength greater than 80 mmol/L. The threshold of >80 mmol/L is based on the previous [Royal Pharmaceutical Society benchmarking metric](https://membership.rcpharm.org/recognition/setting-professional-standards/professional-standards-for-hospital-pharmacy/rps-benchmarking-metrics-for-acute-hospitals#14) for the safer use of intravenous potassium salts.
 
   For the purposes of this measure, we define non-ready diluted products as those supplied in a total volume of 20 ml or less.
 
