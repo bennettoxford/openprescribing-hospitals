@@ -20,8 +20,10 @@ why_it_matters: |
     > Due to limited evidence and the NICE recommendations, the joint clinical working group considered these additional products suitable for inclusion in this category.
 
     For guidance on when prescribing may be appropriate in some exceptional circumstances, please see the [full NHS England guidance document](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/#items-where-prescribing-may-be-appropriate-in-some-exceptional-circumstances).
-how_is_it_calculated: >
-    We display the total indicative cost for rubefacients, benzydamine, mucopolysaccharide and cooling products. You can read more about indicative cost in our [FAQs](https://hospitals.openprescribing.net/faq/#what-is-indicative-cost)
+how_is_it_calculated: |
+    We identify Virtual Medicinal Products (VMPs) that are rubefacients, benzydamine, mucopolysaccharide and cooling products from the BNF section for "rubefacients, topical NSAIDs, capsaicin and poultices", but exclude products not relevant to the measure, such as topical NSAIDs and capsaicin.
+    
+    We display the total indicative cost for the products. You can read more about indicative cost in our [FAQs](https://hospitals.openprescribing.net/faq/#what-is-indicative-cost)
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Low value prescribing
