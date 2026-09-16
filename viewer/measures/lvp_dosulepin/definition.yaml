@@ -14,7 +14,7 @@ why_it_matters: |
     For guidance on when prescribing may be appropriate in some exceptional circumstances, please see the [full NHS England guidance document](https://www.england.nhs.uk/long-read/items-which-should-not-routinely-be-prescribed-in-primary-care-policy-guidance/#items-where-prescribing-may-be-appropriate-in-some-exceptional-circumstances).
 
 how_is_it_calculated: >
-    We display the total defined daily doses (DDDs) for dosulepin.
+    We display the total defined daily doses (DDDs) for all products with the [virtual therapeutic moiety (VTM)](https://hospitals.openprescribing.net/faq/#what-is-a-vtm) dosulepin.
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Low value prescribing
