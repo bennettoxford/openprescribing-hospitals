@@ -23,6 +23,7 @@ export const PRODUCT_PARAM_BY_TYPE = {
 };
 
 export const PRODUCT_TYPE_ORDER = Object.keys(PRODUCT_PARAM_BY_TYPE);
+export const PRODUCT_URL_PARAMS = Object.values(PRODUCT_PARAM_BY_TYPE);
 
 export const ANALYSIS_TRUSTS_PARAM = 'trusts';
 export const ANALYSIS_SCOPE_PARAM = 'scope';
@@ -46,7 +47,7 @@ export const QUANTITY_TYPE_CODES = {
 };
 
 export const SUPPORTED_ANALYSIS_PARAMS = [
-    ...Object.values(PRODUCT_PARAM_BY_TYPE),
+    ...PRODUCT_URL_PARAMS,
     ANALYSIS_TRUSTS_PARAM,
     ANALYSIS_SCOPE_PARAM,
     ANALYSIS_TRUST_TYPES_PARAM,
@@ -242,16 +243,19 @@ export function updateAnalysisUrl(urlState, setParams = setUrlParams) {
     setParams(params, SUPPORTED_ANALYSIS_PARAMS);
 }
 
-export function buildValidationParams(urlParams, showPercentiles = null) {
+export function buildProductValidationParams(urlParams) {
     const queryParams = new URLSearchParams();
-
-    PRODUCT_TYPE_ORDER.forEach(type => {
-        const paramName = PRODUCT_PARAM_BY_TYPE[type];
+    PRODUCT_URL_PARAMS.forEach((paramName) => {
         const paramValue = urlParams.get(paramName);
         if (paramValue?.trim()) {
             queryParams.append(paramName, paramValue);
         }
     });
+    return queryParams;
+}
+
+export function buildValidationParams(urlParams, showPercentiles = null) {
+    const queryParams = buildProductValidationParams(urlParams);
 
     [ANALYSIS_TRUSTS_PARAM, ANALYSIS_QUANTITY_PARAM, ANALYSIS_MODE_PARAM,
         ANALYSIS_EXCLUDED_VMPS_PARAM].forEach(param => {

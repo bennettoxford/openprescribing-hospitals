@@ -6,8 +6,18 @@
 <script>
   import { onMount } from 'svelte';
   import ProductSearch from '../common/ProductSearch.svelte';
-  import { getCookie, formatStrength } from '../../utils/utils';
+  import {
+    getCookie,
+    formatStrength,
+    getUrlParams,
+    getCurrentUrl,
+    copyToClipboard
+  } from '../../utils/utils';
   import { analyseOptions } from '../../stores/analyseOptionsStore';
+  import {
+    buildProductValidationParams,
+    updateAnalysisUrl
+  } from '../analyse/lib/analyseUrlParams.js';
   
   const csrftoken = getCookie('csrftoken');
   
@@ -19,6 +29,10 @@
   let searchRef;
   let expandedGroups = {};
   let expandedLogic = {};
+  let showShareToast = false;
+  let shareToastMessage = '';
+  let shareToastVariant = 'success';
+  let shareToastTimeout;
 
   const API_ENDPOINTS = {
     PRODUCT_DETAILS: '/api/get-product-details/'
@@ -30,12 +44,60 @@
     ATC_DDD: 'https://atcddd.fhi.no/atc_ddd_index/?code='
   };
 
-  onMount(() => {
+  function setSelectedProducts(nextProducts) {
+    selectedItems = nextProducts;
     analyseOptions.update(options => ({
       ...options,
-      selectedVMPs: [],
+      selectedVMPs: nextProducts,
       searchType: 'product'
     }));
+  }
+
+  function updateProductUrl(nextProducts = selectedItems) {
+    updateAnalysisUrl({ products: nextProducts });
+  }
+
+  onMount(async () => {
+    analyseOptions.update(options => ({
+      ...options,
+      searchType: 'product'
+    }));
+
+    const validationQuery = buildProductValidationParams(getUrlParams());
+    if (!validationQuery.toString()) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/validate-analysis-params/?${validationQuery}`);
+      if (!response.ok) {
+        error = 'Could not load products from this link. Please try again.';
+        setSelectedProducts([]);
+        return;
+      }
+
+      const data = await response.json();
+      if (data.errors?.length > 0) {
+        error = data.errors.join(' ');
+        setSelectedProducts([]);
+        return;
+      }
+
+      const validProducts = data.valid_products || [];
+      if (validProducts.length === 0) {
+        error = 'No valid products were found in this link.';
+        setSelectedProducts([]);
+        return;
+      }
+
+      setSelectedProducts(validProducts);
+      updateProductUrl(validProducts);
+      await fetchProductDetails();
+    } catch (err) {
+      console.error('Failed to hydrate product lookup from URL:', err);
+      error = 'Could not load products from this link. Please try again.';
+      setSelectedProducts([]);
+    }
   });
 
 
@@ -131,13 +193,9 @@
   }
 
   function handleSelectionChange(event) {
-    selectedItems = event.detail.items;
+    setSelectedProducts(event.detail.items);
+    updateProductUrl();
 
-    analyseOptions.update(options => ({
-      ...options,
-      selectedVMPs: selectedItems
-    }));
-    
     if (products.length > 0 || error) {
       products = [];
       groupedProducts = {};
@@ -149,12 +207,29 @@
     products = [];
     groupedProducts = {};
     error = null;
-    
-    selectedItems = [];
-    analyseOptions.update(options => ({
-      ...options,
-      selectedVMPs: []
-    }));
+    setSelectedProducts([]);
+    updateProductUrl([]);
+  }
+
+  function showShareFeedback(message, variant = 'success') {
+    shareToastMessage = message;
+    shareToastVariant = variant;
+    showShareToast = true;
+    if (shareToastTimeout) clearTimeout(shareToastTimeout);
+    shareToastTimeout = setTimeout(() => {
+      showShareToast = false;
+      shareToastTimeout = null;
+    }, 2500);
+  }
+
+  async function handleShare() {
+    try {
+      await copyToClipboard(getCurrentUrl());
+      showShareFeedback('Product lookup link copied to clipboard!', 'success');
+    } catch (err) {
+      console.error('Failed to copy URL:', err);
+      showShareFeedback('Could not copy link. Please try again.', 'error');
+    }
   }
 
   function toggleLogicExpansion(productCode, logicType) {
@@ -237,7 +312,7 @@
         >
           {isLoading ? 'Loading details...' : 'Fetch Product Details'}
         </button>
-        
+
         {#if selectedItems.length > 0 || products.length > 0 || error}
           <button
             on:click={clearResults}
@@ -263,9 +338,22 @@
         <span class="ml-3 text-sm text-oxford-600">Loading product details...</span>
       </div>
     {:else if products.length > 0}
-      <p class="text-sm text-gray-600 mb-4">
-        Showing details for {products.length} product{products.length !== 1 ? 's' : ''} grouped by VTM.
-      </p>
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <p class="text-sm text-gray-600">
+          Showing details for {products.length} product{products.length !== 1 ? 's' : ''} grouped by VTM.
+        </p>
+        <button
+          type="button"
+          on:click={handleShare}
+          title="Copy link to share these product lookup results"
+          class="flex items-center gap-1 px-3 py-2 text-sm font-medium text-oxford-600 bg-white border border-oxford-200 rounded-md hover:bg-oxford-50 hover:border-oxford-300 transition-colors duration-200"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.935-2.186 2.25 2.25 0 00-3.935 2.186z" />
+          </svg>
+          Share
+        </button>
+      </div>
       
       <div class="overflow-x-auto">
         <div class="overflow-y-auto max-h-[80rem] space-y-4">
@@ -701,3 +789,23 @@
   </div>
 </div>
 </div>
+
+{#if showShareToast}
+  <div class="fixed bottom-4 right-4 z-50" aria-live="polite">
+    <div class={`px-4 py-2 rounded-lg shadow-lg border transform translate-y-0 opacity-100 transition-all duration-300 ${shareToastVariant === 'success' ? 'bg-oxford-50 text-oxford-800 border-oxford-100' : 'bg-red-50 text-red-800 border-red-200'}`}>
+      <div class="flex items-center gap-2">
+        {#if shareToastVariant === 'success'}
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          </svg>
+        {:else}
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.007v.008H12v-.008z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        {/if}
+        <span class="text-sm font-medium">{shareToastMessage}</span>
+      </div>
+    </div>
+  </div>
+{/if}
