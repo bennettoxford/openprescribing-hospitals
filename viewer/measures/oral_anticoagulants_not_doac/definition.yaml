@@ -28,4 +28,9 @@ tags:
 quantity_type: ddd
 y_axis_label: '% Oral anticoagulants that are not DOACs'
 lower_is_better: true
-status: preview
+authored_by: Vicky Speed # Name of original author
+checked_by: Chris Wood # Name of clinical/technical reviewer
+date_reviewed: 2026-09-22 # Date of last review (YYYY-MM-DD)
+next_review: 2027-09-22 # Date of next scheduled review (YYYY-MM-DD)
+first_published: 2026-09-22 # Date of first publication (YYYY-MM-DD)
+status: published
