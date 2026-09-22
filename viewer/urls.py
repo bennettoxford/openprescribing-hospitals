@@ -1,5 +1,6 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
+from django.views.generic import RedirectView
 from .views import (
     IndexView,
     AnalyseView,
@@ -32,6 +33,16 @@ urlpatterns = [
     path("measures/", MeasuresListView.as_view(), name="measures_list"),
     path("measures/preview/", MeasuresListView.as_view(), {"preview_mode": True},
          name="measures_preview_list"),
+    # This slug was innacurate. Only the preview needs fixing as the slug was corrected 
+    # before publishing the measure.
+    path(
+        "measures/preview/potassium_rta/",
+        RedirectView.as_view(
+            url="/measures/preview/potassium_concentrated/",
+            permanent=True,
+            query_string=True,
+        ),
+    ),
     path("measures/preview/<slug:slug>/", MeasurePreviewItemView.as_view(), 
          name="measure_preview_item"),
     path("measures/<slug:slug>/", MeasureItemView.as_view(), 
