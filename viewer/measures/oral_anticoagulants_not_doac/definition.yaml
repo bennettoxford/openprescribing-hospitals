@@ -4,9 +4,17 @@ short_description: The percentage of oral anticoagulants not issued as direct or
 description: |
   The percentage of oral anticoagulants not issued as direct oral anticoagulants (DOACs).
 why_it_matters: |
-  [NICE guidance](https://www.nice.org.uk/guidance/ng196/chapter/Recommendations) recommends direct-acting oral anticoagulants (DOACs) for people with atrial fibrillation who require stroke prevention. The guidance states that vitamin K antagonists (such as warfarin) should be offered to people in whom a DOAC is contraindicated, not tolerated or otherwise unsuitable. NICE recommends that patients who are already established on warfarin and have stable anticoagulation may continue treatment, with discussion about switching to a DOAC at a routine review, taking into account their time in therapeutic range.
-  
-  Lower values are generally better for this measure, as atrial fibrillation is the most common indication for oral anticoagulation and most eligible patients can be treated with a DOAC.     However, vitamin K antagonists remain the recommended treatment for some patients, including those with mechanical heart valves or triple-positive antiphospholipid syndrome, and may also be   appropriate where DOACs are contraindicated, not tolerated or otherwise unsuitable.
+  DOACs offer several advantages over warfarin. They have a more predictable anticoagulant effect, can be given at a fixed dose without frequent routine monitoring, and have fewer drug and food interactions. This makes them a more convenient option for many patients. They are considered to be generally safer and at least as effective as warfarin for both [AF](https://www.ahajournals.org/doi/10.1161/CIRCULATIONAHA.121.056355) and [VTE](https://www.sciencedirect.com/science/article/pii/S0006497120397469). 
+
+  **What do NICE guidelines say?**
+
+  For atrial fibrillation (AF), [NICE guideline NG196](https://www.nice.org.uk/guidance/ng196/chapter/Recommendations#stroke-prevention) recommends a DOAC for people who require anticoagulation for stroke prevention. 
+  If DOACs are contraindicated, not tolerated or unsuitable, a VKA, such as warfarin, should be offered. People already taking a VKA with stable anticoagulation may continue treatment, with the risks and benefits of switching to a DOAC discussed at their next routine appointment, taking into account their time in therapeutic range.
+
+  For venous thromboembolism (VTE), [NICE guideline NG158](https://www.nice.org.uk/guidance/ng158/chapter/Recommendations#anticoagulation-treatment-for-suspected-or-confirmed-dvt-or-pe) recommends apixaban or rivaroxaban for most people with confirmed proximal deep vein thrombosis (DVT) or pulmonary embolism (PE), with alternative anticoagulation options for people in whom these treatments are unsuitable or who have particular clinical circumstances.
+
+  [AF and VTE are the two most common indications for oral anticoagulant use](https://pmc.ncbi.nlm.nih.gov/articles/PMC5555878/), and DOACs are suitable for most people requiring anticoagulation for these indications. Lower values are therefore generally better for this measure. However, VKAs remain appropriate for some patients, including those with mechanical heart valves or established triple-positive antiphospholipid syndrome.
+
 how_is_it_calculated: >
   We identify oral anticoagulant products using Virtual Therapeutic Moiety (VTM) codes. We then
   divide the number of [Defined Daily Doses (DDDs)](/faq/#what-is-a-defined-daily-dose-ddd) for
