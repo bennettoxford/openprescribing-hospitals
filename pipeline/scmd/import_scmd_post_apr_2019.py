@@ -22,6 +22,48 @@ class DatasetURL:
     url: str
 
 
+CSV_DTYPES = {
+    "YEAR_MONTH": "str",
+    "ODS_CODE": "str",
+    "VMP_SNOMED_CODE": "str",
+    "VMP_PRODUCT_NAME": "str",
+    "UNIT_OF_MEASURE_IDENTIFIER": "str",
+    "UNIT_OF_MEASURE_NAME": "str",
+    "VMP_UDFS_UNIT_OF_MEASURE_IDENTIFIER": "str",
+    "VMP_UDFS_UNIT_OF_MEASURE_NAME": "str",
+    "TOTAL_QUANITY_IN_VMP_UNIT": "float64",
+    "TOTAL_QUANTITY_IN_VMP_UNIT": "float64",
+    "TOTAL_QUANTITY_IN_VMP_UDFS_UNIT_OF_MEASURE": "float64",
+    "INDICATIVE_COST": "float64",
+}
+
+COLUMN_MAPPING = {
+    "YEAR_MONTH": "year_month",
+    "ODS_CODE": "ods_code",
+    "VMP_SNOMED_CODE": "vmp_snomed_code",
+    "VMP_PRODUCT_NAME": "vmp_product_name",
+    "UNIT_OF_MEASURE_IDENTIFIER": "unit_of_measure_identifier",
+    "VMP_UDFS_UNIT_OF_MEASURE_IDENTIFIER": "unit_of_measure_identifier",
+    "UNIT_OF_MEASURE_NAME": "unit_of_measure_name",
+    "VMP_UDFS_UNIT_OF_MEASURE_NAME": "unit_of_measure_name",
+    "TOTAL_QUANITY_IN_VMP_UNIT": "total_quantity_in_vmp_unit",
+    "TOTAL_QUANTITY_IN_VMP_UNIT": "total_quantity_in_vmp_unit",
+    "TOTAL_QUANTITY_IN_VMP_UDFS_UNIT_OF_MEASURE": "total_quantity_in_vmp_unit",
+    "INDICATIVE_COST": "indicative_cost",
+}
+
+OUTPUT_COLUMNS = [
+    "year_month",
+    "ods_code",
+    "vmp_snomed_code",
+    "vmp_product_name",
+    "unit_of_measure_identifier",
+    "unit_of_measure_name",
+    "total_quantity_in_vmp_unit",
+    "indicative_cost",
+]
+
+
 @task()
 def fetch_dataset_urls() -> Dict[str, Dict]:
     """Fetch all available SCMD dataset URLs from both provisional and finalised datasets"""
@@ -104,19 +146,7 @@ def process_month_data(
         response = requests.get(url)
         response.raise_for_status()
 
-        df = pd.read_csv(
-            io.StringIO(response.text),
-            dtype={
-                "YEAR_MONTH": "str",
-                "ODS_CODE": "str",
-                "VMP_SNOMED_CODE": "str",
-                "VMP_PRODUCT_NAME": "str",
-                "UNIT_OF_MEASURE_IDENTIFIER": "str",
-                "UNIT_OF_MEASURE_NAME": "str",
-                "TOTAL_QUANITY_IN_VMP_UNIT": "float64",  # Note: CSV has typo
-                "INDICATIVE_COST": "float64",
-            },
-        )
+        df = pd.read_csv(io.StringIO(response.text), dtype=CSV_DTYPES)
         df["YEAR_MONTH"] = pd.to_datetime(month).date()
         logger.info(f"Successfully processed {len(df)} rows for {month}")
         return df
@@ -203,28 +233,15 @@ def get_months_to_update(
 
 @task
 def map_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Map the columns to the correct names"""
-    column_mapping = {
-        "YEAR_MONTH": "year_month",
-        "ODS_CODE": "ods_code",
-        "VMP_SNOMED_CODE": "vmp_snomed_code",
-        "VMP_PRODUCT_NAME": "vmp_product_name",
-        "UNIT_OF_MEASURE_IDENTIFIER": "unit_of_measure_identifier",
-        "UNIT_OF_MEASURE_NAME": "unit_of_measure_name",
-        "INDICATIVE_COST": "indicative_cost",
-    }
-    
-    # Handle the typo in the quantity column name
-    if "TOTAL_QUANITY_IN_VMP_UNIT" in df.columns:
-        column_mapping[
-            "TOTAL_QUANITY_IN_VMP_UNIT"
-        ] = "total_quantity_in_vmp_unit"
-    elif "TOTAL_QUANTITY_IN_VMP_UNIT" in df.columns:
-        column_mapping[
-            "TOTAL_QUANTITY_IN_VMP_UNIT"
-        ] = "total_quantity_in_vmp_unit"
+    """Map provisional and finalised columns to the table names.
 
-    df.rename(columns=column_mapping, inplace=True)
+    Old files use UNIT_OF_MEASURE_* and TOTAL_QUANITY_IN_VMP_UNIT.
+    Renamed files use the VMP_UDFS names. Columns outside the table,
+    including the new unit-dose columns, are removed.
+    """
+    df = df.rename(columns=COLUMN_MAPPING)
+    keep = [column for column in OUTPUT_COLUMNS if column in df.columns]
+    df = df.loc[:, keep].copy()
 
     if "unit_of_measure_name" in df.columns:
         df["unit_of_measure_name"] = df["unit_of_measure_name"].str.lower()

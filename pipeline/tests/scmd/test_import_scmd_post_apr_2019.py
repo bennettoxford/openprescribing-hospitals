@@ -16,6 +16,12 @@ def sample_csv_content():
 202401,ABC123,12345678,Test Product,001,milligram,100.0,50.0
 202401,XYZ789,87654321,Another Product,002,millilitre,200.0,75.0"""
 
+
+@pytest.fixture
+def renamed_csv_content():
+    return """YEAR_MONTH,ODS_CODE,VMP_SNOMED_CODE,VMP_PRODUCT_NAME,VMP_UDFS_UNIT_OF_MEASURE_IDENTIFIER,VMP_UDFS_UNIT_OF_MEASURE_NAME,TOTAL_QUANTITY_IN_VMP_UDFS_UNIT_OF_MEASURE,INDICATIVE_COST,VMP_UNIT_DOSE_UNIT_OF_MEASURE_NAME,TOTAL_QUANTITY_IN_VMP_UNIT_DOSE_UNIT_OF_MEASURE
+202606,ABC123,012345678,Test Product,001,milligram,100.0,50.0,tablet,10.0"""
+
 class TestDatasetURLFetching:
     @pytest.fixture
     def mock_provisional_api_response(self):
@@ -91,8 +97,23 @@ class TestDataProcessing:
                 "TOTAL_QUANITY_IN_VMP_UNIT", "INDICATIVE_COST"
             ]
             assert result["YEAR_MONTH"].iloc[0] == date(2024, 1, 1)
+            assert result["UNIT_OF_MEASURE_IDENTIFIER"].iloc[0] == "001"
 
- 
+    def test_process_month_data_renamed_columns(self, renamed_csv_content):
+        with patch("requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.text = renamed_csv_content
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
+
+            result = process_month_data("2026-06-01", "https://example.com/test.csv")
+
+            assert result["VMP_SNOMED_CODE"].iloc[0] == "012345678"
+            assert result["VMP_UDFS_UNIT_OF_MEASURE_IDENTIFIER"].iloc[0] == "001"
+            assert result["TOTAL_QUANTITY_IN_VMP_UDFS_UNIT_OF_MEASURE"].iloc[0] == 100.0
+            assert "VMP_UNIT_DOSE_UNIT_OF_MEASURE_NAME" in result.columns
+
+
 class TestDataTransformation:
     def test_map_columns_with_typo_column(self):
         """Test mapping when CSV has typo TOTAL_QUANITY_IN_VMP_UNIT"""
@@ -139,6 +160,33 @@ class TestDataTransformation:
         ]
         assert list(result.columns.values) == expected_columns
         assert result["unit_of_measure_name"].iloc[0] == "milligram"
+
+    def test_map_columns_with_renamed_udfs_columns(self):
+        input_df = pd.DataFrame({
+            "YEAR_MONTH": ["2026-06-01"],
+            "ODS_CODE": ["ABC123"],
+            "VMP_SNOMED_CODE": ["012345678"],
+            "VMP_PRODUCT_NAME": ["Test Product"],
+            "VMP_UDFS_UNIT_OF_MEASURE_IDENTIFIER": ["001"],
+            "VMP_UDFS_UNIT_OF_MEASURE_NAME": ["MILLIGRAM"],
+            "TOTAL_QUANTITY_IN_VMP_UDFS_UNIT_OF_MEASURE": [100.0],
+            "INDICATIVE_COST": [50.0],
+            "VMP_UNIT_DOSE_UNIT_OF_MEASURE_NAME": ["tablet"],
+            "TOTAL_QUANTITY_IN_VMP_UNIT_DOSE_UNIT_OF_MEASURE": [10.0],
+        })
+
+        result = map_columns(input_df.copy())
+
+        expected_columns = [
+            "year_month", "ods_code", "vmp_snomed_code", "vmp_product_name",
+            "unit_of_measure_identifier", "unit_of_measure_name",
+            "total_quantity_in_vmp_unit", "indicative_cost"
+        ]
+        assert list(result.columns.values) == expected_columns
+        assert result["unit_of_measure_identifier"].iloc[0] == "001"
+        assert result["unit_of_measure_name"].iloc[0] == "milligram"
+        assert result["total_quantity_in_vmp_unit"].iloc[0] == 100.0
+        assert result["vmp_snomed_code"].iloc[0] == "012345678"
 
     def test_map_columns_missing_columns(self):
         input_df = pd.DataFrame({
