@@ -18,8 +18,8 @@ why_it_matters: |
 how_is_it_calculated: >
   We identify oral anticoagulant products using Virtual Therapeutic Moiety (VTM) codes. We then
   divide the number of [Defined Daily Doses (DDDs)](/faq/#what-is-a-defined-daily-dose-ddd) for
-  vitamin K antagonists (warfarin, acenocoumarol and phenindione) by the total number of DDDs for
-  all included oral anticoagulants (vitamin K antagonists plus DOACs) and multiply by 100 to
+  VKAs (warfarin, acenocoumarol and phenindione) by the total number of DDDs for
+  all included oral anticoagulants (VKAs plus DOACs) and multiply by 100 to
   obtain a percentage each month. Rivaroxaban initiation packs are excluded because they do not
   have a comparable DDD allocation.
 tags:
