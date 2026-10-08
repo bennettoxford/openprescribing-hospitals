@@ -4,7 +4,9 @@ export const mode = writable('trust');
 export const selectedCode = writable('');
 export const sort = writable('name');
 export const selectedTags = writable([]);
+export const selectedGroups = writable([]);
 export const showArchived = writable('off'); // 'off' | 'include' | 'only'
+export const searchQuery = writable('');
 export const chartData = writable({});
 const modesBySlug = writable({});
 export const isLoadingCharts = writable(false);
@@ -31,7 +33,9 @@ export function setMode(m) { mode.set(m); selectedCode.set(''); }
 export function setSelectedCode(c) { selectedCode.set(c); }
 export function setSort(s) { sort.set(s); }
 export function setSelectedTags(t) { selectedTags.set(Array.isArray(t) ? t : []); }
+export function setSelectedGroups(groups) { selectedGroups.set(Array.isArray(groups) ? groups : []); }
 export function setShowArchived(v) { showArchived.set(['include', 'only'].includes(v) ? v : 'off'); }
+export function setSearchQuery(q) { searchQuery.set(typeof q === 'string' ? q : ''); }
 export function setChartData(data, modes) {
   chartData.set(data || {});
   modesBySlug.set(modes || {});
