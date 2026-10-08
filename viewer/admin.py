@@ -14,6 +14,7 @@ from .models import (
     Dose,
     IngredientQuantity,
     Measure,
+    MeasureGroup,
     MeasureTag,
     MeasureAnnotation,
     WHORoute,
@@ -98,11 +99,18 @@ class IngredientQuantityAdmin(admin.ModelAdmin):
     get_latest_unit.short_description = 'Latest Unit'
 
 
+@admin.register(MeasureGroup)
+class MeasureGroupAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug")
+    search_fields = ("name", "slug", "description")
+    prepopulated_fields = {"slug": ("name",)}
+
+
 @admin.register(Measure)
 class MeasureAdmin(admin.ModelAdmin):
-    list_display = ("name", "slug", "status")
-    search_fields = ("name", "slug")
-    list_filter = ("status", "tags")
+    list_display = ("name", "slug", "status", "measure_group")
+    search_fields = ("name", "slug", "measure_group__name")
+    list_filter = ("status", "tags", "measure_group")
     actions = ['import_measure', 'get_measure_vmps', 'compute_measure']
     
     def get_urls(self):
