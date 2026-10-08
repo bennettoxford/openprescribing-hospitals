@@ -365,7 +365,7 @@ def _serialize_measures(measures, detail_url_name, prefetched):
     )
     serialized = []
     for measure in measures:
-        tags = list(measure.tags.all().order_by('name'))
+        tags = sorted(measure.tags.all(), key=lambda tag: tag.name)
         tag_slugs = ','.join(slugify(t.name) for t in tags) if tags else ''
         has_chart_data = bool(nat.get(measure.slug) or reg.get(measure.slug) or trust.get(measure.slug))
         serialized.append({
