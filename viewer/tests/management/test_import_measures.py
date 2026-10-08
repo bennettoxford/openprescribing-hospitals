@@ -1,7 +1,7 @@
 import pytest
 from datetime import date, datetime, timedelta
 from django.core.management import call_command
-from viewer.models import Measure, MeasureTag
+from viewer.models import Measure, MeasureGroup, MeasureTag
 from viewer.management.commands.import_measures import (
     validate_measure_yaml,
     validate_measure_tags,
@@ -336,3 +336,143 @@ archive_description: |
         assert measure.status == 'archived'
         assert measure.archive_date == date(2025, 3, 10)
         assert 'superseded' in measure.archive_description
+
+    def test_validate_measure_yaml_blank_measure_group_fails(self, valid_measure_data):
+        valid_measure_data['measure_group'] = '   '
+        with pytest.raises(SchemaError, match='measure_group'):
+            validate_measure_yaml(valid_measure_data)
+
+    @pytest.mark.django_db
+    def test_command_imports_and_clears_measure_group(self, tmp_path, measure_tags):
+        groups_dir = tmp_path / 'measure_groups'
+        groups_dir.mkdir()
+        (groups_dir / 'pre-filled-syringes.yaml').write_text(
+            'name: Pre-filled syringes\n'
+            'description: Ready-to-use syringes for the same medicine.\n'
+        )
+        measures_dir = tmp_path / 'measures'
+        measures_dir.mkdir()
+        test_measure_dir = measures_dir / 'grouped-measure'
+        test_measure_dir.mkdir()
+        (test_measure_dir / 'vmps.sql').write_text('')
+
+        today = datetime.now().date()
+        next_review = (today + timedelta(days=180)).strftime('%Y-%m-%d')
+        yaml_with_group = f"""
+name: Grouped Test Measure
+short_name: grouped-measure
+description: Test description
+why_it_matters: Test why it matters
+how_is_it_calculated: Test calculation method
+tags: ['test-tag-1']
+quantity_type: dose
+measure_group: Pre-filled syringes
+authored_by: Test Author
+checked_by: Test Checker
+date_reviewed: '{today}'
+next_review: '{next_review}'
+status: in_development
+"""
+        yaml_without_group = yaml_with_group.replace(
+            'measure_group: Pre-filled syringes\n',
+            '',
+        )
+
+        def import_yaml(content):
+            (test_measure_dir / 'definition.yaml').write_text(content)
+            with patch('viewer.management.commands.import_measures.Path') as mock_path:
+                mock_path.return_value.parent.parent.parent = tmp_path
+                call_command('import_measures', 'grouped-measure')
+
+        import_yaml(yaml_with_group)
+        measure = Measure.objects.get(slug='grouped-measure')
+        assert measure.measure_group.name == 'Pre-filled syringes'
+
+        import_yaml(yaml_without_group)
+        measure.refresh_from_db()
+        assert measure.measure_group is None
+
+    @pytest.mark.django_db
+    def test_command_imports_measure_group_description(self, tmp_path, measure_tags):
+        groups_dir = tmp_path / 'measure_groups'
+        groups_dir.mkdir()
+        (groups_dir / 'pre-filled-syringes.yaml').write_text(
+            'name: Pre-filled syringes\n'
+            'description: Ready-to-use syringes for the same medicine.\n'
+        )
+        (groups_dir / 'other-group.yaml').write_text(
+            'name: Other group\n'
+            'description: A group with no measure in this import.\n'
+        )
+        measures_dir = tmp_path / 'measures'
+        measures_dir.mkdir()
+        test_measure_dir = measures_dir / 'grouped-measure'
+        test_measure_dir.mkdir()
+        (test_measure_dir / 'vmps.sql').write_text('')
+
+        today = datetime.now().date()
+        next_review = (today + timedelta(days=180)).strftime('%Y-%m-%d')
+        (test_measure_dir / 'definition.yaml').write_text(f"""
+name: Grouped Test Measure
+short_name: grouped-measure
+description: Test description
+why_it_matters: Test why it matters
+how_is_it_calculated: Test calculation method
+tags: ['test-tag-1']
+quantity_type: dose
+measure_group: Pre-filled syringes
+authored_by: Test Author
+checked_by: Test Checker
+date_reviewed: '{today}'
+next_review: '{next_review}'
+status: in_development
+""")
+        with patch('viewer.management.commands.import_measures.Path') as mock_path:
+            mock_path.return_value.parent.parent.parent = tmp_path
+            call_command('import_measures', 'grouped-measure')
+
+        group = MeasureGroup.objects.get(slug='pre-filled-syringes')
+        assert group.description == 'Ready-to-use syringes for the same medicine.'
+        unused = MeasureGroup.objects.get(slug='other-group')
+        assert unused.description == 'A group with no measure in this import.'
+        measure = Measure.objects.get(slug='grouped-measure')
+        assert measure.measure_group_id == group.id
+
+    @pytest.mark.django_db
+    def test_command_rejects_unknown_measure_group(self, tmp_path, measure_tags):
+        groups_dir = tmp_path / 'measure_groups'
+        groups_dir.mkdir()
+        (groups_dir / 'pre-filled-syringes.yaml').write_text(
+            'name: Pre-filled syringes\n'
+            'description: Ready-to-use syringes for the same medicine.\n'
+        )
+        measures_dir = tmp_path / 'measures'
+        measures_dir.mkdir()
+        test_measure_dir = measures_dir / 'unknown-group-measure'
+        test_measure_dir.mkdir()
+        (test_measure_dir / 'vmps.sql').write_text('')
+
+        today = datetime.now().date()
+        next_review = (today + timedelta(days=180)).strftime('%Y-%m-%d')
+        (test_measure_dir / 'definition.yaml').write_text(f"""
+name: Unknown Group Measure
+short_name: unknown-group-measure
+description: Test description
+why_it_matters: Test why it matters
+how_is_it_calculated: Test calculation method
+tags: ['test-tag-1']
+quantity_type: dose
+measure_group: Not a real group
+authored_by: Test Author
+checked_by: Test Checker
+date_reviewed: '{today}'
+next_review: '{next_review}'
+status: in_development
+""")
+        with patch('viewer.management.commands.import_measures.Path') as mock_path:
+            mock_path.return_value.parent.parent.parent = tmp_path
+            call_command('import_measures', 'unknown-group-measure')
+
+        assert not Measure.objects.filter(slug='unknown-group-measure').exists()
+        assert not MeasureGroup.objects.filter(name='Not a real group').exists()
+        assert MeasureGroup.objects.filter(slug='pre-filled-syringes').exists()
