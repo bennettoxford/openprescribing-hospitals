@@ -1,5 +1,6 @@
 name: Percentage of ephedrine not issued as ready-to-administer pre-filled syringes # Full name of the measure/indicator
 short_name: Ready-to-administer ephedrine 30mg/10ml # Abbreviated name or acronym
+measure_group: Ready-to-administer pre-filled syringes
 description: Percentage of ephedrine not issued as ready-to-administer pre-filled syringes (PFS). # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |
     [Lord Carter’s Transforming NHS Pharmacy Aseptic Services 
