@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from markdown2 import Markdown
 from django.core.cache import cache
+from django.http import Http404
 from django.views.generic import TemplateView
 from django.core.serializers.json import DjangoJSONEncoder
 from django.shortcuts import redirect
@@ -354,6 +355,48 @@ def build_measure_org_data(org_measures, shared_org_data, include_region_icb=Fal
     return result
 
 
+def measure_group_slug(measure):
+    """URL slug for a measure group. Empty when the measure has no group."""
+    group = measure.measure_group
+    if group is None:
+        return ''
+    return group.slug
+
+
+def measures_in_group(measures, group_slug):
+    """Return measures whose group slug matches group_slug."""
+    return [
+        measure
+        for measure in measures
+        if measure_group_slug(measure) == group_slug
+    ]
+
+
+def measure_group_base_path(preview_mode):
+    """Directory URL for measure group pages, with a trailing slash."""
+    url_name = (
+        'viewer:measure_group_preview' if preview_mode else 'viewer:measure_group'
+    )
+    sample = reverse(url_name, kwargs={'group_slug': 'placeholder'})
+    return sample.replace('/placeholder/', '/')
+
+
+def measure_group_detail(measure):
+    """Group name and the URL of the group page."""
+    group = measure.measure_group
+    if group is None:
+        return None
+    if measure.status in ('preview', 'in_development'):
+        group_url_name = 'viewer:measure_group_preview'
+    else:
+        group_url_name = 'viewer:measure_group'
+    return {
+        'name': group.name,
+        'slug': group.slug,
+        'url': reverse(group_url_name, kwargs={'group_slug': group.slug}),
+    }
+
+
 def _serialize_measures(measures, detail_url_name, prefetched):
     nat = prefetched.get('national', {}) or {}
     reg = prefetched.get('region', {}) or {}
@@ -371,8 +414,11 @@ def _serialize_measures(measures, detail_url_name, prefetched):
         serialized.append({
             'slug': measure.slug,
             'status': measure.status,
+            'name': measure.name or '',
             'short_name': (measure.short_name or measure.name) or '',
             'description': (measure.short_description or measure.description or ''),
+            'measure_group': measure.measure_group.name if measure.measure_group_id else '',
+            'measure_group_slug': measure_group_slug(measure),
             'lower_is_better': measure.lower_is_better,
             'tags': [
                 {'name': t.name, 'slug': slugify(t.name), 'colour': t.colour or '#6b7280', 'description': t.description or ''}
@@ -419,12 +465,12 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
             preview_measures = Measure.objects.filter(status='preview').annotate(
                 has_product_denominator=product_denominator,
                 has_denominators=rate_denominator
-            ).prefetch_related('tags').order_by('name')
+            ).select_related('measure_group').prefetch_related('tags').order_by('name')
             if is_authenticated:
                 in_development_measures = Measure.objects.filter(status='in_development').annotate(
                     has_product_denominator=product_denominator,
                     has_denominators=rate_denominator
-                ).prefetch_related('tags').order_by('name')
+                ).select_related('measure_group').prefetch_related('tags').order_by('name')
                 measures = list(preview_measures) + list(in_development_measures)
             else:
                 in_development_measures = []
@@ -434,13 +480,27 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
             measures = Measure.objects.filter(status='published').annotate(
                 has_product_denominator=product_denominator,
                 has_denominators=rate_denominator
-            ).prefetch_related('tags').order_by('name')
+            ).select_related('measure_group').prefetch_related('tags').order_by('name')
             archived_measures = Measure.objects.filter(status='archived').annotate(
                 has_product_denominator=product_denominator,
                 has_denominators=rate_denominator
-            ).prefetch_related('tags').order_by('name')
+            ).select_related('measure_group').prefetch_related('tags').order_by('name')
             preview_measures = []
             in_development_measures = []
+
+        group_slug = (self.kwargs.get('group_slug') or '').strip()
+        if group_slug:
+            measures = measures_in_group(measures, group_slug)
+            archived_measures = measures_in_group(archived_measures, group_slug)
+            preview_measures = measures_in_group(preview_measures, group_slug)
+            in_development_measures = measures_in_group(in_development_measures, group_slug)
+            if not (
+                measures
+                or archived_measures
+                or preview_measures
+                or in_development_measures
+            ):
+                raise Http404('No measures found for this group')
 
         if preview_mode:
             preview_tag_statuses = (
@@ -460,6 +520,27 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
                     measures__status__in=['published', 'archived']
                 ).distinct().order_by('name')
             )
+        group_name = ''
+        group_description = ''
+        if group_slug:
+            visible_measures = list(measures) + list(archived_measures)
+            visible_tag_ids = {
+                tag.id
+                for measure in visible_measures
+                for tag in measure.tags.all()
+            }
+            measure_tags = [tag for tag in measure_tags if tag.id in visible_tag_ids]
+            group = next(
+                (
+                    measure.measure_group
+                    for measure in visible_measures
+                    if measure.measure_group_id
+                ),
+                None,
+            )
+            if group is not None:
+                group_name = group.name
+                group_description = group.description or ''
         tags_param = (self.request.GET.get('tags') or '').strip()
         selected_tag = ','.join(s.strip() for s in tags_param.split(',') if s.strip()) if tags_param else ''
 
@@ -498,6 +579,13 @@ class MeasuresListView(MaintenanceModeMixin, TemplateView):
             "org_data_json": json.dumps(org_data, cls=DjangoJSONEncoder),
             "region_data_json": json.dumps(region_list, cls=DjangoJSONEncoder),
             "list_selection_label": list_selection_label,
+            "measure_group_name": group_name,
+            "measure_group_description": (
+                markdowner.convert(group_description) if group_description.strip() else ''
+            ),
+            "collapse_groups": not bool(group_slug),
+            "measure_group_base_path": measure_group_base_path(preview_mode),
+            "search_query": (self.request.GET.get('q') or '').strip(),
         })
 
         measures_for_charts = list(measures) + list(archived_measures)
@@ -607,6 +695,7 @@ class BaseMeasureItemView(TemplateView):
         try:
             measure = self.get_measure(slug)
             context.update(self.get_measure_context(measure))
+            context['measure_group'] = measure_group_detail(measure)
             precomputed, _ = self.get_precomputed_data(measure)
             context.update(precomputed)
             context['is_new'] = _is_measure_new(measure)
@@ -616,7 +705,7 @@ class BaseMeasureItemView(TemplateView):
         return context
 
     def get_measure(self, slug):
-        return Measure.objects.prefetch_related('tags').get(slug=slug)
+        return Measure.objects.select_related('measure_group').prefetch_related('tags').get(slug=slug)
 
     def get_measure_context(self, measure):
         markdowner = Markdown()

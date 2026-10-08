@@ -1,11 +1,14 @@
 import pytest
 from datetime import date
 
+from django.utils.text import slugify
+
 from viewer.models import (
     Region,
     ICB,
     Organisation,
     Measure,
+    MeasureGroup,
     MeasureVMP,
     PrecomputedMeasure,
     VMP,
@@ -157,4 +160,101 @@ class TestBuildMeasureOrgData:
         org_names = [o["name"] for o in result["organisations"]]
         assert successor.ods_name in org_names
         assert predecessor.ods_name not in org_names
+
+
+def _published_measure(slug, name, group=None):
+    measure_group = None
+    if isinstance(group, str):
+        measure_group, _created = MeasureGroup.objects.get_or_create(
+            slug=slugify(group),
+            defaults={'name': group},
+        )
+    elif group is not None:
+        measure_group = group
+    return Measure.objects.create(
+        name=name,
+        slug=slug,
+        short_name=name,
+        description=f'{name} description',
+        why_it_matters='Because',
+        how_is_it_calculated='How',
+        quantity_type='ddd',
+        status='published',
+        measure_group=measure_group,
+    )
+
+
+@pytest.mark.django_db
+class TestMeasureGroups:
+    def test_group_page_lists_only_group_members(self, client):
+        _published_measure('atropine-pfs', 'Atropine PFS', 'Pre-filled syringes')
+        _published_measure('adrenaline-pfs', 'Adrenaline PFS', 'Pre-filled syringes')
+        _published_measure('other-measure', 'Other measure')
+
+        response = client.get('/measures/group/pre-filled-syringes/')
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'atropine-pfs' in content
+        assert 'adrenaline-pfs' in content
+        assert 'other-measure' not in content
+        assert 'Pre-filled syringes' in content
+        assert 'These measures belong to the Pre-filled syringes group.' in content
+        assert 'collapseGroups="false"' in content
+        assert 'aria-label="Breadcrumb"' in content
+        assert 'Back to all measures' not in content
+
+    def test_group_page_shows_the_group_description(self, client):
+        group = MeasureGroup.objects.create(
+            name='Low value prescribing',
+            slug='low-value-prescribing',
+            description='These items provide low value when prescribed.',
+        )
+        _published_measure('aliskiren', 'Aliskiren', group)
+
+        response = client.get('/measures/group/low-value-prescribing/')
+        assert response.status_code == 200
+        content = response.content.decode()
+        membership = 'These measures belong to the Low value prescribing group.'
+        description = 'These items provide low value when prescribed.'
+        assert membership in content
+        assert description in content
+        assert content.index(membership) < content.index(description)
+
+    def test_index_keeps_grouped_measures_in_page_data(self, client):
+        _published_measure('atropine-pfs', 'Atropine PFS', 'Pre-filled syringes')
+        _published_measure('other-measure', 'Other measure')
+
+        response = client.get('/measures/')
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'atropine-pfs' in content
+        assert 'other-measure' in content
+        assert 'Pre-filled syringes' in content
+        assert 'collapseGroups="true"' in content
+        assert 'aria-label="Breadcrumb"' not in content
+
+    def test_unknown_group_returns_404(self, client):
+        _published_measure('other-measure', 'Other measure')
+        response = client.get('/measures/group/missing-group/')
+        assert response.status_code == 404
+
+    def test_measure_page_lists_the_group(self, client):
+        _published_measure('atropine-pfs', 'Atropine PFS', 'Pre-filled syringes')
+        _published_measure('adrenaline-pfs', 'Adrenaline PFS', 'Pre-filled syringes')
+
+        response = client.get('/measures/atropine-pfs/')
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'data-measure-group="pre-filled-syringes"' in content
+        assert '>Group:</span>' in content
+        assert 'Pre-filled syringes' in content
+        assert 'Adrenaline PFS' not in content
+        assert 'Show the other measures in this group' not in content
+        assert '/measures/group/pre-filled-syringes/' in content
+
+    def test_ungrouped_measure_page_has_no_group_panel(self, client):
+        _published_measure('other-measure', 'Other measure')
+        response = client.get('/measures/other-measure/')
+        assert response.status_code == 200
+        assert 'data-measure-group=' not in response.content.decode()
 
