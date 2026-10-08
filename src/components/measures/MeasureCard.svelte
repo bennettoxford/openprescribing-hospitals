@@ -80,17 +80,19 @@
       </div>
       <div class="px-4 pb-4">
         {#if measure.has_chart_data !== false}
-          <div class="w-full rounded-lg border border-gray-200 overflow-visible p-2" style="height: 280px;">
-            <LazyLoad>
-              <MeasureMiniChart
-                slug={measure.slug}
-                chartdata={initialChartData}
-                mode={$mode}
-                chartkind={measure.chart_kind || (measure.has_denominators ? 'percentage' : 'absolute')}
-                quantitytype={measure.quantity_type || ''}
-              />
-              <div slot="placeholder" class="w-full h-[248px] bg-gray-200 rounded-lg animate-pulse"></div>
-            </LazyLoad>
+          <div class="relative h-[280px] w-full overflow-hidden rounded-lg border border-gray-200">
+            <div class="absolute inset-2">
+              <LazyLoad className="h-full">
+                <MeasureMiniChart
+                  slug={measure.slug}
+                  chartdata={initialChartData}
+                  mode={$mode}
+                  chartkind={measure.chart_kind || (measure.has_denominators ? 'percentage' : 'absolute')}
+                  quantitytype={measure.quantity_type || ''}
+                />
+                <div slot="placeholder" class="h-full w-full animate-pulse rounded-lg bg-gray-200"></div>
+              </LazyLoad>
+            </div>
           </div>
         {:else}
           <div class="w-full rounded-lg border border-gray-200 overflow-hidden" style="height: 280px;">

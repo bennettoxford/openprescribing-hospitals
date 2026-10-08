@@ -1,6 +1,8 @@
 <script>
     import { onMount } from 'svelte';
 
+    export let className = '';
+
     let visible = false;
     let element;
 
@@ -19,7 +21,7 @@
     });
 </script>
 
-<div bind:this={element}>
+<div bind:this={element} class={className}>
     {#if visible}
         <slot />
     {:else}
