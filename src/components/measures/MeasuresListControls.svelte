@@ -10,7 +10,10 @@
         tagsData: { type: 'String', reflect: true },
         selectedTags: { type: 'String', reflect: true },
         archivedCount: { type: 'Number', reflect: true },
-        previewMode: { type: 'String', reflect: true }
+        previewMode: { type: 'String', reflect: true },
+        initialQuery: { type: 'String', reflect: true },
+        groupName: { type: 'String', reflect: true },
+        collapseGroups: { type: 'String', reflect: true },
     },
     shadow: 'none'
 }} />
@@ -23,8 +26,9 @@
     import { modeSelectorStore } from '../../stores/modeSelectorStore.js';
     import {
         mode, selectedCode as selectedCodeStore, sort, selectedTags as selectedTagsStore,
-        showArchived, setMode, setSelectedCode, setSort, setSelectedTags, setShowArchived,
-        setChartData, setLoadingCharts
+        selectedGroups as selectedGroupsStore,
+        showArchived, setMode, setSelectedCode, setSort, setSelectedTags, setSelectedGroups, setShowArchived,
+        setSearchQuery, setChartData, setLoadingCharts
     } from '../../stores/measuresListStore.js';
     import { regionColors } from '../../utils/chartConfig.js';
     import { setUrlParams, formatArrayParam } from '../../utils/utils.js';
@@ -40,6 +44,20 @@
     export let selectedTags = '';
     export let archivedCount = 0;
     export let previewMode = 'false';
+    export let initialQuery = '';
+    export let groupName = '';
+    export let collapseGroups = 'true';
+    export let groupOptions = [];
+
+    function resolveInitialQuery() {
+        if (typeof window !== 'undefined') {
+            const urlQuery = new URLSearchParams(window.location.search).get('q');
+            if (urlQuery !== null) return urlQuery;
+        }
+        return initialQuery || '';
+    }
+    let searchText = resolveInitialQuery();
+    setSearchQuery(searchText);
 
     let parsedOrgData = {};
     let parsedRegionData = [];
@@ -47,6 +65,8 @@
     let parsedTags = [];
     let tagDropdownOpen = false;
     let tagDropdownEl;
+    let groupDropdownOpen = false;
+    let groupDropdownEl;
     let isInitialLoad = true;
     let showShareToast = false;
 
@@ -80,7 +100,7 @@
 
     $: listPageTitle = (() => {
         const isPreview = previewMode === 'true';
-        const base = isPreview ? 'Measure Previews' : 'Measures';
+        const base = groupName || (isPreview ? 'Measure Previews' : 'Measures');
         let label = '';
         if ($mode === 'trust' && $selectedCodeStore) {
             label = (parsedOrgData?.orgs || {})[$selectedCodeStore] || selectedItems[0] || '';
@@ -112,8 +132,16 @@
         if ($mode === 'region' && $selectedCodeStore) params.region = $selectedCodeStore;
         if ($sort) params.sort = $sort;
         if ($selectedTagsStore.length > 0) params.tags = formatArrayParam($selectedTagsStore);
+        if ($selectedGroupsStore.length > 0) params.groups = formatArrayParam($selectedGroupsStore);
         if ($showArchived !== 'off') params.show_archived = $showArchived;
-        setUrlParams(params, ['mode', 'trust', 'region', 'sort', 'tags', 'show_archived']);
+        const query = (searchText || '').trim();
+        if (query) params.q = query;
+        setUrlParams(params, ['mode', 'trust', 'region', 'sort', 'tags', 'groups', 'show_archived', 'q']);
+    }
+
+    function handleSearchInput() {
+        setSearchQuery(searchText);
+        syncUrl();
     }
 
     function handleSortChange(event) {
@@ -136,9 +164,35 @@
         syncUrl();
     }
 
-    function handleClickOutsideTagDropdown(event) {
+    function toggleGroup(slug) {
+        const next = $selectedGroupsStore.includes(slug)
+            ? $selectedGroupsStore.filter(s => s !== slug)
+            : [...$selectedGroupsStore, slug];
+        setSelectedGroups(next);
+        syncUrl();
+    }
+
+    function clearAllGroups() {
+        setSelectedGroups([]);
+        syncUrl();
+    }
+
+    function toggleTagDropdown() {
+        tagDropdownOpen = !tagDropdownOpen;
+        if (tagDropdownOpen) groupDropdownOpen = false;
+    }
+
+    function toggleGroupDropdown() {
+        groupDropdownOpen = !groupDropdownOpen;
+        if (groupDropdownOpen) tagDropdownOpen = false;
+    }
+
+    function handleClickOutsideDropdowns(event) {
         if (tagDropdownEl && !tagDropdownEl.contains(event.target)) {
             tagDropdownOpen = false;
+        }
+        if (groupDropdownEl && !groupDropdownEl.contains(event.target)) {
+            groupDropdownOpen = false;
         }
     }
 
@@ -253,7 +307,7 @@
 
                 chartBySlug[slug] = {
                     ...base,
-                    ...(overlay?.trustData
+                    ...(overlay && 'trustData' in overlay
                         ? { trustData: overlay.trustData, trustName: trustDisplayName }
                         : {}),
                 };
@@ -337,7 +391,9 @@
             const urlRegion = params.get('region') || '';
             const urlSort = params.get('sort') || selectedSort || 'name';
             const urlTags = (params.get('tags') || selectedTags || '').split(',').map(s => s.trim()).filter(Boolean);
+            const urlGroups = (params.get('groups') || '').split(',').map(s => s.trim()).filter(Boolean);
             const urlShowArchived = params.get('show_archived') || 'off';
+            const urlQuery = params.get('q');
 
             const rawMode = urlMode || selectedMode || 'trust';
             const initialMode = ['national', 'region', 'trust'].includes(rawMode) ? rawMode : 'trust';
@@ -352,7 +408,12 @@
             setSelectedCode(initialCode);
             setSort(urlSort);
             setSelectedTags(urlTags);
+            setSelectedGroups(urlGroups);
             setShowArchived(urlShowArchived);
+            if (urlQuery !== null) {
+                searchText = urlQuery;
+                setSearchQuery(urlQuery);
+            }
 
             modeSelectorStore.setSelectedMode(initialMode);
             updateOrganisationStore(initialMode);
@@ -374,19 +435,47 @@
 
             setTimeout(() => { isInitialLoad = false; }, 100);
 
-            document.addEventListener('click', handleClickOutsideTagDropdown);
+            document.addEventListener('click', handleClickOutsideDropdowns);
         } catch (error) {
             console.error('MeasuresListControls: failed to initialise', error);
         }
     });
 
     onDestroy(() => {
-        document.removeEventListener('click', handleClickOutsideTagDropdown);
+        document.removeEventListener('click', handleClickOutsideDropdowns);
     });
 </script>
 
 <div class="flex flex-col gap-4">
     <div class="measures-list-controls-right flex flex-col lg:flex-row lg:flex-wrap lg:items-end lg:justify-start gap-4 rounded-lg border border-gray-200 bg-white p-4">
+            <div class="w-full basis-full">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-end">
+                    <div class="min-w-0 flex-1 order-2 lg:order-none">
+                        <label for="measure-search" class="block text-sm font-medium text-gray-700 mb-1">Search measures</label>
+                        <input
+                            id="measure-search"
+                            type="search"
+                            class="w-full text-sm p-2 border border-gray-300 rounded-md bg-white h-[38px]"
+                            placeholder={collapseGroups === 'false' ? 'Search measures in this group' : 'Search all measures'}
+                            aria-label="Search measures"
+                            bind:value={searchText}
+                            on:input={handleSearchInput}
+                        />
+                    </div>
+                    <div class="flex justify-end order-first lg:order-none shrink-0">
+                        <button
+                            on:click={handleShare}
+                            class="measures-list-share-btn flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-oxford-600 bg-white border border-oxford-200 rounded-md hover:bg-oxford-50 hover:border-oxford-300 transition-colors duration-200 h-[38px]"
+                            title="Copy link to share this measures list with current selection"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.935-2.186 2.25 2.25 0 00-3.935-2.186z" />
+                            </svg>
+                            Share
+                        </button>
+                    </div>
+                </div>
+            </div>
             <div class="w-full lg:w-fit lg:min-w-[130px]">
                 <ModeSelector
                     options={modeOptions}
@@ -420,7 +509,7 @@
                     aria-label="Filter by tag"
                     aria-expanded={tagDropdownOpen}
                     aria-haspopup="true"
-                    on:click={() => (tagDropdownOpen = !tagDropdownOpen)}
+                    on:click={toggleTagDropdown}
                 >
                     <span class="min-w-0 flex-1 truncate">
                         {$selectedTagsStore.length === 0
@@ -460,6 +549,51 @@
             </div>
             {/if}
 
+            {#if collapseGroups !== 'false' && groupOptions.length > 0}
+            <div class="relative w-full lg:w-fit lg:min-w-[16rem]" bind:this={groupDropdownEl}>
+                <span class="block text-sm font-medium text-gray-700 mb-1">Filter by group</span>
+                <button
+                    type="button"
+                    class="measures-list-group-select dropdown-arrow flex w-full min-w-0 items-center text-sm py-2 pl-2 pr-9 border border-gray-300 rounded-md bg-white h-[38px] text-left"
+                    aria-label="Filter by group"
+                    aria-expanded={groupDropdownOpen}
+                    aria-haspopup="true"
+                    on:click={toggleGroupDropdown}
+                >
+                    <span class="min-w-0 flex-1 truncate">
+                        {$selectedGroupsStore.length === 0
+                            ? 'All'
+                            : `${$selectedGroupsStore.length} group${$selectedGroupsStore.length === 1 ? '' : 's'} selected`}
+                    </span>
+                </button>
+                {#if groupDropdownOpen}
+                <div class="absolute left-0 z-40 mt-1 min-w-full w-max max-w-[min(24rem,calc(100vw-1.5rem))] py-2 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto"
+                     role="group" aria-label="Group filters">
+                    {#if $selectedGroupsStore.length > 0}
+                        <button
+                            type="button"
+                            class="w-full text-left px-3 py-1.5 text-xs font-medium text-oxford-600 hover:bg-gray-50 border-b border-gray-100 mb-1"
+                            on:click={clearAllGroups}
+                        >
+                            Clear all
+                        </button>
+                    {/if}
+                    {#each groupOptions as group (group.slug)}
+                        <label class="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-700">
+                            <input
+                                type="checkbox"
+                                class="rounded border-gray-300 text-oxford-600 focus:ring-oxford-500"
+                                checked={$selectedGroupsStore.includes(group.slug)}
+                                on:change={() => toggleGroup(group.slug)}
+                            />
+                            <span>{group.name}</span>
+                        </label>
+                    {/each}
+                </div>
+                {/if}
+            </div>
+            {/if}
+
             {#if archivedCount > 0}
             <div class="w-full lg:w-fit lg:min-w-[160px]">
                 <span class="flex items-center gap-1 mb-1">
@@ -477,7 +611,7 @@
                 </span>
                 <select
                     id="archived-select"
-                    class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-oxford-500 h-[38px]"
+                    class="dropdown-select dropdown-arrow w-full text-sm p-2 border border-gray-300 rounded-md bg-white h-[38px]"
                     value={$showArchived}
                     on:change={(e) => { setShowArchived(e.target.value); syncUrl(); }}
                 >
@@ -487,19 +621,6 @@
                 </select>
             </div>
             {/if}
-
-            <div class="w-full flex justify-end order-first lg:order-none lg:w-auto lg:ml-auto -mb-2 lg:mb-0">
-                <button
-                    on:click={handleShare}
-                    class="measures-list-share-btn flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-oxford-600 bg-white border border-oxford-200 rounded-md hover:bg-oxford-50 hover:border-oxford-300 transition-colors duration-200 h-[38px]"
-                    title="Copy link to share this measures list with current selection"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.935-2.186 2.25 2.25 0 00-3.935-2.186z" />
-                    </svg>
-                    Share
-                </button>
-            </div>
 
         <div class="w-full basis-full pt-4 border-t border-gray-200 mt-2">
             <OrganisationSearchFiltered

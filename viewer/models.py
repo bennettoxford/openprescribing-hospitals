@@ -508,6 +508,25 @@ class MeasureVMP(models.Model):
     def __str__(self):
         return f"{self.measure.name} - {self.vmp.name} ({self.type})"
 
+class MeasureGroup(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    slug = models.SlugField(max_length=255, unique=True)
+    description = models.TextField(
+        blank=True,
+        help_text="Text shown on the measure group page, under the group name.",
+    )
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
 class Measure(models.Model):
     STATUS_CHOICES = [
         ('in_development', 'In Development'),
@@ -580,6 +599,14 @@ class Measure(models.Model):
         null=True,
         blank=True,
         help_text="Optional override for chart y-axis label; when unset, the label is derived from quantity type and products",
+    )
+    measure_group = models.ForeignKey(
+        MeasureGroup,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="measures",
+        help_text="Optional group shared by similar measures. The measures list shows one card for the group.",
     )
 
     def save(self, *args, **kwargs):

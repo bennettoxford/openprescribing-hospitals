@@ -1,5 +1,6 @@
 <script>
   import MeasureMiniChart from './MeasureMiniChart.svelte';
+  import LazyLoad from '../common/LazyLoad.svelte';
   import { mode, selectedCode, chartData, detailLinkQuery } from '../../stores/measuresListStore.js';
 
   export let measure;
@@ -79,14 +80,19 @@
       </div>
       <div class="px-4 pb-4">
         {#if measure.has_chart_data !== false}
-          <div class="w-full rounded-lg border border-gray-200 overflow-visible p-2" style="height: 280px;">
-            <MeasureMiniChart
-              slug={measure.slug}
-              chartdata={initialChartData}
-              mode={$mode}
-              chartkind={measure.chart_kind || (measure.has_denominators ? 'percentage' : 'absolute')}
-              quantitytype={measure.quantity_type || ''}
-            />
+          <div class="relative h-[280px] w-full overflow-hidden rounded-lg border border-gray-200">
+            <div class="absolute inset-2">
+              <LazyLoad className="h-full">
+                <MeasureMiniChart
+                  slug={measure.slug}
+                  chartdata={initialChartData}
+                  mode={$mode}
+                  chartkind={measure.chart_kind || (measure.has_denominators ? 'percentage' : 'absolute')}
+                  quantitytype={measure.quantity_type || ''}
+                />
+                <div slot="placeholder" class="h-full w-full animate-pulse rounded-lg bg-gray-200"></div>
+              </LazyLoad>
+            </div>
           </div>
         {:else}
           <div class="w-full rounded-lg border border-gray-200 overflow-hidden" style="height: 280px;">

@@ -33,6 +33,12 @@ urlpatterns = [
     path("measures/", MeasuresListView.as_view(), name="measures_list"),
     path("measures/preview/", MeasuresListView.as_view(), {"preview_mode": True},
          name="measures_preview_list"),
+    path(
+        "measures/preview/group/<slug:group_slug>/",
+        MeasuresListView.as_view(),
+        {"preview_mode": True},
+        name="measure_group_preview",
+    ),
     # This slug was innacurate. Only the preview needs fixing as the slug was corrected 
     # before publishing the measure.
     path(
@@ -45,6 +51,11 @@ urlpatterns = [
     ),
     path("measures/preview/<slug:slug>/", MeasurePreviewItemView.as_view(), 
          name="measure_preview_item"),
+    path(
+        "measures/group/<slug:group_slug>/",
+        MeasuresListView.as_view(),
+        name="measure_group",
+    ),
     path("measures/<slug:slug>/", MeasureItemView.as_view(), 
          name="measure_item"),
     path("measures/<slug:slug>/trusts/", MeasureTrustsView.as_view(),

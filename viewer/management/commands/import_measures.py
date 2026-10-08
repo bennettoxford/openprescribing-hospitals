@@ -2,7 +2,7 @@ import yaml
 from pathlib import Path
 from django.core.management.base import BaseCommand
 from django.utils.text import slugify
-from viewer.models import Measure, MeasureTag, MeasureAnnotation
+from viewer.models import Measure, MeasureGroup, MeasureTag, MeasureAnnotation
 from viewer.measure_denominators import EXTERNAL_DENOMINATOR_TYPES
 from schema import Schema, And, Optional, SchemaError, Or
 from datetime import datetime, timedelta, date
@@ -15,6 +15,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         measures_dir = Path(__file__).parent.parent.parent / 'measures'
+        group_names = _import_measure_group_files(measures_dir.parent / 'measure_groups', self)
         folder_name = kwargs.get('folder_name')
         
         if folder_name:
@@ -51,7 +52,7 @@ class Command(BaseCommand):
                 continue
                 
             try:
-                validate_measure_yaml(data)
+                validate_measure_yaml(data, group_names)
                 tags = data.get('tags', [])
                 tag_objects = validate_measure_tags(tags)
                 
@@ -83,6 +84,7 @@ class Command(BaseCommand):
                     'lower_is_better': data.get('lower_is_better', None),
                     'denominator_type': data.get('denominator') or None,
                     'y_axis_label': data.get('y_axis_label') or None,
+                    'measure_group': _resolve_measure_group(data.get('measure_group')),
                 }
             )
             
@@ -166,7 +168,83 @@ def validate_review_dates(data):
     except ValueError as e:
         return str(e)
 
-def validate_measure_yaml(data):
+def _clean_measure_group(value):
+    if not isinstance(value, str):
+        return None
+    cleaned = value.strip()
+    return cleaned or None
+
+
+def _measure_group_is_valid(value):
+    if not isinstance(value, str):
+        return False
+    cleaned = value.strip()
+    if not cleaned or len(cleaned) > 255:
+        return False
+    return bool(slugify(cleaned))
+
+
+def _import_measure_group_files(groups_dir, command):
+    """Save every group file and return the set of group names."""
+    names = set()
+    if not groups_dir.is_dir():
+        return names
+    for yaml_file in sorted(groups_dir.glob('*.yaml')):
+        try:
+            with open(yaml_file, 'r', encoding='utf-8') as handle:
+                data = yaml.safe_load(handle)
+            _validate_measure_group_yaml(data)
+        except (yaml.YAMLError, SchemaError) as error:
+            command.stdout.write(
+                command.style.ERROR(f'Invalid measure group in {yaml_file}: {error}')
+            )
+            continue
+        name = data['name'].strip()
+        description = (data.get('description') or '').strip()
+        group, created = MeasureGroup.objects.update_or_create(
+            slug=slugify(name),
+            defaults={'name': name, 'description': description},
+        )
+        names.add(group.name)
+        action = 'Created' if created else 'Updated'
+        command.stdout.write(
+            command.style.SUCCESS(f'{action} measure group: {group.name}')
+        )
+    return names
+
+
+def _validate_measure_group_yaml(data):
+    schema = Schema({
+        'name': And(
+            str,
+            lambda value: _measure_group_is_valid(value),
+            error='name must be a measure group name of 1 to 255 characters',
+        ),
+        Optional('description'): And(str, error='description must be a string'),
+    })
+    schema.validate(data)
+
+
+def _resolve_measure_group(value):
+    """Return the saved group for a name. Do not create a group here."""
+    name = _clean_measure_group(value)
+    if not name:
+        return None
+    return MeasureGroup.objects.filter(slug=slugify(name)).first()
+
+
+def _check_measure_group_is_defined(value, group_names):
+    if group_names is None:
+        return
+    name = _clean_measure_group(value)
+    if not name:
+        return
+    if name not in group_names:
+        allowed = ', '.join(sorted(group_names)) or 'no measure groups are defined'
+        raise SchemaError(f'measure_group must be one of: {allowed}')
+
+
+def validate_measure_yaml(data, group_names=None):
     schema = Schema({
         'name': And(str),
         'short_name': And(str),
@@ -222,6 +300,14 @@ def validate_measure_yaml(data):
         ),
         Optional('y_axis_label'): And(str, error='y_axis_label must be a string'),
         Optional('short_description'): And(str, error='short_description must be a string'),
+        Optional('measure_group'): Or(
+            None,
+            And(
+                str,
+                lambda value: _measure_group_is_valid(value),
+                error='measure_group must be a name of 1 to 255 characters',
+            ),
+        ),
         Optional('annotations'): And(
             list,
             lambda annotations: all(isinstance(a, dict) for a in annotations),
@@ -230,6 +316,7 @@ def validate_measure_yaml(data):
     })
     
     schema.validate(data)
+    _check_measure_group_is_defined(data.get('measure_group'), group_names)
 
     if data.get('status') == 'archived':
         if not data.get('archive_date'):

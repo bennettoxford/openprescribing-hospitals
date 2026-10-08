@@ -112,10 +112,15 @@
     { lower: 45, upper: 55, opacity: 0.8 },
   ];
 
+  function chartPixelHeight() {
+    const measured = chartContainer?.clientHeight || 0;
+    return measured > 0 ? measured : 262;
+  }
+
   function buildChartOptions(data, chartMode) {
     const base = {
       chart: {
-        height: 280,
+        height: chartPixelHeight(),
         margin: [10, 10, 45, 40],
         spacing: [0, 0, 0, 0],
         backgroundColor: '#ffffff',

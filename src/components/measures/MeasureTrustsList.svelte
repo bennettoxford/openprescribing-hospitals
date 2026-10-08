@@ -304,8 +304,9 @@
                                 {trustName}
                             </h3>
                         </div>
-                        <div class="p-2 flex-grow min-h-0 overflow-visible" style="height: 280px;">
+                        <div class="h-[280px] min-h-0 overflow-hidden p-2">
                             <measure-mini-chart
+                                class="block h-full w-full"
                                 chartdata={chartDataByTrust[trustName] ? JSON.stringify({ ...chartDataByTrust[trustName], trust_count: searchableOrgs.length, trustName }) : '{}'}
                                 mode="trust"
                                 chartkind={measureChartKind}
