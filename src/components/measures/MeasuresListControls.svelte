@@ -307,7 +307,7 @@
 
                 chartBySlug[slug] = {
                     ...base,
-                    ...(overlay?.trustData
+                    ...(overlay && 'trustData' in overlay
                         ? { trustData: overlay.trustData, trustName: trustDisplayName }
                         : {}),
                 };

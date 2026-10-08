@@ -1,6 +1,6 @@
 <script>
   import MeasureMiniChart from './MeasureMiniChart.svelte';
-  import { mode, selectedCode, sort, selectedTags, showArchived } from '../../stores/measuresListStore.js';
+  import { mode, selectedCode, sort, selectedTags, showArchived, chartData } from '../../stores/measuresListStore.js';
 
   let {
     group,
@@ -18,6 +18,11 @@
   let slideIndex = $state(0);
   let safeIndex = $derived(count === 0 ? 0 : Math.min(slideIndex, count - 1));
   let currentMeasure = $derived(measures[safeIndex] ?? null);
+  let trustSelected = $derived($mode === 'trust' && !!$selectedCode);
+  let currentChartData = $derived(currentMeasure ? $chartData[currentMeasure.slug] : undefined);
+  let trustIncluded = $derived(!trustSelected || !currentChartData || !('trustData' in currentChartData)
+    ? true
+    : Array.isArray(currentChartData.trustData) && currentChartData.trustData.length > 0);
   let anyNew = $derived(measures.some((measure) => measure.is_new));
   let tags = $derived(uniqueTags(measures));
   let groupHref = $derived(buildGroupHref(
@@ -180,6 +185,13 @@
               </div>
             {/if}
           {/key}
+          {#if trustSelected}
+            <div class="mt-2 flex h-4 items-center" data-trust-included={trustIncluded ? 'true' : 'false'}>
+              {#if !trustIncluded}
+                <span class="text-xs font-medium text-gray-700">Selected trust is not included in this measure</span>
+              {/if}
+            </div>
+          {/if}
         </div>
       {/if}
       <div class="p-6 pt-2">
