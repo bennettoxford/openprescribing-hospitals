@@ -1,6 +1,6 @@
 <script>
   import MeasureMiniChart from './MeasureMiniChart.svelte';
-  import { mode, selectedCode, sort, selectedTags, showArchived, chartData } from '../../stores/measuresListStore.js';
+  import { mode, selectedCode, sort, selectedTags, showArchived, chartData, detailLinkQuery } from '../../stores/measuresListStore.js';
 
   let {
     group,
@@ -34,6 +34,11 @@
     $selectedTags,
     $showArchived,
   ));
+  let currentMeasureHref = $derived(
+    currentMeasure
+      ? measureHref(currentMeasure, $detailLinkQuery, trustSelected && !trustIncluded)
+      : '',
+  );
 
   function uniqueTags(measureList) {
     const seen = new Set();
@@ -62,9 +67,11 @@
     return query ? `${base}?${query}` : base;
   }
 
-  function measureHref(measure) {
+  function measureHref(measure, query = '', omitQuery = false) {
     const base = (measure.detail_base_url || '/measures/').replace(/\/?$/, '/');
-    return `${base}${measure.slug}/`;
+    const path = `${base}${measure.slug}/`;
+    if (omitQuery || !query) return path;
+    return `${path}${query}`;
   }
 
   function showPreviousMeasure() {
@@ -142,7 +149,7 @@
             </button>
             <div class="min-w-0 flex-1 text-center" aria-live="polite">
               <a
-                href={measureHref(currentMeasure)}
+                href={currentMeasureHref}
                 class="block text-sm font-medium text-gray-900 hover:text-oxford-700 line-clamp-2"
               >
                 {currentMeasure.short_name}
@@ -194,10 +201,18 @@
           {/if}
         </div>
       {/if}
-      <div class="p-6 pt-2">
+      <div class="p-6 pt-2 flex flex-col gap-2">
+        {#if currentMeasure}
+          <a
+            href={currentMeasureHref}
+            class="inline-flex w-full justify-center items-center px-4 py-2 {linkClasses} rounded-lg transition-colors duration-200 font-medium"
+          >
+            View measure
+          </a>
+        {/if}
         <a
           href={groupHref}
-          class="inline-flex w-full justify-center items-center px-4 py-2 {linkClasses} rounded-lg transition-colors duration-200 font-medium"
+          class="inline-flex w-full justify-center items-center px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors duration-200 font-medium text-sm"
         >
           View measures
         </a>
