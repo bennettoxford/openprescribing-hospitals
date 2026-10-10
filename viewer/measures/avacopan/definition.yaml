@@ -2,9 +2,9 @@ name: Withdrawal of Avacopan Vifor
 short_name: Avacopan Vifor
 description: Total count of avacopan vifor capsules issued.
 why_it_matters: |
-    Avacopan vifor, in combination with a rituximab or cyclophosphamide regimen, is indicated for adults with severe, active granulomatosis with polyangiitis (GPA) or microscopic polyangiitis (MPA).
+    Avacopan vifor, in combination with a rituximab or cyclophosphamide regimen, is indicated for adults with severe, active granulomatosis with polyangiitis (GPA) or microscopic polyangiitis (MPA) which are rare autoimmune diseases affecting small blood vessels.
     
-    The Medicines and Healthcare products Regulatory Agency (MHRA) has [completed its review of avacopan vifor](https://www.gov.uk/government/news/mhra-concludes-review-of-avacopan-vifor-following-reassessment-of-benefit-risk-balance) (previously known as Tavneos). The MHRA determined that the available evidence no longer supports a positive benefit-risk balance.
+    The Medicines and Healthcare products Regulatory Agency (MHRA) has [completed its review of avacopan vifor](https://www.gov.uk/government/news/mhra-concludes-review-of-avacopan-vifor-following-reassessment-of-benefit-risk-balance). The MHRA determined that the available evidence no longer supports a positive benefit-risk balance.
 
     The review followed questions about the integrity and reliability of data from the pivotal clinical study. The MHRA concluded that the study can no longer be relied upon to demonstrate the efficacy of avacopan vifor.
 
@@ -23,4 +23,4 @@ checked_by: Victoria Speed
 date_reviewed: 2026-09-30
 next_review: 2027-09-30
 first_published: 2026-09-30
-status: in_development
+status: published
