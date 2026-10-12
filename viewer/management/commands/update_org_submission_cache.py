@@ -7,8 +7,10 @@ from collections import defaultdict
 def update_org_submission_cache():
     print("Clearing existing cache...")
     with connection.cursor() as cursor:
-        cursor.execute(f'TRUNCATE TABLE {OrgSubmissionCache._meta.db_table} RESTART IDENTITY CASCADE')
-    
+        cursor.execute(
+            f"TRUNCATE TABLE {OrgSubmissionCache._meta.db_table} RESTART IDENTITY CASCADE"
+        )
+
     print("Fetching months and organizations...")
     unique_months = list(DataStatus.objects.dates('year_month', 'month').order_by('year_month'))
     month_strings = {m.strftime('%Y-%m-%d') for m in unique_months}
