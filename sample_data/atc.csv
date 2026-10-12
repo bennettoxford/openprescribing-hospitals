@@ -1,0 +1,57 @@
+atc_code,atc_name,anatomical_main_group,therapeutic_subgroup,pharmacological_subgroup,chemical_subgroup,chemical_substance
+A,Alimentary Tract And Metabolism,Alimentary Tract And Metabolism,,,,
+A02,Drugs For Acid Related Disorders,Alimentary Tract And Metabolism,Drugs For Acid Related Disorders,,,
+A02B,Drugs For Peptic Ulcer And Gastro-Oesophageal Reflux Disease (Gord),Alimentary Tract And Metabolism,Drugs For Acid Related Disorders,Drugs For Peptic Ulcer And Gastro-Oesophageal Reflux Disease (Gord),,
+A02BC,Proton Pump Inhibitors,Alimentary Tract And Metabolism,Drugs For Acid Related Disorders,Drugs For Peptic Ulcer And Gastro-Oesophageal Reflux Disease (Gord),Proton Pump Inhibitors,
+A02BC01,Omeprazole,Alimentary Tract And Metabolism,Drugs For Acid Related Disorders,Drugs For Peptic Ulcer And Gastro-Oesophageal Reflux Disease (Gord),Proton Pump Inhibitors,Omeprazole
+A10,Drugs Used In Diabetes,Alimentary Tract And Metabolism,Drugs Used In Diabetes,,,
+A10B,"Blood Glucose Lowering Drugs, Excl. Insulins",Alimentary Tract And Metabolism,Drugs Used In Diabetes,"Blood Glucose Lowering Drugs, Excl. Insulins",,
+A10BA,Biguanides,Alimentary Tract And Metabolism,Drugs Used In Diabetes,"Blood Glucose Lowering Drugs, Excl. Insulins",Biguanides,
+A10BA02,Metformin,Alimentary Tract And Metabolism,Drugs Used In Diabetes,"Blood Glucose Lowering Drugs, Excl. Insulins",Biguanides,Metformin
+C,Cardiovascular System,Cardiovascular System,,,,
+C01,Cardiac Therapy,Cardiovascular System,Cardiac Therapy,,,
+C01C,Cardiac Stimulants Excl. Cardiac Glycosides,Cardiovascular System,Cardiac Therapy,Cardiac Stimulants Excl. Cardiac Glycosides,,
+C01CA,Adrenergic And Dopaminergic Agents,Cardiovascular System,Cardiac Therapy,Cardiac Stimulants Excl. Cardiac Glycosides,Adrenergic And Dopaminergic Agents,
+C01CA24,Epinephrine,Cardiovascular System,Cardiac Therapy,Cardiac Stimulants Excl. Cardiac Glycosides,Adrenergic And Dopaminergic Agents,Epinephrine
+C02,Antihypertensives,Cardiovascular System,Antihypertensives,,,
+C02C,"Antiadrenergic Agents, Peripherally Acting",Cardiovascular System,Antihypertensives,"Antiadrenergic Agents, Peripherally Acting",,
+C02CA,Alpha-adrenoreceptor Antagonists,Cardiovascular System,Antihypertensives,"Antiadrenergic Agents, Peripherally Acting",Alpha-adrenoreceptor Antagonists,
+C02CA04,Doxazosin,Cardiovascular System,Antihypertensives,"Antiadrenergic Agents, Peripherally Acting",Alpha-adrenoreceptor Antagonists,Doxazosin
+C08,Calcium Channel Blockers,Cardiovascular System,Calcium Channel Blockers,,,
+C08C,Selective Calcium Channel Blockers With Mainly Vascular Effects,Cardiovascular System,Calcium Channel Blockers,Selective Calcium Channel Blockers With Mainly Vascular Effects,,
+C08CA,Dihydropyridine Derivatives,Cardiovascular System,Calcium Channel Blockers,Selective Calcium Channel Blockers With Mainly Vascular Effects,Dihydropyridine Derivatives,
+C08CA01,Amlodipine,Cardiovascular System,Calcium Channel Blockers,Selective Calcium Channel Blockers With Mainly Vascular Effects,Dihydropyridine Derivatives,Amlodipine
+C09,Agents Acting On The Renin-Angiotensin System,Cardiovascular System,Agents Acting On The Renin-Angiotensin System,,,
+C09A,"Ace Inhibitors, Plain",Cardiovascular System,Agents Acting On The Renin-Angiotensin System,"Ace Inhibitors, Plain",,
+C09AA,"Ace Inhibitors, Plain",Cardiovascular System,Agents Acting On The Renin-Angiotensin System,"Ace Inhibitors, Plain","Ace Inhibitors, Plain",
+C09AA05,Ramipril,Cardiovascular System,Agents Acting On The Renin-Angiotensin System,"Ace Inhibitors, Plain","Ace Inhibitors, Plain",Ramipril
+C10,Lipid Modifying Agents,Cardiovascular System,Lipid Modifying Agents,,,
+C10A,"Lipid Modifying Agents, Plain",Cardiovascular System,Lipid Modifying Agents,"Lipid Modifying Agents, Plain",,
+C10AA,Hmg Coa Reductase Inhibitors,Cardiovascular System,Lipid Modifying Agents,"Lipid Modifying Agents, Plain",Hmg Coa Reductase Inhibitors,
+C10AA05,Atorvastatin,Cardiovascular System,Lipid Modifying Agents,"Lipid Modifying Agents, Plain",Hmg Coa Reductase Inhibitors,Atorvastatin
+J,Antiinfectives For Systemic Use,Antiinfectives For Systemic Use,,,,
+J01,Antibacterials For Systemic Use,Antiinfectives For Systemic Use,Antibacterials For Systemic Use,,,
+J01C,"Beta-Lactam Antibacterials, Penicillins",Antiinfectives For Systemic Use,Antibacterials For Systemic Use,"Beta-Lactam Antibacterials, Penicillins",,
+J01CA,Penicillins With Extended Spectrum,Antiinfectives For Systemic Use,Antibacterials For Systemic Use,"Beta-Lactam Antibacterials, Penicillins",Penicillins With Extended Spectrum,
+J01CA04,Amoxicillin,Antiinfectives For Systemic Use,Antibacterials For Systemic Use,"Beta-Lactam Antibacterials, Penicillins",Penicillins With Extended Spectrum,Amoxicillin
+J01CR,"Combinations Of Penicillins, Incl. Beta-lactamase Inhibitors",Antiinfectives For Systemic Use,Antibacterials For Systemic Use,"Beta-Lactam Antibacterials, Penicillins","Combinations Of Penicillins, Incl. Beta-lactamase Inhibitors",
+J01CR02,Amoxicillin And Beta-lactamase Inhibitor,Antiinfectives For Systemic Use,Antibacterials For Systemic Use,"Beta-Lactam Antibacterials, Penicillins","Combinations Of Penicillins, Incl. Beta-lactamase Inhibitors",Amoxicillin And Beta-lactamase Inhibitor
+L,Antineoplastic And Immunomodulating Agents,Antineoplastic And Immunomodulating Agents,,,,
+L04,Immunosuppressants,Antineoplastic And Immunomodulating Agents,Immunosuppressants,,,
+L04A,Immunosuppressants,Antineoplastic And Immunomodulating Agents,Immunosuppressants,Immunosuppressants,,
+L04AJ,Complement Inhibitors,Antineoplastic And Immunomodulating Agents,Immunosuppressants,Immunosuppressants,Complement Inhibitors,
+L04AJ05,Avacopan,Antineoplastic And Immunomodulating Agents,Immunosuppressants,Immunosuppressants,Complement Inhibitors,Avacopan
+N,Nervous System,Nervous System,,,,
+N02,Analgesics,Nervous System,Analgesics,,,
+N02B,Other Analgesics And Antipyretics,Nervous System,Analgesics,Other Analgesics And Antipyretics,,
+N02BE,Anilides,Nervous System,Analgesics,Other Analgesics And Antipyretics,Anilides,
+N02BE01,Paracetamol,Nervous System,Analgesics,Other Analgesics And Antipyretics,Anilides,Paracetamol
+N06,Psychoanaleptics,Nervous System,Psychoanaleptics,,,
+N06A,Antidepressants,Nervous System,Psychoanaleptics,Antidepressants,,
+N06AA,Non-selective Monoamine Reuptake Inhibitors,Nervous System,Psychoanaleptics,Antidepressants,Non-selective Monoamine Reuptake Inhibitors,
+N06AA16,Dosulepin,Nervous System,Psychoanaleptics,Antidepressants,Non-selective Monoamine Reuptake Inhibitors,Dosulepin
+R,Respiratory System,Respiratory System,,,,
+R03,Drugs For Obstructive Airway Diseases,Respiratory System,Drugs For Obstructive Airway Diseases,,,
+R03A,"Adrenergics, Inhalants",Respiratory System,Drugs For Obstructive Airway Diseases,"Adrenergics, Inhalants",,
+R03AC,Selective Beta-2-adrenoreceptor Agonists,Respiratory System,Drugs For Obstructive Airway Diseases,"Adrenergics, Inhalants",Selective Beta-2-adrenoreceptor Agonists,
+R03AC02,Salbutamol,Respiratory System,Drugs For Obstructive Airway Diseases,"Adrenergics, Inhalants",Selective Beta-2-adrenoreceptor Agonists,Salbutamol
