@@ -3,6 +3,7 @@
 __pycache__
 node_modules
 assets/assets
+assets/dist
 staticfiles
 db.sqlite3
 bq-service-account.json
