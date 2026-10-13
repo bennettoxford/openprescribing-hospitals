@@ -1,5 +1,5 @@
 name: Low value prescribing - dosulepin # Full name of the measure/indicator
-short_name: Low value prescribing - dosulepin # Abbreviated name or acronym
+short_name: Dosulepin # Abbreviated name or acronym
 measure_group: Low value prescribing
 description: Total defined daily doses (DDDs) for dosulepin. # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |

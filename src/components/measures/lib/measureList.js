@@ -18,6 +18,13 @@ function compareNames(a, b) {
   return (a || '').localeCompare(b || '', undefined, { sensitivity: 'base' });
 }
 
+function compareGroupMeasures(a, b) {
+  const aFlagship = a.is_flagship ? 0 : 1;
+  const bFlagship = b.is_flagship ? 0 : 1;
+  if (aFlagship !== bFlagship) return aFlagship - bFlagship;
+  return compareNames(a.short_name, b.short_name);
+}
+
 function cardName(item) {
   if (item.type === 'group') return item.group.name || '';
   return item.measure.short_name || '';
@@ -71,7 +78,7 @@ export function buildMeasureCards(measureList, { collapseGroups = true, query = 
 
   for (const item of items) {
     if (item.type === 'group') {
-      item.group.measures.sort((a, b) => compareNames(a.short_name, b.short_name));
+      item.group.measures.sort(compareGroupMeasures);
     }
   }
 

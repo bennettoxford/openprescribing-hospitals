@@ -54,6 +54,35 @@ describe('measure list groups', () => {
         expect(cards[1].measure.slug).toBe('other');
     });
 
+    it('shows the flagship measure first on the group card', () => {
+        const cards = buildMeasureCards([
+            measure({
+                slug: 'aliskiren',
+                short_name: 'Aliskiren',
+                measure_group: 'Low value prescribing',
+                measure_group_slug: 'low-value-prescribing',
+            }),
+            measure({
+                slug: 'lvp_dosulepin',
+                short_name: 'Dosulepin',
+                measure_group: 'Low value prescribing',
+                measure_group_slug: 'low-value-prescribing',
+                is_flagship: true,
+            }),
+            measure({
+                slug: 'coproxamol',
+                short_name: 'Coproxamol',
+                measure_group: 'Low value prescribing',
+                measure_group_slug: 'low-value-prescribing',
+            }),
+        ]);
+        expect(cards[0].group.measures.map((item) => item.slug)).toEqual([
+            'lvp_dosulepin',
+            'aliskiren',
+            'coproxamol',
+        ]);
+    });
+
     it('does not collapse a group that has one measure', () => {
         const cards = buildMeasureCards([
             measure({

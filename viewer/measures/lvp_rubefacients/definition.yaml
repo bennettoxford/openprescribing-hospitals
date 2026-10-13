@@ -1,5 +1,5 @@
 name: Low value prescribing - rubefacients, benzydamine, mucopolysaccharide and cooling products # Full name of the measure/indicator
-short_name: Low value prescribing - rubefacients # Abbreviated name or acronym
+short_name: Rubefacients # Abbreviated name or acronym
 measure_group: Low value prescribing
 description: Total indicative cost for rubefacients, benzydamine, mucopolysaccharide and cooling products # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |

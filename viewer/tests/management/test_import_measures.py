@@ -476,3 +476,88 @@ status: in_development
         assert not Measure.objects.filter(slug='unknown-group-measure').exists()
         assert not MeasureGroup.objects.filter(name='Not a real group').exists()
         assert MeasureGroup.objects.filter(slug='pre-filled-syringes').exists()
+
+    @pytest.mark.django_db
+    def test_command_sets_and_clears_flagship_measure(self, tmp_path, measure_tags):
+        groups_dir = tmp_path / 'measure_groups'
+        groups_dir.mkdir()
+        measures_dir = tmp_path / 'measures'
+        measures_dir.mkdir()
+        test_measure_dir = measures_dir / 'lvp_lidocaine_plasters'
+        test_measure_dir.mkdir()
+        (test_measure_dir / 'vmps.sql').write_text('')
+
+        today = datetime.now().date()
+        next_review = (today + timedelta(days=180)).strftime('%Y-%m-%d')
+        (test_measure_dir / 'definition.yaml').write_text(f"""
+name: Lidocaine plasters
+short_name: Lidocaine plasters
+description: Test description
+why_it_matters: Test why it matters
+how_is_it_calculated: Test calculation method
+tags: ['test-tag-1']
+quantity_type: dose
+measure_group: Low value prescribing
+authored_by: Test Author
+checked_by: Test Checker
+date_reviewed: '{today}'
+next_review: '{next_review}'
+status: in_development
+""")
+
+        def import_group(flagship_line):
+            (groups_dir / 'low-value-prescribing.yaml').write_text(
+                'name: Low value prescribing\n'
+                f'{flagship_line}'
+                'description: Low value items.\n'
+            )
+            with patch('viewer.management.commands.import_measures.Path') as mock_path:
+                mock_path.return_value.parent.parent.parent = tmp_path
+                call_command('import_measures', 'lvp_lidocaine_plasters')
+
+        import_group('flagship: lvp_lidocaine_plasters\n')
+        group = MeasureGroup.objects.get(slug='low-value-prescribing')
+        assert group.flagship_measure.slug == 'lvp_lidocaine_plasters'
+
+        import_group('')
+        group.refresh_from_db()
+        assert group.flagship_measure is None
+
+    @pytest.mark.django_db
+    def test_command_rejects_flagship_from_another_group(self, tmp_path, measure_tags):
+        groups_dir = tmp_path / 'measure_groups'
+        groups_dir.mkdir()
+        (groups_dir / 'low-value-prescribing.yaml').write_text(
+            'name: Low value prescribing\n'
+            'flagship: other-measure\n'
+        )
+        (groups_dir / 'other-group.yaml').write_text('name: Other group\n')
+        measures_dir = tmp_path / 'measures'
+        measures_dir.mkdir()
+        test_measure_dir = measures_dir / 'other-measure'
+        test_measure_dir.mkdir()
+        (test_measure_dir / 'vmps.sql').write_text('')
+
+        today = datetime.now().date()
+        next_review = (today + timedelta(days=180)).strftime('%Y-%m-%d')
+        (test_measure_dir / 'definition.yaml').write_text(f"""
+name: Other measure
+short_name: Other measure
+description: Test description
+why_it_matters: Test why it matters
+how_is_it_calculated: Test calculation method
+tags: ['test-tag-1']
+quantity_type: dose
+measure_group: Other group
+authored_by: Test Author
+checked_by: Test Checker
+date_reviewed: '{today}'
+next_review: '{next_review}'
+status: in_development
+""")
+        with patch('viewer.management.commands.import_measures.Path') as mock_path:
+            mock_path.return_value.parent.parent.parent = tmp_path
+            call_command('import_measures', 'other-measure')
+
+        group = MeasureGroup.objects.get(slug='low-value-prescribing')
+        assert group.flagship_measure is None

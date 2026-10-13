@@ -101,8 +101,9 @@ class IngredientQuantityAdmin(admin.ModelAdmin):
 
 @admin.register(MeasureGroup)
 class MeasureGroupAdmin(admin.ModelAdmin):
-    list_display = ("name", "slug")
-    search_fields = ("name", "slug", "description")
+    list_display = ("name", "slug", "flagship_measure")
+    search_fields = ("name", "slug", "description", "flagship_measure__name", "flagship_measure__slug")
+    autocomplete_fields = ("flagship_measure",)
     prepopulated_fields = {"slug": ("name",)}
 
 

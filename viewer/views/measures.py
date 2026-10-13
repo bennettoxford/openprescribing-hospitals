@@ -381,8 +381,49 @@ def measure_group_base_path(preview_mode):
     return sample.replace('/placeholder/', '/')
 
 
+def measure_detail_url_name(status):
+    """URL name for a measure page."""
+    if status in ('preview', 'in_development'):
+        return 'viewer:measure_preview_item'
+    return 'viewer:measure_item'
+
+
+def measure_group_member_links(measure):
+    """Other measures in the same group and status, plus the current measure.
+
+    Returns an empty list when the group has fewer than two measures of this status.
+    """
+    group = measure.measure_group
+    if group is None:
+        return []
+    siblings = list(
+        Measure.objects.filter(
+            measure_group=group,
+            status=measure.status,
+        ).only('id', 'slug', 'name', 'short_name', 'status')
+    )
+    if len(siblings) < 2:
+        return []
+    flagship_id = group.flagship_measure_id
+    siblings.sort(key=lambda item: (
+        0 if item.id == flagship_id else 1,
+        (item.short_name or item.name or '').casefold(),
+    ))
+    members = []
+    for item in siblings:
+        members.append({
+            'label': item.short_name or item.name or '',
+            'url': reverse(
+                measure_detail_url_name(item.status),
+                kwargs={'slug': item.slug},
+            ),
+            'current': item.id == measure.id,
+        })
+    return members
+
+
 def measure_group_detail(measure):
-    """Group name and the URL of the group page."""
+    """Group name, the group page URL, and the measures in that group."""
     group = measure.measure_group
     if group is None:
         return None
@@ -394,6 +435,7 @@ def measure_group_detail(measure):
         'name': group.name,
         'slug': group.slug,
         'url': reverse(group_url_name, kwargs={'group_slug': group.slug}),
+        'members': measure_group_member_links(measure),
     }
 
 
@@ -419,6 +461,10 @@ def _serialize_measures(measures, detail_url_name, prefetched):
             'description': (measure.short_description or measure.description or ''),
             'measure_group': measure.measure_group.name if measure.measure_group_id else '',
             'measure_group_slug': measure_group_slug(measure),
+            'is_flagship': bool(
+                measure.measure_group_id
+                and measure.measure_group.flagship_measure_id == measure.id
+            ),
             'lower_is_better': measure.lower_is_better,
             'tags': [
                 {'name': t.name, 'slug': slugify(t.name), 'colour': t.colour or '#6b7280', 'description': t.description or ''}

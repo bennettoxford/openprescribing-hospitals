@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.text import slugify
 from django.core.validators import RegexValidator
@@ -515,12 +516,30 @@ class MeasureGroup(models.Model):
         blank=True,
         help_text="Text shown on the measure group page, under the group name.",
     )
+    flagship_measure = models.OneToOneField(
+        "Measure",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="flagship_group",
+        help_text="Measure shown first on the group card in the measures list.",
+    )
 
     class Meta:
         ordering = ["name"]
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        super().clean()
+        flagship = self.flagship_measure
+        if flagship is None:
+            return
+        if self.pk is None or flagship.measure_group_id != self.pk:
+            raise ValidationError({
+                "flagship_measure": "The flagship measure must belong to this group.",
+            })
 
     def save(self, *args, **kwargs):
         if not self.slug:
