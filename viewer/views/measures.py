@@ -419,6 +419,10 @@ def _serialize_measures(measures, detail_url_name, prefetched):
             'description': (measure.short_description or measure.description or ''),
             'measure_group': measure.measure_group.name if measure.measure_group_id else '',
             'measure_group_slug': measure_group_slug(measure),
+            'is_flagship': bool(
+                measure.measure_group_id
+                and measure.measure_group.flagship_measure_id == measure.id
+            ),
             'lower_is_better': measure.lower_is_better,
             'tags': [
                 {'name': t.name, 'slug': slugify(t.name), 'colour': t.colour or '#6b7280', 'description': t.description or ''}

@@ -1,3 +1,7 @@
+import json
+import re
+from html import unescape
+
 import pytest
 from datetime import date
 
@@ -232,6 +236,24 @@ class TestMeasureGroups:
         assert 'Pre-filled syringes' in content
         assert 'collapseGroups="true"' in content
         assert 'aria-label="Breadcrumb"' not in content
+
+    def test_list_marks_the_flagship_measure(self, client):
+        group = MeasureGroup.objects.create(
+            name='Low value prescribing',
+            slug='low-value-prescribing',
+        )
+        dosulepin = _published_measure('lvp_dosulepin', 'Dosulepin', group)
+        _published_measure('lvp_aliskiren', 'Aliskiren', group)
+        group.flagship_measure = dosulepin
+        group.save(update_fields=['flagship_measure'])
+
+        response = client.get('/measures/')
+        assert response.status_code == 200
+        match = re.search(r'measures="([^"]*)"', response.content.decode())
+        measures = json.loads(unescape(match.group(1)))
+        by_slug = {item['slug']: item['is_flagship'] for item in measures}
+        assert by_slug['lvp_dosulepin'] is True
+        assert by_slug['lvp_aliskiren'] is False
 
     def test_unknown_group_returns_404(self, client):
         _published_measure('other-measure', 'Other measure')

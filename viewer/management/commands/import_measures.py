@@ -15,16 +15,22 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         measures_dir = Path(__file__).parent.parent.parent / 'measures'
-        group_names = _import_measure_group_files(measures_dir.parent / 'measure_groups', self)
+        group_names, flagships = _import_measure_group_files(
+            measures_dir.parent / 'measure_groups',
+            self,
+        )
         folder_name = kwargs.get('folder_name')
-        
+        self._import_measure_folders(measures_dir, folder_name, group_names)
+        _apply_flagship_measures(flagships, self)
+
+    def _import_measure_folders(self, measures_dir, folder_name, group_names):
         if folder_name:
             if folder_name != slugify(folder_name):
                 self.stdout.write(
                     self.style.ERROR(f'Invalid folder name: {folder_name}. Must be a valid slug (lowercase letters, numbers, and hyphens only)')
                 )
                 return
-                
+
             measure_dirs = [measures_dir / folder_name]
             if not measure_dirs[0].exists():
                 self.stdout.write(
@@ -33,7 +39,7 @@ class Command(BaseCommand):
                 return
         else:
             measure_dirs = [d for d in measures_dir.glob('*/') if d.is_dir()]
-        
+
         for measure_dir in measure_dirs:
             yaml_file = measure_dir / 'definition.yaml'
             if not yaml_file.exists():
@@ -184,11 +190,19 @@ def _measure_group_is_valid(value):
     return bool(slugify(cleaned))
 
 
+def _flagship_slug_is_valid(value):
+    if not isinstance(value, str):
+        return False
+    cleaned = value.strip()
+    return bool(cleaned) and cleaned == slugify(cleaned) and len(cleaned) <= 255
+
+
 def _import_measure_group_files(groups_dir, command):
-    """Save every group file and return the set of group names."""
+    """Save every group file. Return group names and the flagship slug for each group."""
     names = set()
+    flagships = {}
     if not groups_dir.is_dir():
-        return names
+        return names, flagships
     for yaml_file in sorted(groups_dir.glob('*.yaml')):
         try:
             with open(yaml_file, 'r', encoding='utf-8') as handle:
@@ -206,11 +220,42 @@ def _import_measure_group_files(groups_dir, command):
             defaults={'name': name, 'description': description},
         )
         names.add(group.name)
+        flagships[group.slug] = data.get('flagship') or None
         action = 'Created' if created else 'Updated'
         command.stdout.write(
             command.style.SUCCESS(f'{action} measure group: {group.name}')
         )
-    return names
+    return names, flagships
+
+
+def _apply_flagship_measures(flagships, command):
+    for group_slug, measure_slug in flagships.items():
+        group = MeasureGroup.objects.get(slug=group_slug)
+        if not measure_slug:
+            _set_flagship_measure(group, None)
+            continue
+        measure = Measure.objects.filter(slug=measure_slug).first()
+        if measure is None:
+            command.stdout.write(command.style.WARNING(
+                f'Flagship measure "{measure_slug}" for group "{group.name}" does not exist'
+            ))
+            _set_flagship_measure(group, None)
+            continue
+        if measure.measure_group_id != group.id:
+            command.stdout.write(command.style.ERROR(
+                f'Flagship measure "{measure_slug}" is not in group "{group.name}"'
+            ))
+            _set_flagship_measure(group, None)
+            continue
+        _set_flagship_measure(group, measure)
+
+
+def _set_flagship_measure(group, measure):
+    measure_id = measure.id if measure is not None else None
+    if group.flagship_measure_id == measure_id:
+        return
+    group.flagship_measure = measure
+    group.save(update_fields=['flagship_measure'])
 
 
 def _validate_measure_group_yaml(data):
@@ -221,6 +266,14 @@ def _validate_measure_group_yaml(data):
             error='name must be a measure group name of 1 to 255 characters',
         ),
         Optional('description'): And(str, error='description must be a string'),
+        Optional('flagship'): Or(
+            None,
+            And(
+                str,
+                lambda value: _flagship_slug_is_valid(value),
+                error='flagship must be a measure slug',
+            ),
+        ),
     })
     schema.validate(data)
 
