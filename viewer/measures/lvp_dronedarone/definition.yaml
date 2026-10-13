@@ -1,5 +1,5 @@
 name: Low value prescribing - dronedarone # Full name of the measure/indicator
-short_name: Low value prescribing - dronedarone # Abbreviated name or acronym
+short_name: Dronedarone # Abbreviated name or acronym
 measure_group: Low value prescribing
 description: Total defined daily doses (DDDs) for dronedarone. # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |
