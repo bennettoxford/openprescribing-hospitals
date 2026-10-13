@@ -270,8 +270,10 @@ class TestMeasureGroups:
         assert 'data-measure-group="pre-filled-syringes"' in content
         assert '>Group:</span>' in content
         assert 'Pre-filled syringes' in content
-        assert 'Adrenaline PFS' not in content
-        assert 'Show the other measures in this group' not in content
+        assert 'data-measure-group-members' in content
+        assert 'aria-current="page">Atropine PFS</span>' in content
+        assert 'href="/measures/adrenaline-pfs/"' in content
+        assert '>Adrenaline PFS</a>' in content
         assert '/measures/group/pre-filled-syringes/' in content
 
     def test_ungrouped_measure_page_has_no_group_panel(self, client):
@@ -279,4 +281,46 @@ class TestMeasureGroups:
         response = client.get('/measures/other-measure/')
         assert response.status_code == 200
         assert 'data-measure-group=' not in response.content.decode()
+
+    def test_measure_page_links_use_the_short_name(self, client):
+        group = MeasureGroup.objects.create(
+            name='Low value prescribing',
+            slug='low-value-prescribing',
+        )
+        dosulepin = _published_measure(
+            'lvp-dosulepin',
+            'Dosulepin',
+            group,
+        )
+        _published_measure(
+            'lvp-aliskiren',
+            'Aliskiren',
+            group,
+        )
+        group.flagship_measure = dosulepin
+        group.save(update_fields=['flagship_measure'])
+
+        response = client.get('/measures/lvp-aliskiren/')
+        assert response.status_code == 200
+        content = response.content.decode()
+        members = content[content.index('data-measure-group-members'):]
+        assert members.index('Dosulepin') < members.index('Aliskiren')
+        assert 'href="/measures/lvp-dosulepin/"' in content
+        assert 'aria-current="page">Aliskiren</span>' in content
+
+    def test_measure_page_hides_members_from_another_status(self, client):
+        group = MeasureGroup.objects.create(
+            name='Pre-filled syringes',
+            slug='pre-filled-syringes',
+        )
+        _published_measure('atropine-pfs', 'Atropine PFS', group)
+        archived = _published_measure('old-pfs', 'Old PFS', group)
+        archived.status = 'archived'
+        archived.save(update_fields=['status'])
+
+        response = client.get('/measures/atropine-pfs/')
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'data-measure-group-members' not in content
+        assert 'Old PFS' not in content
 

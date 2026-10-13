@@ -51,15 +51,29 @@
                     <div>
                         <h1 class="text-2xl font-extrabold text-gray-900 sm:text-4xl">{{ measure_name }}</h1>
                         {% if measure_group or tags %}
-                        <div class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+                        <div class="mt-4 space-y-3">
                             {% if measure_group %}
-                            <div class="inline-flex items-baseline" data-measure-group="{{ measure_group.slug }}">
-                                <span class="text-sm font-medium text-gray-500 mr-2">Group:</span>
-                                <a href="{{ measure_group.url }}" class="text-sm font-medium text-gray-900 hover:text-oxford-700">{{ measure_group.name }}</a>
+                            <div data-measure-group="{{ measure_group.slug }}">
+                                <div class="inline-flex items-baseline">
+                                    <span class="text-sm font-medium text-gray-500 mr-2">Group:</span>
+                                    <a href="{{ measure_group.url }}" class="text-sm font-medium text-gray-900 hover:text-oxford-700">{{ measure_group.name }}</a>
+                                </div>
+                                {% if measure_group.members %}
+                                <p class="mt-1 text-xs leading-5 text-gray-500" data-measure-group-members>
+                                    {% for member in measure_group.members %}
+                                        {% if not forloop.first %}<span aria-hidden="true"> · </span>{% endif %}
+                                        {% if member.current %}
+                                        <span class="font-medium text-oxford-800" aria-current="page">{{ member.label }}</span>
+                                        {% else %}
+                                        <a href="{{ member.url }}" class="hover:text-gray-700" onclick="this.search=window.location.search">{{ member.label }}</a>
+                                        {% endif %}
+                                    {% endfor %}
+                                </p>
+                                {% endif %}
                             </div>
                             {% endif %}
                             {% if tags %}
-                            <div class="inline-flex flex-wrap items-center">
+                            <div class="flex flex-wrap items-center">
                                 <span class="text-sm font-medium text-gray-500 mr-2">Tags:</span>
                                 {% for tag in tags %}
                                 <span class="inline-flex items-center text-sm font-normal px-3 py-1 rounded-full cursor-help relative group mr-2"
