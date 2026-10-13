@@ -39,6 +39,7 @@
       ? measureHref(currentMeasure, $detailLinkQuery, trustSelected && !trustIncluded)
       : '',
   );
+  let headerFill = $derived(statusBadge ? '' : 'bg-oxford-50');
 
   function uniqueTags(measureList) {
     const seen = new Set();
@@ -83,7 +84,20 @@
     if (count < 2) return;
     slideIndex = (safeIndex + 1) % count;
   }
+
+  function showMeasureAt(index) {
+    slideIndex = index;
+  }
 </script>
+
+{#snippet groupTitle()}
+  <div class="w-full">
+    <h3 class="text-xl font-semibold text-gray-900 line-clamp-1 leading-tight">
+      {group.name}
+    </h3>
+    <p class="mt-0.5 text-sm text-gray-500">{countLabel}</p>
+  </div>
+{/snippet}
 
 <div
   class="flex flex-col h-full measure-group-card"
@@ -91,30 +105,22 @@
   data-group-count={count}
 >
   <div class="relative h-full">
-    <div class="rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col h-full border border-gray-100 {cardClass || 'bg-white'}">
+    <div class="rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col h-full border-2 border-oxford-200 {cardClass || 'bg-white'}">
       {#if anyNew}
         <div class="absolute -top-3 -right-3 z-10">
           <span class="inline-flex items-center justify-center text-4xl" aria-label="New measure">🆕</span>
         </div>
       {/if}
-      <div class="{cardHeaderClass} flex items-center rounded-t-xl relative min-h-[5rem]">
+      <div class="{cardHeaderClass} {headerFill} flex items-center rounded-t-xl relative h-[5rem]">
         {#if statusBadge}
           <div class="absolute top-0 left-0 right-0 flex items-center justify-center py-1 text-xs font-medium rounded-t-xl {statusBadgeClass}">
             {statusBadge}
           </div>
           <div class="w-full mt-6">
-            <h3 class="text-xl font-semibold text-gray-900 line-clamp-2 leading-tight">
-              {group.name}
-            </h3>
-            <p class="text-sm text-gray-500 mt-1">{countLabel}</p>
+            {@render groupTitle()}
           </div>
         {:else}
-          <div class="w-full">
-            <h3 class="text-xl font-semibold text-gray-900 line-clamp-2 leading-tight">
-              {group.name}
-            </h3>
-            <p class="text-sm text-gray-500 mt-1">{countLabel}</p>
-          </div>
+          {@render groupTitle()}
         {/if}
       </div>
       {#if tags.length > 0}
@@ -133,46 +139,63 @@
           </div>
         </div>
       {/if}
-      {#if currentMeasure}
-        <div class="px-4 pt-4 text-gray-600 flex-grow">
-          <div class="mb-2 flex items-center gap-2">
-            <button
-              type="button"
-              class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="Previous measure in this group"
-              onclick={showPreviousMeasure}
-              disabled={count < 2}
-            >
-              <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 010 1.06L9.06 10l3.73 3.71a.75.75 0 11-1.06 1.06l-4.25-4.25a.75.75 0 010-1.06l4.25-4.25a.75.75 0 011.06 0z" clip-rule="evenodd" />
-              </svg>
-            </button>
-            <div class="min-w-0 flex-1 text-center" aria-live="polite">
-              <a
-                href={currentMeasureHref}
-                class="block text-sm font-medium text-gray-900 hover:text-oxford-700 line-clamp-2"
+      {#if count > 0}
+        <div class="px-4 pt-3 pb-1 text-gray-600">
+          <p class="text-xs leading-5 text-gray-500">
+            {#each measures as measure, index (measure.slug)}
+              {#if index > 0}<span aria-hidden="true"> · </span>{/if}
+              <button
+                type="button"
+                class="text-left {index === safeIndex ? 'font-medium text-oxford-800' : 'hover:text-gray-700'}"
+                aria-current={index === safeIndex ? 'true' : undefined}
+                onclick={() => showMeasureAt(index)}
               >
-                {currentMeasure.short_name}
-              </a>
-              <p class="text-xs text-gray-500">
-                {safeIndex + 1} of {count}
-                {#if currentMeasure.status === 'archived'}
-                  <span class="ml-1 font-medium">Archived</span>
-                {/if}
-              </p>
-            </div>
-            <button
-              type="button"
-              class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="Next measure in this group"
-              onclick={showNextMeasure}
-              disabled={count < 2}
+                {measure.short_name}
+              </button>
+            {/each}
+          </p>
+        </div>
+      {/if}
+      {#if currentMeasure}
+        <div class="mb-2 flex items-center gap-2 px-4 text-gray-600" aria-live="polite">
+          <button
+            type="button"
+            class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-oxford-200 bg-white text-oxford-600 hover:bg-oxford-50 hover:border-oxford-300 transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="Previous measure in this group"
+            onclick={showPreviousMeasure}
+            disabled={count < 2}
+          >
+            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 010 1.06L9.06 10l3.73 3.71a.75.75 0 11-1.06 1.06l-4.25-4.25a.75.75 0 010-1.06l4.25-4.25a.75.75 0 011.06 0z" clip-rule="evenodd" />
+            </svg>
+          </button>
+          <div class="min-w-0 flex-1 text-center">
+            <a
+              href={currentMeasureHref}
+              class="text-sm font-medium text-gray-900 hover:text-oxford-700"
             >
-              <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 010-1.06L10.94 10 7.21 6.29a.75.75 0 111.06-1.06l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 01-1.06 0z" clip-rule="evenodd" />
-              </svg>
-            </button>
+              {currentMeasure.short_name}
+            </a>
+            <span class="ml-2 text-xs text-gray-500">
+              {safeIndex + 1} of {count}
+              {#if currentMeasure.status === 'archived'}
+                <span class="ml-1 font-medium">Archived</span>
+              {/if}
+            </span>
           </div>
+          <button
+            type="button"
+            class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-oxford-200 bg-white text-oxford-600 hover:bg-oxford-50 hover:border-oxford-300 transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="Next measure in this group"
+            onclick={showNextMeasure}
+            disabled={count < 2}
+          >
+            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 010-1.06L10.94 10 7.21 6.29a.75.75 0 111.06-1.06l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 01-1.06 0z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+        <div class="px-4 pb-4">
           {#key currentMeasure.slug}
             {#if currentMeasure.has_chart_data !== false}
               <div class="relative h-[280px] w-full overflow-hidden rounded-lg border border-gray-200">
@@ -207,14 +230,14 @@
             href={currentMeasureHref}
             class="inline-flex w-full justify-center items-center px-4 py-2 {linkClasses} rounded-lg transition-colors duration-200 font-medium"
           >
-            View measure
+            View measure details
           </a>
         {/if}
         <a
           href={groupHref}
           class="inline-flex w-full justify-center items-center px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors duration-200 font-medium text-sm"
         >
-          View measures
+          View measures in group
         </a>
       </div>
     </div>
