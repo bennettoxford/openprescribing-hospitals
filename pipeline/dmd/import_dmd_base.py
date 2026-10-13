@@ -5,7 +5,7 @@ logging.getLogger("prefect.client").setLevel(logging.WARNING)
 from prefect import flow, get_run_logger
 
 from pipeline.dmd.import_dmd_raw import import_dmd_raw
-from pipeline.dmd.import_dmd_full import import_dmd_full
+from pipeline.dmd.process_dmd_full import process_dmd_full
 from pipeline.dmd.import_dmd_supp import import_dmd_supp
 
 
@@ -15,7 +15,7 @@ def import_dmd_base():
     logger.info("Starting dm+d base import")
 
     import_dmd_raw()
-    import_dmd_full()
+    process_dmd_full()
     import_dmd_supp()
 
 
