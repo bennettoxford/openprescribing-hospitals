@@ -1,0 +1,18 @@
+vmp_code,vmp_name,vtm_code,vtm_name,bnf_code,df_ind,udfs,udfs_uom,unit_dose_uom,special,scmd_uom_name,who_route_codes
+35894911000001108,"Adrenaline (base) 1mg/10ml (1 in 10,000) dilute solution for injection ampoules",775784001,Adrenaline,0207030,Discrete,10,ml,ampoule,false,ml,P
+20122411000001103,"Adrenaline (base) 1mg/10ml (1 in 10,000) dilute solution for injection pre-filled syringes",775784001,Adrenaline,0207030,Discrete,10,ml,pre-filled disposable injection,false,ml,P
+39732011000001102,Amlodipine 5mg tablets,774557006,Amlodipine,0206020,Discrete,1,tablet,tablet,false,tablet,O
+39732411000001106,Amoxicillin 500mg capsules,774586009,Amoxicillin,0501013,Discrete,1,capsule,capsule,false,capsule,O
+39733011000001106,Atorvastatin 20mg tablets,773455007,Atorvastatin,0212000,Discrete,1,tablet,tablet,false,tablet,O
+40980811000001107,Avacopan 10mg capsules,1264466009,Avacopan,,Discrete,1,capsule,capsule,false,capsule,O
+41947011000001103,Co-amoxiclav 1000mg/200mg powder for solution for injection vials,774587000,Co-amoxiclav,0501013,Discrete,1,vial,vial,false,vial,P
+39732211000001107,Co-amoxiclav 500mg/125mg tablets,774587000,Co-amoxiclav,0501013,Discrete,1,tablet,tablet,false,tablet,O
+42270611000001107,Dosulepin 25mg capsules,775693007,Dosulepin,0403010,Discrete,1,capsule,capsule,false,capsule,O
+39020411000001106,Doxazosin 4mg modified-release tablets,773245005,Doxazosin,0205040,Discrete,1,tablet,tablet,false,tablet,O
+42209311000001101,Doxazosin 4mg tablets,773245005,Doxazosin,0205040,Discrete,1,tablet,tablet,false,tablet,O
+42084911000001109,Metformin 500mg tablets,776713006,Metformin,0601022,Discrete,1,tablet,tablet,false,tablet,O
+42356411000001102,Omeprazole 20mg gastro-resistant capsules,776991000,Omeprazole,0103050,Discrete,1,capsule,capsule,false,capsule,O
+7393611000001100,Paracetamol 1g/100ml solution for infusion vials,777067000,Paracetamol,0407010,Discrete,100,ml,vial,false,ml,P
+42109611000001109,Paracetamol 500mg tablets,777067000,Paracetamol,0407010,Discrete,1,tablet,tablet,false,tablet,O
+42381611000001104,Ramipril 5mg capsules,777395009,Ramipril,0205051,Discrete,1,capsule,capsule,false,capsule,O
+39113611000001102,Salbutamol 100micrograms/dose inhaler CFC free,777483005,Salbutamol,0301011,Discrete,1,dose,dose,false,dose,Inhal.aerosol

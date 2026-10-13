@@ -30,6 +30,17 @@ The repository contains the web application and the data pipeline:
 - Prefect and Google BigQuery for the data pipeline
 - `uv` for Python dependencies and npm for front-end dependencies
 
+## Local start
+
+Install Docker. Copy `.env.example` to `.env`. Then run:
+
+```bash
+docker compose up --build
+docker compose exec web python manage.py load_sample_data
+```
+
+See [DEVELOPERS.md](DEVELOPERS.md) for more details.
+
 ## Licence
 
 This project is available under the [MIT Licence](LICENSE).

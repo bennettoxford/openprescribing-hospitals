@@ -1,0 +1,22 @@
+who_route_code,who_route_description
+Chewing gum,Chewing gum
+Inhal,Inhalation
+Inhal.aerosol,Inhalation (aerosol)
+Inhal.powder,Inhalation (powder)
+Inhal.solution,Inhalation (solution)
+Instill.solution,Instillation (solution)
+N,Nasal
+O,Oral
+P,Parenteral
+R,Rectal
+SL,Sublingual
+TD,Transdermal
+V,Vaginal
+implant,Implant
+intravesical,Intravesical
+lamella,Lamella
+null,Null
+ointment,Ointment
+oral aerosol,Oral (aerosol)
+s.c. implant,Subcutaneous implant
+urethral,Urethral
