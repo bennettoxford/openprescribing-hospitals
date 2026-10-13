@@ -12,6 +12,7 @@ from prefect.blocks.system import Secret
 from prefect_gcp import GcpCredentials
 from jinja2 import Template
 from environs import Env
+from pipeline.dmd.extracts import TABLE_IDS
 from pipeline.setup import config
 from pathlib import Path
 from google.cloud import storage
@@ -44,7 +45,8 @@ def execute_bigquery_query_from_sql_file(sql_file: str):
         with open(sql_file, 'r') as file:
             template = Template(file.read())
             sql_query = template.render(
-                **{k: v for k, v in vars(config).items() if not k.startswith('_')}
+                **{k: v for k, v in vars(config).items() if not k.startswith('_')},
+                **TABLE_IDS,
             )
         
         query_job = client.query(sql_query)
