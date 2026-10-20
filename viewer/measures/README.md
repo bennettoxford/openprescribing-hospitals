@@ -36,6 +36,9 @@ archive_date: 2025-03-10 # Required when status is archived (YYYY-MM-DD)
 archive_description: | # Required when status is archived
     Reason for archiving 
 default_view_mode: trust # Default view mode (trust, icb, region, national)
+changelog: | # Optional. Each line is "- YYYY-MM-DD: description"
+    - 2025-05-07: First published
+    - 2026-10-20: Added product
 annotations:  # Optional data annotations - vertical lines with labels on charts
     - date: 2025-08-01
       label: "Annotation label"

@@ -63,6 +63,24 @@ class TestImportMeasures:
         valid_measure_data['y_axis_label'] = 'Units prescribed'
         validate_measure_yaml(valid_measure_data)
 
+    def test_validate_measure_yaml_valid_changelog(self, valid_measure_data):
+        valid_measure_data['changelog'] = (
+            '- 2025-05-07: First published\n'
+            '- 2026-10-20: Updated to exclude Trixeo inhaler from numerator '
+            'as this has low carbon propellant HFO-1234ze(E)\n'
+        )
+        validate_measure_yaml(valid_measure_data)
+
+    def test_validate_measure_yaml_invalid_changelog_line(self, valid_measure_data):
+        valid_measure_data['changelog'] = 'First published on 2025-05-07'
+        with pytest.raises(SchemaError, match='YYYY-MM-DD'):
+            validate_measure_yaml(valid_measure_data)
+
+    def test_validate_measure_yaml_invalid_changelog_date(self, valid_measure_data):
+        valid_measure_data['changelog'] = '- 2025-13-07: First published'
+        with pytest.raises(SchemaError, match='YYYY-MM-DD'):
+            validate_measure_yaml(valid_measure_data)
+
     def test_validate_measure_yaml_invalid_default_view_mode(self, valid_measure_data):
         valid_measure_data['default_view_mode'] = 'invalid_mode'
         with pytest.raises(SchemaError):
@@ -155,6 +173,7 @@ default_view_mode: icb
         measure = Measure.objects.get(short_name='test-measure')
         assert measure.name == 'Test Measure'
         assert measure.default_view_mode == 'icb'
+        assert measure.changelog is None
         assert set(measure.tags.values_list('name', flat=True)) == {'test-tag-1', 'test-tag-2'}
 
     @pytest.mark.django_db
@@ -229,6 +248,84 @@ status: in_development
         measure = Measure.objects.get(short_name='test-measure-short')
         assert measure.short_description == 'Brief summary for list view'
         assert measure.description == 'Full description text'
+
+    @pytest.mark.django_db
+    def test_command_imports_changelog_when_present(self, tmp_path, measure_tags):
+        measures_dir = tmp_path / 'measures'
+        measures_dir.mkdir()
+
+        test_measure_dir = measures_dir / 'test-measure-changelog'
+        test_measure_dir.mkdir()
+
+        today = datetime.now().date()
+        next_review = (today + timedelta(days=180)).strftime('%Y-%m-%d')
+        changelog = (
+            '- 2025-05-07: First published\n'
+            '- 2026-10-20: Updated to exclude Trixeo inhaler from numerator\n'
+        )
+
+        yaml_content = f"""
+name: Test Measure Changelog
+short_name: test-measure-changelog
+description: Test description
+why_it_matters: Test why it matters
+how_is_it_calculated: Test calculation method
+tags: ['test-tag-1']
+quantity_type: dose
+authored_by: Test Author
+checked_by: Test Checker
+date_reviewed: '{today}'
+next_review: '{next_review}'
+status: in_development
+changelog: |
+  - 2025-05-07: First published
+  - 2026-10-20: Updated to exclude Trixeo inhaler from numerator
+"""
+        (test_measure_dir / 'definition.yaml').write_text(yaml_content)
+        (test_measure_dir / 'vmps.sql').write_text('')
+
+        with patch('viewer.management.commands.import_measures.Path') as mock_path:
+            mock_path.return_value.parent.parent.parent = tmp_path
+            call_command('import_measures', 'test-measure-changelog')
+
+        measure = Measure.objects.get(short_name='test-measure-changelog')
+        assert measure.changelog == changelog
+
+    @pytest.mark.django_db
+    def test_command_rejects_invalid_changelog(self, tmp_path, measure_tags):
+        measures_dir = tmp_path / 'measures'
+        measures_dir.mkdir()
+
+        test_measure_dir = measures_dir / 'test-measure-bad-changelog'
+        test_measure_dir.mkdir()
+
+        today = datetime.now().date()
+        next_review = (today + timedelta(days=180)).strftime('%Y-%m-%d')
+
+        yaml_content = f"""
+name: Test Measure Bad Changelog
+short_name: test-measure-bad-changelog
+description: Test description
+why_it_matters: Test why it matters
+how_is_it_calculated: Test calculation method
+tags: ['test-tag-1']
+quantity_type: dose
+authored_by: Test Author
+checked_by: Test Checker
+date_reviewed: '{today}'
+next_review: '{next_review}'
+status: in_development
+changelog: |
+  Updated the numerator
+"""
+        (test_measure_dir / 'definition.yaml').write_text(yaml_content)
+        (test_measure_dir / 'vmps.sql').write_text('')
+
+        with patch('viewer.management.commands.import_measures.Path') as mock_path:
+            mock_path.return_value.parent.parent.parent = tmp_path
+            call_command('import_measures', 'test-measure-bad-changelog')
+
+        assert not Measure.objects.filter(short_name='test-measure-bad-changelog').exists()
 
     @pytest.mark.django_db
     def test_command_imports_y_axis_label_when_present(self, tmp_path, measure_tags):
