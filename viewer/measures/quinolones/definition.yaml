@@ -1,0 +1,20 @@
+name: Quinolones as a proportion of all antibiotics
+short_name: Quinolones as a proportion of all antibiotics
+short_description: 
+  The percentage of oral or parenteral antibiotics issued as quinolones.
+why_it_matters: |
+  MHRA alert. Side effects
+how_is_it_calculated: >
+  tbc
+tags:
+  - Safety
+  - Antimicrobial stewardship
+quantity_type: ddd
+y_axis_label: '% Oral anticoagulants that are not DOACs'
+lower_is_better: true
+authored_by: Vicky Speed # Name of original author
+checked_by: tbc # Name of clinical/technical reviewer
+date_reviewed: 2026-10-20 # Date of last review (YYYY-MM-DD)
+next_review: 2027-10-20 # Date of next scheduled review (YYYY-MM-DD)
+first_published: 2026-10-20 # Date of first publication (YYYY-MM-DD)
+status: preview
