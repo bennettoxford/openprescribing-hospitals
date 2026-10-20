@@ -1,7 +1,6 @@
 WITH measure_vmps AS (
     SELECT DISTINCT
         vmp.id,
-
         CASE
             WHEN atc.code LIKE 'J01M%' --quinolones 
                  AND (
@@ -11,13 +10,11 @@ WITH measure_vmps AS (
             THEN 1
             ELSE 0
         END AS numerator,
-
         CASE
             WHEN atc.code LIKE 'J01%' -- atc code for all abx
             THEN 1
             ELSE 0
         END AS denominator
-
     FROM viewer_vmp vmp
     LEFT JOIN viewer_vtm vtm
         ON vtm.id = vmp.vtm_id
