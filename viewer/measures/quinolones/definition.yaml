@@ -1,10 +1,9 @@
 name: Quinolones as a proportion of all antibiotics
 short_name: Quinolones as a proportion of all antibiotics
-short_description: |
-  The percentage of oral or parenteral antibiotics issued as quinolones.
+description: Percentage of antibiotics issued as quinolones
 why_it_matters: |
   MHRA alert. Side effects
-how_is_it_calculated: |
+how_is_it_calculated: >
   tbc
 tags:
   - Safety
