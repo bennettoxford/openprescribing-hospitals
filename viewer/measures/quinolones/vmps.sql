@@ -36,3 +36,8 @@ WITH measure_vmps AS (
         ON ofr.id = vofr.ontformroute_id
     GROUP BY vmp.id
 )
+SELECT
+    id,
+    numerator,
+    denominator
+FROM measure_vmps;
