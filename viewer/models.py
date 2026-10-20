@@ -619,6 +619,11 @@ class Measure(models.Model):
         blank=True,
         help_text="Optional override for chart y-axis label; when unset, the label is derived from quantity type and products",
     )
+    changelog = models.TextField(
+        null=True,
+        blank=True,
+        help_text="Optional history of measure changes. Each line is '- YYYY-MM-DD: description'.",
+    )
     measure_group = models.ForeignKey(
         MeasureGroup,
         null=True,
