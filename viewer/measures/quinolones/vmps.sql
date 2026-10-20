@@ -1,20 +1,28 @@
 WITH measure_vmps AS (
-    SELECT DISTINCT
+    SELECT
         vmp.id,
-        CASE
-            WHEN atc.code LIKE 'J01M%' --quinolones 
-                 AND (
-                     ofr.name LIKE '%.intravenous' --we only want systemic preparations be that oral or parenteral
-                     OR ofr.name LIKE '%.oral'
-                 )
-            THEN 1
-            ELSE 0
-        END AS numerator,
-        CASE
-            WHEN atc.code LIKE 'J01%' -- atc code for all abx
-            THEN 1
-            ELSE 0
-        END AS denominator
+        MAX(
+            CASE
+                WHEN atc.code LIKE 'J01M%'
+                     AND (
+                         ofr.name LIKE '%.intravenous'
+                         OR ofr.name LIKE '%.oral'
+                     )
+                THEN 1
+                ELSE 0
+            END
+        ) AS numerator,
+        MAX(
+            CASE
+                WHEN atc.code LIKE 'J01%'
+                     AND (
+                         ofr.name LIKE '%.intravenous'
+                         OR ofr.name LIKE '%.oral'
+                     )
+                THEN 1
+                ELSE 0
+            END
+        ) AS denominator
     FROM viewer_vmp vmp
     LEFT JOIN viewer_vtm vtm
         ON vtm.id = vmp.vtm_id
@@ -26,4 +34,5 @@ WITH measure_vmps AS (
         ON vofr.vmp_id = vmp.id
     LEFT JOIN viewer_ontformroute ofr
         ON ofr.id = vofr.ontformroute_id
+    GROUP BY vmp.id
 )
