@@ -1,3 +1,4 @@
+import re
 import yaml
 from pathlib import Path
 from django.core.management.base import BaseCommand
@@ -90,6 +91,7 @@ class Command(BaseCommand):
                     'lower_is_better': data.get('lower_is_better', None),
                     'denominator_type': data.get('denominator') or None,
                     'y_axis_label': data.get('y_axis_label') or None,
+                    'changelog': data.get('changelog') or None,
                     'measure_group': _resolve_measure_group(data.get('measure_group')),
                 }
             )
@@ -124,6 +126,22 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.WARNING(f'Invalid annotation data for {measure.slug}: {str(e)}')
                 )
+
+_CHANGELOG_LINE = re.compile(r"^- (\d{4}-\d{2}-\d{2}): \S.*$")
+
+
+def validate_changelog(value):
+    if not value.strip():
+        return False
+    for line in value.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        match = _CHANGELOG_LINE.match(stripped)
+        if match is None or not validate_date_format(match.group(1)):
+            return False
+    return True
+
 
 def validate_date_format(date_val):
     if date_val == '':
@@ -352,6 +370,11 @@ def validate_measure_yaml(data, group_names=None):
             ),
         ),
         Optional('y_axis_label'): And(str, error='y_axis_label must be a string'),
+        Optional('changelog'): And(
+            str,
+            validate_changelog,
+            error='changelog entries must use "- YYYY-MM-DD: description"',
+        ),
         Optional('short_description'): And(str, error='short_description must be a string'),
         Optional('measure_group'): Or(
             None,
