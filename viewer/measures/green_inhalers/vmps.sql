@@ -2,6 +2,7 @@ SELECT DISTINCT
     vmp.id as vmp_id,
     CASE 
         WHEN  ofr.name = 'pressurizedinhalation.inhalation' -- only pMDI formulations in numerator
+            AND NOT vmp.code = '39343511000001103' -- exclude Trixeo inhaler as this has low carbon propellant HFO-1234ze(E)
         THEN 'numerator'
         ELSE 'denominator'
     END as vmp_type
