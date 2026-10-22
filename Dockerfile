@@ -1,5 +1,5 @@
 # Stage 1: Build Node.js dependencies and Svelte components
-FROM node:20 as node-builder
+FROM node:22.23.4 as node-builder
 
 WORKDIR /app
 
@@ -18,12 +18,13 @@ RUN npm run build
 # Stage 2: Set up Python environment and run Django
 FROM python:3.11-slim
 
-COPY --from=ghcr.io/astral-sh/uv:0.11.2 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.13.4 /uv /uvx /bin/
 
 WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
     libpq-dev \
     gcc \
     && rm -rf /var/lib/apt/lists/*
