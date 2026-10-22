@@ -18,7 +18,7 @@ services:
         condition: service_healthy
 
   vite:
-    image: node:22
+    image: node:22.23.4
     working_dir: /app
     volumes:
       - .:/app

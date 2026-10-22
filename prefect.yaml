@@ -25,7 +25,7 @@ deployments:
       branch: main
   - prefect.deployments.steps.run_shell_script:
       directory: '{{ clone-step.directory }}'
-      script: /bin/bash -lc 'set -euo pipefail; python -m pip install --upgrade --root-user-action ignore uv; python -m uv export --locked --group pipeline --no-dev --no-emit-package prefect -o requirements.prefect.txt; python -m uv pip install --system --no-deps -r requirements.prefect.txt'
+      script: /bin/bash -lc 'set -euo pipefail; uv export --locked --group pipeline --no-dev --no-emit-package prefect -o requirements.prefect.txt; uv pip install --system --no-deps -r requirements.prefect.txt'
 - name: scmd-import
   description: SCMD pipeline - runs import flows only
   version:
@@ -52,7 +52,7 @@ deployments:
       branch: main
   - prefect.deployments.steps.run_shell_script:
       directory: '{{ clone-step.directory }}'
-      script: /bin/bash -lc 'set -euo pipefail; python -m pip install --upgrade --root-user-action ignore uv; python -m uv export --locked --group pipeline --no-dev --no-emit-package prefect -o requirements.prefect.txt; python -m uv pip install --system --no-deps -r requirements.prefect.txt'
+      script: /bin/bash -lc 'set -euo pipefail; uv export --locked --group pipeline --no-dev --no-emit-package prefect -o requirements.prefect.txt; uv pip install --system --no-deps -r requirements.prefect.txt'
 - name: scmd-load-only
   description: SCMD pipeline - runs load flows only
   version:
@@ -79,4 +79,4 @@ deployments:
       branch: main
   - prefect.deployments.steps.run_shell_script:
       directory: '{{ clone-step.directory }}'
-      script: /bin/bash -lc 'set -euo pipefail; python -m pip install --upgrade --root-user-action ignore uv; python -m uv export --locked --group pipeline --no-dev --no-emit-package prefect -o requirements.prefect.txt; python -m uv pip install --system --no-deps -r requirements.prefect.txt'
+      script: /bin/bash -lc 'set -euo pipefail; uv export --locked --group pipeline --no-dev --no-emit-package prefect -o requirements.prefect.txt; uv pip install --system --no-deps -r requirements.prefect.txt'
