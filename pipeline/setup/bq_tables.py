@@ -1,7 +1,6 @@
-from dataclasses import dataclass
-from typing import List
 from google.cloud import bigquery
 
+from pipeline.setup.table_spec import TableSpec
 from pipeline.setup.config import (
     PROJECT_ID,
     DATASET_ID,
@@ -47,21 +46,6 @@ from pipeline.setup.config import (
     WHO_DDD_COMBINED_PRODUCTS_TABLE_ID,
     DDD_COMBINED_PRODUCTS_LOGIC_TABLE_ID,
 )
-
-
-@dataclass
-class TableSpec:
-    project_id: str
-    dataset_id: str
-    table_id: str
-    schema: List[bigquery.SchemaField]
-    description: str = ""
-    partition_field: str = None
-    cluster_fields: List[str] = None
-
-    @property
-    def full_table_id(self) -> str:
-        return f"{self.project_id}.{self.dataset_id}.{self.table_id}"
 
 
 ORGANISATION_TABLE_SPEC = TableSpec(

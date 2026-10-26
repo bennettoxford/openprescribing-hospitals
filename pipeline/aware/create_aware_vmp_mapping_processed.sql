@@ -8,15 +8,15 @@ matched_vtms AS ( -- This query does the fuzzy matching of Antibiotic name to VT
     aware.atc_route,
     aware.aware_2019,
     aware.aware_2024,
-    vtm.nm,
-    vtm.id,
+    vtm.vtm_name AS nm,
+    vtm.vtm_code AS id,
     CASE
-      WHEN aware.Antibiotic = vtm.nm THEN 'DIRECT'
+      WHEN aware.Antibiotic = vtm.vtm_name THEN 'DIRECT'
       ELSE 'ASSUMED'
     END AS match_type
   FROM `ebmdatalab.chris.aware_list_extended` aware
-  LEFT JOIN `ebmdatalab.dmd.vtm` vtm 
-    ON vtm.nm LIKE CONCAT('%', aware.Antibiotic, '%')
+  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_VTM_TABLE_ID }}` vtm
+    ON vtm.vtm_name LIKE CONCAT('%', aware.Antibiotic, '%')
   WHERE vtm.invalid IS NOT TRUE
 ),
 
@@ -35,24 +35,29 @@ duplicate_vtms AS ( -- This produces a list of duplicate rows where a direct mat
 
 vmp_with_route AS (
   SELECT DISTINCT
-    vmp.id AS id,
-    vmp.vtm AS vtm,
-    vmp.nm AS nm,
+    vmp.vmp_code AS id,
+    vmp.vtm_code AS vtm,
+    vmp.vmp_name AS nm,
     COALESCE(sroute.route, routelookup.who_route) AS vmp_atc_route
-  FROM `ebmdatalab.dmd.vmp` vmp
-  LEFT JOIN dmd.ont ont ON vmp.id = ont.vmp
-  LEFT JOIN dmd.ontformroute ofr ON ont.form = ofr.cd
-  LEFT JOIN chris.vmp_single_route_identifier sroute ON vmp.id = sroute.vmp_id
-  LEFT JOIN `scmd_dmd_views.dmd_to_atc_route` routelookup ON ofr.descr = routelookup.dmd_ofr
-  WHERE ofr.descr NOT LIKE '%.auricular'
-  AND ofr.descr NOT LIKE '%.cutaneous'
-  AND ofr.descr NOT LIKE '%.ophthalmic'
-  AND ofr.descr NOT LIKE '%.oromucosal'
-  AND ofr.descr NOT LIKE '%.intralesional'
-  AND ofr.descr NOT LIKE '%.nasal'
-  AND ofr.descr NOT LIKE '%.gingival'
-  AND ofr.descr != 'gel.vaginal'
-  AND ofr.descr != 'cream.vaginal'
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_VMP_TABLE_ID }}` vmp
+  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_ONT_TABLE_ID }}` ont
+    ON vmp.vmp_code = ont.vmp_code
+  LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_ONT_FORM_ROUTE_TABLE_ID }}` ofr
+    ON ont.form_code = ofr.ont_form_route_code
+  LEFT JOIN chris.vmp_single_route_identifier sroute
+    ON vmp.vmp_code = CAST(sroute.vmp_id AS STRING)
+  LEFT JOIN `scmd_dmd_views.dmd_to_atc_route` routelookup
+    ON ofr.description = routelookup.dmd_ofr
+  WHERE vmp.invalid IS NOT TRUE
+  AND ofr.description NOT LIKE '%.auricular'
+  AND ofr.description NOT LIKE '%.cutaneous'
+  AND ofr.description NOT LIKE '%.ophthalmic'
+  AND ofr.description NOT LIKE '%.oromucosal'
+  AND ofr.description NOT LIKE '%.intralesional'
+  AND ofr.description NOT LIKE '%.nasal'
+  AND ofr.description NOT LIKE '%.gingival'
+  AND ofr.description != 'gel.vaginal'
+  AND ofr.description != 'cream.vaginal'
 ),
 
 base_aware_mapping AS (
@@ -127,18 +132,18 @@ scmd_vmps AS (
 
 -- Get current VTM and VMP names from DMD
 current_vtm_names AS (
-  SELECT 
-    CAST(id AS STRING) as vtm_id,
-    nm as vtm_name
-  FROM `ebmdatalab.dmd.vtm`
+  SELECT
+    vtm_code AS vtm_id,
+    vtm_name
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_VTM_TABLE_ID }}`
   WHERE invalid IS NOT TRUE
 ),
 
 current_vmp_names AS (
-  SELECT 
-    CAST(id AS STRING) as vmp_id,
-    nm as vmp_name
-  FROM `ebmdatalab.dmd.vmp`
+  SELECT
+    vmp_code AS vmp_id,
+    vmp_name
+  FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_VMP_TABLE_ID }}`
   WHERE invalid IS NOT TRUE
 ),
 

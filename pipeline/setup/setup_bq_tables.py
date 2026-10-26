@@ -2,6 +2,8 @@ from prefect import flow, task, get_run_logger
 from google.cloud import bigquery
 from google.api_core import exceptions
 
+from pipeline.dmd.extracts import raw_specs
+from pipeline.setup.config import DATASET_ID, PROJECT_ID
 from pipeline.setup.bq_tables import (
     ORGANISATION_TABLE_SPEC,
     CANCER_ALLIANCE_CATEGORISATIONS_TABLE_SPEC,
@@ -109,6 +111,7 @@ def setup_tables():
         VTM_INGREDIENTS_TABLE_SPEC,
         DMD_HISTORY_TABLE_SPEC,
         DMD_UOM_TABLE_SPEC,
+        *raw_specs(PROJECT_ID, DATASET_ID).values(),
         WHO_DDD_ALTERATIONS_TABLE_SPEC,
         WHO_ATC_ALTERATIONS_TABLE_SPEC,
         DDD_REFERS_TO_TABLE_SPEC,
