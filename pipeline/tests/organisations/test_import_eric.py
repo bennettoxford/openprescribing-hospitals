@@ -121,6 +121,32 @@ def test_download_eric_data_success(mock_requests_get, sample_eric_csv_content):
     assert "Trust Type" in result.columns
 
 
+def test_download_eric_data_fails_when_headers_are_missing(mock_requests_get):
+    content = "field_a,field_b\n1,2\n"
+    mock_response = Mock(text=content, content=content.encode())
+    mock_requests_get.return_value = mock_response
+
+    with pytest.raises(ValueError, match="row 1 or row 2"):
+        download_eric_data("https://example.com/eric-data.csv")
+
+
+def test_download_eric_data_uses_second_row_headers(mock_requests_get):
+    content = """,,,,T01_01A
+Trust Code,Trust Name,Commissioning Region,Trust Type,Number of sites
+R0A,Manchester University NHS Foundation Trust,North West,ACUTE - TEACHING,4
+"""
+    mock_response = Mock(text=content, content=content.encode())
+    mock_requests_get.return_value = mock_response
+
+    result = download_eric_data("https://example.com/eric-data.csv")
+
+    assert result is not None
+    assert result.iloc[0]["Trust Code"] == "R0A"
+    cleaned = clean_eric_data(result, "2025_26")
+    assert cleaned["trust_code"].tolist() == ["R0A"]
+    assert cleaned["trust_type"].tolist() == ["Acute - Teaching"]
+
+
 def test_check_existing_eric_data_exists(mock_bigquery_client):
     mock_client = MagicMock()
     mock_bigquery_client.return_value = mock_client

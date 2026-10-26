@@ -112,13 +112,20 @@ def download_eric_data(csv_url: str) -> Optional[pd.DataFrame]:
         logger.info(f"Downloaded {len(response.content)} bytes")
         
         try:
-            
             csv_content = StringIO(response.text)
             df = pd.read_csv(csv_content)
-            
+            if not any("Trust Code" in str(column) for column in df.columns):
+                second_row = df.iloc[0].tolist() if len(df) else []
+                if not any("Trust Code" in str(value) for value in second_row):
+                    raise ValueError(
+                        "ERIC trust file has no Trust Code header on row 1 or row 2"
+                    )
+                logger.info("Trust Code is absent from row 1. Using row 2 as the column names")
+                df.columns = second_row
+                df = df.iloc[1:].reset_index(drop=True)
+
             logger.info(f"Downloaded ERIC data with {len(df)} rows and {len(df.columns)} columns")
             return df
-            
         except Exception as e:
             logger.error(f"Failed to parse CSV: {e}")
             raise
@@ -126,6 +133,8 @@ def download_eric_data(csv_url: str) -> Optional[pd.DataFrame]:
     except requests.exceptions.RequestException as e:
         logger.error(f"Network error downloading ERIC data: {e}")
         return None
+    except ValueError:
+        raise
     except Exception as e:
         logger.error(f"Unexpected error downloading ERIC data: {e}")
         return None
