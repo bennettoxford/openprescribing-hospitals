@@ -12,7 +12,7 @@ why_it_matters: |
 how_is_it_calculated: |
     Midazolam products are identified using [Virtual Therapeutic Moiety (VTM)](/faq/#what-is-a-vtm) codes. These products are
     then filtered to only include injectable midazolam products (excluding oromucosal injections). These products are assigned 
-    to the numerator if their strength is not 2mg/2ml or 5ml/5ml. The total number of [unit doses](https://hospitals.openprescribing.net/faq/#what-is-unit-dose-quantity) 
+    to the numerator if their strength is not 2mg/2ml or 5mg/5ml. The total number of [unit doses](https://hospitals.openprescribing.net/faq/#what-is-unit-dose-quantity) 
     of high strength injectable midazolam is divided by the total number of unit doses of all injectable midazolam products and 
     then multiplied by 100 to obtain a percentage each month. 
 tags:
