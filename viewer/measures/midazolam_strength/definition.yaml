@@ -2,7 +2,7 @@ name: High strength midazolam # Full name of the measure/indicator
 short_name: High strength midazolam # Abbreviated name or acronym
 description: Percentage of high strength midazolam of all midazolam products # Brief 1-2 sentence description of what this measure identifies
 why_it_matters: |  
-    Midazolam is available in different concentrations, and selecting a high-strength preparation instead of the intended low-strength preparation can result in accidental overdose. 
+    Midazolam is available in a range of concentrations, and selecting a high-strength preparation instead of the intended low-strength preparation can result in accidental overdose. 
     
     [The mis-selection of high strength midazolam during conscious sedation](https://www.england.nhs.uk/wp-content/uploads/2020/11/2018-Never-Events-List-updated-February-2021.pdf) is catergorised as an NHS Never Event. 
     
