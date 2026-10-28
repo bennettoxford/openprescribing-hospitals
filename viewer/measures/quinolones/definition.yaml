@@ -1,6 +1,6 @@
-name: Fluoroquinolones as a percentage of all antibiotics
-short_name: Fluoroquinolones as a percentage of all antibiotics
-description: Percentage of antibiotics issued as fluoroquinolones
+name: Fluoroquinolones as a percentage of all systemic antibiotics
+short_name: Fluoroquinolones as a percentage of all systemic antibiotics
+description: Percentage of systemic antibiotics issued as fluoroquinolones
 why_it_matters: |
   The [MHRA advise](https://www.gov.uk/drug-safety-update/fluoroquinolone-antibiotics-must-now-only-be-prescribed-when-other-commonly-recommended-antibiotics-are-inappropriate) that due to the risk of disabling and potentially long-lasting or irreversible side effects, systemic fluoroquinolones must only be used in situations when other antibiotics, that are commonly recommended for the infection, are inappropriate.
 how_is_it_calculated: >
