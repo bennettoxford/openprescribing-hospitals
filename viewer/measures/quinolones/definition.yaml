@@ -1,10 +1,10 @@
-name: Quinolones as a percentage of all antibiotics
-short_name: Quinolones as a percentage of all antibiotics
-description: Percentage of antibiotics issued as quinolones
+name: Fluoroquinolones as a percentage of all systemic antibiotics
+short_name: Fluoroquinolones as a percentage of all systemic antibiotics
+description: Percentage of systemic antibiotics issued as fluoroquinolones
 why_it_matters: |
   The [MHRA advise](https://www.gov.uk/drug-safety-update/fluoroquinolone-antibiotics-must-now-only-be-prescribed-when-other-commonly-recommended-antibiotics-are-inappropriate) that due to the risk of disabling and potentially long-lasting or irreversible side effects, systemic fluoroquinolones must only be used in situations when other antibiotics, that are commonly recommended for the infection, are inappropriate.
 how_is_it_calculated: >
-  The number of defined daily doses (DDDs) of oral or parenteral quinolone antibiotics (ATC J01M) prescribed as a percentage    of all oral or parenteral antibiotic DDDs (ATC J01).
+  The number of defined daily doses (DDDs) of systemic fluoroquinolones antibiotics (ATC J01M) prescribed as a percentage of all systemic antibiotic DDDs (ATC J01).
 tags:
   - Safety
   - Antimicrobial stewardship
@@ -12,7 +12,7 @@ quantity_type: ddd
 y_axis_label: '% Fluoroquinolones that are not DOACs'
 lower_is_better: true
 authored_by: Vicky Speed # Name of original author
-checked_by: tbc # Name of clinical/technical reviewer
+checked_by: Chris Wood # Name of clinical/technical reviewer
 date_reviewed: 2026-10-20 # Date of last review (YYYY-MM-DD)
 next_review: 2027-10-20 # Date of next scheduled review (YYYY-MM-DD)
 first_published: 2026-10-20 # Date of first publication (YYYY-MM-DD)
