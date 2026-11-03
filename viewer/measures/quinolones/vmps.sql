@@ -35,3 +35,4 @@ AND (
         '774587000' -- VTM for co-amoxiclav to account for product without dmd -> ATC link
     ) 
 )
+AND NOT vtm.vtm = '776725009' -- VTM for methenamine - excluded as considered a urinary antiseptic rather than an antibiotic
