@@ -7,9 +7,9 @@ SELECT DISTINCT
             WHERE vis.vmp_id = vmp.id
               AND vis.strnt_nmrtr_uom_name = 'gram'
               AND vis.strnt_dnmtr_uom_name = 'ml'
-              AND (vis.strnt_nmrtr_val / vis.strnt_dnmtr_val) * 1000 = 1
+              AND (vis.strnt_nmrtr_val / vis.strnt_dnmtr_val) * 1000 = 1 -- only where strength is 1mg/ml
         )
-        AND vmp.udfs IN (2, 5)
+        AND vmp.udfs IN (2, 5) -- only where unit dose is 2ml or 5ml
         THEN 'denominator'
         ELSE 'numerator'
     END AS vmp_type
