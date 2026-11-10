@@ -5,8 +5,8 @@ SELECT DISTINCT
             SELECT 1
             FROM viewer_vmpingredientstrength vis
             WHERE vis.vmp_id = vmp.id
-              AND vis.strnt_nmrtr_uom_name = 'gram'
-              AND vis.strnt_dnmtr_uom_name = 'ml'
+              AND vis.strnt_nmrtr_uom_name = 'gram' -- as a precaution - but in OPH pipeline all strnt_nmrtr converted to grams
+              AND vis.strnt_dnmtr_uom_name = 'ml' -- as a precaution - but in OPH pipeline all strnt_dnmtr converted to ml
               AND (vis.strnt_nmrtr_val / vis.strnt_dnmtr_val) * 1000 = 1 -- only where strength is 1mg/ml
         )
         AND vmp.udfs IN (2, 5) -- only where unit dose is 2ml or 5ml
