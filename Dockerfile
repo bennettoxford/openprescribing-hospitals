@@ -1,5 +1,5 @@
 # Stage 1: Build Node.js dependencies and Svelte components
-FROM node:22.23.4 as node-builder
+FROM node:22.23.5 as node-builder
 
 WORKDIR /app
 
