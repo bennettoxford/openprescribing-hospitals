@@ -70,6 +70,6 @@ This file lists all NHS Trusts in scope for the analysis, with their total issui
 
 You are welcome to use data or graphs from this site in your academic output with attribution. Please cite:
 
-**Fisher L, Wood C, Brown A, Croker R, Black S, Curtis HJ, et al. OpenPrescribing Hospitals: An open access analytics platform for hospital medicines use in England. medRxiv; 2025. https://doi.org/10.1101/2025.11.13.25340060.**
+**Fisher L, Wood C, Brown A, Croker R, Black S, Curtis HJ, et al. OpenPrescribing Hospitals, an Open Access Analytics Platform for Hospital Medicines Use in England: Development and Implementation Study. JMIR Form Res. 2026;10:e92041. doi.org/10.2196/92041.**
 
 If you use data or images from this site online or in a report, please link back to us. Your readers will then be able to see live updates to the data you are interested in, and explore other queries for themselves.
