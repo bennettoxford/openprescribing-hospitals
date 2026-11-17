@@ -212,8 +212,8 @@ class TrustType(models.Model):
 
 
 class CancerAlliance(models.Model):
-    """Cancer Alliance from ONS boundaries (July 2023)"""
-    code = models.CharField(max_length=20, unique=True, help_text="Cancer Alliance code")
+    """NHS Cancer Alliance"""
+    code = models.CharField(max_length=20, unique=True, help_text="Cancer Alliance ODS code")
     name = models.CharField(max_length=255, help_text="Cancer Alliance name")
 
     def __str__(self):
@@ -245,7 +245,7 @@ class Organisation(models.Model):
         null=True,
         blank=True,
         related_name="organisations",
-        help_text="Cancer Alliance from ONS boundaries (postcode lookup)",
+        help_text="Cancer Alliance from the ODS-to-Cancer Alliance mapping",
     )
     in_shelford_group = models.BooleanField(
         default=False,
