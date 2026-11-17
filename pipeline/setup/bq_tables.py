@@ -131,7 +131,7 @@ CANCER_ALLIANCE_CATEGORISATIONS_TABLE_SPEC = TableSpec(
     project_id=PROJECT_ID,
     dataset_id=DATASET_ID,
     table_id=CANCER_ALLIANCE_CATEGORISATIONS_TABLE_ID,
-    description="Cancer Alliance categorisation per organisation from ONS boundaries (postcode lookup)",
+    description="Cancer Alliance categorisation per organisation from the curated ODS-to-Cancer Alliance mapping",
     schema=[
         bigquery.SchemaField(
             "ods_code", "STRING", mode="REQUIRED", description="ODS code of the organisation"
@@ -140,13 +140,13 @@ CANCER_ALLIANCE_CATEGORISATIONS_TABLE_SPEC = TableSpec(
             "cancer_alliance_code",
             "STRING",
             mode="NULLABLE",
-            description="Cancer Alliance code from ONS July 2023 boundaries",
+            description="ODS code of the Cancer Alliance",
         ),
         bigquery.SchemaField(
             "cancer_alliance_name",
             "STRING",
             mode="NULLABLE",
-            description="Cancer Alliance name from ONS July 2023 boundaries",
+            description="Name of the Cancer Alliance",
         ),
         bigquery.SchemaField(
             "notes",
