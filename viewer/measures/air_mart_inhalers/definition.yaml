@@ -14,6 +14,8 @@ how_is_it_calculated: |
     Some inhalers may be used off-label for AIR/MART in clinical practice. However, for the purposes of this measure, they are included in the non-AIR/MART group.
 
     We exclude triple therapy inhalers from the measure, as they are more commonly used in COPD.
+
+    Please note: OpenPrescribing Hospitals measures have a consistent way of visualising measures, where 'lower is better' and therefore in this case we show the proportion of corticosteroid containing inhaler doses which are NOT licensed for AIR/MART therapy.
 tags:
     # List relevant categories (e.g. Safety, Prescribing, Monitoring)
     - Respiratory
