@@ -15,6 +15,7 @@ from pipeline.quantity.check_quantity_calculations import check_quantity_calcula
 from pipeline.quantity.calculate_quantities import calculate_quantities
 from pipeline.aware.create_aware_vmp_mapping_processed import create_aware_vmp_mapping
 from pipeline.mappings.import_mappings import import_mappings
+from pipeline.mappings.import_who_routes import import_who_routes
 from pipeline.scmd.process_scmd import process_scmd
 
 from pipeline.load_data.load_data import load_data
@@ -42,6 +43,7 @@ def scmd_pipeline(run_import_flows: bool = True, run_load_flows: bool = True):
         import_mappings()
         process_scmd()
         filter_dmd_scmd()
+        import_who_routes()
         populate_vmp_table()
         check_quantity_calculations()
         calculate_quantities()
