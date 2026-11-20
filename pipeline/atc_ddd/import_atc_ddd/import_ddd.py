@@ -21,10 +21,10 @@ TEMP_DIR = Path("temp/ddd")
 
 DDD_COLUMN_MAPPING = {
     "ATCCode": "atc_code",
-    "DDD": "ddd",
+    "DDD": "ddd_value",
     "UnitType": "ddd_unit",
-    "AdmCode": "adm_code",
-    "DDDComment": "comment",
+    "AdmCode": "ddd_adm_code",
+    "DDDComment": "ddd_comment",
 }
 
 @task
@@ -84,10 +84,10 @@ def create_ddd_mappings(ddd_alterations: pd.DataFrame) -> Tuple[Dict, List[Dict]
             for route in new_routes:
                 new_ddds.append({
                     'atc_code': atc_code,
-                    'ddd': float(new_ddd),
+                    'ddd_value': float(new_ddd),
                     'ddd_unit': new_unit.lower(),
-                    'adm_code': route,
-                    'comment': comment
+                    'ddd_adm_code': route,
+                    'ddd_comment': comment
                 })
             continue
             
@@ -101,7 +101,7 @@ def create_ddd_mappings(ddd_alterations: pd.DataFrame) -> Tuple[Dict, List[Dict]
                         'new_ddd_unit': new_unit.lower(),
                         'new_route': new_route,
                         'year_changed': row['year_changed'],
-                        'comment': comment if comment and comment.strip() else None
+                        'ddd_comment': comment if comment and comment.strip() else None
                     }
                     
     logger.info(f"Found {len(new_ddds)} new DDD entries to add (after route splitting)")
@@ -133,7 +133,7 @@ def apply_ddd_deletions_and_updates(ddd_df: pd.DataFrame, ddd_updates: Dict, ddd
     for atc_code, route in ddds_to_delete:
         mask = (
             (updated_df['atc_code'] == atc_code) & 
-            (updated_df['adm_code'] == route)
+            (updated_df['ddd_adm_code'] == route)
         )
         if mask.any():
             updated_df = updated_df[~mask]
@@ -142,32 +142,32 @@ def apply_ddd_deletions_and_updates(ddd_df: pd.DataFrame, ddd_updates: Dict, ddd
     for (atc_code, prev_route), update_info in ddd_updates.items():
         mask = (
             (updated_df['atc_code'] == atc_code) & 
-            (updated_df['adm_code'] == prev_route)
+            (updated_df['ddd_adm_code'] == prev_route)
         )
         
         if mask.any():
-            existing_comment = updated_df[mask].iloc[0].get('comment', '')
+            existing_comment = updated_df[mask].iloc[0].get('ddd_comment', '')
             new_comment = get_comment(
                 existing_comment,
-                update_info.get('comment')
+                update_info.get('ddd_comment')
             )
             
             # If the route is changing, add a new row instead of updating in place
             if update_info['new_route'] != prev_route:
                 row_data = updated_df[mask].iloc[0].to_dict()
                 row_data.update({
-                    'ddd': update_info['new_ddd'],
+                    'ddd_value': update_info['new_ddd'],
                     'ddd_unit': update_info['new_ddd_unit'],
-                    'adm_code': update_info['new_route'],
-                    'comment': new_comment
+                    'ddd_adm_code': update_info['new_route'],
+                    'ddd_comment': new_comment
                 })
                 new_rows.append(row_data)
                 # Remove the old route entry
                 updated_df = updated_df[~mask]
             else:
-                updated_df.loc[mask, 'ddd'] = update_info['new_ddd']
+                updated_df.loc[mask, 'ddd_value'] = update_info['new_ddd']
                 updated_df.loc[mask, 'ddd_unit'] = update_info['new_ddd_unit']
-                updated_df.loc[mask, 'comment'] = new_comment
+                updated_df.loc[mask, 'ddd_comment'] = new_comment
             updates_made += 1
     
     if new_rows:
@@ -194,11 +194,11 @@ def process_ddd_data(
     
     ddd_df = ddd_df.copy()
 
-    ddd_df.loc[:, 'comment'] = ddd_df['comment'].apply(lambda x: None if pd.isna(x) or not str(x).strip() else str(x).strip())
-    ddd_df.loc[:, "adm_code"] = ddd_df["adm_code"].str.strip()
+    ddd_df.loc[:, 'ddd_comment'] = ddd_df['ddd_comment'].apply(lambda x: None if pd.isna(x) or not str(x).strip() else str(x).strip())
+    ddd_df.loc[:, "ddd_adm_code"] = ddd_df["ddd_adm_code"].str.strip()
     ddd_df.loc[:, "ddd_unit"] = ddd_df["ddd_unit"].str.lower()
-    ddd_df.loc[:, "ddd"] = ddd_df["ddd"].apply(lambda x: float(x) if x else None)
-    ddd_df = ddd_df[ddd_df["ddd"].notna()]
+    ddd_df.loc[:, "ddd_value"] = ddd_df["ddd_value"].apply(lambda x: float(x) if x else None)
+    ddd_df = ddd_df[ddd_df["ddd_value"].notna()]
     
     ddd_df = apply_ddd_deletions_and_updates(ddd_df, ddd_updates, ddds_to_delete)
 

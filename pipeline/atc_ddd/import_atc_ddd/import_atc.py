@@ -22,7 +22,7 @@ TEMP_DIR = Path("temp/atc")
 ATC_COLUMN_MAPPING = {
     "ATCCode": "atc_code",
     "Name": "atc_name", 
-    "Comment": "comment",
+    "Comment": "atc_comment",
 }
 
 class ATCLevel:
@@ -168,7 +168,7 @@ def process_atc_data(
 
     atc_df = atc_df.copy()
 
-    atc_df.loc[:, 'comment'] = atc_df['comment'].apply(lambda x: None if pd.isna(x) or not str(x).strip() else str(x).strip())
+    atc_df.loc[:, 'atc_comment'] = atc_df['atc_comment'].apply(lambda x: None if pd.isna(x) or not str(x).strip() else str(x).strip())
     
     def get_comment(existing_comment, new_comment):
         """Get comment: replace with new comment if present, otherwise keep existing"""
@@ -201,7 +201,7 @@ def process_atc_data(
         new_rows.append({
             'atc_code': code,
             'atc_name': substance,
-            'comment': comment
+            'atc_comment': comment
         })
     
     if new_rows:
@@ -216,7 +216,7 @@ def process_atc_data(
         for old_code, update_info in atc_mapping.items():
             mask = atc_df['atc_code'] == old_code
             if mask.any():
-                existing_comment = atc_df.loc[mask, 'comment'].iloc[0]
+                existing_comment = atc_df.loc[mask, 'atc_comment'].iloc[0]
                 new_comment = get_comment(
                     existing_comment,
                     update_info.get('comment')
@@ -224,7 +224,7 @@ def process_atc_data(
 
                 atc_df.loc[mask, 'atc_code'] = update_info['new_code']
                 atc_df.loc[mask, 'atc_name'] = update_info['substance']
-                atc_df.loc[mask, 'comment'] = new_comment
+                atc_df.loc[mask, 'atc_comment'] = new_comment
     
     atc_df['atc_name'] = atc_df['atc_name'].apply(convert_atc_name)
     
@@ -236,7 +236,7 @@ def add_atc_hierarchy(atc_df: pd.DataFrame) -> None:
     """Add hierarchical ATC information to the DataFrame"""
     code_to_name_mapping = atc_df.set_index('atc_code')['atc_name'].to_dict()
     
-    atc_df['level'] = atc_df['atc_code'].apply(get_atc_level)
+    atc_df['atc_level'] = atc_df['atc_code'].apply(get_atc_level)
 
     atc_df['anatomical_main_group'] = None
     atc_df['therapeutic_subgroup'] = None
@@ -245,7 +245,7 @@ def add_atc_hierarchy(atc_df: pd.DataFrame) -> None:
     atc_df['chemical_substance'] = None
 
     for idx, row in atc_df.iterrows():
-        level = row['level']
+        level = row['atc_level']
         code = row['atc_code']
         
         if level is None:

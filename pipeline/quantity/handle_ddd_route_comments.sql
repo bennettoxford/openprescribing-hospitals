@@ -24,7 +24,7 @@ vmp_ddd_overrides AS (
   SELECT
     cr.vmp_code,
     cr.vmp_name,
-    vmp_ddd.ddd AS override_ddd_value,
+    vmp_ddd.ddd_value AS override_ddd_value,
     vmp_ddd.ddd_uom AS override_ddd_unit,
     vmp_ddd.ddd_comment AS override_ddd_comment,
     unit_ddd.basis AS override_ddd_basis_unit,
@@ -63,16 +63,16 @@ vmp_ddd_overrides AS (
 override_route AS (
   SELECT
     cr.vmp_code,
-    ANY_VALUE(ddd.adm_code) AS override_route_code
+    ANY_VALUE(ddd.ddd_adm_code) AS override_route_code
   FROM current_results cr
   INNER JOIN vmp_ddd_overrides vdo ON cr.vmp_code = vdo.vmp_code
   CROSS JOIN UNNEST(cr.atcs) AS atc
   INNER JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ WHO_DDD_TABLE_ID }}` ddd
     ON atc.atc_code = ddd.atc_code
-    AND ddd.ddd = vdo.override_ddd_value
+    AND ddd.ddd_value = vdo.override_ddd_value
     AND ddd.ddd_unit = vdo.override_ddd_unit
   CROSS JOIN UNNEST(cr.routes) AS r
-  WHERE r.who_route_code = ddd.adm_code
+  WHERE r.who_route_code = ddd.ddd_adm_code
   GROUP BY cr.vmp_code
 )
 

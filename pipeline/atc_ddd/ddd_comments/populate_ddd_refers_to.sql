@@ -3,19 +3,19 @@ AS
 
 WITH ddd_comments_with_refers_to AS (
   SELECT DISTINCT
-    comment AS ddd_comment,
+    ddd_comment,
     -- Extract ingredient name from "Refers to [ingredient]" pattern
     CASE 
-      WHEN LOWER(comment) LIKE 'refers to %' THEN 
-        TRIM(REGEXP_REPLACE(comment, r'(?i)^refers to[[:space:]]+', ''))
+      WHEN LOWER(ddd_comment) LIKE 'refers to %' THEN 
+        TRIM(REGEXP_REPLACE(ddd_comment, r'(?i)^refers to[[:space:]]+', ''))
       ELSE NULL
     END AS refers_to_ingredient
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ WHO_DDD_TABLE_ID }}`
-  WHERE comment IS NOT NULL 
-    AND LOWER(comment) LIKE 'refers to %'
-    AND LOWER(comment) != 'refers to sc injection' -- This is a different type of DDD comment handled elsewhere
+  WHERE ddd_comment IS NOT NULL 
+    AND LOWER(ddd_comment) LIKE 'refers to %'
+    AND LOWER(ddd_comment) != 'refers to sc injection' -- This is a different type of DDD comment handled elsewhere
     -- Exclude comments where the refers to inredient is not relevant to UK products  
-    AND LOWER(comment) NOT IN (
+    AND LOWER(ddd_comment) NOT IN (
       'refers to cefoperazone',
       'refers to cyclothiazide',
       'refers to etidronic acid',
