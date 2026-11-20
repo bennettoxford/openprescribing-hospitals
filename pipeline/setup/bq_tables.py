@@ -489,7 +489,12 @@ DMD_TABLE_SPEC = TableSpec(
         bigquery.SchemaField(
             "unit_dose_uom", "STRING", mode="NULLABLE", description="Unit dose unit of measure"
         ),
-        bigquery.SchemaField("dform_form", "STRING", mode="NULLABLE", description="Dose form"),
+        bigquery.SchemaField(
+            "dform_form_code", "STRING", mode="NULLABLE", description="Dose form SNOMED code"
+        ),
+        bigquery.SchemaField(
+            "dform_form", "STRING", mode="NULLABLE", description="Dose form description"
+        ),
         bigquery.SchemaField(
             "ingredients",
             "RECORD",

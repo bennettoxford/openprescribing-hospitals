@@ -11,6 +11,7 @@ SELECT
   df.udfs,
   df.udfs_uom,
   df.unit_dose_uom,
+  df.dform_form_code,
   df.dform_form,
   df.ingredients,
   df.ontformroutes,
