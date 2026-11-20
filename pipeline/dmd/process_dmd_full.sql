@@ -32,9 +32,10 @@ form_data AS (
     dform.vmp_code,
     IF(
       COUNT(DISTINCT dform.form_code) = 1,
-      ANY_VALUE(form.description),
+      ANY_VALUE(dform.form_code),
       ERROR(CONCAT('VMP ', dform.vmp_code, ' has more than one dose form'))
-    ) AS dform_form
+    ) AS dform_form_code,
+    ANY_VALUE(form.description) AS dform_form
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_DFORM_TABLE_ID }}` AS dform
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_FORM_TABLE_ID }}` AS form
     ON dform.form_code = form.form_code
@@ -48,6 +49,7 @@ vmp_vpi_ing_data AS (
     vmp.udfs,
     udfs_uom.description AS udfs_uom,
     unit_dose_uom.description AS unit_dose_uom,
+    form_data.dform_form_code,
     form_data.dform_form,
     vmp.vtm_code AS vtm,
     vtm.vtm_name,
@@ -91,6 +93,7 @@ SELECT
   src.udfs,
   src.udfs_uom,
   src.unit_dose_uom,
+  src.dform_form_code,
   src.dform_form,
   ARRAY_AGG(
     IF(
@@ -126,6 +129,7 @@ GROUP BY
   src.udfs,
   src.udfs_uom,
   src.unit_dose_uom,
+  src.dform_form_code,
   src.dform_form,
   route_data.ontformroutes,
   amp_data.amps
