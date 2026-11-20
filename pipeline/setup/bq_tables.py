@@ -12,7 +12,6 @@ from pipeline.setup.config import (
     SCMD_PROCESSED_TABLE_ID,
     SCMD_DATA_STATUS_TABLE_ID,
     UNITS_CONVERSION_TABLE_ID,
-    ORG_AE_STATUS_TABLE_ID,
     TRUST_ADMISSIONS_PROVISIONAL_TABLE_ID,
     TRUST_ADMISSIONS_FINALISED_TABLE_ID,
     DMD_TABLE_ID,
@@ -347,28 +346,6 @@ UNITS_CONVERSION_TABLE_SPEC = TableSpec(
         bigquery.SchemaField("unit_id", "STRING", mode="NULLABLE", description="Unit ID"),
         bigquery.SchemaField("basis_id", "STRING", mode="NULLABLE", description="Basis ID"),
     ],
-)
-
-ORG_AE_STATUS_TABLE_SPEC = TableSpec(
-    project_id=PROJECT_ID,
-    dataset_id=DATASET_ID,
-    table_id=ORG_AE_STATUS_TABLE_ID,
-    description="Indicator for whether an organisation has had A&E attendances Type 1 by month",
-    schema=[
-        bigquery.SchemaField(
-            "ods_code", "STRING", mode="REQUIRED", description="ODS code of the organisation"
-        ),
-        bigquery.SchemaField(
-            "period", "DATE", mode="REQUIRED", description="Start date of the month, YYYY-MM-DD"
-        ),
-        bigquery.SchemaField(
-            "has_ae",
-            "BOOLEAN",
-            mode="REQUIRED",
-            description="Binary indicator for each organisation if they have over 0 A&E attendances Type 1",
-        ),
-    ],
-    partition_field="period",
 )
 
 TRUST_ADMISSIONS_PROVISIONAL_TABLE_SPEC = TableSpec(
