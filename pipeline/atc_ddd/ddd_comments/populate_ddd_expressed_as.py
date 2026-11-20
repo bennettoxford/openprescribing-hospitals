@@ -147,7 +147,7 @@ def validate_all_expressed_as_vmps_covered(df: pd.DataFrame) -> pd.DataFrame:
     SELECT DISTINCT
         dmd.vmp_code,
         dmd.vmp_name,
-        ddd.comment AS ddd_comment
+        ddd.ddd_comment AS ddd_comment
     FROM `{PROJECT_ID}.{DATASET_ID}.{DMD_TABLE_ID}` dmd
     INNER JOIN `{PROJECT_ID}.{DATASET_ID}.{VMP_TABLE_ID}` vmp_table
         ON dmd.vmp_code = vmp_table.vmp_code
@@ -158,12 +158,12 @@ def validate_all_expressed_as_vmps_covered(df: pd.DataFrame) -> pd.DataFrame:
         ON route.ontformroute_descr = routelookup.dmd_ontformroute
     INNER JOIN `{PROJECT_ID}.{DATASET_ID}.{WHO_DDD_TABLE_ID}` ddd
         ON dmd_supp.atc_code = ddd.atc_code
-        AND routelookup.who_route = ddd.adm_code
+        AND routelookup.who_route = ddd.ddd_adm_code
     WHERE dmd_supp.atc_code IS NOT NULL
-        AND ddd.comment IS NOT NULL
-        AND TRIM(ddd.comment) != ''
-        AND ddd.comment NOT LIKE 'Refers to%'
-        AND LOWER(TRIM(ddd.comment)) IN (
+        AND ddd.ddd_comment IS NOT NULL
+        AND TRIM(ddd.ddd_comment) != ''
+        AND ddd.ddd_comment NOT LIKE 'Refers to%'
+        AND LOWER(TRIM(ddd.ddd_comment)) IN (
             'expressed as folinic acid', 'expressed as lanthanum',
             'expressed as levofolinic acid', 'expressed as benzylpenicillin',
             'expressed as aclidinium, delivered dose', 'expressed as glycopyrronium, delivered dose',

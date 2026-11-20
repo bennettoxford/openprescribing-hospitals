@@ -51,10 +51,10 @@ vmp_enriched AS (
     ANY_VALUE(vmp.who_route_codes_for_ddd) AS who_route_codes_for_ddd,
     ARRAY_AGG(
       STRUCT(
-        ddd.ddd,
+        ddd.ddd_value,
         ddd.ddd_unit,
-        ddd.adm_code AS ddd_route_code,
-        ddd.comment AS ddd_comment
+        ddd.ddd_adm_code AS ddd_route_code,
+        ddd.ddd_comment AS ddd_comment
       )
     ) AS who_ddds,
     ARRAY(
@@ -107,23 +107,23 @@ ddd_analysis AS (
     -- Check if any ATC codes
     (SELECT COUNT(1) FROM UNNEST(v.atcs) WHERE atc_code IS NOT NULL) > 0 AS has_atc_codes,
     -- Check if any WHO DDDs with non-NULL values
-    (SELECT COUNT(1) FROM UNNEST(v.who_ddds) WHERE ddd IS NOT NULL) > 0 AS has_ddds,
+    (SELECT COUNT(1) FROM UNNEST(v.who_ddds) WHERE ddd_value IS NOT NULL) > 0 AS has_ddds,
     -- Check if any WHO routes for DDD
     ARRAY_LENGTH(COALESCE(v.who_route_codes_for_ddd, [])) > 0 AS has_who_routes,
     -- Find DDDs that match the WHO route codes used for DDD
     ARRAY(
       SELECT AS STRUCT ddd.*
       FROM UNNEST(v.who_ddds) AS ddd
-      WHERE ddd.ddd IS NOT NULL 
+      WHERE ddd.ddd_value IS NOT NULL 
         AND ddd.ddd_route_code IN (SELECT code FROM UNNEST(COALESCE(v.who_route_codes_for_ddd, [])) AS code)
     ) AS matching_route_ddds,
     -- Check if all matching DDDs have the same value
     (
-      SELECT COUNT(DISTINCT ddd.ddd) 
+      SELECT COUNT(DISTINCT ddd.ddd_value) 
       FROM UNNEST(ARRAY(
         SELECT AS STRUCT ddd.*
         FROM UNNEST(v.who_ddds) AS ddd
-        WHERE ddd.ddd IS NOT NULL
+        WHERE ddd.ddd_value IS NOT NULL
           AND ddd.ddd_route_code IN (SELECT code FROM UNNEST(COALESCE(v.who_route_codes_for_ddd, [])) AS code)
       )) AS ddd
     ) = 1 AS all_matching_ddds_same
@@ -160,7 +160,7 @@ ddd_route_selection AS (
         THEN CONCAT('DDD has unsupported comment (', (SELECT ddd_comment FROM UNNEST(matching_route_ddds) LIMIT 1), ')')
       ELSE NULL
     END AS route_matching_issue,
-    (SELECT ddd FROM UNNEST(matching_route_ddds) LIMIT 1) AS selected_ddd_value,
+    (SELECT ddd_value FROM UNNEST(matching_route_ddds) LIMIT 1) AS selected_ddd_value,
     (SELECT ddd_unit FROM UNNEST(matching_route_ddds) LIMIT 1) AS selected_ddd_unit,
     (SELECT ddd_route_code FROM UNNEST(matching_route_ddds) LIMIT 1) AS selected_ddd_route_code
   FROM ddd_analysis da

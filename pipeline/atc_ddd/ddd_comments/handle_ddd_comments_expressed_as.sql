@@ -85,14 +85,14 @@ ddd_analysis AS (
     ARRAY(
       SELECT AS STRUCT ddd.*
       FROM UNNEST(ra.who_ddds) AS ddd
-      WHERE ddd.ddd IS NOT NULL
+      WHERE ddd.ddd_value IS NOT NULL
         AND ddd.ddd_comment = ra.expressed_ddd_comment
         AND ddd.ddd_route_code IN (SELECT code FROM UNNEST(ra.who_route_codes) AS code)
     ) AS matching_route_ddds,
     (
-      SELECT COUNT(DISTINCT ddd.ddd)
+      SELECT COUNT(DISTINCT ddd.ddd_value)
       FROM UNNEST(ra.who_ddds) AS ddd
-      WHERE ddd.ddd IS NOT NULL
+      WHERE ddd.ddd_value IS NOT NULL
         AND ddd.ddd_comment = ra.expressed_ddd_comment
         AND ddd.ddd_route_code IN (SELECT code FROM UNNEST(ra.who_route_codes) AS code)
     ) = 1 AS all_matching_ddds_same
@@ -128,7 +128,7 @@ unit_analysis AS (
     da.ingredients_info,
     da.matching_route_ddds,
     da.all_matching_ddds_same,
-    (SELECT ddd FROM UNNEST(da.matching_route_ddds) LIMIT 1) AS selected_ddd_value,
+    (SELECT ddd_value FROM UNNEST(da.matching_route_ddds) LIMIT 1) AS selected_ddd_value,
     (SELECT ddd_unit FROM UNNEST(da.matching_route_ddds) LIMIT 1) AS selected_ddd_unit,
     (SELECT ddd_route_code FROM UNNEST(da.matching_route_ddds) LIMIT 1) AS selected_ddd_route_code,
     unit_ddd.basis AS selected_ddd_basis_unit,

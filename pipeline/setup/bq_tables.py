@@ -751,7 +751,7 @@ WHO_ATC_TABLE_SPEC = TableSpec(
     schema=[
         bigquery.SchemaField("atc_code", "STRING", mode="REQUIRED", description="ATC code"),
         bigquery.SchemaField("atc_name", "STRING", mode="REQUIRED", description="ATC name"),
-        bigquery.SchemaField("comment", "STRING", mode="NULLABLE", description="ATC level"),
+        bigquery.SchemaField("atc_comment", "STRING", mode="NULLABLE", description="ATC comment"),
         bigquery.SchemaField(
             "anatomical_main_group", 
             "STRING", 
@@ -783,7 +783,7 @@ WHO_ATC_TABLE_SPEC = TableSpec(
             description="5th level: Chemical substance (e.g., 'A10BA02' for Metformin)"
         ),
         bigquery.SchemaField(
-            "level", 
+            "atc_level", 
             "INTEGER", 
             mode="REQUIRED",
             description="The hierarchical level of this ATC code (1-5)"
@@ -798,12 +798,12 @@ WHO_DDD_TABLE_SPEC = TableSpec(
     description="DDD information for ATC codes from the WHO",
     schema=[
         bigquery.SchemaField("atc_code", "STRING", mode="REQUIRED", description="ATC code"),
-        bigquery.SchemaField("ddd", "FLOAT", mode="REQUIRED", description="DDD"),
+        bigquery.SchemaField("ddd_value", "FLOAT", mode="REQUIRED", description="DDD value"),
         bigquery.SchemaField("ddd_unit", "STRING", mode="NULLABLE", description="DDD unit"),
         bigquery.SchemaField(
-            "adm_code", "STRING", mode="NULLABLE", description="Route of administration code"
+            "ddd_adm_code", "STRING", mode="NULLABLE", description="Route of administration code"
         ),
-        bigquery.SchemaField("comment", "STRING", mode="NULLABLE", description="Comment"),
+        bigquery.SchemaField("ddd_comment", "STRING", mode="NULLABLE", description="DDD comment"),
     ],
 )
 
@@ -1740,7 +1740,7 @@ DDD_CALCULATION_LOGIC_TABLE_SPEC = TableSpec(
             mode="REPEATED",
             description="DDD values from the WHO",
             fields=[
-                bigquery.SchemaField("ddd", "FLOAT", mode="REQUIRED", description="DDD value"),
+                bigquery.SchemaField("ddd_value", "FLOAT", mode="REQUIRED", description="DDD value"),
                 bigquery.SchemaField("ddd_unit", "STRING", mode="REQUIRED", description="DDD unit"),
                 bigquery.SchemaField(
                     "ddd_route_code", "STRING", mode="REQUIRED", description="Route of administration code"
@@ -2107,7 +2107,7 @@ DDD_ROUTE_COMMENTS_TABLE_SPEC = TableSpec(
             "atc_code", "STRING", mode="NULLABLE", description="ATC code"
         ),
         bigquery.SchemaField(
-            "ddd", "FLOAT", mode="NULLABLE", description="DDD value"
+            "ddd_value", "FLOAT", mode="NULLABLE", description="DDD value"
         ),
         bigquery.SchemaField(
             "ddd_uom", "STRING", mode="NULLABLE", description="DDD unit of measure"

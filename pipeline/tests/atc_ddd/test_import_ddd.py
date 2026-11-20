@@ -93,38 +93,38 @@ def sample_ddd_df():
     return pd.DataFrame([
         {
             'atc_code': 'A01AA01',
-            'ddd': 10.0,
+            'ddd_value': 10.0,
             'ddd_unit': 'mg',
-            'adm_code': 'O',
-            'comment': 'Original DDD'
+            'ddd_adm_code': 'O',
+            'ddd_comment': 'Original DDD'
         },
         {
             'atc_code': 'B01AA01',
-            'ddd': 20.0,
+            'ddd_value': 20.0,
             'ddd_unit': 'mg',
-            'adm_code': 'O',
-            'comment': 'Route to change'
+            'ddd_adm_code': 'O',
+            'ddd_comment': 'Route to change'
         },
         {
             'atc_code': 'C01AA01',
-            'ddd': 30.0,
+            'ddd_value': 30.0,
             'ddd_unit': 'mg',
-            'adm_code': 'O',
-            'comment': 'Multiple route test'
+            'ddd_adm_code': 'O',
+            'ddd_comment': 'Multiple route test'
         },
         {
             'atc_code': 'C01AA01',
-            'ddd': 30.0,
+            'ddd_value': 30.0,
             'ddd_unit': 'mg',
-            'adm_code': 'P',
-            'comment': 'Multiple route test'
+            'ddd_adm_code': 'P',
+            'ddd_comment': 'Multiple route test'
         },
         {
             'atc_code': 'D01AA01',
-            'ddd': 40.0,
+            'ddd_value': 40.0,
             'ddd_unit': 'mg',
-            'adm_code': 'O',
-            'comment': 'To be deleted'
+            'ddd_adm_code': 'O',
+            'ddd_comment': 'To be deleted'
         }
     ])
 
@@ -192,10 +192,10 @@ class TestDDDMappings:
         assert len(new_ddds) == 1
         new_ddd = new_ddds[0]
         assert new_ddd['atc_code'] == 'N01AA01'
-        assert new_ddd['ddd'] == 5.0
+        assert new_ddd['ddd_value'] == 5.0
         assert new_ddd['ddd_unit'] == 'mg'
-        assert new_ddd['adm_code'] == 'O'
-        assert new_ddd['comment'] == 'New DDD'
+        assert new_ddd['ddd_adm_code'] == 'O'
+        assert new_ddd['ddd_comment'] == 'New DDD'
 
     @patch('pipeline.atc_ddd.import_atc_ddd.import_ddd.get_run_logger')
     def test_create_ddd_mappings_new_ddds_without_comment(self, mock_logger):
@@ -223,10 +223,10 @@ class TestDDDMappings:
         assert len(new_ddds) == 1
         new_ddd = new_ddds[0]
         assert new_ddd['atc_code'] == 'N01AA01'
-        assert new_ddd['ddd'] == 5.0
+        assert new_ddd['ddd_value'] == 5.0
         assert new_ddd['ddd_unit'] == 'mg'
-        assert new_ddd['adm_code'] == 'O'
-        assert new_ddd['comment'] is None
+        assert new_ddd['ddd_adm_code'] == 'O'
+        assert new_ddd['ddd_comment'] is None
 
     @patch('pipeline.atc_ddd.import_atc_ddd.import_ddd.get_run_logger')
     def test_create_ddd_mappings_updates(self, mock_logger, sample_ddd_alterations):
@@ -265,7 +265,7 @@ class TestApplyDDDDeletionsAndUpdates:
         
         result = apply_ddd_deletions_and_updates(sample_ddd_df, ddd_updates, ddds_to_delete)
         
-        deleted_mask = (result['atc_code'] == 'D01AA01') & (result['adm_code'] == 'O')
+        deleted_mask = (result['atc_code'] == 'D01AA01') & (result['ddd_adm_code'] == 'O')
         assert not deleted_mask.any(), "Deleted entry should not exist in result"
         assert len(result) == len(sample_ddd_df) - 1
 
@@ -280,19 +280,19 @@ class TestApplyDDDDeletionsAndUpdates:
                 'new_ddd_unit': 'mg',
                 'new_route': 'O',
                 'year_changed': 2023,
-                'comment': 'DDD value changed'
+                'ddd_comment': 'DDD value changed'
             }
         }
         ddds_to_delete = set()
         
         result = apply_ddd_deletions_and_updates(sample_ddd_df, ddd_updates, ddds_to_delete)
 
-        updated_row = result[(result['atc_code'] == 'A01AA01') & (result['adm_code'] == 'O')]
+        updated_row = result[(result['atc_code'] == 'A01AA01') & (result['ddd_adm_code'] == 'O')]
         assert len(updated_row) == 1
-        assert updated_row.iloc[0]['ddd'] == 15.0
+        assert updated_row.iloc[0]['ddd_value'] == 15.0
         assert updated_row.iloc[0]['ddd_unit'] == 'mg'
 
-        assert updated_row.iloc[0]['comment'] == 'DDD value changed'
+        assert updated_row.iloc[0]['ddd_comment'] == 'DDD value changed'
 
     @patch('pipeline.atc_ddd.import_atc_ddd.import_ddd.get_run_logger')
     def test_apply_updates_route_change(self, mock_logger, sample_ddd_df):
@@ -305,7 +305,7 @@ class TestApplyDDDDeletionsAndUpdates:
                 'new_ddd_unit': 'mg',
                 'new_route': 'P',
                 'year_changed': 2023,
-                'comment': ''
+                'ddd_comment': ''
             }
         }
         ddds_to_delete = set()
@@ -313,18 +313,18 @@ class TestApplyDDDDeletionsAndUpdates:
         result = apply_ddd_deletions_and_updates(sample_ddd_df, ddd_updates, ddds_to_delete)
         
         # Check that old route entry is removed
-        old_route_mask = (result['atc_code'] == 'B01AA01') & (result['adm_code'] == 'O')
+        old_route_mask = (result['atc_code'] == 'B01AA01') & (result['ddd_adm_code'] == 'O')
         assert not old_route_mask.any(), "Old route entry should be removed"
         
         # Check that new route entry was created
-        new_route_mask = (result['atc_code'] == 'B01AA01') & (result['adm_code'] == 'P')
+        new_route_mask = (result['atc_code'] == 'B01AA01') & (result['ddd_adm_code'] == 'P')
         assert new_route_mask.any(), "New route entry should be created"
         
         new_row = result[new_route_mask]
         assert len(new_row) == 1
-        assert new_row.iloc[0]['ddd'] == 25.0
-        assert new_row.iloc[0]['adm_code'] == 'P'
-        assert new_row.iloc[0]['comment'] == 'Route to change'
+        assert new_row.iloc[0]['ddd_value'] == 25.0
+        assert new_row.iloc[0]['ddd_adm_code'] == 'P'
+        assert new_row.iloc[0]['ddd_comment'] == 'Route to change'
 
     @patch('pipeline.atc_ddd.import_atc_ddd.import_ddd.get_run_logger')
     def test_apply_multiple_operations(self, mock_logger, sample_ddd_df):
@@ -338,34 +338,34 @@ class TestApplyDDDDeletionsAndUpdates:
                 'new_ddd_unit': 'mg',
                 'new_route': 'O',
                 'year_changed': 2023,
-                'comment': ''
+                'ddd_comment': ''
             },
             ('B01AA01', 'O'): {
                 'new_ddd': 22.0,
                 'new_ddd_unit': 'mg',
                 'new_route': 'P',
                 'year_changed': 2023,
-                'comment': ''
+                'ddd_comment': ''
             }
         }
         
         result = apply_ddd_deletions_and_updates(sample_ddd_df, ddd_updates, ddds_to_delete)
         
         # Check deletion
-        deleted_mask = (result['atc_code'] == 'D01AA01') & (result['adm_code'] == 'O')
+        deleted_mask = (result['atc_code'] == 'D01AA01') & (result['ddd_adm_code'] == 'O')
         assert not deleted_mask.any()
         
         # Check same-route update
-        updated_a01 = result[(result['atc_code'] == 'A01AA01') & (result['adm_code'] == 'O')]
+        updated_a01 = result[(result['atc_code'] == 'A01AA01') & (result['ddd_adm_code'] == 'O')]
         assert len(updated_a01) == 1
-        assert updated_a01.iloc[0]['ddd'] == 12.0
+        assert updated_a01.iloc[0]['ddd_value'] == 12.0
         
         # Check route-change update
-        old_b01 = result[(result['atc_code'] == 'B01AA01') & (result['adm_code'] == 'O')]
-        new_b01 = result[(result['atc_code'] == 'B01AA01') & (result['adm_code'] == 'P')]
+        old_b01 = result[(result['atc_code'] == 'B01AA01') & (result['ddd_adm_code'] == 'O')]
+        new_b01 = result[(result['atc_code'] == 'B01AA01') & (result['ddd_adm_code'] == 'P')]
         assert len(old_b01) == 0
         assert len(new_b01) == 1
-        assert new_b01.iloc[0]['ddd'] == 22.0
+        assert new_b01.iloc[0]['ddd_value'] == 22.0
 
     @patch('pipeline.atc_ddd.import_atc_ddd.import_ddd.get_run_logger')
     def test_no_matching_entries(self, mock_logger, sample_ddd_df):
@@ -397,33 +397,33 @@ class TestProcessDDDData:
         dirty_df = pd.DataFrame([
             {
                 'atc_code': 'A01AA01',
-                'ddd': '10.5',  # String that should be converted to float
+                'ddd_value': '10.5',  # String that should be converted to float
                 'ddd_unit': 'MG',  # Should be lowercased
-                'adm_code': ' O ',  # Should be stripped
-                'comment': 'Test'
+                'ddd_adm_code': ' O ',  # Should be stripped
+                'ddd_comment': 'Test'
             },
             {
                 'atc_code': 'B01AA01',
-                'ddd': None,  # Should be filtered out
+                'ddd_value': None,  # Should be filtered out
                 'ddd_unit': 'g',
-                'adm_code': 'P',
-                'comment': 'Test'
+                'ddd_adm_code': 'P',
+                'ddd_comment': 'Test'
             },
             {
                 'atc_code': 'C01AA01',
-                'ddd': '',  # Should be filtered out
+                'ddd_value': '',  # Should be filtered out
                 'ddd_unit': 'ml',
-                'adm_code': 'R',
-                'comment': 'Test'
+                'ddd_adm_code': 'R',
+                'ddd_comment': 'Test'
             }
         ])
         
         result = process_ddd_data(dirty_df, {}, set(), [])
         
         assert len(result) == 1
-        assert result.iloc[0]['ddd'] == 10.5
+        assert result.iloc[0]['ddd_value'] == 10.5
         assert result.iloc[0]['ddd_unit'] == 'mg'
-        assert result.iloc[0]['adm_code'] == 'O'
+        assert result.iloc[0]['ddd_adm_code'] == 'O'
 
     @patch('pipeline.atc_ddd.import_atc_ddd.import_ddd.get_run_logger')
     def test_with_new_ddds(self, mock_logger, sample_ddd_df):
@@ -433,17 +433,17 @@ class TestProcessDDDData:
         new_ddds = [
             {
                 'atc_code': 'N01AA01',
-                'ddd': 5.0,
+                'ddd_value': 5.0,
                 'ddd_unit': 'mg',
-                'adm_code': 'O',
-                'comment': 'New DDD'
+                'ddd_adm_code': 'O',
+                'ddd_comment': 'New DDD'
             },
             {
                 'atc_code': 'N02AA01',
-                'ddd': 7.5,
+                'ddd_value': 7.5,
                 'ddd_unit': 'g',
-                'adm_code': 'P',
-                'comment': 'Another new DDD'
+                'ddd_adm_code': 'P',
+                'ddd_comment': 'Another new DDD'
             }
         ]
         
@@ -453,11 +453,11 @@ class TestProcessDDDData:
         
         new_n01 = result[result['atc_code'] == 'N01AA01']
         assert len(new_n01) == 1
-        assert new_n01.iloc[0]['ddd'] == 5.0
+        assert new_n01.iloc[0]['ddd_value'] == 5.0
         
         new_n02 = result[result['atc_code'] == 'N02AA01']
         assert len(new_n02) == 1
-        assert new_n02.iloc[0]['ddd'] == 7.5
+        assert new_n02.iloc[0]['ddd_value'] == 7.5
 
     @patch('pipeline.atc_ddd.import_atc_ddd.import_ddd.get_run_logger')
     def test_comment_handling(self, mock_logger):
@@ -466,32 +466,32 @@ class TestProcessDDDData:
         test_df = pd.DataFrame([
             {
                 'atc_code': 'A01AA01',
-                'ddd': 10.0,
+                'ddd_value': 10.0,
                 'ddd_unit': 'mg',
-                'adm_code': 'O',
-                'comment': ''
+                'ddd_adm_code': 'O',
+                'ddd_comment': ''
             },
             {
                 'atc_code': 'A01AA02',
-                'ddd': 20.0,
+                'ddd_value': 20.0,
                 'ddd_unit': 'mg',
-                'adm_code': 'O',
-                'comment': '   '
+                'ddd_adm_code': 'O',
+                'ddd_comment': '   '
             },
             {
                 'atc_code': 'A01AA03',
-                'ddd': 30.0,
+                'ddd_value': 30.0,
                 'ddd_unit': 'mg',
-                'adm_code': 'O',
-                'comment': ' Test Comment  '
+                'ddd_adm_code': 'O',
+                'ddd_comment': ' Test Comment  '
             }
         ])
         
         result = process_ddd_data(test_df, {}, set(), [])
         
-        assert result[result['atc_code'] == 'A01AA01']['comment'].iloc[0] is None
-        assert result[result['atc_code'] == 'A01AA02']['comment'].iloc[0] is None
-        assert result[result['atc_code'] == 'A01AA03']['comment'].iloc[0] == 'Test Comment'
+        assert result[result['atc_code'] == 'A01AA01']['ddd_comment'].iloc[0] is None
+        assert result[result['atc_code'] == 'A01AA02']['ddd_comment'].iloc[0] is None
+        assert result[result['atc_code'] == 'A01AA03']['ddd_comment'].iloc[0] == 'Test Comment'
 
     @patch('pipeline.atc_ddd.import_atc_ddd.import_ddd.get_run_logger')
     def test_comment_combination_in_updates(self, mock_logger):
@@ -500,10 +500,10 @@ class TestProcessDDDData:
         test_df = pd.DataFrame([
             {
                 'atc_code': 'A01AA01',
-                'ddd': 10.0,
+                'ddd_value': 10.0,
                 'ddd_unit': 'mg',
-                'adm_code': 'O',
-                'comment': '  Original Comment  '
+                'ddd_adm_code': 'O',
+                'ddd_comment': '  Original Comment  '
             }
         ])
         
@@ -513,11 +513,11 @@ class TestProcessDDDData:
                 'new_ddd_unit': 'mg',
                 'new_route': 'O',
                 'year_changed': 2023,
-                'comment': '  '
+                'ddd_comment': '  '
             }
         }
         
         result = process_ddd_data(test_df, ddd_updates, set(), [])
 
-        updated_comment = result[result['atc_code'] == 'A01AA01']['comment'].iloc[0]
+        updated_comment = result[result['atc_code'] == 'A01AA01']['ddd_comment'].iloc[0]
         assert updated_comment == 'Original Comment'

@@ -73,17 +73,17 @@ def sample_atc_df():
         {
             'atc_code': 'A01AA01',
             'atc_name': 'Old Substance Name',
-            'comment': None
+            'atc_comment': None
         },
         {
             'atc_code': 'B01AA01',
             'atc_name': 'Another Substance',
-            'comment': None
+            'atc_comment': None
         },
         {
             'atc_code': 'C01AA01',
             'atc_name': 'Chain Substance',
-            'comment': None
+            'atc_comment': None
         }
     ])
 
@@ -121,32 +121,32 @@ def sample_hierarchical_atc_df():
         {
             'atc_code': 'A',
             'atc_name': 'Alimentary Tract And Metabolism',
-            'comment': 'Level 1'
+            'atc_comment': 'Level 1'
         },
         {
             'atc_code': 'A01',
             'atc_name': 'Stomatological Preparations',
-            'comment': 'Level 2'
+            'atc_comment': 'Level 2'
         },
         {
             'atc_code': 'A01A',
             'atc_name': 'Stomatological Preparations',
-            'comment': 'Level 3'
+            'atc_comment': 'Level 3'
         },
         {
             'atc_code': 'A01AA',
             'atc_name': 'Caries Prophylactic Agents',
-            'comment': 'Level 4'
+            'atc_comment': 'Level 4'
         },
         {
             'atc_code': 'A01AA01',
             'atc_name': 'Sodium Fluoride',
-            'comment': 'Level 5'
+            'atc_comment': 'Level 5'
         },
         {
             'atc_code': 'A01AA02',
             'atc_name': 'Sodium Monofluorophosphate',
-            'comment': 'Level 5'
+            'atc_comment': 'Level 5'
         }
     ])
 
@@ -310,7 +310,7 @@ class TestProcessATCData:
         assert len(result_df) == 4  # Original 3 + 1 new
         new_row = result_df[result_df['atc_code'] == 'N01AA01'].iloc[0]
         assert new_row['atc_name'] == 'New Substance'
-        assert new_row['comment'] is None
+        assert new_row['atc_comment'] is None
 
     @patch('pipeline.atc_ddd.import_atc_ddd.import_atc.get_run_logger')
     def test_process_atc_data_add_new_codes_with_comment(self, mock_logger, sample_atc_df):
@@ -326,7 +326,7 @@ class TestProcessATCData:
         assert len(result_df) == 4  # Original 3 + 1 new
         new_row = result_df[result_df['atc_code'] == 'N01AA01'].iloc[0]
         assert new_row['atc_name'] == 'New Substance'
-        assert new_row['comment'] == 'New code added'
+        assert new_row['atc_comment'] == 'New code added'
 
     @patch('pipeline.atc_ddd.import_atc_ddd.import_atc.get_run_logger')
     def test_process_atc_data_delete_codes(self, mock_logger, sample_atc_df):
@@ -361,7 +361,7 @@ class TestProcessATCData:
         updated_row = result_df[result_df['atc_code'] == 'A01AA99']
         assert len(updated_row) == 1
         assert updated_row.iloc[0]['atc_name'] == 'Updated Substance Name'
-        assert updated_row.iloc[0]['comment'] is None
+        assert updated_row.iloc[0]['atc_comment'] is None
         assert 'A01AA01' not in result_df['atc_code'].values
 
     @patch('pipeline.atc_ddd.import_atc_ddd.import_atc.get_run_logger')
@@ -400,7 +400,7 @@ class TestProcessATCData:
             {
                 'atc_code': 'A01AA01',
                 'atc_name': 'UPPERCASE NAME',
-                'comment': 'Test comment'
+                'atc_comment': 'Test comment'
             }
         ])
         
@@ -414,7 +414,7 @@ class TestProcessATCData:
         
         result_df = process_atc_data(sample_hierarchical_atc_df, {}, {}, {})
         
-        expected_columns = ['level', 'anatomical_main_group', 'therapeutic_subgroup', 
+        expected_columns = ['atc_level', 'anatomical_main_group', 'therapeutic_subgroup', 
                           'pharmacological_subgroup', 'chemical_subgroup', 'chemical_substance']
         for col in expected_columns:
             assert col in result_df.columns
@@ -427,31 +427,31 @@ class TestProcessATCData:
             {
                 'atc_code': 'A01AA01',
                 'atc_name': 'Test Substance',
-                'comment': ''
+                'atc_comment': ''
             },
             {
                 'atc_code': 'A01AA02',
                 'atc_name': 'Test Substance 2',
-                'comment': '   '
+                'atc_comment': '   '
             },
             {
                 'atc_code': 'A01AA03',
                 'atc_name': 'Test Substance 3',
-                'comment': ' Test Comment  '
+                'atc_comment': ' Test Comment  '
             },
             {
                 'atc_code': 'A01AA04',
                 'atc_name': 'Test Substance 4',
-                'comment': None
+                'atc_comment': None
             }
         ])
         
         result_df = process_atc_data(test_df, {}, {}, {})
         
-        assert result_df[result_df['atc_code'] == 'A01AA01']['comment'].iloc[0] is None
-        assert result_df[result_df['atc_code'] == 'A01AA02']['comment'].iloc[0] is None
-        assert result_df[result_df['atc_code'] == 'A01AA03']['comment'].iloc[0] == 'Test Comment'
-        assert result_df[result_df['atc_code'] == 'A01AA04']['comment'].iloc[0] is None
+        assert result_df[result_df['atc_code'] == 'A01AA01']['atc_comment'].iloc[0] is None
+        assert result_df[result_df['atc_code'] == 'A01AA02']['atc_comment'].iloc[0] is None
+        assert result_df[result_df['atc_code'] == 'A01AA03']['atc_comment'].iloc[0] == 'Test Comment'
+        assert result_df[result_df['atc_code'] == 'A01AA04']['atc_comment'].iloc[0] is None
 
     @patch('pipeline.atc_ddd.import_atc_ddd.import_atc.get_run_logger')
     def test_comment_combination_with_alterations(self, mock_logger):
@@ -462,7 +462,7 @@ class TestProcessATCData:
             {
                 'atc_code': 'A01AA01',
                 'atc_name': 'Test Substance',
-                'comment': '  Original Comment  '
+                'atc_comment': '  Original Comment  '
             }
         ])
         
@@ -476,7 +476,7 @@ class TestProcessATCData:
         
         result_df = process_atc_data(test_df, atc_mapping, {}, {})
         
-        updated_comment = result_df[result_df['atc_code'] == 'A01AA99']['comment'].iloc[0]
+        updated_comment = result_df[result_df['atc_code'] == 'A01AA99']['atc_comment'].iloc[0]
         # Comment should be replaced with the new comment
         assert updated_comment == 'Updated comment'
 class TestAddATCHierarchy:
@@ -485,14 +485,14 @@ class TestAddATCHierarchy:
         
         add_atc_hierarchy(df)
 
-        expected_columns = ['level', 'anatomical_main_group', 'therapeutic_subgroup', 
+        expected_columns = ['atc_level', 'anatomical_main_group', 'therapeutic_subgroup', 
                           'pharmacological_subgroup', 'chemical_subgroup', 'chemical_substance']
         for col in expected_columns:
             assert col in df.columns
         
         # Check specific mappings for the substance level code (level 5)
         substance_row = df[df['atc_code'] == 'A01AA01'].iloc[0]
-        assert substance_row['level'] == 5
+        assert substance_row['atc_level'] == 5
         assert substance_row['anatomical_main_group'] == 'Alimentary Tract And Metabolism'
         assert substance_row['therapeutic_subgroup'] == 'Stomatological Preparations'
         assert substance_row['pharmacological_subgroup'] == 'Stomatological Preparations'
@@ -501,7 +501,7 @@ class TestAddATCHierarchy:
         
         # Check level 1 code - only anatomical_main_group should be populated
         level1_row = df[df['atc_code'] == 'A'].iloc[0]
-        assert level1_row['level'] == 1
+        assert level1_row['atc_level'] == 1
         assert level1_row['anatomical_main_group'] == 'Alimentary Tract And Metabolism'
         assert pd.isna(level1_row['therapeutic_subgroup'])
         assert pd.isna(level1_row['pharmacological_subgroup'])

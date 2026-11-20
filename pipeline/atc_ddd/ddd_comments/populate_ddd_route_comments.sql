@@ -50,10 +50,10 @@ vmp_with_atcs_and_routes AS (
     ARRAY_AGG(
       STRUCT(
         atc_struct.atc_code AS atc_code,
-        ddd.ddd,
+        ddd.ddd_value,
         ddd.ddd_unit,
-        ddd.adm_code AS ddd_route_code,
-        ddd.comment AS ddd_comment
+        ddd.ddd_adm_code AS ddd_route_code,
+        ddd.ddd_comment AS ddd_comment
       )
     ) AS who_ddds
   FROM `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_TABLE_ID }}` vmp
@@ -87,23 +87,23 @@ ddd_analysis AS (
     -- Check if any ATC codes
     (SELECT COUNT(1) FROM UNNEST(atcs) WHERE atc_code IS NOT NULL) > 0 AS has_atc_codes,
     -- Check if any WHO DDDs with non-NULL values
-    (SELECT COUNT(1) FROM UNNEST(who_ddds) WHERE ddd IS NOT NULL) > 0 AS has_ddds,
+    (SELECT COUNT(1) FROM UNNEST(who_ddds) WHERE ddd_value IS NOT NULL) > 0 AS has_ddds,
     -- Check if any WHO routes for DDD
     ARRAY_LENGTH(COALESCE(who_route_codes, [])) > 0 AS has_who_routes,
     -- Find DDDs that match the WHO route codes used for DDD
     ARRAY(
       SELECT AS STRUCT ddd.*
       FROM UNNEST(who_ddds) AS ddd
-      WHERE ddd.ddd IS NOT NULL
+      WHERE ddd.ddd_value IS NOT NULL
         AND ddd.ddd_route_code IN (SELECT code FROM UNNEST(COALESCE(who_route_codes, [])) AS code)
     ) AS matching_route_ddds,
    -- Check if all matching DDDs have the same value
     (
-      SELECT COUNT(DISTINCT ddd.ddd)
+      SELECT COUNT(DISTINCT ddd.ddd_value)
       FROM UNNEST(ARRAY(
         SELECT AS STRUCT ddd.*
         FROM UNNEST(who_ddds) AS ddd
-        WHERE ddd.ddd IS NOT NULL
+        WHERE ddd.ddd_value IS NOT NULL
           AND ddd.ddd_route_code IN (SELECT code FROM UNNEST(COALESCE(who_route_codes, [])) AS code)
       )) AS ddd
     ) = 1 AS all_matching_ddds_same,
@@ -155,7 +155,7 @@ ddd_selection AS (
     CASE
           -- If comment contains "gel" and product has ontformroute starting with "gel"
           WHEN has_gel_comment_ddd AND has_gel_route THEN (
-            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd_value, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(matching_route_ddds) AS ddd
             WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bgel\b')
             LIMIT 1
@@ -163,7 +163,7 @@ ddd_selection AS (
 
           -- If comment contains "spray" and product has ontformroute starting with "solutionspray"
           WHEN has_spray_comment_ddd AND has_spray_route THEN (
-            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd_value, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(matching_route_ddds) AS ddd
             WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bspray\b')
             LIMIT 1
@@ -171,7 +171,7 @@ ddd_selection AS (
 
           -- If comment contains "vaginal ring" and product has ontformroute = "ring.vaginal" or "vaginaldeliverysystem"
           WHEN has_vaginal_ring_comment_ddd AND has_vaginal_ring_route THEN (
-            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd_value, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(matching_route_ddds) AS ddd
             WHERE LOWER(COALESCE(ddd.ddd_comment, '')) LIKE '%vaginal ring%'
             LIMIT 1
@@ -179,7 +179,7 @@ ddd_selection AS (
 
           -- If comment contains "patch" and product has ontformroute containing "patch.transdermal"
           WHEN has_patch_comment_ddd AND has_patch_route THEN (
-            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd_value, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(matching_route_ddds) AS ddd
             WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bpatch\b')
             LIMIT 1
@@ -187,7 +187,7 @@ ddd_selection AS (
 
           -- If comment is "lipid formulations" and VTM is in specific list, select that DDD
           WHEN has_lipid_formulations_comment_ddd AND vtm_code IN ('773381005', '21202811000001101', '773379008') THEN (
-            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd_value, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(matching_route_ddds) AS ddd
             WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'lipid formulations'
             LIMIT 1
@@ -195,7 +195,7 @@ ddd_selection AS (
 
           -- If comment is "erythromycin ethylsuccinate tablets" and VMP code matches, select that DDD
           WHEN has_erythromycin_tablets_comment_ddd AND vmp_code = '41949111000001108' THEN (
-            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd_value, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(matching_route_ddds) AS ddd
             WHERE LOWER(COALESCE(ddd.ddd_comment, '')) = 'erythromycin ethylsuccinate tablets'
             LIMIT 1
@@ -203,7 +203,7 @@ ddd_selection AS (
 
           -- If comment contains "depot" (e.g. "depot", "depot inj") and VTM name contains "decanoate" and product has P route, select that DDD
           WHEN has_depot_comment_ddd AND vtm_name_contains_decanoate AND has_p_route THEN (
-            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd_value, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(matching_route_ddds) AS ddd
             WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bdepot\b')
             LIMIT 1
@@ -211,7 +211,7 @@ ddd_selection AS (
 
           -- If comment contains "depot" and product has P route and form contains "prolonged-release", select that DDD
           WHEN has_depot_comment_ddd AND has_p_route AND has_prolonged_release_form THEN (
-            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd_value, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(matching_route_ddds) AS ddd
             WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bdepot\b')
             LIMIT 1
@@ -220,7 +220,7 @@ ddd_selection AS (
           -- Leuprorelin 22.5mg depot (VMP 30806811000001103): powder and solvent for suspension for injection is depot
           -- dm+d form lacks "prolonged-release" but product is prolonged-release depot
           WHEN vmp_code = '30806811000001103' AND has_depot_comment_ddd AND has_p_route THEN (
-            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd_value, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(matching_route_ddds) AS ddd
             WHERE REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bdepot\b')
             LIMIT 1
@@ -229,7 +229,7 @@ ddd_selection AS (
           -- Glibenclamide (VTM 776105003): pick DDD for non-micronised forms (exclude microcryst.substance)
           WHEN vtm_code = '776105003' AND has_micronised_comment_ddd
             AND ARRAY_LENGTH(matching_route_ddds) > 1 AND NOT all_matching_ddds_same THEN (
-            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd_value, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(matching_route_ddds) AS ddd
             WHERE NOT REGEXP_CONTAINS(LOWER(COALESCE(ddd.ddd_comment, '')), r'\bmicrocryst\b')
             LIMIT 1
@@ -243,7 +243,7 @@ ddd_selection AS (
             FROM UNNEST(matching_route_ddds) AS ddd
             WHERE COALESCE(ddd.ddd_comment, '') = ''
           ) = 1 THEN (
-            SELECT AS STRUCT ddd.atc_code, ddd.ddd, ddd.ddd_unit, ddd.ddd_comment
+            SELECT AS STRUCT ddd.atc_code, ddd.ddd_value, ddd.ddd_unit, ddd.ddd_comment
             FROM UNNEST(matching_route_ddds) AS ddd
             WHERE COALESCE(ddd.ddd_comment, '') = ''
             LIMIT 1
@@ -259,7 +259,7 @@ SELECT
   ds.vmp_code,
   ds.vmp_name,
   selected_ddd.atc_code,
-  selected_ddd.ddd,
+  selected_ddd.ddd_value,
   selected_ddd.ddd_unit AS ddd_uom,
   selected_ddd.ddd_comment,
   vs.strnt_nmrtr_val AS strength_numerator,
