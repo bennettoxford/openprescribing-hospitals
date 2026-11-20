@@ -5,9 +5,10 @@ import pandas as pd
 from pipeline.organisations.import_trust_admissions import (
     ARCHIVE_PERIOD_END,
     ARCHIVE_PERIOD_START,
-    discover_provisional_publications,
+    M13_CSV_URLS,
+    PROVISIONAL_CSV_URLS,
     filter_after_finalised,
-    parse_provisional_slug,
+    m13_publications_to_import,
     period_to_fy_start_year,
     parse_activity_csv,
     parse_activity_month,
@@ -62,30 +63,18 @@ def test_parse_activity_csv_suppressed_counts():
     assert row["all_specialties_ordinary_elective"] == 4  # midpoint of 1–7
 
 
-SAMPLE_INDEX_HTML = """
-<html><body>
-<a href="https://digital.nhs.uk/data-and-information/publications/statistical/provisional-monthly-hospital-episode-statistics-for-admitted-patient-care-outpatient-and-accident-and-emergency-data/april-2025---april-2025">Apr</a>
-<a href="https://digital.nhs.uk/data-and-information/publications/statistical/provisional-monthly-hospital-episode-statistics-for-admitted-patient-care-outpatient-and-accident-and-emergency-data/april-2025---january-2026">Jan</a>
-<a href="https://digital.nhs.uk/data-and-information/publications/statistical/provisional-monthly-hospital-episode-statistics-for-admitted-patient-care-outpatient-and-accident-and-emergency-data/april-2026---april-2026">Open FY</a>
-<a href="https://digital.nhs.uk/data-and-information/publications/statistical/provisional-monthly-hospital-episode-statistics-for-admitted-patient-care-outpatient-and-accident-and-emergency-data/april-2024---march-2025-month-13">M13</a>
-</body></html>
-"""
+def test_hardcoded_activity_files_use_the_file_host():
+    urls = [*M13_CSV_URLS.values(), *PROVISIONAL_CSV_URLS.values()]
+    assert set(M13_CSV_URLS) == {2020, 2021, 2022, 2023, 2024, 2025}
+    assert set(PROVISIONAL_CSV_URLS) == {2026}
+    assert PROVISIONAL_CSV_URLS[2026].endswith("/HES%20MAR%202026-27%20M6.csv")
+    assert all(url.startswith("https://files.digital.nhs.uk/") and url.endswith(".csv") for url in urls)
 
 
-def test_parse_provisional_slug():
-    assert parse_provisional_slug("april-2025---january-2026") == (2025, date(2026, 1, 1))
-    assert parse_provisional_slug("april-2025---may-2026") is None
-    assert parse_provisional_slug("april-2024---march-2025-month-13") is None
-
-
-def test_discover_provisional_publications_picks_latest_per_fy():
-    discovered = discover_provisional_publications(SAMPLE_INDEX_HTML)
-    assert discovered[2025] == (
-        "https://digital.nhs.uk/data-and-information/publications/statistical/"
-        "provisional-monthly-hospital-episode-statistics-for-admitted-patient-care-"
-        "outpatient-and-accident-and-emergency-data/april-2025---january-2026"
-    )
-    assert 2024 not in discovered
+def test_m13_publications_to_import_skips_a_loaded_year():
+    pubs = dict(m13_publications_to_import(periods={date(2024, 5, 1)}))
+    assert 2024 not in pubs
+    assert pubs[2025] == M13_CSV_URLS[2025]
 
 
 def test_filter_after_finalised():
@@ -95,7 +84,31 @@ def test_filter_after_finalised():
 
 
 def test_provisional_publications_to_import_open_fy_range():
+    publications = {
+        2024: "https://files.digital.nhs.uk/2024.csv",
+        2025: "https://files.digital.nhs.uk/2025.csv",
+        2026: "https://files.digital.nhs.uk/2026.csv",
+    }
     pubs = provisional_publications_to_import(
-        date(2025, 3, 1), SAMPLE_INDEX_HTML, today=date(2026, 6, 1)
+        date(2025, 3, 1), publications, today=date(2026, 6, 1)
     )
-    assert [fy for fy, _ in pubs] == [2025, 2026]
+    assert pubs == [
+        (2025, "https://files.digital.nhs.uk/2025.csv"),
+        (2026, "https://files.digital.nhs.uk/2026.csv"),
+    ]
+
+
+def test_provisional_publications_to_import_keeps_a_partly_finalised_year():
+    publications = {2025: "https://files.digital.nhs.uk/2025.csv"}
+    pubs = provisional_publications_to_import(
+        date(2026, 2, 1), publications, today=date(2026, 3, 1)
+    )
+    assert pubs == [(2025, "https://files.digital.nhs.uk/2025.csv")]
+
+
+def test_provisional_publications_to_import_uses_the_stored_open_year_file():
+    pubs = dict(
+        provisional_publications_to_import(date(2026, 3, 1), today=date(2026, 11, 20))
+    )
+    assert set(pubs) == {2026}
+    assert pubs[2026] == PROVISIONAL_CSV_URLS[2026]
