@@ -17,3 +17,7 @@ date_reviewed: 2026-11-03 # Date of last review (YYYY-MM-DD)
 next_review: 2027-11-03 # Date of next scheduled review (YYYY-MM-DD)
 first_published: 2026-10-20 # Date of first publication (YYYY-MM-DD)
 status: published
+annotations:  # Optional data annotations - vertical lines with labels on charts
+    - date: 2024-01-22
+      label: "MHRA alert on fluoroquinolone prescribing"
+      colour: "#0090C1"
