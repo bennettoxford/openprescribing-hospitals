@@ -13,11 +13,11 @@
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "autoprefixer": "^10.6.2",
-    "postcss": "^8.5.32",
-    "svelte": "^5.57.3",
+    "postcss": "^8.5.33",
+    "svelte": "^5.58.0",
     "tailwindcss": "^3.4.10",
-    "vite": "^8.3.5",
-    "vitest": "^5.1.0"
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
   },
   "dependencies": {
     "@highcharts/svelte": "^1.1.1",
