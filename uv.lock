@@ -654,7 +654,7 @@ wheels = [
 
 [[package]]
 name = "google-cloud-secret-manager"
-version = "2.31.0"
+version = "2.32.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-api-core", extra = ["grpc"] },
@@ -664,9 +664,9 @@ dependencies = [
     { name = "proto-plus" },
     { name = "protobuf" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/99/c5/5f1d1940af5e3b3bcf719ade1d7be688ea8718d52fc6d44c2bb67006198f/google_cloud_secret_manager-2.31.0.tar.gz", hash = "sha256:29bb33b48c3b974495a4d015e06b06b126e23232bccd223d678da1e1a861b6e6", size = 286168, upload-time = "2026-10-01T18:18:01.402Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/09/02/472bdf6b83f78a9dfce9530811f3df0a1f5e3cb83ac631d2d82037fc21ea/google_cloud_secret_manager-2.32.0.tar.gz", hash = "sha256:104635f69f094f717caf0b68adf623f0f0cf7b3236dcba12d3a503e8637017e8", size = 286123, upload-time = "2026-11-05T18:40:19.95Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/db/c6/87d54065389947192be692ce37d65cf899a4540eab44eda5936cb3093cca/google_cloud_secret_manager-2.31.0-py3-none-any.whl", hash = "sha256:945ef53be34b09f94b86eeabca910e19460fb54680cf5e0a792a77d62355e88e", size = 229970, upload-time = "2026-10-01T18:12:09.248Z" },
+    { url = "https://files.pythonhosted.org/packages/08/b7/b4fcf7d01d9deb3162975fef788845cf45fd2c923e4544aa9904a184c248/google_cloud_secret_manager-2.32.0-py3-none-any.whl", hash = "sha256:74eb64fb0bcdd7369ba95b17685860900cfbd2c07a2a8c043680cb25a1197860", size = 230048, upload-time = "2026-11-05T18:39:33.09Z" },
 ]
 
 [[package]]
@@ -1311,7 +1311,7 @@ wheels = [
 
 [[package]]
 name = "pandas-gbq"
-version = "0.35.3"
+version = "0.35.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "db-dtypes" },
@@ -1327,9 +1327,9 @@ dependencies = [
     { name = "pydata-google-auth" },
     { name = "setuptools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a2/8c/9ab1945eed2c033f56ffb5898f0655dc1bcf43305c4b9447c4ddfb8f3314/pandas_gbq-0.35.3.tar.gz", hash = "sha256:adea5edd0ecae197f99850f35098a069782e08e99746cc7c917eea65889b957c", size = 81806, upload-time = "2026-10-23T00:56:27.549Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c9/be/e6d59dca8e3bf4b0bf51866e6107161ca5f760a69ca8c9a79cd8d5b0ab97/pandas_gbq-0.35.4.tar.gz", hash = "sha256:a9bad2d16d100ee683294caff09b0d5c6e53aad393a262fd317e83a94642826d", size = 81548, upload-time = "2026-11-12T14:35:00.454Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/05/6a/9e6033639176f0b7318a694eec17e2578d384dfa400a73f67b15ad714b5e/pandas_gbq-0.35.3-py3-none-any.whl", hash = "sha256:a528f99d7bd5973bcc29f721b2d2e55aff0162f7788b855b1bae16f82eec6318", size = 51934, upload-time = "2026-10-23T00:56:25.872Z" },
+    { url = "https://files.pythonhosted.org/packages/72/41/fc796527a9cab6dbae9660118ccbffd0d8b02abc75f90bcef5ce92d625a6/pandas_gbq-0.35.4-py3-none-any.whl", hash = "sha256:165a72539673d9902e68d0c4e52a57e6936fb40ef4389f24dcc7f0ce9617bb6f", size = 51715, upload-time = "2026-11-12T14:34:59.03Z" },
 ]
 
 [[package]]
@@ -1382,7 +1382,7 @@ wheels = [
 
 [[package]]
 name = "prefect"
-version = "3.9.1"
+version = "3.9.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiosqlite" },
@@ -1443,9 +1443,9 @@ dependencies = [
     { name = "websockets" },
     { name = "whenever" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e8/e9/cccc6b9cdc16e55edaf8ce2bd0850d713b6591cfbf9777cbfcff42fbcf02/prefect-3.9.1.tar.gz", hash = "sha256:56f091cd49a06e6c3f98eea93648208f6750361d1dd0aeb60b5faa0e9cb5c458", size = 6340922, upload-time = "2026-10-30T19:29:12.377Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/46/5d/f06e1770fe68123ac1d4e04e75774023979bc222961d1a48d5d350d0da38/prefect-3.9.3.tar.gz", hash = "sha256:62a91fa1254ab0e4f88bb276e80dc65c66bdddf624620ebbb3241eb59c56143a", size = 6358067, upload-time = "2026-11-13T20:03:44.533Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8f/da/3c44e2775a24ed354787f98cbba3a53d7697ca94094f2413a331e1ca1aa2/prefect-3.9.1-py3-none-any.whl", hash = "sha256:0c662e26e971b617993eed1f3d02fb8bc3c2dd47bee521b495f6e4dfeb38ae74", size = 6987710, upload-time = "2026-10-30T19:29:09.646Z" },
+    { url = "https://files.pythonhosted.org/packages/4e/05/e5deb522418ea52b4212fefed0fef40cdfaddf12c30f646f3078c280a6af/prefect-3.9.3-py3-none-any.whl", hash = "sha256:95a4276000a4252b89cf4220d38e641a7700178d5c0198da0e27df6f2d13ea77", size = 7006505, upload-time = "2026-11-13T20:03:41.596Z" },
 ]
 
 [[package]]
@@ -1698,7 +1698,7 @@ wheels = [
 
 [[package]]
 name = "pydocket"
-version = "0.27.0"
+version = "0.32.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "burner-redis" },
@@ -1715,9 +1715,9 @@ dependencies = [
     { name = "tzdata", marker = "sys_platform == 'win32'" },
     { name = "uncalled-for" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/75/42/9c3346650a2c1fcf74e717e94d68ef88e18d0a0a5159fb68ccc1b56e046e/pydocket-0.27.0.tar.gz", hash = "sha256:4969f6b22deaa72b1b8463e5efaaf0acfed538d007ab1ef8a4f997b61dbfe85b", size = 330815, upload-time = "2026-10-09T15:20:53.159Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/99/b7/cac1f1fc574330d001406e6b8d42c21782a3d6cd382f79b0b54da39f735d/pydocket-0.32.1.tar.gz", hash = "sha256:8dc27a45f6b3fd4a2833f1f16bcd0be67e32543a5b1fceb4a3c7bf4663f9bdcf", size = 355790, upload-time = "2026-11-23T19:54:02.487Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d5/ac/19236a0ff84a0683d880290e5352a105e626f9510b3a80fcf6453f3e67e0/pydocket-0.27.0-py3-none-any.whl", hash = "sha256:49504936f568bc09861afe2c880e2ca1c0bc191898efc56eaf56e3f7e1ab6a85", size = 155557, upload-time = "2026-10-09T15:20:51.646Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/47/74b9f312d110452daba12301d8186c252ba90609d452fdb0854b1799bab7/pydocket-0.32.1-py3-none-any.whl", hash = "sha256:db8492edd59692e263e22b27853c172cb0db98f271a887eba1728df37b1834ea", size = 163042, upload-time = "2026-11-23T19:54:01.205Z" },
 ]
 
 [[package]]
@@ -2234,11 +2234,11 @@ wheels = [
 
 [[package]]
 name = "uncalled-for"
-version = "0.4.1"
+version = "0.6.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/6c/54/4651e4c5fe84300f8e03c0390aaad41bcb9c7b81d7783542a3ee690b40ee/uncalled_for-0.4.1.tar.gz", hash = "sha256:6412b19d1b1e7d431981fee01f8b47be7802f48328a48cbe9603acee757ec553", size = 56971, upload-time = "2026-10-09T12:54:34.941Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a3/60/993a9757dc4a41727351828dc784e66fd467ed81d46cbec25d44cae69657/uncalled_for-0.6.2.tar.gz", hash = "sha256:58835db667a85408c7b6d6ad8dfdd74d7713d3be669b46396ba3d2c6a889242d", size = 73820, upload-time = "2026-11-19T01:15:30.596Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bf/a6/ba763e3812e572de7291676c3a41adfac1ef1209a6acda6bae055970f127/uncalled_for-0.4.1-py3-none-any.whl", hash = "sha256:b611b38879d9fe5088297e7bb28f2ddd12d2d73dad933d93da107fb63eb4058e", size = 14889, upload-time = "2026-10-09T12:54:33.596Z" },
+    { url = "https://files.pythonhosted.org/packages/4e/fb/81dabcc9c8f4200eb5eaa600458978303f1a84ffa5ed356f70bf6c5d1f04/uncalled_for-0.6.2-py3-none-any.whl", hash = "sha256:bcac08897ceb7113b52e6c8070eead4da1610ae23e6e0d0e9f2a6c4bba7905cb", size = 20127, upload-time = "2026-11-19T01:15:29.148Z" },
 ]
 
 [[package]]
