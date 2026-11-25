@@ -26,6 +26,5 @@ first_published: 2027-10-12
 status: published
 annotations:  # Optional data annotations - vertical lines with labels on charts
     - date: 2026-09-01
-      label: "Annotation label"
-      description: "MHRA suspends the use, supply, and sale of Avacopan Vifor to new patients"
+      label: "MHRA suspends the use, supply, and sale of Avacopan Vifor to new patients"
       colour: "#DC3220"
