@@ -2135,6 +2135,9 @@ VMP_STRENGTH_OVERRIDES_TABLE_SPEC = TableSpec(
             "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
         ),
         bigquery.SchemaField(
+            "ingredient_code", "STRING", mode="REQUIRED", description="Ingredient whose dm+d strength this override replaces"
+        ),
+        bigquery.SchemaField(
             "strnt_nmrtr_val", "FLOAT", mode="NULLABLE", description="Override strength numerator value"
         ),
         bigquery.SchemaField(
@@ -2145,6 +2148,18 @@ VMP_STRENGTH_OVERRIDES_TABLE_SPEC = TableSpec(
         ),
         bigquery.SchemaField(
             "strnt_dnmtr_uom", "STRING", mode="NULLABLE", description="Strength denominator unit (e.g. hour)"
+        ),
+        bigquery.SchemaField(
+            "original_strnt_nmrtr_val", "FLOAT", mode="NULLABLE", description="dm+d strength numerator value, kept for reference"
+        ),
+        bigquery.SchemaField(
+            "original_strnt_dnmtr_val", "FLOAT", mode="NULLABLE", description="dm+d strength denominator value, kept for reference"
+        ),
+        bigquery.SchemaField(
+            "original_strnt_nmrtr_uom", "STRING", mode="NULLABLE", description="dm+d strength numerator unit, kept for reference"
+        ),
+        bigquery.SchemaField(
+            "original_strnt_dnmtr_uom", "STRING", mode="NULLABLE", description="dm+d strength denominator unit, kept for reference"
         ),
         bigquery.SchemaField(
             "comments", "STRING", mode="NULLABLE", description="Reason for override (e.g. why dm+d strength is wrong)"
