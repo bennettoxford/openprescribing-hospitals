@@ -338,8 +338,10 @@ SELECT
   CAST(NULL AS STRING) AS expressed_as_ingredient_name,
   ovr.strnt_nmrtr_val AS override_strnt_nmrtr_val,
   ovr.strnt_nmrtr_uom AS override_strnt_nmrtr_uom,
+  ovr.strnt_nmrtr_uom_name AS override_strnt_nmrtr_uom_name,
   ovr.strnt_dnmtr_val AS override_strnt_dnmtr_val,
   ovr.strnt_dnmtr_uom AS override_strnt_dnmtr_uom,
+  ovr.strnt_dnmtr_uom_name AS override_strnt_dnmtr_uom_name,
   ovr.comments AS override_comments
 FROM vmp_enriched v
 LEFT JOIN ddd_calculation_status dcs ON v.vmp_code = dcs.vmp_code

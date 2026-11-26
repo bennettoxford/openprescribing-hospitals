@@ -159,8 +159,10 @@ SELECT
   cr.expressed_as_ingredient_name,
   cr.override_strnt_nmrtr_val,
   cr.override_strnt_nmrtr_uom,
+  cr.override_strnt_nmrtr_uom_name,
   cr.override_strnt_dnmtr_val,
   cr.override_strnt_dnmtr_uom,
+  cr.override_strnt_dnmtr_uom_name,
   cr.override_comments
 FROM current_results cr
 LEFT JOIN vmp_ddd_overrides vdo ON cr.vmp_code = vdo.vmp_code

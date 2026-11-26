@@ -1810,13 +1810,19 @@ DDD_CALCULATION_LOGIC_TABLE_SPEC = TableSpec(
             "override_strnt_nmrtr_val", "FLOAT", mode="NULLABLE", description="Override strength numerator (from vmp_strength_overrides when dm+d strength is wrong)"
         ),
         bigquery.SchemaField(
-            "override_strnt_nmrtr_uom", "STRING", mode="NULLABLE", description="Override strength numerator unit"
+            "override_strnt_nmrtr_uom", "STRING", mode="NULLABLE", description="Override strength numerator unit code"
+        ),
+        bigquery.SchemaField(
+            "override_strnt_nmrtr_uom_name", "STRING", mode="NULLABLE", description="Override strength numerator unit name"
         ),
         bigquery.SchemaField(
             "override_strnt_dnmtr_val", "FLOAT", mode="NULLABLE", description="Override strength denominator"
         ),
         bigquery.SchemaField(
-            "override_strnt_dnmtr_uom", "STRING", mode="NULLABLE", description="Override strength denominator unit"
+            "override_strnt_dnmtr_uom", "STRING", mode="NULLABLE", description="Override strength denominator unit code"
+        ),
+        bigquery.SchemaField(
+            "override_strnt_dnmtr_uom_name", "STRING", mode="NULLABLE", description="Override strength denominator unit name"
         ),
         bigquery.SchemaField(
             "override_comments", "STRING", mode="NULLABLE", description="Reason for strength override (from vmp_strength_overrides)"
@@ -2135,16 +2141,43 @@ VMP_STRENGTH_OVERRIDES_TABLE_SPEC = TableSpec(
             "vmp_code", "STRING", mode="REQUIRED", description="Virtual Medicinal Product (VMP) code"
         ),
         bigquery.SchemaField(
+            "ingredient_code", "STRING", mode="REQUIRED", description="Ingredient whose dm+d strength this override replaces"
+        ),
+        bigquery.SchemaField(
             "strnt_nmrtr_val", "FLOAT", mode="NULLABLE", description="Override strength numerator value"
         ),
         bigquery.SchemaField(
             "strnt_dnmtr_val", "FLOAT", mode="NULLABLE", description="Override strength denominator value"
         ),
         bigquery.SchemaField(
-            "strnt_nmrtr_uom", "STRING", mode="NULLABLE", description="Strength numerator unit (e.g. microgram)"
+            "strnt_nmrtr_uom", "STRING", mode="NULLABLE", description="Override strength numerator unit code (unit_conversion.unit_id)"
         ),
         bigquery.SchemaField(
-            "strnt_dnmtr_uom", "STRING", mode="NULLABLE", description="Strength denominator unit (e.g. hour)"
+            "strnt_nmrtr_uom_name", "STRING", mode="NULLABLE", description="Override strength numerator unit name, kept for reference"
+        ),
+        bigquery.SchemaField(
+            "strnt_dnmtr_uom", "STRING", mode="NULLABLE", description="Override strength denominator unit code (unit_conversion.unit_id)"
+        ),
+        bigquery.SchemaField(
+            "strnt_dnmtr_uom_name", "STRING", mode="NULLABLE", description="Override strength denominator unit name, kept for reference"
+        ),
+        bigquery.SchemaField(
+            "original_strnt_nmrtr_val", "FLOAT", mode="NULLABLE", description="dm+d strength numerator value, kept for reference"
+        ),
+        bigquery.SchemaField(
+            "original_strnt_dnmtr_val", "FLOAT", mode="NULLABLE", description="dm+d strength denominator value, kept for reference"
+        ),
+        bigquery.SchemaField(
+            "original_strnt_nmrtr_uom", "STRING", mode="NULLABLE", description="dm+d strength numerator unit code, kept for reference"
+        ),
+        bigquery.SchemaField(
+            "original_strnt_nmrtr_uom_name", "STRING", mode="NULLABLE", description="dm+d strength numerator unit name, kept for reference"
+        ),
+        bigquery.SchemaField(
+            "original_strnt_dnmtr_uom", "STRING", mode="NULLABLE", description="dm+d strength denominator unit code, kept for reference"
+        ),
+        bigquery.SchemaField(
+            "original_strnt_dnmtr_uom_name", "STRING", mode="NULLABLE", description="dm+d strength denominator unit name, kept for reference"
         ),
         bigquery.SchemaField(
             "comments", "STRING", mode="NULLABLE", description="Reason for override (e.g. why dm+d strength is wrong)"
