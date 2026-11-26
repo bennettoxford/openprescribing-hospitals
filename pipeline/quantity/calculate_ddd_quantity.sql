@@ -122,7 +122,7 @@ data_with_ddd_logic AS (
     AND ddd_logic.ddd_calculation_logic LIKE 'Ingredient quantity%'
     AND ddd_logic.expressed_as_ingredient_code IS NULL
   LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` override_unit_conv
-    ON ddd_logic.override_strnt_nmrtr_uom = override_unit_conv.unit
+    ON ddd_logic.override_strnt_nmrtr_uom = override_unit_conv.unit_id
 ),
 
 ddd_calculations AS (

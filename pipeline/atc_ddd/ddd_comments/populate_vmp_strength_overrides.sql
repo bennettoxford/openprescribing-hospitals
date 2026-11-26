@@ -8,8 +8,8 @@ WITH overrides AS (
     '126172005' AS ingredient_code,
     7.5 AS strnt_nmrtr_val,
     24.0 AS strnt_dnmtr_val,
-    'microgram' AS strnt_nmrtr_uom,
-    'hour' AS strnt_dnmtr_uom,
+    '258685003' AS strnt_nmrtr_uom,
+    '258702006' AS strnt_dnmtr_uom,
     'Using ingredient quantity delivered per 24 hours' AS comments
 )
 SELECT
@@ -18,14 +18,25 @@ SELECT
   o.strnt_nmrtr_val,
   o.strnt_dnmtr_val,
   o.strnt_nmrtr_uom,
+  nmrtr_uom.unit AS strnt_nmrtr_uom_name,
   o.strnt_dnmtr_uom,
-  ing.strnt_nmrtr_val AS original_strnt_nmrtr_val,
-  ing.strnt_dnmtr_val AS original_strnt_dnmtr_val,
-  ing.strnt_nmrtr_uom_name AS original_strnt_nmrtr_uom,
-  ing.strnt_dnmtr_uom_name AS original_strnt_dnmtr_uom,
+  dnmtr_uom.unit AS strnt_dnmtr_uom_name,
+  vpi.strnt_nmrtr_val AS original_strnt_nmrtr_val,
+  vpi.strnt_dnmtr_val AS original_strnt_dnmtr_val,
+  vpi.strnt_nmrtr_uom_code AS original_strnt_nmrtr_uom,
+  original_nmrtr_uom.unit AS original_strnt_nmrtr_uom_name,
+  vpi.strnt_dnmtr_uom_code AS original_strnt_dnmtr_uom,
+  original_dnmtr_uom.unit AS original_strnt_dnmtr_uom_name,
   o.comments
 FROM overrides o
-LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ VMP_TABLE_ID }}` vmp
-  ON o.vmp_code = vmp.vmp_code
-LEFT JOIN UNNEST(vmp.ingredients) AS ing
-  ON ing.ingredient_code = o.ingredient_code
+LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ DMD_VPI_TABLE_ID }}` vpi
+  ON o.vmp_code = vpi.vmp_code
+  AND o.ingredient_code = vpi.ing_code
+LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` nmrtr_uom
+  ON o.strnt_nmrtr_uom = nmrtr_uom.unit_id
+LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` dnmtr_uom
+  ON o.strnt_dnmtr_uom = dnmtr_uom.unit_id
+LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` original_nmrtr_uom
+  ON vpi.strnt_nmrtr_uom_code = original_nmrtr_uom.unit_id
+LEFT JOIN `{{ PROJECT_ID }}.{{ DATASET_ID }}.{{ UNITS_CONVERSION_TABLE_ID }}` original_dnmtr_uom
+  ON vpi.strnt_dnmtr_uom_code = original_dnmtr_uom.unit_id
